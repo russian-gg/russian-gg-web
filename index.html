@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Light is the default; the value is updated only if the learner opts into dark. -->
+    <meta name="theme-color" content="#ffffff" />
+    <script>
+      // Applied before first paint so a learner who chose dark never sees a light flash.
+      // Absence of a stored choice means light, regardless of the OS setting.
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('rgg.theme') === 'dark' ? 'dark' : 'light'
+      } catch (_) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
+    <meta
+      name="description"
+      content="Russian.gg — 90 kunda ish va kundalik hayot uchun amaliy rus tilida gapiring."
+    />
+    <title>Russian.gg</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

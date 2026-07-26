@@ -1,0 +1,172 @@
+@import 'tailwindcss';
+
+/*
+  Russian.gg design tokens (PRD §7).
+
+  Street-smart, focused, optimistic, adult. Light is the product's default and is not
+  tied to the operating system preference — a learner opening the app always gets the
+  light theme unless they deliberately switch. Dark is opt-in via [data-theme="dark"].
+
+  One strong signal colour carries primary action, active navigation, progress and
+  completion. Thin separators and whitespace instead of boxed dashboard widgets.
+  Uzbek Latin and Russian Cyrillic must render equally well, so the stack leads with
+  system faces that cover both.
+*/
+@theme {
+  --color-ground: #ffffff;
+  --color-ground-raised: #ffffff;
+  /* Progress tracks, subtle fills, hover surfaces. */
+  --color-ground-sunken: #f2f4f7;
+
+  --color-ink: #16181d;
+  --color-ink-muted: #868d99;
+  --color-ink-faint: #a7adb8;
+  --color-hairline: #e7e9ed;
+
+  /*
+    The approved brand blue. Used as a *fill*: buttons, progress, active states, the
+    voice badge, the wordmark accent.
+
+    Note for anyone tuning this: white text on this blue is ~2.8:1, below the 4.5:1 in
+    WCAG AA. It is the approved brand colour and the call was made deliberately. If the
+    bar has to be met later, deepen this one value toward #2563eb — nothing else needs
+    to change, because the label colour is its own token.
+  */
+  --color-signal: #5b9bf5;
+  --color-signal-strong: #4a8cee;
+  --color-signal-soft: #eaf2fe;
+
+  /** Label on a signal fill. One knob, so the whole product changes together. */
+  --color-on-signal: #ffffff;
+
+  /*
+    The same hue when it is *text* rather than a fill — links, trend figures, badge
+    labels. Deep enough to read on the ground (4.8:1), because the brand blue is not.
+  */
+  --color-signal-ink: #1f6fe0;
+
+  /* Secondary accents, used sparingly for milestones and contextual status only. */
+  --color-milestone: #0f7355;
+  --color-milestone-soft: #e5f4ef;
+  --color-caution: #8a5a00;
+  --color-caution-soft: #fdf1da;
+  --color-danger: #c8342a;
+  --color-danger-soft: #fdeceb;
+
+  --font-sans:
+    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Noto Sans', 'Noto Sans Cyrillic', sans-serif;
+
+  --radius-card: 16px;
+  /* Controls are pills. Kept as a token so button and badge geometry cannot drift. */
+  --radius-control: 999px;
+
+  --animate-signal: signal 1.4s ease-in-out infinite;
+  --animate-rise: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+  Dark theme. Opt-in only: setting data-theme="dark" on <html> re-points the same
+  variables, so every utility follows without a single dark: prefix in the components.
+  Deliberately not driven by prefers-color-scheme — light is the default state.
+*/
+:root[data-theme='dark'] {
+  --color-ground: #101216;
+  --color-ground-raised: #171a1f;
+  --color-ground-sunken: #21252c;
+
+  --color-ink: #f2f4f7;
+  --color-ink-muted: #99a1af;
+  --color-ink-faint: #6b7280;
+  --color-hairline: #282d35;
+
+  /* The brand blue carries over unchanged; it already reads on a dark ground. */
+  --color-signal: #5b9bf5;
+  --color-signal-strong: #74aef8;
+  --color-signal-soft: #16233a;
+  --color-on-signal: #ffffff;
+
+  /* Inverted for text: on a dark ground the readable variant is the lighter one. */
+  --color-signal-ink: #7db3fa;
+
+  --color-milestone: #46bf9b;
+  --color-milestone-soft: #10241e;
+  --color-caution: #d8a951;
+  --color-caution-soft: #251f11;
+  --color-danger: #f0736a;
+  --color-danger-soft: #2a1614;
+}
+
+@keyframes signal {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    background-color: var(--color-ground);
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* Uzbek and Russian both benefit from slightly tighter tracking at display sizes. */
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+    Focus is always visible and never colour-only, so keyboard users and anyone with a
+    colour-vision difference can still tell where they are (PRD §7 accessibility).
+    The outline follows the element's own radius, so it reads correctly on pills.
+  */
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-signal-soft);
+    color: var(--color-ink);
+  }
+}
+
+@layer utilities {
+  /* Uzbek support text: always present, always visually secondary (PRD §7). */
+  .text-support {
+    color: var(--color-ink-muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  /* Respect a reduced-motion preference for the mission player's animated states. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

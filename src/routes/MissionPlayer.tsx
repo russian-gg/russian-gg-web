@@ -1,0 +1,440 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { api, RequestError, track } from '../lib/api'
+import { categoryLabelUz, formalityLabelUz, stepLabelUz, workplaceLabelUz } from '../lib/format'
+import type {
+  MissionDetail,
+  StartAttemptResponse,
+  TurnFeedback,
+  VoiceSessionOutcome,
+} from '../lib/types'
+import { VoiceBadge, VoiceSignal, type VoiceState } from '../components/VoiceSignal'
+import {
+  Badge,
+  Button,
+  ErrorNote,
+  PlayGlyph,
+  ProgressBar,
+  Rule,
+  Spinner,
+  UzHint,
+} from '../components/ui'
+
+/**
+ * The focused mission player (PRD §6). One objective, one Russian prompt with Uzbek
+ * support, one high-emphasis action to answer by voice, and step progress at the bottom.
+ * Built from hairlines and whitespace rather than stacked cards. Detailed scoring is
+ * deliberately withheld until the mission ends.
+ */
+export function MissionPlayer() {
+  const { missionId = '' } = useParams()
+  const navigate = useNavigate()
+
+  const [attempt, setAttempt] = useState<StartAttemptResponse | null>(null)
+  const [stepIndex, setStepIndex] = useState(0)
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle')
+  const [transcript, setTranscript] = useState('')
+  const [feedback, setFeedback] = useState<TurnFeedback | null>(null)
+  const [degraded, setDegraded] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const {
+    data: mission,
+    isLoading,
+    error: loadError,
+  } = useQuery({
+    queryKey: ['mission', missionId],
+    queryFn: () => api.get<MissionDetail>(`/missions/${missionId}`),
+    retry: false,
+  })
+
+  useEffect(() => {
+    if (!mission) return
+
+    void (async () => {
+      try {
+        const started = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`)
+        setAttempt(started)
+        // Resuming lands the learner on the step they left, not back at the beginning.
+        setStepIndex(started.currentStepIndex)
+      } catch (caught) {
+        setError(caught instanceof RequestError ? caught.message : 'Mashqni ochib bo’lmadi.')
+      }
+    })()
+  }, [mission, missionId])
+
+  if (isLoading) return <Spinner />
+
+  if (loadError instanceof RequestError && loadError.isPaywall) {
+    navigate('/paywall', { replace: true })
+    return <Spinner />
+  }
+
+  if (!mission) return <ErrorNote>Mashq topilmadi.</ErrorNote>
+
+  const step = mission.steps[stepIndex]
+  const nextStep = mission.steps[stepIndex + 1]
+  const totalSteps = mission.steps.length
+  const isLastStep = stepIndex >= totalSteps - 1
+
+  const needsRegisterLabel =
+    mission.summary.category === 'StreetRussian' ||
+    mission.summary.formality === 'Informal' ||
+    mission.summary.formality === 'Slang' ||
+    mission.summary.workplaceUse !== 'Safe'
+
+  async function startVoice() {
+    if (!attempt) return
+
+    setBusy(true)
+    setError(null)
+    setDegraded(null)
+    setVoiceState('thinking')
+
+    try {
+      const outcome = await api.post<VoiceSessionOutcome>('/missions/voice/sessions', {
+        attemptId: attempt.attemptId,
+        stepIndex,
+      })
+
+      if (!outcome.isAvailable) {
+        // An honest degraded state, not a silent failure (PRD §11).
+        setDegraded(outcome.unavailable?.messageUz ?? 'Ovozli aloqa hozir mavjud emas.')
+        setVoiceState('unavailable')
+        return
+      }
+
+      track('voice_started', { mission: mission!.summary.slug })
+      setVoiceState('listening')
+    } catch (caught) {
+      setError(caught instanceof RequestError ? caught.message : 'Ovozli seansni boshlab bo’lmadi.')
+      setVoiceState('idle')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function submitTurn(isRetry: boolean) {
+    if (!attempt || !transcript.trim()) return
+
+    setBusy(true)
+    setVoiceState('thinking')
+    setError(null)
+
+    try {
+      const result = await api.post<TurnFeedback>('/missions/attempts/turns', {
+        attemptId: attempt.attemptId,
+        stepIndex,
+        learnerTranscript: transcript,
+        isRetry,
+      })
+
+      setFeedback(result)
+      setVoiceState('feedback')
+    } catch (caught) {
+      setError(caught instanceof RequestError ? caught.message : 'Javobni yuborib bo’lmadi.')
+      setVoiceState('idle')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function advance() {
+    setFeedback(null)
+    setTranscript('')
+    setVoiceState('idle')
+    setDegraded(null)
+    setStepIndex((current) => Math.min(current + 1, totalSteps - 1))
+  }
+
+  async function complete() {
+    if (!attempt) return
+    setBusy(true)
+    try {
+      await api.post(`/missions/attempts/${attempt.attemptId}/complete`)
+      navigate(`/missions/attempts/${attempt.attemptId}/result`, { replace: true })
+    } catch (caught) {
+      setError(caught instanceof RequestError ? caught.message : 'Mashqni yakunlab bo’lmadi.')
+      setBusy(false)
+    }
+  }
+
+  const week = mission.summary.courseDay ? Math.ceil(mission.summary.courseDay / 7) : null
+
+  return (
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
+      {/* Context line: where this sits in the journey, and which day it is. */}
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-sm text-ink-muted">
+            {categoryLabelUz[mission.summary.category]}
+            {week !== null && ` / ${week}-hafta`}
+          </p>
+        </div>
+
+        {mission.summary.courseDay !== null && mission.summary.courseDay !== undefined && (
+          <Badge outline>{mission.summary.courseDay}-kun</Badge>
+        )}
+      </header>
+
+      <div className="mt-14 flex-1">
+        {/* One clear lesson objective, with the supporting detail directly under it. */}
+        <h1 className="text-3xl leading-[1.15] font-semibold tracking-tight text-ink sm:text-4xl">
+          {mission.summary.titleUz}
+        </h1>
+        <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-muted">
+          {mission.summary.objectiveUz} Sizga {mission.maxVoiceMinutes} daqiqa yetadi.
+        </p>
+
+        {needsRegisterLabel && (
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Badge tone="caution">{formalityLabelUz[mission.summary.formality]}</Badge>
+            <Badge tone="caution">{workplaceLabelUz[mission.summary.workplaceUse]}</Badge>
+          </div>
+        )}
+
+        {mission.usageNoteUz && needsRegisterLabel && (
+          <p className="text-support mt-4 rounded-xl bg-caution-soft px-4 py-3">
+            {mission.usageNoteUz}
+          </p>
+        )}
+
+        <Rule className="mt-10" />
+
+        {error && (
+          <div className="mt-6">
+            <ErrorNote>{error}</ErrorNote>
+          </div>
+        )}
+
+        {/* The line the learner is working on, with its Uzbek support underneath. */}
+        {step?.kind === 'PhraseIntro' ? (
+          <PhraseList phrases={mission.targetPhrases} />
+        ) : (
+          <div className="flex items-start gap-5 py-7">
+            <VoiceBadge state={voiceState} />
+            <div className="min-w-0 flex-1">
+              <p className="text-xl leading-snug font-medium text-ink sm:text-2xl">
+                «{step?.promptRu}»
+              </p>
+              {step?.promptUz && <UzHint>“{step.promptUz}”</UzHint>}
+            </div>
+          </div>
+        )}
+
+        <Rule />
+
+        {/* Action row. One high-emphasis action; everything else stays quiet. */}
+        <div className="py-7">
+          {step?.requiresVoice ? (
+            <VoiceControls
+              state={voiceState}
+              degraded={degraded}
+              transcript={transcript}
+              onTranscript={setTranscript}
+              onStart={() => void startVoice()}
+              onSubmit={() => void submitTurn(false)}
+              busy={busy}
+              promptRu={step.promptRu}
+              feedback={feedback}
+              isLastStep={isLastStep}
+              onRetry={() => {
+                setVoiceState('listening')
+                setFeedback(null)
+              }}
+              onAdvance={isLastStep ? () => void complete() : advance}
+            />
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button
+                size="lg"
+                disabled={busy}
+                onClick={isLastStep ? () => void complete() : advance}
+                className="w-full sm:w-auto"
+              >
+                {isLastStep ? 'Mashqni yakunlash' : 'Davom etish'}
+              </Button>
+              <span className="text-sm text-ink-faint">Uzbekcha yordam yoqilgan</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Step progress at the bottom, not competing metrics (PRD §6). */}
+      <footer className="mt-10">
+        <ProgressBar value={stepIndex + 1} max={totalSteps} label="Mashq progressi" />
+        <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
+          <span>
+            {stepIndex + 1} / {totalSteps} qadam
+          </span>
+          <span className="truncate">
+            {nextStep ? `Keyingi: ${stepLabelUz[nextStep.kind]}` : 'Oxirgi qadam'}
+          </span>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
+  return (
+    <ul className="divide-y divide-hairline">
+      {phrases.map((phrase) => (
+        <li key={phrase.order} className="flex items-start gap-5 py-6">
+          <VoiceBadge />
+          <div className="min-w-0 flex-1">
+            <p className="text-xl leading-snug font-medium text-ink">«{phrase.russian}»</p>
+            {phrase.transliteration && (
+              <p className="mt-1 text-sm text-ink-faint">{phrase.transliteration}</p>
+            )}
+            {/* Uzbek meaning is secondary but always present. */}
+            <UzHint>“{phrase.uzbekMeaning}”</UzHint>
+
+            {phrase.usageNoteUz && (
+              <p className="text-support mt-3 rounded-lg bg-ground-sunken px-3 py-2">
+                {phrase.usageNoteUz}
+              </p>
+            )}
+
+            {phrase.audioUrl && (
+              <audio controls src={phrase.audioUrl} className="mt-3 w-full max-w-sm">
+                <track kind="captions" />
+              </audio>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function VoiceControls({
+  state,
+  degraded,
+  transcript,
+  onTranscript,
+  onStart,
+  onSubmit,
+  busy,
+  promptRu,
+  feedback,
+  isLastStep,
+  onRetry,
+  onAdvance,
+}: {
+  state: VoiceState
+  degraded: string | null
+  transcript: string
+  onTranscript: (value: string) => void
+  onStart: () => void
+  onSubmit: () => void
+  busy: boolean
+  promptRu: string
+  feedback: TurnFeedback | null
+  isLastStep: boolean
+  onRetry: () => void
+  onAdvance: () => void
+}) {
+  if (state === 'feedback' && feedback) {
+    return <TurnFeedbackPanel feedback={feedback} onRetry={onRetry} onAdvance={onAdvance} isLastStep={isLastStep} busy={busy} />
+  }
+
+  const showComposer = state === 'listening' || degraded !== null
+
+  return (
+    <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Button variant="secondary" size="lg" className="w-full sm:w-auto" disabled={busy}>
+          <PlayGlyph />
+          Eshitish
+        </Button>
+
+        {!showComposer && (
+          <Button size="lg" className="w-full sm:w-auto" disabled={busy} onClick={onStart}>
+            {state === 'thinking' ? 'Ulanmoqda…' : 'Javob berish'}
+          </Button>
+        )}
+
+        <span className="text-sm text-ink-faint">Uzbekcha yordam yoqilgan</span>
+      </div>
+
+      {state === 'thinking' && (
+        <div className="mt-7">
+          <VoiceSignal state="thinking" />
+        </div>
+      )}
+
+      {degraded && (
+        <p className="text-support mt-5 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
+      )}
+
+      {showComposer && (
+        <div className="mt-6 max-w-xl">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink">
+              Aytganingizni yozing
+            </span>
+            <textarea
+              value={transcript}
+              onChange={(event) => onTranscript(event.target.value)}
+              rows={3}
+              className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
+              placeholder={promptRu}
+            />
+          </label>
+          <Button
+            size="lg"
+            className="mt-3 w-full sm:w-auto"
+            disabled={busy || !transcript.trim()}
+            onClick={onSubmit}
+          >
+            Javobni yuborish
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Short in-mission feedback only: what went well, then one correction, then a retry that
+ * carries no shaming language (PRD §6).
+ */
+function TurnFeedbackPanel({
+  feedback,
+  onRetry,
+  onAdvance,
+  isLastStep,
+  busy,
+}: {
+  feedback: TurnFeedback
+  onRetry: () => void
+  onAdvance: () => void
+  isLastStep: boolean
+  busy: boolean
+}) {
+  return (
+    <div className="max-w-xl">
+      <div className="rounded-xl bg-milestone-soft px-4 py-3">
+        <p className="text-sm font-semibold text-milestone">Yaxshi tomoni</p>
+        <p className="mt-1 text-base text-ink">{feedback.strengthNote}</p>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-signal-soft px-4 py-3">
+        <p className="text-sm font-semibold text-signal-ink">Bitta tuzatish</p>
+        <p className="mt-1 text-base text-ink">{feedback.headlineCorrection}</p>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <Button variant="secondary" size="lg" className="w-full sm:w-auto" onClick={onRetry} disabled={busy}>
+          Yana bir marta
+        </Button>
+        <Button size="lg" className="w-full sm:w-auto" onClick={onAdvance} disabled={busy}>
+          {isLastStep ? 'Yakunlash' : 'Davom etish'}
+        </Button>
+      </div>
+    </div>
+  )
+}
