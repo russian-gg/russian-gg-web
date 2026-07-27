@@ -27,12 +27,7 @@ jobs:
 
       - name: Package release
         run: |
-          tar \
-            --exclude=.git \
-            --exclude=.github \
-            --exclude=node_modules \
-            --exclude=dist \
-            -czf frontend-release.tgz .
+          git archive --format=tar.gz --output=frontend-release.tgz HEAD
 
       - name: Upload release bundle
         uses: appleboy/scp-action@v0.1.7
