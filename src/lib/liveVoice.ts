@@ -190,6 +190,14 @@ export class LiveVoiceSession {
   }
 
   private async startMicrophone() {
+    if (!window.isSecureContext) {
+      throw new Error("Mikrofon uchun HTTPS kerak. Hozir sayt xavfsiz ulanishda ochilmagan.")
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Brauzer mikrofon API'ni qo'llamayapti.")
+    }
+
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
