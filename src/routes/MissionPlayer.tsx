@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
 import { categoryLabelUz, formalityLabelUz, stepLabelUz, workplaceLabelUz } from '../lib/format'
+import { LiveVoiceSession, playPromptAudio } from '../lib/liveVoice'
 import type {
   MissionDetail,
   StartAttemptResponse,
@@ -37,8 +38,14 @@ export function MissionPlayer() {
   const [transcript, setTranscript] = useState('')
   const [feedback, setFeedback] = useState<TurnFeedback | null>(null)
   const [degraded, setDegraded] = useState<string | null>(null)
+  const [assistantReply, setAssistantReply] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [voiceComposerOpen, setVoiceComposerOpen] = useState(false)
+  const [hasLiveSession, setHasLiveSession] = useState(false)
+  const liveSessionRef = useRef<LiveVoiceSession | null>(null)
+  const liveSessionIdRef = useRef<string | null>(null)
+  const currentStepRef = useRef(0)
 
   const {
     data: mission,
@@ -60,10 +67,24 @@ export function MissionPlayer() {
         // Resuming lands the learner on the step they left, not back at the beginning.
         setStepIndex(started.currentStepIndex)
       } catch (caught) {
-        setError(caught instanceof RequestError ? caught.message : 'Mashqni ochib bo’lmadi.')
+        setError(caught instanceof RequestError ? caught.message : "Mashqni ochib bo'lmadi.")
       }
     })()
   }, [mission, missionId])
+
+  useEffect(() => {
+    currentStepRef.current = stepIndex
+  }, [stepIndex])
+
+  useEffect(() => {
+    return () => {
+      const liveSession = liveSessionRef.current
+      if (!liveSession) return
+      liveSessionRef.current = null
+      liveSessionIdRef.current = null
+      void liveSession.close()
+    }
+  }, [])
 
   if (isLoading) return <Spinner />
 
@@ -73,17 +94,18 @@ export function MissionPlayer() {
   }
 
   if (!mission) return <ErrorNote>Mashq topilmadi.</ErrorNote>
+  const currentMission = mission
 
-  const step = mission.steps[stepIndex]
-  const nextStep = mission.steps[stepIndex + 1]
-  const totalSteps = mission.steps.length
+  const step = currentMission.steps[stepIndex]
+  const nextStep = currentMission.steps[stepIndex + 1]
+  const totalSteps = currentMission.steps.length
   const isLastStep = stepIndex >= totalSteps - 1
 
   const needsRegisterLabel =
-    mission.summary.category === 'StreetRussian' ||
-    mission.summary.formality === 'Informal' ||
-    mission.summary.formality === 'Slang' ||
-    mission.summary.workplaceUse !== 'Safe'
+    currentMission.summary.category === 'StreetRussian' ||
+    currentMission.summary.formality === 'Informal' ||
+    currentMission.summary.formality === 'Slang' ||
+    currentMission.summary.workplaceUse !== 'Safe'
 
   async function startVoice() {
     if (!attempt) return
@@ -91,6 +113,8 @@ export function MissionPlayer() {
     setBusy(true)
     setError(null)
     setDegraded(null)
+    setAssistantReply(null)
+    setTranscript('')
     setVoiceState('thinking')
 
     try {
@@ -102,14 +126,85 @@ export function MissionPlayer() {
       if (!outcome.isAvailable) {
         // An honest degraded state, not a silent failure (PRD §11).
         setDegraded(outcome.unavailable?.messageUz ?? 'Ovozli aloqa hozir mavjud emas.')
+        setVoiceComposerOpen(true)
         setVoiceState('unavailable')
         return
       }
 
-      track('voice_started', { mission: mission!.summary.slug })
-      setVoiceState('listening')
+      if (!outcome.ticket) {
+        throw new Error("Voice ticket qaytmadi.")
+      }
+
+      const liveSession = new LiveVoiceSession(
+        outcome.ticket,
+        buildMissionVoiceInstruction(currentMission, step),
+        {
+          onStatus: (status) => {
+            setVoiceState(
+              status === 'connecting'
+                ? 'thinking'
+                : status === 'listening'
+                  ? 'listening'
+                  : status === 'thinking'
+                    ? 'thinking'
+                    : 'idle',
+            )
+          },
+          onInputTranscript: (text) => {
+            setTranscript(text)
+            setVoiceComposerOpen(true)
+          },
+          onOutputTranscript: (text) => {
+            setAssistantReply(text)
+          },
+          onError: (message) => {
+            setError(message)
+          },
+          onTurnComplete: () => {
+            setVoiceComposerOpen(true)
+          },
+        },
+      )
+
+      liveSessionRef.current = liveSession
+      liveSessionIdRef.current = outcome.ticket.sessionId
+      setHasLiveSession(true)
+
+      await liveSession.start()
+
+      setVoiceComposerOpen(true)
+      track('voice_started', { mission: currentMission.summary.slug })
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : 'Ovozli seansni boshlab bo’lmadi.')
+      const message =
+        caught instanceof RequestError
+          ? caught.message
+          : caught instanceof Error
+            ? caught.message
+            : "Ovozli seansni boshlab bo'lmadi."
+      setError(message)
+      await teardownVoice(false, 'start_failed')
+      setVoiceState('idle')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function stopVoice() {
+    const liveSession = liveSessionRef.current
+    if (!liveSession) return
+
+    setBusy(true)
+    setError(null)
+
+    try {
+      await liveSession.stopAndAwaitTurn()
+      await teardownVoice(true, null)
+      setVoiceState('idle')
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Ovozli seansni tugatib bo'lmadi."
+      setError(message)
+      await teardownVoice(false, 'stop_failed')
       setVoiceState('idle')
     } finally {
       setBusy(false)
@@ -134,18 +229,47 @@ export function MissionPlayer() {
       setFeedback(result)
       setVoiceState('feedback')
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : 'Javobni yuborib bo’lmadi.')
+      setError(caught instanceof RequestError ? caught.message : "Javobni yuborib bo'lmadi.")
       setVoiceState('idle')
     } finally {
       setBusy(false)
     }
   }
 
-  function advance() {
+  async function teardownVoice(completed: boolean, failureReason: string | null) {
+    const liveSession = liveSessionRef.current
+    const sessionId = liveSessionIdRef.current
+    if (!liveSession || !sessionId) return
+
+    const elapsedSeconds = liveSession.elapsedSeconds
+
+    liveSessionRef.current = null
+    liveSessionIdRef.current = null
+    setHasLiveSession(false)
+
+    await liveSession.close().catch(() => {})
+
+    try {
+      await api.post('/missions/voice/sessions/end', {
+        sessionId,
+        elapsedSeconds,
+        lastStepIndex: currentStepRef.current,
+        completed,
+        failureReason,
+      })
+    } catch {
+      // Closing the learning session should not block the UI.
+    }
+  }
+
+  async function advance() {
+    await teardownVoice(true, null)
     setFeedback(null)
     setTranscript('')
+    setAssistantReply(null)
     setVoiceState('idle')
     setDegraded(null)
+    setVoiceComposerOpen(false)
     setStepIndex((current) => Math.min(current + 1, totalSteps - 1))
   }
 
@@ -153,15 +277,16 @@ export function MissionPlayer() {
     if (!attempt) return
     setBusy(true)
     try {
+      await teardownVoice(true, null)
       await api.post(`/missions/attempts/${attempt.attemptId}/complete`)
       navigate(`/missions/attempts/${attempt.attemptId}/result`, { replace: true })
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : 'Mashqni yakunlab bo’lmadi.')
+      setError(caught instanceof RequestError ? caught.message : "Mashqni yakunlab bo'lmadi.")
       setBusy(false)
     }
   }
 
-  const week = mission.summary.courseDay ? Math.ceil(mission.summary.courseDay / 7) : null
+  const week = currentMission.summary.courseDay ? Math.ceil(currentMission.summary.courseDay / 7) : null
 
   return (
     <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
@@ -169,35 +294,35 @@ export function MissionPlayer() {
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-sm text-ink-muted">
-            {categoryLabelUz[mission.summary.category]}
+            {categoryLabelUz[currentMission.summary.category]}
             {week !== null && ` / ${week}-hafta`}
           </p>
         </div>
 
-        {mission.summary.courseDay !== null && mission.summary.courseDay !== undefined && (
-          <Badge outline>{mission.summary.courseDay}-kun</Badge>
+        {currentMission.summary.courseDay !== null && currentMission.summary.courseDay !== undefined && (
+          <Badge outline>{currentMission.summary.courseDay}-kun</Badge>
         )}
       </header>
 
       <div className="mt-14 flex-1">
         {/* One clear lesson objective, with the supporting detail directly under it. */}
         <h1 className="text-3xl leading-[1.15] font-semibold tracking-tight text-ink sm:text-4xl">
-          {mission.summary.titleUz}
+          {currentMission.summary.titleUz}
         </h1>
         <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-muted">
-          {mission.summary.objectiveUz} Sizga {mission.maxVoiceMinutes} daqiqa yetadi.
+          {currentMission.summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
         </p>
 
         {needsRegisterLabel && (
           <div className="mt-5 flex flex-wrap gap-2">
-            <Badge tone="caution">{formalityLabelUz[mission.summary.formality]}</Badge>
-            <Badge tone="caution">{workplaceLabelUz[mission.summary.workplaceUse]}</Badge>
+            <Badge tone="caution">{formalityLabelUz[currentMission.summary.formality]}</Badge>
+            <Badge tone="caution">{workplaceLabelUz[currentMission.summary.workplaceUse]}</Badge>
           </div>
         )}
 
-        {mission.usageNoteUz && needsRegisterLabel && (
+        {currentMission.usageNoteUz && needsRegisterLabel && (
           <p className="text-support mt-4 rounded-xl bg-caution-soft px-4 py-3">
-            {mission.usageNoteUz}
+            {currentMission.usageNoteUz}
           </p>
         )}
 
@@ -211,15 +336,15 @@ export function MissionPlayer() {
 
         {/* The line the learner is working on, with its Uzbek support underneath. */}
         {step?.kind === 'PhraseIntro' ? (
-          <PhraseList phrases={mission.targetPhrases} />
+          <PhraseList phrases={currentMission.targetPhrases} />
         ) : (
           <div className="flex items-start gap-5 py-7">
             <VoiceBadge state={voiceState} />
             <div className="min-w-0 flex-1">
               <p className="text-xl leading-snug font-medium text-ink sm:text-2xl">
-                «{step?.promptRu}»
+                "{step?.promptRu}"
               </p>
-              {step?.promptUz && <UzHint>“{step.promptUz}”</UzHint>}
+              {step?.promptUz && <UzHint>"{step.promptUz}"</UzHint>}
             </div>
           </div>
         )}
@@ -232,26 +357,32 @@ export function MissionPlayer() {
             <VoiceControls
               state={voiceState}
               degraded={degraded}
+              assistantReply={assistantReply}
               transcript={transcript}
               onTranscript={setTranscript}
+              onListen={() => playPromptAudio(step.promptRu)}
               onStart={() => void startVoice()}
+              onStop={() => void stopVoice()}
               onSubmit={() => void submitTurn(false)}
               busy={busy}
+              voiceComposerOpen={voiceComposerOpen}
+              hasLiveSession={hasLiveSession}
               promptRu={step.promptRu}
               feedback={feedback}
               isLastStep={isLastStep}
               onRetry={() => {
-                setVoiceState('listening')
+                setVoiceState('idle')
                 setFeedback(null)
+                setAssistantReply(null)
               }}
-              onAdvance={isLastStep ? () => void complete() : advance}
+              onAdvance={isLastStep ? () => void complete() : () => void advance()}
             />
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button
                 size="lg"
                 disabled={busy}
-                onClick={isLastStep ? () => void complete() : advance}
+                onClick={isLastStep ? () => void complete() : () => void advance()}
                 className="w-full sm:w-auto"
               >
                 {isLastStep ? 'Mashqni yakunlash' : 'Davom etish'}
@@ -278,6 +409,28 @@ export function MissionPlayer() {
   )
 }
 
+function buildMissionVoiceInstruction(
+  mission: MissionDetail,
+  step: MissionDetail['steps'][number] | undefined,
+) {
+  const targetPhrases = mission.targetPhrases.map((phrase) => phrase.russian).join(', ')
+  const promptUz = step?.promptUz ? `Uzbek help: ${step.promptUz}` : ''
+
+  return [
+    'You are a Russian speaking coach for an Uzbek-speaking adult learner.',
+    `Mission objective in Russian: ${mission.objectiveRu}`,
+    `Mission objective in Uzbek: ${mission.summary.objectiveUz}`,
+    `Current learner task in Russian: ${step?.promptRu ?? mission.summary.titleRu}`,
+    promptUz,
+    targetPhrases ? `Steer gently toward these target phrases: ${targetPhrases}` : '',
+    'Keep your replies short, clear, and in spoken Russian.',
+    'After the learner speaks, answer briefly in character and stay inside the lesson.',
+    'Do not switch to unrelated topics.',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
 function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
   return (
     <ul className="divide-y divide-hairline">
@@ -285,12 +438,12 @@ function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
         <li key={phrase.order} className="flex items-start gap-5 py-6">
           <VoiceBadge />
           <div className="min-w-0 flex-1">
-            <p className="text-xl leading-snug font-medium text-ink">«{phrase.russian}»</p>
+            <p className="text-xl leading-snug font-medium text-ink">"{phrase.russian}"</p>
             {phrase.transliteration && (
               <p className="mt-1 text-sm text-ink-faint">{phrase.transliteration}</p>
             )}
             {/* Uzbek meaning is secondary but always present. */}
-            <UzHint>“{phrase.uzbekMeaning}”</UzHint>
+            <UzHint>"{phrase.uzbekMeaning}"</UzHint>
 
             {phrase.usageNoteUz && (
               <p className="text-support mt-3 rounded-lg bg-ground-sunken px-3 py-2">
@@ -313,11 +466,16 @@ function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
 function VoiceControls({
   state,
   degraded,
+  assistantReply,
   transcript,
   onTranscript,
+  onListen,
   onStart,
+  onStop,
   onSubmit,
   busy,
+  voiceComposerOpen,
+  hasLiveSession,
   promptRu,
   feedback,
   isLastStep,
@@ -326,11 +484,16 @@ function VoiceControls({
 }: {
   state: VoiceState
   degraded: string | null
+  assistantReply: string | null
   transcript: string
   onTranscript: (value: string) => void
+  onListen: () => void
   onStart: () => void
+  onStop: () => void
   onSubmit: () => void
   busy: boolean
+  voiceComposerOpen: boolean
+  hasLiveSession: boolean
   promptRu: string
   feedback: TurnFeedback | null
   isLastStep: boolean
@@ -338,24 +501,40 @@ function VoiceControls({
   onAdvance: () => void
 }) {
   if (state === 'feedback' && feedback) {
-    return <TurnFeedbackPanel feedback={feedback} onRetry={onRetry} onAdvance={onAdvance} isLastStep={isLastStep} busy={busy} />
+    return (
+      <TurnFeedbackPanel
+        feedback={feedback}
+        onRetry={onRetry}
+        onAdvance={onAdvance}
+        isLastStep={isLastStep}
+        busy={busy}
+      />
+    )
   }
 
-  const showComposer = state === 'listening' || degraded !== null
+  const showComposer =
+    voiceComposerOpen || degraded !== null || transcript.trim().length > 0 || assistantReply !== null
 
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button variant="secondary" size="lg" className="w-full sm:w-auto" disabled={busy}>
+        <Button variant="secondary" size="lg" className="w-full sm:w-auto" disabled={busy} onClick={onListen}>
           <PlayGlyph />
           Eshitish
         </Button>
 
-        {!showComposer && (
-          <Button size="lg" className="w-full sm:w-auto" disabled={busy} onClick={onStart}>
-            {state === 'thinking' ? 'Ulanmoqda…' : 'Javob berish'}
-          </Button>
-        )}
+        <Button
+          size="lg"
+          className="w-full sm:w-auto"
+          disabled={busy}
+          onClick={hasLiveSession ? onStop : onStart}
+        >
+          {state === 'thinking'
+            ? 'Kutilmoqda...'
+            : hasLiveSession
+              ? 'Gapirishni tugatish'
+              : 'Javob berish'}
+        </Button>
 
         <span className="text-sm text-ink-faint">Uzbekcha yordam yoqilgan</span>
       </div>
@@ -372,22 +551,28 @@ function VoiceControls({
 
       {showComposer && (
         <div className="mt-6 max-w-xl">
+          {assistantReply && (
+            <div className="mb-4 rounded-xl bg-ground-sunken px-4 py-3">
+              <p className="text-sm font-semibold text-ink-faint uppercase">Gemini javobi</p>
+              <p className="mt-1 text-base text-ink">{assistantReply}</p>
+            </div>
+          )}
+
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">
-              Aytganingizni yozing
-            </span>
+            <span className="mb-1.5 block text-sm font-medium text-ink">Aytganingizni yozing</span>
             <textarea
               value={transcript}
               onChange={(event) => onTranscript(event.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
+              disabled={hasLiveSession}
+              className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint disabled:opacity-70"
               placeholder={promptRu}
             />
           </label>
           <Button
             size="lg"
             className="mt-3 w-full sm:w-auto"
-            disabled={busy || !transcript.trim()}
+            disabled={busy || hasLiveSession || !transcript.trim()}
             onClick={onSubmit}
           >
             Javobni yuborish
