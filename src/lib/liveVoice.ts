@@ -200,14 +200,18 @@ export class LiveVoiceSession {
       throw new Error("Brauzer mikrofon API'ni qo'llamayapti.")
     }
 
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-    })
+    try {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+    } catch (error) {
+      throw new Error(await describeMicrophoneError(error))
+    }
 
     this.captureContext = new AudioContext()
     this.captureSource = this.captureContext.createMediaStreamSource(this.mediaStream)
@@ -368,6 +372,49 @@ function wait(ms: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms)
   })
+}
+
+async function describeMicrophoneError(error: unknown) {
+  if (!(error instanceof DOMException)) {
+    return error instanceof Error ? error.message : "Mikrofonga ulanib bo'lmadi."
+  }
+
+  const permissionState = await readMicrophonePermission()
+
+  if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+    if (permissionState === 'denied') {
+      return "Mikrofon brauzer tomonidan bloklangan. Manzil yonidagi qulf ikonkasini bosing va Microphone uchun Allow ni yoqing, keyin sahifani yangilang."
+    }
+
+    return "Mikrofon ruxsati berilmadi. Brauzer chiqqan oynada Allow ni bosing. Agar popup ko'rinmasa, manzil yonidagi qulf ikonkasidan Microphone ni Allow qiling."
+  }
+
+  if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+    return "Mikrofon topilmadi. Qurilmada mikrofon ulanganini tekshiring."
+  }
+
+  if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+    return "Mikrofonni boshqa dastur ushlab turgan bo'lishi mumkin. Zoom, Telegram yoki boshqa audio dasturlarni yopib qayta urinib ko'ring."
+  }
+
+  if (error.name === 'SecurityError') {
+    return "Brauzer mikrofonni xavfsizlik sababi bilan blokladi. Sahifani secure link orqali ochib qayta urinib ko'ring."
+  }
+
+  return error.message || "Mikrofonga ulanib bo'lmadi."
+}
+
+async function readMicrophonePermission(): Promise<PermissionState | null> {
+  if (!('permissions' in navigator) || typeof navigator.permissions.query !== 'function') {
+    return null
+  }
+
+  try {
+    const result = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+    return result.state
+  } catch {
+    return null
+  }
 }
 
 async function parseServerMessage(data: Blob | ArrayBuffer | string) {
