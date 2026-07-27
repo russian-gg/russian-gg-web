@@ -115,16 +115,18 @@ export class LiveVoiceSession {
         ws.send(JSON.stringify({
           setup: {
             model: toModelResourceName(this.ticket.model),
-            responseModalities: ['AUDIO'],
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             systemInstruction: {
               parts: [{ text: this.systemInstruction }],
             },
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: 'Kore',
+            generationConfig: {
+              responseModalities: ['AUDIO'],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: 'Kore',
+                  },
                 },
               },
             },
@@ -132,9 +134,9 @@ export class LiveVoiceSession {
         }))
       }
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
-          const response = JSON.parse(String(event.data)) as LiveServerMessage
+          const response = (await parseServerMessage(event.data)) as LiveServerMessage
 
           if (response.setupComplete) {
             resolve()
@@ -366,6 +368,22 @@ function wait(ms: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms)
   })
+}
+
+async function parseServerMessage(data: Blob | ArrayBuffer | string) {
+  if (typeof data === 'string') {
+    return JSON.parse(data)
+  }
+
+  if (data instanceof Blob) {
+    return JSON.parse(await data.text())
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return JSON.parse(new TextDecoder().decode(data))
+  }
+
+  return JSON.parse(String(data))
 }
 
 type LiveServerMessage = {
