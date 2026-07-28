@@ -101,6 +101,10 @@ export function MissionPlayer() {
   const nextStep = currentMission.steps[stepIndex + 1]
   const totalSteps = currentMission.steps.length
   const isLastStep = stepIndex >= totalSteps - 1
+  const promptAudioText =
+    step?.kind === 'PhraseIntro'
+      ? currentMission.targetPhrases.map((phrase) => phrase.russian).join('. ')
+      : step?.promptRu ?? currentMission.summary.titleRu
 
   const needsRegisterLabel =
     currentMission.summary.category === 'StreetRussian' ||
@@ -354,43 +358,30 @@ export function MissionPlayer() {
 
         {/* Action row. One high-emphasis action; everything else stays quiet. */}
         <div className="py-7">
-          {step?.requiresVoice ? (
-            <VoiceControls
-              state={voiceState}
-              degraded={degraded}
-              assistantReply={assistantReply}
-              transcript={transcript}
-              onTranscript={setTranscript}
-              onListen={() => playPromptAudio(step.promptRu)}
-              onStart={() => void startVoice()}
-              onStop={() => void stopVoice()}
-              onSubmit={() => void submitTurn(false)}
-              busy={busy}
-              voiceComposerOpen={voiceComposerOpen}
-              hasLiveSession={hasLiveSession}
-              promptRu={step.promptRu}
-              feedback={feedback}
-              isLastStep={isLastStep}
-              onRetry={() => {
-                setVoiceState('idle')
-                setFeedback(null)
-                setAssistantReply(null)
-              }}
-              onAdvance={isLastStep ? () => void complete() : () => void advance()}
-            />
-          ) : (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button
-                size="lg"
-                disabled={busy}
-                onClick={isLastStep ? () => void complete() : () => void advance()}
-                className="w-full sm:w-auto"
-              >
-                {isLastStep ? 'Mashqni yakunlash' : 'Davom etish'}
-              </Button>
-              <span className="text-sm text-ink-faint">Uzbekcha yordam yoqilgan</span>
-            </div>
-          )}
+          <VoiceControls
+            state={voiceState}
+            degraded={degraded}
+            assistantReply={assistantReply}
+            transcript={transcript}
+            onTranscript={setTranscript}
+            onListen={() => playPromptAudio(promptAudioText)}
+            onStart={() => void startVoice()}
+            onStop={() => void stopVoice()}
+            onSubmit={() => void submitTurn(false)}
+            busy={busy}
+            voiceComposerOpen={voiceComposerOpen}
+            hasLiveSession={hasLiveSession}
+            promptRu={promptAudioText}
+            feedback={feedback}
+            isLastStep={isLastStep}
+            onRetry={() => {
+              setVoiceState('idle')
+              setFeedback(null)
+              setAssistantReply(null)
+            }}
+            onAdvance={isLastStep ? () => void complete() : () => void advance()}
+            allowAdvanceWithoutAnswer={!step?.requiresVoice}
+          />
         </div>
       </div>
 
@@ -511,6 +502,7 @@ function VoiceControls({
   isLastStep,
   onRetry,
   onAdvance,
+  allowAdvanceWithoutAnswer,
 }: {
   state: VoiceState
   degraded: string | null
@@ -529,6 +521,7 @@ function VoiceControls({
   isLastStep: boolean
   onRetry: () => void
   onAdvance: () => void
+  allowAdvanceWithoutAnswer: boolean
 }) {
   if (state === 'feedback' && feedback) {
     return (
@@ -607,6 +600,15 @@ function VoiceControls({
           >
             Javobni yuborish
           </Button>
+        </div>
+      )}
+
+      {allowAdvanceWithoutAnswer && !hasLiveSession && state !== 'feedback' && (
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button size="lg" disabled={busy} onClick={onAdvance} className="w-full sm:w-auto">
+            {isLastStep ? 'Mashqni yakunlash' : 'Davom etish'}
+          </Button>
+          <span className="text-sm text-ink-faint">Javob bermasdan ham keyingi qadamga o'tish mumkin</span>
         </div>
       )}
     </div>

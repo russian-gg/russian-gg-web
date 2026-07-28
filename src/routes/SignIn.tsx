@@ -9,6 +9,7 @@ export function SignIn() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -44,14 +45,16 @@ export function SignIn() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <Field
+        <PasswordField
           label="Parol"
           name="password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           autoComplete="current-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          showPassword={showPassword}
+          onTogglePassword={() => setShowPassword((value) => !value)}
         />
 
         <Button type="submit" size="lg" block disabled={busy}>
@@ -67,6 +70,7 @@ export function SignUp() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -118,16 +122,18 @@ export function SignUp() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <Field
+        <PasswordField
           label="Parol"
           name="password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           autoComplete="new-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           hint="Kamida 8 belgi, harf va raqam bilan."
+          showPassword={showPassword}
+          onTogglePassword={() => setShowPassword((value) => !value)}
         />
 
         <Button type="submit" size="lg" block disabled={busy}>
@@ -156,5 +162,43 @@ function AuthLayout({
       {children}
       <p className="text-support mt-6">{footer}</p>
     </div>
+  )
+}
+
+function PasswordField({
+  label,
+  hint,
+  showPassword,
+  onTogglePassword,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  label: string
+  hint?: string
+  showPassword: boolean
+  onTogglePassword: () => void
+}) {
+  const id = props.id ?? props.name ?? label
+
+  return (
+    <label className="block" htmlFor={id}>
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
+      <div className="relative">
+        <input
+          {...props}
+          id={id}
+          className="h-12 w-full rounded-xl border border-hairline bg-ground-raised px-4 pr-24 text-base text-ink placeholder:text-ink-faint"
+        />
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute top-1/2 right-3 -translate-y-1/2 text-sm font-semibold text-signal-ink"
+          aria-label={showPassword ? "Parolni yashirish" : "Parolni ko'rsatish"}
+          aria-pressed={showPassword}
+        >
+          {showPassword ? 'Yashirish' : "Ko'rsatish"}
+        </button>
+      </div>
+      {hint && <span className="text-support mt-1 block">{hint}</span>}
+    </label>
   )
 }
