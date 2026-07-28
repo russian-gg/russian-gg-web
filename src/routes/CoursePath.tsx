@@ -98,11 +98,7 @@ function DayRow({
           {day.day}
         </span>
 
-        <span
-          className={`flex-1 text-base ${
-            day.isUnlocked || isPreviewMode ? 'text-ink' : 'text-ink-faint'
-          }`}
-        >
+        <span className={`flex-1 text-base ${day.isUnlocked ? 'text-ink' : 'text-ink-faint'}`}>
           {day.focusUz}
         </span>
 

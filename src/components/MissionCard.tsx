@@ -12,6 +12,9 @@ const categoryLabelUz = {
 } as const
 
 export function MissionCard({ mission }: { mission: MissionSummary }) {
+  const isProLock =
+    mission.isLocked && (mission.lockReason?.toLowerCase().includes('pro') ?? false)
+
   const needsRegisterLabel =
     mission.category === 'StreetRussian' ||
     mission.formality === 'Informal' ||
@@ -24,7 +27,7 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
         <Badge>{categoryLabelUz[mission.category]}</Badge>
         {mission.courseDay && <Badge>{mission.courseDay}-kun</Badge>}
         {mission.isCompleted && <Badge tone="milestone">Bajarildi</Badge>}
-        {mission.isLocked && <Badge tone="caution">Pro kerak</Badge>}
+        {mission.isLocked && <Badge tone="caution">{isProLock ? 'Pro kerak' : 'Keyinroq'}</Badge>}
       </div>
 
       <h3 className="mt-3 text-lg font-semibold leading-snug text-ink">{mission.titleUz}</h3>
@@ -56,7 +59,7 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
 
   if (mission.isLocked) {
     return (
-      <Link to="/paywall" className={`${className} opacity-75`}>
+      <Link to={isProLock ? '/paywall' : '/home'} className={`${className} opacity-75`}>
         {body}
       </Link>
     )
