@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { phaseLabelUz } from '../lib/format'
-import type { CourseDayView, MissionSummary } from '../lib/types'
+import type { CourseDayView, EntitlementView, MissionSummary } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { Badge, Card, SectionHeading, Spinner } from '../components/ui'
 
@@ -15,7 +15,14 @@ export function CoursePath() {
     queryFn: () => api.get<CourseDayView[]>('/course/map'),
   })
 
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
+  })
+
   if (isLoading || !days) return <Spinner />
+
+  const isPreviewMode = entitlement?.hasProAccess === true && entitlement.status === 'None'
 
   const phases = [
     { phase: 'Foundation' as const, range: '1–30' },
@@ -48,6 +55,7 @@ export function CoursePath() {
                   key={day.day}
                   day={day}
                   isOpen={openDay === day.day}
+                  isPreviewMode={isPreviewMode}
                   onToggle={() => setOpenDay(openDay === day.day ? null : day.day)}
                 />
               ))}
@@ -62,10 +70,12 @@ export function CoursePath() {
 function DayRow({
   day,
   isOpen,
+  isPreviewMode,
   onToggle,
 }: {
   day: CourseDayView
   isOpen: boolean
+  isPreviewMode: boolean
   onToggle: () => void
 }) {
   const { data: missions, isLoading } = useQuery({
@@ -88,12 +98,16 @@ function DayRow({
           {day.day}
         </span>
 
-        <span className={`flex-1 text-base ${day.isUnlocked ? 'text-ink' : 'text-ink-faint'}`}>
+        <span
+          className={`flex-1 text-base ${
+            day.isUnlocked || isPreviewMode ? 'text-ink' : 'text-ink-faint'
+          }`}
+        >
           {day.focusUz}
         </span>
 
         {isDone && <Badge tone="milestone">Bajarildi</Badge>}
-        {!day.isUnlocked && !isDone && (
+        {!isPreviewMode && !day.isUnlocked && !isDone && (
           <Badge tone={day.isFreePreview ? 'neutral' : 'caution'}>
             {day.isFreePreview ? 'Ochiq' : 'Yopiq'}
           </Badge>
