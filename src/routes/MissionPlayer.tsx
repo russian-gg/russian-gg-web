@@ -408,22 +408,79 @@ function buildMissionVoiceInstruction(
   const targetPhrases = mission.targetPhrases.map((phrase) => phrase.russian).join(', ')
   const promptUz = step?.promptUz ? `Uzbek help: ${step.promptUz}` : ''
   const languageGuidance = languageGuidanceForPhase(mission.summary.phase, mission.summary.targetLevel)
+  const stepGuidance = stepSpecificGuidance(step, mission.steps.length)
 
   return [
     'You are a Russian speaking coach for an Uzbek-speaking adult learner.',
     `Mission objective in Russian: ${mission.objectiveRu}`,
     `Mission objective in Uzbek: ${mission.summary.objectiveUz}`,
     `Current learner task in Russian: ${step?.promptRu ?? mission.summary.titleRu}`,
+    `Current step number: ${step?.order ?? 1} of ${mission.steps.length}.`,
     promptUz,
     targetPhrases ? `Steer gently toward these target phrases: ${targetPhrases}` : '',
     `Learner phase: ${mission.summary.phase}.`,
     `Learner level: ${mission.summary.targetLevel}.`,
     ...languageGuidance,
-    'After the learner speaks, answer briefly in character and stay inside the lesson.',
+    ...stepGuidance,
+    'After the learner speaks, reply very briefly and stop.',
+    'Do not ask the next question, do not mention later steps, and do not combine multiple prompts.',
+    'Stay only inside the current step and never advance the lesson on your own.',
     'Do not switch to unrelated topics.',
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+function stepSpecificGuidance(
+  step: MissionDetail['steps'][number] | undefined,
+  totalSteps: number,
+) {
+  if (!step) {
+    return [
+      'Focus only on the current learner prompt.',
+      'Do not introduce any other part of the lesson.',
+    ]
+  }
+
+  if (step.kind === 'PhraseIntro') {
+    return [
+      `This is a phrase-practice step, not step 2-${totalSteps}.`,
+      'Let the learner repeat one phrase or say one short example using the phrase.',
+      'After one learner answer, acknowledge it briefly, give at most one tiny correction, and stop.',
+      'Do not ask the remaining lesson questions.',
+    ]
+  }
+
+  if (step.kind === 'ListenAndUnderstand') {
+    return [
+      'This is a listening-check step.',
+      'Ask only about this one listening line and accept one short understanding answer.',
+      'After one learner answer, confirm briefly and stop.',
+      'Do not move into speaking turn, role play, recap, or any later question.',
+    ]
+  }
+
+  if (step.kind === 'SpeakingTurn') {
+    return [
+      'This is one speaking answer only.',
+      'Ask or support only the current speaking prompt.',
+      'After one learner answer, respond briefly and stop.',
+    ]
+  }
+
+  if (step.kind === 'RolePlay') {
+    return [
+      'Keep the role play to one short exchange only.',
+      'Do not continue into additional questions after the learner answers once.',
+      'After one brief in-character reply, stop.',
+    ]
+  }
+
+  return [
+    'This is a recap step.',
+    'Accept one short learner answer or repetition, then stop.',
+    'Do not open a new question after that.',
+  ]
 }
 
 function languageGuidanceForPhase(phase: CoursePhase, targetLevel: MissionDetail['summary']['targetLevel']) {
