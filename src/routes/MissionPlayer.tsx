@@ -5,6 +5,7 @@ import { api, RequestError, track } from '../lib/api'
 import { categoryLabelUz, formalityLabelUz, stepLabelUz, workplaceLabelUz } from '../lib/format'
 import { LiveVoiceSession, playPromptAudio } from '../lib/liveVoice'
 import type {
+  CoursePhase,
   MissionDetail,
   StartAttemptResponse,
   TurnFeedback,
@@ -415,6 +416,7 @@ function buildMissionVoiceInstruction(
 ) {
   const targetPhrases = mission.targetPhrases.map((phrase) => phrase.russian).join(', ')
   const promptUz = step?.promptUz ? `Uzbek help: ${step.promptUz}` : ''
+  const languageGuidance = languageGuidanceForPhase(mission.summary.phase, mission.summary.targetLevel)
 
   return [
     'You are a Russian speaking coach for an Uzbek-speaking adult learner.',
@@ -423,12 +425,40 @@ function buildMissionVoiceInstruction(
     `Current learner task in Russian: ${step?.promptRu ?? mission.summary.titleRu}`,
     promptUz,
     targetPhrases ? `Steer gently toward these target phrases: ${targetPhrases}` : '',
-    'Keep your replies short, clear, and in spoken Russian.',
+    `Learner phase: ${mission.summary.phase}.`,
+    `Learner level: ${mission.summary.targetLevel}.`,
+    ...languageGuidance,
     'After the learner speaks, answer briefly in character and stay inside the lesson.',
     'Do not switch to unrelated topics.',
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+function languageGuidanceForPhase(phase: CoursePhase, targetLevel: MissionDetail['summary']['targetLevel']) {
+  if (phase === 'Foundation') {
+    return [
+      'Use Uzbek as the main language for instructions, help, and corrections.',
+      'Keep your Russian very short and simple, around beginner level.',
+      'When you ask a question in Russian, immediately support it with one short Uzbek explanation.',
+      'If the learner is confused, explain what they should say in Uzbek first, then model the Russian answer.',
+      `The learner is a beginner (${targetLevel}), so do not stay in Russian only.`,
+    ]
+  }
+
+  if (phase === 'Bridge') {
+    return [
+      'Use simple Russian first, but add one short Uzbek explanation when giving help or correction.',
+      'Keep sentences short, clear, and slower than normal native speed.',
+      'If the learner hesitates or misunderstands, switch briefly to Uzbek to unblock them, then return to Russian.',
+    ]
+  }
+
+  return [
+    'Use Russian first for the main interaction.',
+    'Use Uzbek only when the learner is clearly confused, stuck, or explicitly asks for help.',
+    'Keep the interaction natural, but still stay at the learner level.',
+  ]
 }
 
 function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
