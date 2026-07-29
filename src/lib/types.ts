@@ -133,6 +133,9 @@ export interface MissionStepView {
   promptRu: string
   promptUz?: string | null
   requiresVoice: boolean
+  tutorInstruction?: string | null
+  acceptedAnswers: string[]
+  rubric?: string | null
 }
 
 export interface MissionDetail {

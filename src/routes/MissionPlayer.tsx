@@ -406,6 +406,12 @@ function buildMissionVoiceInstruction(
 ) {
   const targetPhrases = mission.targetPhrases.map((phrase) => phrase.russian).join(', ')
   const promptUz = step?.promptUz ? `Uzbek help: ${step.promptUz}` : ''
+  const acceptedAnswers =
+    step?.acceptedAnswers?.length
+      ? `Answers that fully satisfy this step: ${step.acceptedAnswers.join(' | ')}`
+      : ''
+  const scoringRubric = step?.rubric ? `Scoring rubric: ${step.rubric}` : ''
+  const tutorInstruction = step?.tutorInstruction ? `Tutor instruction: ${step.tutorInstruction}` : ''
   const languageGuidance = languageGuidanceForPhase(mission.summary.phase, mission.summary.targetLevel)
   const stepGuidance = stepSpecificGuidance(step, mission.steps.length)
 
@@ -417,10 +423,16 @@ function buildMissionVoiceInstruction(
     `Current step number: ${step?.order ?? 1} of ${mission.steps.length}.`,
     promptUz,
     targetPhrases ? `Steer gently toward these target phrases: ${targetPhrases}` : '',
+    acceptedAnswers,
+    scoringRubric,
+    tutorInstruction,
     `Learner phase: ${mission.summary.phase}.`,
     `Learner level: ${mission.summary.targetLevel}.`,
     ...languageGuidance,
     ...stepGuidance,
+    'First check whether the learner answered the current question itself.',
+    'If the learner answered the wrong question or missed a required detail, do not praise it as correct.',
+    'In that case, explain briefly in Uzbek what was expected, give one short Russian model answer, and ask them to try again.',
     'After the learner speaks, reply very briefly and stop.',
     'Do not ask the next question, do not mention later steps, and do not combine multiple prompts.',
     'Stay only inside the current step and never advance the lesson on your own.',
@@ -463,6 +475,7 @@ function stepSpecificGuidance(
     return [
       'This is one speaking answer only.',
       'Ask or support only the current speaking prompt.',
+      'If the learner gives an off-topic answer, say it does not answer this question yet and ask for a retry.',
       'After one learner answer, respond briefly and stop.',
     ]
   }
@@ -470,6 +483,7 @@ function stepSpecificGuidance(
   if (step.kind === 'RolePlay') {
     return [
       'Keep the role play to one short exchange only.',
+      'Do not treat an off-topic answer as correct just to keep the conversation moving.',
       'Do not continue into additional questions after the learner answers once.',
       'After one brief in-character reply, stop.',
     ]

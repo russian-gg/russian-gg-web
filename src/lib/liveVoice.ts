@@ -59,6 +59,7 @@ export class LiveVoiceSession {
 
     await this.openWebSocket()
     await this.startMicrophone()
+    this.ws?.send(JSON.stringify({ realtimeInput: { activityStart: {} } }))
     this.recording = true
     this.callbacks.onStatus('listening')
   }
@@ -77,7 +78,7 @@ export class LiveVoiceSession {
         this.resolveTurnComplete = resolve
         this.rejectTurnComplete = reject
       })
-      this.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }))
+      this.ws.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }))
     }
 
     await Promise.race([
@@ -129,6 +130,11 @@ export class LiveVoiceSession {
             outputAudioTranscription: {},
             systemInstruction: {
               parts: [{ text: this.systemInstruction }],
+            },
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                disabled: true,
+              },
             },
             generationConfig: {
               responseModalities: ['AUDIO'],
