@@ -2,6 +2,7 @@ import type { VoiceSessionTicket } from './types'
 
 const INPUT_SAMPLE_RATE = 16_000
 const OUTPUT_SAMPLE_RATE = 24_000
+const TURN_COMPLETE_TIMEOUT_MS = 40_000
 
 export type LiveVoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'closed'
 
@@ -78,7 +79,7 @@ export class LiveVoiceSession {
 
     await Promise.race([
       this.turnCompletePromise ?? Promise.resolve(),
-      wait(20_000).then(() => {
+      wait(TURN_COMPLETE_TIMEOUT_MS).then(() => {
         throw new Error("Gemini javobi kutilyapti, lekin juda cho'zilib ketdi.")
       }),
     ])
