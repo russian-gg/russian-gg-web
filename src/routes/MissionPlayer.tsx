@@ -156,7 +156,7 @@ export function MissionPlayer() {
             )
           },
           onInputTranscript: (text) => {
-            setTranscript(text)
+            setTranscript(normalizeRecognizedRussian(text, currentMission, step))
             setVoiceComposerOpen(true)
           },
           onOutputTranscript: (text) => {
@@ -440,6 +440,206 @@ function buildMissionVoiceInstruction(
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+function normalizeRecognizedRussian(
+  text: string,
+  mission: MissionDetail,
+  step: MissionDetail['steps'][number] | undefined,
+) {
+  const raw = text.trim()
+  if (!raw) {
+    return raw
+  }
+
+  if (/[А-Яа-яЁё]/.test(raw)) {
+    return raw
+  }
+
+  const latinLetters = raw.match(/[a-z]/gi)?.length ?? 0
+  if (latinLetters < 2) {
+    return raw
+  }
+
+  const expected = collectExpectedRussianPhrases(mission, step)
+  const best = findBestRussianCandidate(raw, expected)
+  if (best) {
+    return best
+  }
+
+  return latinToCyrillic(raw)
+}
+
+function collectExpectedRussianPhrases(
+  mission: MissionDetail,
+  step: MissionDetail['steps'][number] | undefined,
+) {
+  return Array.from(
+    new Set(
+      [
+        ...(step?.acceptedAnswers ?? []),
+        ...(step?.kind === 'PhraseIntro' ? mission.targetPhrases.map((phrase) => phrase.russian) : []),
+      ]
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    ),
+  )
+}
+
+function findBestRussianCandidate(raw: string, candidates: string[]) {
+  const normalizedRaw = normalizeLatinForMatch(raw)
+  if (!normalizedRaw) {
+    return null
+  }
+
+  let best: { phrase: string; score: number } | null = null
+  for (const phrase of candidates) {
+    const latinPhrase = normalizeLatinForMatch(cyrillicToLatin(phrase))
+    const score = similarityScore(normalizedRaw, latinPhrase)
+    if (!best || score > best.score) {
+      best = { phrase, score }
+    }
+  }
+
+  if (!best) {
+    return null
+  }
+
+  return best.score >= 0.68 ? best.phrase : null
+}
+
+function normalizeLatinForMatch(value: string) {
+  return value.toLowerCase().replace(/[^a-z]+/g, '')
+}
+
+function similarityScore(left: string, right: string) {
+  if (!left || !right) {
+    return 0
+  }
+
+  const distance = levenshtein(left, right)
+  return 1 - distance / Math.max(left.length, right.length)
+}
+
+function levenshtein(left: string, right: string) {
+  const rows = left.length + 1
+  const cols = right.length + 1
+  const dp = Array.from({ length: rows }, (_, i) => Array<number>(cols).fill(i === 0 ? 0 : i))
+
+  for (let j = 0; j < cols; j += 1) {
+    dp[0][j] = j
+  }
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost,
+      )
+    }
+  }
+
+  return dp[left.length][right.length]
+}
+
+function latinToCyrillic(value: string) {
+  let text = value.toLowerCase()
+
+  const digraphs: Array<[RegExp, string]> = [
+    [/shch/g, 'щ'],
+    [/sch/g, 'щ'],
+    [/yo/g, 'ё'],
+    [/yu/g, 'ю'],
+    [/ya/g, 'я'],
+    [/zh/g, 'ж'],
+    [/kh/g, 'х'],
+    [/ts/g, 'ц'],
+    [/ch/g, 'ч'],
+    [/sh/g, 'ш'],
+    [/ye/g, 'е'],
+    [/iy/g, 'ий'],
+  ]
+
+  for (const [pattern, replacement] of digraphs) {
+    text = text.replace(pattern, replacement)
+  }
+
+  const singleMap: Record<string, string> = {
+    a: 'а',
+    b: 'б',
+    c: 'к',
+    d: 'д',
+    e: 'е',
+    f: 'ф',
+    g: 'г',
+    h: 'х',
+    i: 'и',
+    j: 'й',
+    k: 'к',
+    l: 'л',
+    m: 'м',
+    n: 'н',
+    o: 'о',
+    p: 'п',
+    q: 'к',
+    r: 'р',
+    s: 'с',
+    t: 'т',
+    u: 'у',
+    v: 'в',
+    w: 'в',
+    x: 'кс',
+    y: 'й',
+    z: 'з',
+  }
+
+  return text.replace(/[a-z]/g, (char) => singleMap[char] ?? char)
+}
+
+function cyrillicToLatin(value: string) {
+  const map: Record<string, string> = {
+    а: 'a',
+    б: 'b',
+    в: 'v',
+    г: 'g',
+    д: 'd',
+    е: 'e',
+    ё: 'yo',
+    ж: 'zh',
+    з: 'z',
+    и: 'i',
+    й: 'y',
+    к: 'k',
+    л: 'l',
+    м: 'm',
+    н: 'n',
+    о: 'o',
+    п: 'p',
+    р: 'r',
+    с: 's',
+    т: 't',
+    у: 'u',
+    ф: 'f',
+    х: 'kh',
+    ц: 'ts',
+    ч: 'ch',
+    ш: 'sh',
+    щ: 'shch',
+    ъ: '',
+    ы: 'y',
+    ь: '',
+    э: 'e',
+    ю: 'yu',
+    я: 'ya',
+  }
+
+  return value
+    .toLowerCase()
+    .split('')
+    .map((char) => map[char] ?? char)
+    .join('')
 }
 
 function stepSpecificGuidance(
