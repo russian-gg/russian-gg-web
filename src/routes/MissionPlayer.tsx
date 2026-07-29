@@ -380,7 +380,6 @@ export function MissionPlayer() {
               setAssistantReply(null)
             }}
             onAdvance={isLastStep ? () => void complete() : () => void advance()}
-            allowAdvanceWithoutAnswer={!step?.requiresVoice}
           />
         </div>
       </div>
@@ -559,7 +558,6 @@ function VoiceControls({
   isLastStep,
   onRetry,
   onAdvance,
-  allowAdvanceWithoutAnswer,
 }: {
   state: VoiceState
   degraded: string | null
@@ -578,7 +576,6 @@ function VoiceControls({
   isLastStep: boolean
   onRetry: () => void
   onAdvance: () => void
-  allowAdvanceWithoutAnswer: boolean
 }) {
   if (state === 'feedback' && feedback) {
     return (
@@ -657,15 +654,6 @@ function VoiceControls({
           >
             Javobni yuborish
           </Button>
-        </div>
-      )}
-
-      {allowAdvanceWithoutAnswer && !hasLiveSession && state !== 'feedback' && (
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button size="lg" disabled={busy} onClick={onAdvance} className="w-full sm:w-auto">
-            {isLastStep ? 'Mashqni yakunlash' : 'Davom etish'}
-          </Button>
-          <span className="text-sm text-ink-faint">Javob bermasdan ham keyingi qadamga o'tish mumkin</span>
         </div>
       )}
     </div>
