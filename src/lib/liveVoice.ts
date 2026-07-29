@@ -33,6 +33,8 @@ export class LiveVoiceSession {
   private readonly startedAt = Date.now()
   private inputTranscript = ''
   private outputTranscript = ''
+  private turnSettled = false
+  private playbackDrainTimer: number | null = null
 
   constructor(ticket: VoiceSessionTicket, systemInstruction: string, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
@@ -70,6 +72,7 @@ export class LiveVoiceSession {
       this.recording = false
       this.stopMicrophone()
       this.callbacks.onStatus('thinking')
+      this.turnSettled = false
       this.turnCompletePromise ??= new Promise<void>((resolve, reject) => {
         this.resolveTurnComplete = resolve
         this.rejectTurnComplete = reject
@@ -93,6 +96,10 @@ export class LiveVoiceSession {
     this.resolveTurnComplete?.()
     this.resolveTurnComplete = null
     this.rejectTurnComplete = null
+    if (this.playbackDrainTimer !== null) {
+      window.clearTimeout(this.playbackDrainTimer)
+      this.playbackDrainTimer = null
+    }
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.close(1000, 'client_closed')
@@ -170,13 +177,15 @@ export class LiveVoiceSession {
               }
             }
 
+            // Gemini's audio models can report generation completion before the later
+            // turn-complete event that assumes realtime playback finished. We close the
+            // learner turn when generation is done and the locally queued audio drained.
+            if (serverContent.generationComplete) {
+              this.finishTurnAfterPlaybackDrain()
+            }
+
             if (serverContent.turnComplete) {
-              this.resolveTurnComplete?.()
-              this.turnCompletePromise = null
-              this.resolveTurnComplete = null
-              this.rejectTurnComplete = null
-              this.callbacks.onTurnComplete()
-              this.callbacks.onStatus('idle')
+              this.finishTurn()
             }
           }
         } catch (error) {
@@ -282,6 +291,46 @@ export class LiveVoiceSession {
     const startAt = Math.max(this.playbackContext.currentTime, this.nextPlaybackTime)
     source.start(startAt)
     this.nextPlaybackTime = startAt + audioBuffer.duration
+  }
+
+  private finishTurnAfterPlaybackDrain() {
+    if (this.turnSettled) {
+      return
+    }
+
+    if (!this.playbackContext) {
+      this.finishTurn()
+      return
+    }
+
+    const remainingMs = Math.max(0, (this.nextPlaybackTime - this.playbackContext.currentTime) * 1000)
+    if (this.playbackDrainTimer !== null) {
+      window.clearTimeout(this.playbackDrainTimer)
+    }
+
+    this.playbackDrainTimer = window.setTimeout(() => {
+      this.playbackDrainTimer = null
+      this.finishTurn()
+    }, Math.ceil(remainingMs) + 120)
+  }
+
+  private finishTurn() {
+    if (this.turnSettled) {
+      return
+    }
+
+    this.turnSettled = true
+    if (this.playbackDrainTimer !== null) {
+      window.clearTimeout(this.playbackDrainTimer)
+      this.playbackDrainTimer = null
+    }
+
+    this.resolveTurnComplete?.()
+    this.turnCompletePromise = null
+    this.resolveTurnComplete = null
+    this.rejectTurnComplete = null
+    this.callbacks.onTurnComplete()
+    this.callbacks.onStatus('idle')
   }
 }
 
@@ -487,6 +536,7 @@ type LiveServerMessage = {
   setupComplete?: object
   serverContent?: {
     turnComplete?: boolean
+    generationComplete?: boolean
     inputTranscription?: { text?: string }
     outputTranscription?: { text?: string }
     modelTurn?: {
