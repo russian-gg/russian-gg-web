@@ -30,6 +30,8 @@ export class LiveVoiceSession {
   private resolveTurnComplete: (() => void) | null = null
   private rejectTurnComplete: ((error: Error) => void) | null = null
   private readonly startedAt = Date.now()
+  private inputTranscript = ''
+  private outputTranscript = ''
 
   constructor(ticket: VoiceSessionTicket, systemInstruction: string, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
@@ -146,11 +148,19 @@ export class LiveVoiceSession {
           if (response.serverContent) {
             const { serverContent } = response
             if (serverContent.inputTranscription?.text) {
-              this.callbacks.onInputTranscript(serverContent.inputTranscription.text)
+              this.inputTranscript = mergeTranscript(
+                this.inputTranscript,
+                serverContent.inputTranscription.text,
+              )
+              this.callbacks.onInputTranscript(this.inputTranscript)
             }
 
             if (serverContent.outputTranscription?.text) {
-              this.callbacks.onOutputTranscript(serverContent.outputTranscription.text)
+              this.outputTranscript = mergeTranscript(
+                this.outputTranscript,
+                serverContent.outputTranscription.text,
+              )
+              this.callbacks.onOutputTranscript(this.outputTranscript)
             }
 
             for (const part of serverContent.modelTurn?.parts ?? []) {
@@ -372,6 +382,45 @@ function wait(ms: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms)
   })
+}
+
+function mergeTranscript(previous: string, incoming: string) {
+  const next = incoming.trim()
+  if (!next) {
+    return previous
+  }
+
+  const current = previous.trim()
+  if (!current) {
+    return next
+  }
+
+  if (next === current || current.endsWith(next)) {
+    return current
+  }
+
+  if (next.startsWith(current)) {
+    return next
+  }
+
+  const overlap = longestOverlap(current, next)
+  if (overlap > 0) {
+    return `${current}${next.slice(overlap)}`
+  }
+
+  const spacer = /[\s(]$/.test(current) || /^[\s).,!?]/.test(next) ? '' : ' '
+  return `${current}${spacer}${next}`
+}
+
+function longestOverlap(left: string, right: string) {
+  const max = Math.min(left.length, right.length)
+  for (let size = max; size > 0; size -= 1) {
+    if (left.slice(-size) === right.slice(0, size)) {
+      return size
+    }
+  }
+
+  return 0
 }
 
 async function describeMicrophoneError(error: unknown) {

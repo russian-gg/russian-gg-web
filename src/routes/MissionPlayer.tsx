@@ -631,7 +631,9 @@ function VoiceControls({
           {assistantReply && (
             <div className="mb-4 rounded-xl bg-ground-sunken px-4 py-3">
               <p className="text-sm font-semibold text-ink-faint uppercase">Gemini javobi</p>
-              <p className="mt-1 text-base text-ink">{assistantReply}</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-base leading-relaxed text-ink">
+                {assistantReply}
+              </p>
             </div>
           )}
 
