@@ -1,4 +1,5 @@
 let scriptLoad: Promise<void> | null = null
+const GOOGLE_BUTTON_LOCALE = 'uz'
 
 export interface GoogleCredentialResponse {
   credential: string
@@ -36,7 +37,7 @@ export async function loadGoogleIdentityScript() {
 
   scriptLoad ??= new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://accounts.google.com/gsi/client"]',
+      `script[src="https://accounts.google.com/gsi/client?hl=${GOOGLE_BUTTON_LOCALE}"]`,
     )
 
     if (existing) {
@@ -48,7 +49,7 @@ export async function loadGoogleIdentityScript() {
     }
 
     const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
+    script.src = `https://accounts.google.com/gsi/client?hl=${GOOGLE_BUTTON_LOCALE}`
     script.async = true
     script.defer = true
     script.onload = () => resolve()
@@ -82,6 +83,7 @@ export function renderGoogleButton(
     text,
     shape: 'pill',
     width: 360,
+    locale: GOOGLE_BUTTON_LOCALE,
   })
 }
 
