@@ -10,6 +10,9 @@ import {
 } from '../lib/google-auth'
 import { Button, ErrorNote, Field } from '../components/ui'
 
+const DEFAULT_GOOGLE_CLIENT_ID =
+  '718388409500-ljra0b5j8j3dpubieljmd228gd1c55p3.apps.googleusercontent.com'
+
 export function SignIn() {
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
@@ -322,7 +325,7 @@ function GoogleContinueButton({
 }) {
   const buttonRef = useRef<HTMLDivElement | null>(null)
   const onCredentialEvent = useEffectEvent(onCredential)
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
 
   useEffect(() => {
     if (!clientId || !buttonRef.current) return
