@@ -28,6 +28,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build Admin
+        run: npm run build:admin
+
       - name: Package release
         run: |
           git archive --format=tar.gz --output=frontend-release.tgz HEAD
@@ -54,4 +57,4 @@ jobs:
             mkdir -p /opt/russian-gg/russian-gg-web
             tar -xzf /opt/russian-gg/releases/frontend-release.tgz -C /opt/russian-gg/russian-gg-web
             chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
-            /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web
+            /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web admin-web caddy
