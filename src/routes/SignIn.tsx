@@ -326,6 +326,8 @@ function GoogleContinueButton({
   const buttonRef = useRef<HTMLDivElement | null>(null)
   const onCredentialEvent = useEffectEvent(onCredential)
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
+  const buttonLabel =
+    text === 'signup_with' ? "Google bilan ro'yxatdan o'tish" : 'Google bilan davom etish'
 
   useEffect(() => {
     if (!clientId || !buttonRef.current) return
@@ -360,7 +362,18 @@ function GoogleContinueButton({
 
   return (
     <div className="space-y-3">
-      <div ref={buttonRef} className={busy ? 'pointer-events-none opacity-70' : ''} />
+      <div className="relative">
+        <div
+          ref={buttonRef}
+          className={`min-h-[44px] ${busy ? 'pointer-events-none opacity-70' : 'opacity-0'}`}
+        />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border border-hairline bg-white px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <span className="mr-3 text-lg leading-none" aria-hidden="true">
+            G
+          </span>
+          <span>{buttonLabel}</span>
+        </div>
+      </div>
       {busy && <p className="text-support text-center">Google bilan kirilmoqda…</p>}
     </div>
   )
