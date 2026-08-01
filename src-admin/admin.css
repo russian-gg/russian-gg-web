@@ -45,3 +45,5 @@ label { display: block; margin-bottom: 14px; font-weight: 600; }
   .sidebar { position: sticky; top: 0; z-index: 10; }
   .nav { flex-direction: row; overflow: auto; }
 }
+
+/* No-op style touch to retrigger the frontend deployment after server compose updates. */
