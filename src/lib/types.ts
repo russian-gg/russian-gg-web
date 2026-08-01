@@ -356,3 +356,7 @@ export interface ApiError {
   code: string
   message: string
 }
+
+export interface FeedbackSubmissionRequest {
+  message: string
+}

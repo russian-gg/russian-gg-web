@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'content' | 'cms' | 'future'
+type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'content' | 'cms' | 'future' | 'feedbacks'
 
 type Overview = {
   users: { totalUsers: number; newUsers30d: number; activeUsers30d: number; activeUsers7d: number }
@@ -15,6 +15,7 @@ type UserItem = { id: string; displayName?: string | null; email: string; uiLang
 type UserDetail = UserItem & { role: string; currentDay?: number | null; recommendedStartDay?: number | null; recentMissions: Array<{ id: string; missionId: string; status: string; overallScore?: number | null; createdAt: string; completedAt?: string | null }> }
 type Transaction = { id: string; displayName?: string | null; email?: string | null; amount: number; currency: string; period: string; status: string; provider: string; createdAt: string; paidAt?: string | null }
 type Cms = { systemPrompt: string; outfitPrompt: string; enhancePrompt: string }
+type FeedbackItem = { id: string; userId: string; displayName?: string | null; email: string; message: string; createdAt: string }
 
 const sections: Array<{ id: Section; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -24,6 +25,7 @@ const sections: Array<{ id: Section; label: string }> = [
   { id: 'content', label: 'Content' },
   { id: 'cms', label: 'CMS' },
   { id: 'future', label: 'Future modules' },
+  { id: 'feedbacks', label: 'Feedbacks' },
 ]
 
 export function AdminApp() {
@@ -75,6 +77,7 @@ export function AdminApp() {
         {section === 'content' && <Content token={token} />}
         {section === 'cms' && <CmsEditor token={token} />}
         {section === 'future' && <FutureModules />}
+        {section === 'feedbacks' && <Feedbacks token={token} />}
       </main>
     </div>
   )
@@ -343,6 +346,34 @@ function FutureModules() {
       <Header title="Future modules" subtitle="Specdagi qolgan bo'limlar shu loyiha domeniga mos data paydo bo'lganda kengaytiriladi." />
       <div className="panel">
         <p>Notifications, AI usage, support tickets va blog/CMSning boyroq CRUD versiyalari hozirgi backend domenida hali mavjud emas, shuning uchun bu admin portal asosiy tizimga zarar bermaydigan minimal adaptatsiya bilan chiqarildi.</p>
+      </div>
+    </section>
+  )
+}
+
+function Feedbacks({ token }: { token: string }) {
+  const [page, setPage] = useState(1)
+  const { data, error } = useAdminFetch<Paged<FeedbackItem>>(token, `/api/admin-portal/feedback?page=${page}&pageSize=20`)
+  if (error) return <ErrorBox message={error} />
+  if (!data) return <Loading />
+
+  return (
+    <section>
+      <Header title="Feedbacks" subtitle="Foydalanuvchilar yuborgan taklif, sharh va e'tirozlar." />
+      <div className="panel">
+        <table className="table">
+          <thead><tr><th>User</th><th>Xabar</th><th>Vaqt</th></tr></thead>
+          <tbody>
+            {data.items.map((item) => (
+              <tr key={item.id}>
+                <td><strong>{item.displayName || 'No name'}</strong><div>{item.email}</div></td>
+                <td className="max-w-xl whitespace-pre-wrap break-words">{item.message}</td>
+                <td>{formatDate(item.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <Pager page={page} total={data.total} onPage={setPage} />
       </div>
     </section>
   )
