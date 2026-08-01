@@ -101,7 +101,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
       const data = await response.json()
       onLogin(data.token, data.name)
     } catch {
-      setError('Login yoki parol noto‘g‘ri. Standart admin credential bilan qayta urinib ko‘ring.')
+      setError("Login yoki parol noto'g'ri. Qayta urinib ko'ring.")
     } finally {
       setLoading(false)
     }
@@ -115,10 +115,10 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
           <div className="login-badge">Admin panel</div>
         </div>
         <h1>Boshqaruv paneliga kirish</h1>
-        <p>Asosiy russian.gg vizual ohangiga mos, alohida subdomain’da ishlaydigan yopiq panel.</p>
+        <p>Asosiy russian.gg vizual ohangiga mos, alohida subdomainda ishlaydigan yopiq panel.</p>
         <label className="field">
           <span>Login</span>
-          <input placeholder="bootstrap-admin" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input placeholder="Loginni kiriting" value={username} onChange={(e) => setUsername(e.target.value)} />
         </label>
         <label className="field">
           <span>Parol</span>
@@ -133,15 +133,12 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
               type="button"
               className="toggle-button"
               onClick={() => setShowPassword((value) => !value)}
-              aria-label={showPassword ? 'Parolni yashirish' : 'Parolni ko‘rsatish'}
+              aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
             >
-              {showPassword ? 'Yashirish' : 'Ko‘rish'}
+              {showPassword ? 'Yashirish' : "Ko'rish"}
             </button>
           </div>
         </label>
-        <div className="hint-box">
-          <strong>Standart login:</strong> `bootstrap-admin`
-        </div>
         {error && <div className="error-box">{error}</div>}
         <button className="primary-button" disabled={loading}>{loading ? 'Kirilmoqda...' : 'Kirish'}</button>
       </form>
@@ -174,7 +171,7 @@ function Dashboard({ token }: { token: string }) {
         <div className="mini-chart">
           {data.activitySeries.map((point) => (
             <div key={point.date} className="bar-wrap" title={`${point.date}: ${point.value}`}>
-              <div className="bar" style={{ height: `${Math.max(8, point.value * 6)}px` }} />
+              <div className="bar" style={{ height: `${Math.min(180, Math.max(8, point.value * 6))}px` }} />
             </div>
           ))}
         </div>
@@ -343,9 +340,9 @@ function CmsEditor({ token }: { token: string }) {
 function FutureModules() {
   return (
     <section>
-      <Header title="Future modules" subtitle="Specdagi qolgan bo‘limlar shu loyiha domeniga mos data paydo bo‘lganda kengaytiriladi." />
+      <Header title="Future modules" subtitle="Specdagi qolgan bo'limlar shu loyiha domeniga mos data paydo bo'lganda kengaytiriladi." />
       <div className="panel">
-        <p>Notifications, AI usage, support tickets va blog/CMS’ning boyroq CRUD versiyalari hozirgi backend domenida hali mavjud emas, shuning uchun bu admin portal asosiy tizimga zarar bermaydigan minimal-adaptatsiya bilan chiqarildi.</p>
+        <p>Notifications, AI usage, support tickets va blog/CMSning boyroq CRUD versiyalari hozirgi backend domenida hali mavjud emas, shuning uchun bu admin portal asosiy tizimga zarar bermaydigan minimal adaptatsiya bilan chiqarildi.</p>
       </div>
     </section>
   )
