@@ -478,12 +478,12 @@ function wait(ms: number) {
 }
 
 function mergeTranscript(previous: string, incoming: string) {
-  const next = incoming.trim()
+  const next = sanitizeTranscript(incoming)
   if (!next) {
     return previous
   }
 
-  const current = previous.trim()
+  const current = sanitizeTranscript(previous)
   if (!current) {
     return next
   }
@@ -501,6 +501,12 @@ function mergeTranscript(previous: string, incoming: string) {
     return `${current}${next.slice(overlap)}`
   }
 
+  // Gemini often sends revised transcript snapshots instead of pure deltas.
+  // Replacing on strong divergence avoids accumulating junk characters and mixed fragments.
+  if (shouldReplaceTranscript(current, next)) {
+    return next
+  }
+
   const spacer = /[\s(]$/.test(current) || /^[\s).,!?]/.test(next) ? '' : ' '
   return `${current}${spacer}${next}`
 }
@@ -514,6 +520,39 @@ function longestOverlap(left: string, right: string) {
   }
 
   return 0
+}
+
+function sanitizeTranscript(value: string) {
+  return value
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function shouldReplaceTranscript(current: string, next: string) {
+  if (current === next) {
+    return false
+  }
+
+  if (Math.abs(current.length - next.length) > Math.max(18, Math.min(current.length, next.length))) {
+    return true
+  }
+
+  const currentWords = new Set(tokenizeTranscript(current))
+  const nextWords = tokenizeTranscript(next)
+  if (currentWords.size === 0 || nextWords.length === 0) {
+    return false
+  }
+
+  const shared = nextWords.filter((word) => currentWords.has(word)).length
+  return shared <= Math.max(1, Math.floor(nextWords.length * 0.25))
+}
+
+function tokenizeTranscript(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((part) => part.length > 0)
 }
 
 async function describeMicrophoneError(error: unknown) {

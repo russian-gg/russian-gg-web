@@ -168,6 +168,7 @@ export interface TurnDetail {
   stepIndex: number
   turnIndex: number
   learnerTranscript?: string | null
+  tutorTranscript?: string | null
   score?: number | null
   pronunciationNote?: string | null
   wordChoiceNote?: string | null

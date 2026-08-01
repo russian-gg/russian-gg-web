@@ -46,15 +46,14 @@ export function MissionResult() {
           <p className="text-base text-ink">{data.headlineFeedbackUz}</p>
           <p className="text-support mt-2">{data.headlineFeedbackRu}</p>
         </Card>
-        {/* Never presented as certified assessment (PRD §6). */}
         <p className="text-support mt-2">
-          Bu AI izohi — rasmiy baholash emas. Xato deb hisoblasangiz, bizga xabar bering.
+          Bu AI izohi, rasmiy baholash emas. Xato deb hisoblasangiz, bizga xabar bering.
         </p>
       </section>
 
       {skills.length > 0 && (
         <section>
-          <SectionHeading>Ko’nikmalar</SectionHeading>
+          <SectionHeading>Ko'nikmalar</SectionHeading>
           <Card>
             {skills.map(([skill, score]) => (
               <div
@@ -103,10 +102,18 @@ export function MissionResult() {
 
                 <p className="mt-2 text-base text-ink">{turn.learnerTranscript || '—'}</p>
 
-                {/* Pronunciation, word choice and grammar stay separate (PRD §6). */}
+                {turn.tutorTranscript ? (
+                  <div className="mt-3 rounded-lg bg-ground-sunken px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
+                      Gemini javobi
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-ink">{turn.tutorTranscript}</p>
+                  </div>
+                ) : null}
+
                 <dl className="mt-3 space-y-1.5">
                   {turn.pronunciationNote && <Note term="Talaffuz" value={turn.pronunciationNote} />}
-                  {turn.wordChoiceNote && <Note term="So’z tanlash" value={turn.wordChoiceNote} />}
+                  {turn.wordChoiceNote && <Note term="So'z tanlash" value={turn.wordChoiceNote} />}
                   {turn.grammarNote && <Note term="Grammatika" value={turn.grammarNote} />}
                 </dl>
               </Card>
@@ -130,9 +137,7 @@ export function MissionResult() {
       </div>
 
       {data.newCurrentDay && (
-        <p className="text-support text-center">
-          Siz {data.newCurrentDay}-kunga o’tdingiz.
-        </p>
+        <p className="text-support text-center">Siz {data.newCurrentDay}-kunga o'tdingiz.</p>
       )}
     </div>
   )

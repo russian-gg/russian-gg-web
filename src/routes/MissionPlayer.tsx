@@ -231,6 +231,7 @@ export function MissionPlayer() {
         attemptId: attempt.attemptId,
         stepIndex,
         learnerTranscript: transcript,
+        tutorTranscript: assistantReply,
         isRetry,
       })
 
