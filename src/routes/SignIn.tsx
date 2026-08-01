@@ -368,14 +368,35 @@ function GoogleContinueButton({
           className={`min-h-[44px] ${busy ? 'pointer-events-none opacity-70' : 'opacity-0'}`}
         />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border border-hairline bg-white px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <span className="mr-3 text-lg leading-none" aria-hidden="true">
-            G
-          </span>
+          <GoogleGlyph />
           <span>{buttonLabel}</span>
         </div>
       </div>
       {busy && <p className="text-support text-center">Google bilan kirilmoqda…</p>}
     </div>
+  )
+}
+
+function GoogleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="mr-3 size-5 shrink-0">
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.8 0 3 .8 3.7 1.4l2.5-2.4C16.6 3.4 14.5 2.5 12 2.5A9.5 9.5 0 0 0 2.5 12 9.5 9.5 0 0 0 12 21.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-1.5H12Z"
+      />
+      <path
+        fill="#4285F4"
+        d="M2.5 7.6 5.7 10c.9-2.7 3.4-4.5 6.3-4.5 1.8 0 3 .8 3.7 1.4l2.5-2.4C16.6 3.4 14.5 2.5 12 2.5c-3.7 0-6.9 2.1-8.5 5.1Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M2.5 16.4 5.7 14c-.2-.6-.4-1.3-.4-2s.1-1.4.4-2L2.5 7.6A9.4 9.4 0 0 0 1.5 12c0 1.6.4 3.1 1 4.4Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 21.5c2.4 0 4.5-.8 6-2.3l-2.9-2.3c-.8.6-1.8 1-3.1 1-2.9 0-5.4-1.9-6.3-4.5l-3.2 2.4c1.6 3.1 4.8 5.2 8.5 5.2Z"
+      />
+    </svg>
   )
 }
 
