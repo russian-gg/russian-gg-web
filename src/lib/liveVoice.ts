@@ -60,7 +60,6 @@ export class LiveVoiceSession {
 
     await this.openWebSocket()
     await this.startMicrophone()
-    this.ws?.send(JSON.stringify({ realtimeInput: { activityStart: {} } }))
     this.recording = true
     this.callbacks.onStatus('listening')
   }
@@ -73,17 +72,15 @@ export class LiveVoiceSession {
     if (this.recording) {
       this.recording = false
       this.stopMicrophone()
-      this.callbacks.onStatus('thinking')
-      this.turnSettled = false
-      this.turnCompletePromise ??= new Promise<void>((resolve, reject) => {
-        this.resolveTurnComplete = resolve
-        this.rejectTurnComplete = reject
-      })
-      this.ws.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }))
+      this.callbacks.onStatus('idle')
+    }
+
+    if (!this.turnCompletePromise) {
+      return
     }
 
     await Promise.race([
-      this.turnCompletePromise ?? Promise.resolve(),
+      this.turnCompletePromise,
       wait(TURN_COMPLETE_TIMEOUT_MS).then(() => {
         throw new Error("Gemini javobi kutilyapti, lekin juda cho'zilib ketdi.")
       }),
@@ -132,11 +129,6 @@ export class LiveVoiceSession {
             systemInstruction: {
               parts: [{ text: this.systemInstruction }],
             },
-            realtimeInputConfig: {
-              automaticActivityDetection: {
-                disabled: true,
-              },
-            },
             generationConfig: {
               responseModalities: ['AUDIO'],
               speechConfig: {
@@ -171,6 +163,8 @@ export class LiveVoiceSession {
             }
 
             if (serverContent.outputTranscription?.text) {
+              this.ensureTurnPromise()
+              this.callbacks.onStatus('thinking')
               this.outputTranscript = mergeTranscript(
                 this.outputTranscript,
                 serverContent.outputTranscription.text,
@@ -180,6 +174,8 @@ export class LiveVoiceSession {
 
             for (const part of serverContent.modelTurn?.parts ?? []) {
               if (part.inlineData?.data) {
+                this.ensureTurnPromise()
+                this.callbacks.onStatus('thinking')
                 this.playAudioChunk(part.inlineData.data)
               }
             }
@@ -341,7 +337,19 @@ export class LiveVoiceSession {
     this.resolveTurnComplete = null
     this.rejectTurnComplete = null
     this.callbacks.onTurnComplete()
-    this.callbacks.onStatus('idle')
+    this.callbacks.onStatus(this.recording ? 'listening' : 'idle')
+  }
+
+  private ensureTurnPromise() {
+    if (this.turnCompletePromise) {
+      return
+    }
+
+    this.turnSettled = false
+    this.turnCompletePromise = new Promise<void>((resolve, reject) => {
+      this.resolveTurnComplete = resolve
+      this.rejectTurnComplete = reject
+    })
   }
 }
 
