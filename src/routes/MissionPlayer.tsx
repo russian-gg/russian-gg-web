@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
 import { categoryLabelUz, formalityLabelUz, stepLabelUz, workplaceLabelUz } from '../lib/format'
-import { LiveVoiceSession, playPromptAudio } from '../lib/liveVoice'
+import { LiveVoiceSession, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
 import type {
   CoursePhase,
   MissionDetail,
@@ -79,6 +79,7 @@ export function MissionPlayer() {
 
   useEffect(() => {
     return () => {
+      stopPromptAudio()
       const liveSession = liveSessionRef.current
       if (!liveSession) return
       liveSessionRef.current = null
@@ -368,7 +369,16 @@ export function MissionPlayer() {
             assistantReply={assistantReply}
             transcript={transcript}
             onTranscript={setTranscript}
-            onListen={() => playPromptAudio(promptAudioText)}
+            onListen={() => {
+              setError(null)
+              void playPromptAudio(promptAudioText).catch((caught) => {
+                setError(
+                  caught instanceof RequestError
+                    ? caught.message
+                    : "Gemini ovozini eshittirib bo'lmadi.",
+                )
+              })
+            }}
             onStart={() => void startVoice()}
             onStop={() => void stopVoice()}
             onSubmit={() => void submitTurn(false)}

@@ -80,16 +80,7 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 async function send<T>(method: Method, path: string, body?: unknown, retry = true): Promise<T> {
-  const headers: Record<string, string> = {}
-  const access = tokenStore.access()
-  if (access) headers.authorization = `Bearer ${access}`
-  if (body !== undefined) headers['content-type'] = 'application/json'
-
-  const response = await fetch(`/api${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+  const response = await sendRaw(method, path, body, retry)
 
   if (response.status === 401 && retry && (await refreshAccessToken())) {
     return send<T>(method, path, body, false)
@@ -111,9 +102,41 @@ async function send<T>(method: Method, path: string, body?: unknown, retry = tru
   return (text ? JSON.parse(text) : undefined) as T
 }
 
+async function sendRaw(method: Method, path: string, body?: unknown, retry = true): Promise<Response> {
+  const headers: Record<string, string> = {}
+  const access = tokenStore.access()
+  if (access) headers.authorization = `Bearer ${access}`
+  if (body !== undefined) headers['content-type'] = 'application/json'
+
+  const response = await fetch(`/api${path}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+
+  if (response.status === 401 && retry && (await refreshAccessToken())) {
+    return sendRaw(method, path, body, false)
+  }
+
+  return response
+}
+
 export const api = {
   get: <T>(path: string) => send<T>('GET', path),
   post: <T>(path: string, body?: unknown) => send<T>('POST', path, body),
+  postBlob: async (path: string, body?: unknown) => {
+    const response = await sendRaw('POST', path, body)
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch<ApiError>(() => ({ code: 'network_error', message: 'Request failed.' }))
+
+      throw new RequestError(response.status, error.code, error.message)
+    }
+
+    return response.blob()
+  },
   patch: <T>(path: string, body?: unknown) => send<T>('PATCH', path, body),
   put: <T>(path: string, body?: unknown) => send<T>('PUT', path, body),
   delete: <T>(path: string) => send<T>('DELETE', path),

@@ -1,3 +1,4 @@
+import { api } from './api'
 import type { VoiceSessionTicket } from './types'
 
 const INPUT_SAMPLE_RATE = 16_000
@@ -366,16 +367,49 @@ export class LiveVoiceSession {
   }
 }
 
-export function playPromptAudio(text: string) {
-  if (!text.trim() || typeof speechSynthesis === 'undefined') {
+let promptAudio: HTMLAudioElement | null = null
+let promptAudioUrl: string | null = null
+
+export async function playPromptAudio(text: string) {
+  if (!text.trim()) {
     return
   }
 
-  speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'ru-RU'
-  utterance.rate = 0.9
-  speechSynthesis.speak(utterance)
+  stopPromptAudio()
+
+  const audioBlob = await api.postBlob('/missions/voice/prompt-audio', { text })
+  const audioUrl = URL.createObjectURL(audioBlob)
+  const audio = new Audio(audioUrl)
+  promptAudio = audio
+  promptAudioUrl = audioUrl
+
+  audio.onended = () => {
+    stopPromptAudio()
+  }
+
+  audio.onerror = () => {
+    stopPromptAudio()
+  }
+
+  try {
+    await audio.play()
+  } catch (error) {
+    stopPromptAudio()
+    throw error
+  }
+}
+
+export function stopPromptAudio() {
+  if (promptAudio) {
+    promptAudio.pause()
+    promptAudio.currentTime = 0
+    promptAudio = null
+  }
+
+  if (promptAudioUrl) {
+    URL.revokeObjectURL(promptAudioUrl)
+    promptAudioUrl = null
+  }
 }
 
 function buildLiveWebSocketUrl(ticket: VoiceSessionTicket) {
