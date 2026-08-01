@@ -168,9 +168,6 @@ export function MissionPlayer() {
           onTurnComplete: () => {
             setVoiceComposerOpen(true)
           },
-          onSilenceTimeout: () => {
-            void stopVoice()
-          },
         },
       )
 
@@ -627,12 +624,14 @@ function VoiceControls({
           {state === 'thinking'
             ? 'Kutilmoqda...'
             : hasLiveSession
-              ? 'Hozir tugatish'
+              ? 'Hozir yakunlash'
               : 'Javob berish'}
         </Button>
 
         <span className="text-sm text-ink-faint">
-          {hasLiveSession ? "2-3 soniya jim tursangiz o'zi tugaydi" : 'Uzbekcha yordam yoqilgan'}
+          {hasLiveSession
+            ? "Avval gapiring, keyin 'Hozir yakunlash' ni bosib tahlilga yuboring"
+            : 'Uzbekcha yordam yoqilgan'}
         </span>
       </div>
 

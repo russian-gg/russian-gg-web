@@ -3,7 +3,6 @@ import type { VoiceSessionTicket } from './types'
 const INPUT_SAMPLE_RATE = 16_000
 const OUTPUT_SAMPLE_RATE = 24_000
 const TURN_COMPLETE_TIMEOUT_MS = 40_000
-const AUTO_STOP_SILENCE_MS = 2_500
 const SPEECH_RMS_THRESHOLD = 0.012
 
 export type LiveVoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'closed'
@@ -14,7 +13,6 @@ export interface LiveVoiceCallbacks {
   onOutputTranscript: (text: string) => void
   onError: (message: string) => void
   onTurnComplete: () => void
-  onSilenceTimeout: () => void
 }
 
 export class LiveVoiceSession {
@@ -38,9 +36,6 @@ export class LiveVoiceSession {
   private outputTranscript = ''
   private turnSettled = false
   private playbackDrainTimer: number | null = null
-  private autoStopRequested = false
-  private heardSpeechThisTurn = false
-  private lastSpeechAt = 0
 
   constructor(ticket: VoiceSessionTicket, systemInstruction: string, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
@@ -65,9 +60,6 @@ export class LiveVoiceSession {
 
     await this.openWebSocket()
     await this.startMicrophone()
-    this.heardSpeechThisTurn = false
-    this.autoStopRequested = false
-    this.lastSpeechAt = Date.now()
     this.ws?.send(JSON.stringify({ realtimeInput: { activityStart: {} } }))
     this.recording = true
     this.callbacks.onStatus('listening')
@@ -80,7 +72,6 @@ export class LiveVoiceSession {
 
     if (this.recording) {
       this.recording = false
-      this.autoStopRequested = true
       this.stopMicrophone()
       this.callbacks.onStatus('thinking')
       this.turnSettled = false
@@ -261,18 +252,8 @@ export class LiveVoiceSession {
       }
 
       const input = event.inputBuffer.getChannelData(0)
-      const rms = computeRms(input)
-      const now = Date.now()
-      if (rms >= SPEECH_RMS_THRESHOLD) {
-        this.heardSpeechThisTurn = true
-        this.lastSpeechAt = now
-      } else if (
-        this.heardSpeechThisTurn &&
-        !this.autoStopRequested &&
-        now - this.lastSpeechAt >= AUTO_STOP_SILENCE_MS
-      ) {
-        this.autoStopRequested = true
-        window.setTimeout(() => this.callbacks.onSilenceTimeout(), 0)
+      if (computeRms(input) < SPEECH_RMS_THRESHOLD / 3) {
+        return
       }
 
       const pcm16 = downsampleToPcm16(input, this.captureContext?.sampleRate ?? INPUT_SAMPLE_RATE)
