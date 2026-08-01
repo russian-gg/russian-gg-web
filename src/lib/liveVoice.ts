@@ -175,6 +175,7 @@ export class LiveVoiceSession {
               this.inputTranscript = mergeTranscript(
                 this.inputTranscript,
                 serverContent.inputTranscription.text,
+                'input',
               )
               this.callbacks.onInputTranscript(this.inputTranscript)
             }
@@ -183,6 +184,7 @@ export class LiveVoiceSession {
               this.outputTranscript = mergeTranscript(
                 this.outputTranscript,
                 serverContent.outputTranscription.text,
+                'output',
               )
               this.callbacks.onOutputTranscript(this.outputTranscript)
             }
@@ -477,7 +479,7 @@ function wait(ms: number) {
   })
 }
 
-function mergeTranscript(previous: string, incoming: string) {
+function mergeTranscript(previous: string, incoming: string, mode: 'input' | 'output') {
   const next = sanitizeTranscript(incoming)
   if (!next) {
     return previous
@@ -503,7 +505,7 @@ function mergeTranscript(previous: string, incoming: string) {
 
   // Gemini often sends revised transcript snapshots instead of pure deltas.
   // Replacing on strong divergence avoids accumulating junk characters and mixed fragments.
-  if (shouldReplaceTranscript(current, next)) {
+  if (mode === 'input' && shouldReplaceTranscript(current, next)) {
     return next
   }
 
