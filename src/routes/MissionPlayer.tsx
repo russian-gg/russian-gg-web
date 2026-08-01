@@ -168,6 +168,9 @@ export function MissionPlayer() {
           onTurnComplete: () => {
             setVoiceComposerOpen(true)
           },
+          onSilenceTimeout: () => {
+            void stopVoice()
+          },
         },
       )
 
