@@ -83,6 +83,7 @@ export function AdminApp() {
 function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => void }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -100,7 +101,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
       const data = await response.json()
       onLogin(data.token, data.name)
     } catch {
-      setError('Admin login maʼlumotlari notoʻgʻri yoki hali config qilinmagan.')
+      setError('Login yoki parol noto‘g‘ri. Standart admin credential bilan qayta urinib ko‘ring.')
     } finally {
       setLoading(false)
     }
@@ -109,12 +110,40 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>
-        <h1>Admin portal</h1>
-        <p>Bu panel alohida subdomain uchun qurilgan va asosiy learner flow’dan izolyatsiya qilingan.</p>
-        <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-        <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <div className="login-brand">
+          <div className="login-wordmark">russian<span>.gg</span></div>
+          <div className="login-badge">Admin panel</div>
+        </div>
+        <h1>Boshqaruv paneliga kirish</h1>
+        <p>Asosiy russian.gg vizual ohangiga mos, alohida subdomain’da ishlaydigan yopiq panel.</p>
+        <label className="field">
+          <span>Login</span>
+          <input placeholder="bootstrap-admin" value={username} onChange={(e) => setUsername(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Parol</span>
+          <div className="password-row">
+            <input
+              placeholder="Parolni kiriting"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="toggle-button"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-label={showPassword ? 'Parolni yashirish' : 'Parolni ko‘rsatish'}
+            >
+              {showPassword ? 'Yashirish' : 'Ko‘rish'}
+            </button>
+          </div>
+        </label>
+        <div className="hint-box">
+          <strong>Standart login:</strong> `bootstrap-admin`
+        </div>
         {error && <div className="error-box">{error}</div>}
-        <button className="primary-button" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
+        <button className="primary-button" disabled={loading}>{loading ? 'Kirilmoqda...' : 'Kirish'}</button>
       </form>
     </div>
   )
@@ -354,7 +383,7 @@ function ErrorBox({ message }: { message: string }) {
   return <div className="error-box">{message}</div>
 }
 function Loading() {
-  return <div className="panel">Loading…</div>
+  return <div className="panel">Loading...</div>
 }
 function Pager({ page, total, onPage }: { page: number; total: number; onPage: (page: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / 20))
