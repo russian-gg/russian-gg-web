@@ -122,7 +122,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
         </label>
         <label className="field">
           <span>Parol</span>
-          <div className="password-row">
+          <div className="password-field">
             <input
               placeholder="Parolni kiriting"
               type={showPassword ? 'text' : 'password'}
@@ -131,11 +131,11 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, name: string) => vo
             />
             <button
               type="button"
-              className="toggle-button"
+              className="password-toggle"
               onClick={() => setShowPassword((value) => !value)}
               aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
             >
-              {showPassword ? 'Yashirish' : "Ko'rish"}
+              {showPassword ? '🙈' : '👁'}
             </button>
           </div>
         </label>
