@@ -83,7 +83,6 @@ export function renderGoogleButton(
     text,
     shape: 'pill',
     width: 360,
-    locale: GOOGLE_BUTTON_LOCALE,
   })
 }
 
