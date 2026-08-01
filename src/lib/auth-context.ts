@@ -6,6 +6,7 @@ export interface AuthState {
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<UserProfile>
   signUp: (email: string, password: string, displayName?: string) => Promise<UserProfile>
+  signInWithGoogle: (credential: string, displayName?: string) => Promise<UserProfile>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
 }

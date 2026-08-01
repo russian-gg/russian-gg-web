@@ -1,19 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import {
+  loadGoogleIdentityScript,
+  renderGoogleButton,
+  type GoogleCredentialResponse,
+} from '../lib/google-auth'
 import { Button, ErrorNote, Field } from '../components/ui'
 
 export function SignIn() {
-  const { signIn } = useAuth()
+  const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     setError(null)
@@ -23,17 +30,58 @@ export function SignIn() {
       navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
     } catch (caught) {
       setError(
-        caught instanceof RequestError ? caught.message : 'Kirishda xatolik. Qayta urinib ko’ring.',
+        caught instanceof RequestError ? caught.message : 'Kirishda xatolik. Qayta urinib ko‘ring.',
       )
     } finally {
       setBusy(false)
     }
   }
 
+  async function handleGoogleCredential(response: GoogleCredentialResponse) {
+    if (!response.credential) {
+      setError('Google orqali kirishda token kelmadi.')
+      return
+    }
+
+    setGoogleBusy(true)
+    setError(null)
+
+    try {
+      const user = await signInWithGoogle(response.credential)
+      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
+    } catch (caught) {
+      setError(
+        caught instanceof RequestError
+          ? caught.message
+          : 'Google orqali kirishda xatolik. Qayta urinib ko‘ring.',
+      )
+    } finally {
+      setGoogleBusy(false)
+    }
+  }
+
   return (
-    <AuthLayout title="Kirish" footer={<>Hisobingiz yo’qmi? <Link to="/signup" className="font-semibold text-signal-ink">Ro’yxatdan o’ting</Link></>}>
+    <AuthLayout
+      title="Kirish"
+      footer={
+        <>
+          Hisobingiz yo‘qmi?{' '}
+          <Link to="/signup" className="font-semibold text-signal-ink">
+            Ro‘yxatdan o‘ting
+          </Link>
+        </>
+      }
+    >
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNote>{error}</ErrorNote>}
+
+        <GoogleContinueButton
+          busy={googleBusy}
+          text="continue_with"
+          onCredential={handleGoogleCredential}
+        />
+
+        <Divider />
 
         <Field
           label="Email"
@@ -66,7 +114,7 @@ export function SignIn() {
 }
 
 export function SignUp() {
-  const { signUp } = useAuth()
+  const { signInWithGoogle, signUp } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -74,8 +122,9 @@ export function SignUp() {
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     setError(null)
@@ -88,20 +137,59 @@ export function SignUp() {
       setError(
         caught instanceof RequestError
           ? caught.message
-          : 'Ro’yxatdan o’tishda xatolik. Qayta urinib ko’ring.',
+          : 'Ro‘yxatdan o‘tishda xatolik. Qayta urinib ko‘ring.',
       )
     } finally {
       setBusy(false)
     }
   }
 
+  async function handleGoogleCredential(response: GoogleCredentialResponse) {
+    if (!response.credential) {
+      setError('Google orqali ro‘yxatdan o‘tishda token kelmadi.')
+      return
+    }
+
+    setGoogleBusy(true)
+    setError(null)
+
+    try {
+      const user = await signInWithGoogle(response.credential, displayName || undefined)
+      track('signup_completed')
+      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
+    } catch (caught) {
+      setError(
+        caught instanceof RequestError
+          ? caught.message
+          : 'Google orqali ro‘yxatdan o‘tishda xatolik. Qayta urinib ko‘ring.',
+      )
+    } finally {
+      setGoogleBusy(false)
+    }
+  }
+
   return (
     <AuthLayout
-      title="Ro’yxatdan o’tish"
-      footer={<>Hisobingiz bormi? <Link to="/signin" className="font-semibold text-signal-ink">Kiring</Link></>}
+      title="Ro‘yxatdan o‘tish"
+      footer={
+        <>
+          Hisobingiz bormi?{' '}
+          <Link to="/signin" className="font-semibold text-signal-ink">
+            Kiring
+          </Link>
+        </>
+      }
     >
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNote>{error}</ErrorNote>}
+
+        <GoogleContinueButton
+          busy={googleBusy}
+          text="signup_with"
+          onCredential={handleGoogleCredential}
+        />
+
+        <Divider />
 
         <Field
           label="Ism"
@@ -150,8 +238,8 @@ function AuthLayout({
   footer,
 }: {
   title: string
-  children: React.ReactNode
-  footer: React.ReactNode
+  children: ReactNode
+  footer: ReactNode
 }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-12">
@@ -171,7 +259,7 @@ function PasswordField({
   showPassword,
   onTogglePassword,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
+}: InputHTMLAttributes<HTMLInputElement> & {
   label: string
   hint?: string
   showPassword: boolean
@@ -192,7 +280,7 @@ function PasswordField({
           type="button"
           onClick={onTogglePassword}
           className="absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-faint transition-colors hover:text-ink"
-          aria-label={showPassword ? "Parolni yashirish" : "Parolni ko'rsatish"}
+          aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
           aria-pressed={showPassword}
         >
           <EyeGlyph open={showPassword} />
@@ -220,5 +308,67 @@ function EyeGlyph({ open }: { open: boolean }) {
       <path d="M6.7 8.1A17.2 17.2 0 0 0 2 12s3.5 6 10 6c1.4 0 2.6-.3 3.8-.7" />
       <path d="M9.9 9.9A3 3 0 0 0 14 14" />
     </svg>
+  )
+}
+
+function GoogleContinueButton({
+  busy,
+  text,
+  onCredential,
+}: {
+  busy: boolean
+  text: 'continue_with' | 'signup_with'
+  onCredential: (response: GoogleCredentialResponse) => void | Promise<void>
+}) {
+  const buttonRef = useRef<HTMLDivElement | null>(null)
+  const onCredentialEvent = useEffectEvent(onCredential)
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+  useEffect(() => {
+    if (!clientId || !buttonRef.current) return
+
+    let cancelled = false
+
+    void loadGoogleIdentityScript()
+      .then(() => {
+        if (cancelled || !buttonRef.current) return
+        renderGoogleButton(
+          buttonRef.current,
+          clientId,
+          (response) => {
+            void onCredentialEvent(response)
+          },
+          text,
+        )
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (buttonRef.current) {
+        buttonRef.current.innerHTML = ''
+      }
+    }
+  }, [clientId, onCredentialEvent, text])
+
+  if (!clientId) {
+    return null
+  }
+
+  return (
+    <div className="space-y-3">
+      <div ref={buttonRef} className={busy ? 'pointer-events-none opacity-70' : ''} />
+      {busy && <p className="text-support text-center">Google bilan kirilmoqda…</p>}
+    </div>
+  )
+}
+
+function Divider() {
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-hairline" />
+      <span className="text-support">yoki</span>
+      <div className="h-px flex-1 bg-hairline" />
+    </div>
   )
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { api, tokenStore } from './api'
 import { AuthContext, type AuthState } from './auth-context'
+import { disableGoogleAutoSelect } from './google-auth'
 import type { AuthResponse, UserProfile } from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -53,12 +54,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(auth.user)
         return auth.user
       },
+      async signInWithGoogle(credential, displayName) {
+        const auth = await api.post<AuthResponse>('/auth/google', {
+          credential,
+          displayName,
+          timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          uiLanguage: 'uz',
+        })
+        tokenStore.set(auth)
+        setUser(auth.user)
+        return auth.user
+      },
       async signOut() {
         const refreshToken = tokenStore.refresh()
         if (refreshToken) {
           // Best effort: revoke server-side, but always clear locally.
           await api.post('/auth/logout', { refreshToken }).catch(() => {})
         }
+        disableGoogleAutoSelect()
         tokenStore.clear()
         setUser(null)
       },
