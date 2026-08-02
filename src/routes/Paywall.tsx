@@ -3,13 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, RequestError, track } from '../lib/api'
 import { formatDate, formatPrice } from '../lib/format'
-import type {
-  BillingPeriod,
-  CheckoutResponse,
-  EntitlementView,
-  PlansView,
-  SubscriptionActionResponse,
-} from '../lib/types'
+import type { BillingPeriod, CheckoutResponse, EntitlementView, PlansView, SubscriptionActionResponse } from '../lib/types'
 import { Badge, Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 export function Paywall() {
@@ -29,21 +23,6 @@ export function Paywall() {
   })
 
   if (isLoading || !plans) return <Spinner />
-
-  async function startTrial() {
-    setBusy(true)
-    setError(null)
-    try {
-      const result = await api.post<SubscriptionActionResponse>('/billing/trial')
-      track('trial_started')
-      await queryClient.invalidateQueries()
-      alert(result.messageUz)
-    } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "Sinovni boshlab bo'lmadi.")
-    } finally {
-      setBusy(false)
-    }
-  }
 
   async function checkout() {
     setBusy(true)
@@ -125,16 +104,10 @@ export function Paywall() {
               : `Click orqali to'lash - ${formatPrice(selected.amountTiyin, selected.currency)}`}
           </Button>
 
-          {plans.trialAvailable && (
-            <>
-              <Button variant="secondary" block disabled={busy} onClick={() => void startTrial()}>
-                {plans.trialDays} kunlik bepul sinov
-              </Button>
-              <UzHint>
-                Sinov muddati tugaganda avtomatik to'lov olinmaydi. Xohlasangiz keyin to'laysiz.
-              </UzHint>
-            </>
-          )}
+          <UzHint>
+            Bepul rejada daraja testi va yo'lning birinchi 7 kuni ochiq. Keyingi kunlar Click orqali
+            Pro obuna bilan ochiladi.
+          </UzHint>
         </>
       )}
 
