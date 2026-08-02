@@ -50,6 +50,9 @@ export function MissionPlayer() {
   const liveSessionRef = useRef<LiveVoiceSession | null>(null)
   const liveSessionIdRef = useRef<string | null>(null)
   const currentStepRef = useRef(0)
+  const transcriptRef = useRef('')
+  const assistantReplyRef = useRef<string | null>(null)
+  const submittingTurnRef = useRef(false)
 
   const {
     data: mission,
@@ -79,6 +82,14 @@ export function MissionPlayer() {
   useEffect(() => {
     currentStepRef.current = stepIndex
   }, [stepIndex])
+
+  useEffect(() => {
+    transcriptRef.current = transcript
+  }, [transcript])
+
+  useEffect(() => {
+    assistantReplyRef.current = assistantReply
+  }, [assistantReply])
 
   useEffect(() => {
     return () => {
@@ -253,6 +264,7 @@ export function MissionPlayer() {
           },
           onTurnComplete: () => {
             setVoiceComposerOpen(true)
+            void submitTurnFromLive()
           },
           onSilenceTimeout: () => {
             void stopVoice()
@@ -293,10 +305,6 @@ export function MissionPlayer() {
     try {
       await liveSession.stopAndAwaitTurn()
       await teardownVoice(true, null)
-      if (transcript.trim()) {
-        await submitTurn(false, transcript, assistantReply)
-        return
-      }
       setVoiceState('idle')
     } catch (caught) {
       const message =
@@ -309,15 +317,32 @@ export function MissionPlayer() {
     }
   }
 
+  async function submitTurnFromLive() {
+    const transcriptValue = transcriptRef.current.trim()
+    if (!transcriptValue || submittingTurnRef.current) {
+      return
+    }
+
+    submittingTurnRef.current = true
+    try {
+      await submitTurn(false, transcriptValue, assistantReplyRef.current, false)
+    } finally {
+      submittingTurnRef.current = false
+    }
+  }
+
   async function submitTurn(
     isRetry: boolean,
     transcriptValue = transcript,
     tutorReply = assistantReply,
+    showThinking = true,
   ) {
     if (!attempt || !transcriptValue.trim()) return
 
     setBusy(true)
-    setVoiceState('thinking')
+    if (showThinking) {
+      setVoiceState('thinking')
+    }
     setError(null)
 
     try {
@@ -771,7 +796,7 @@ function VoiceControls({
 
         <span className="text-sm text-ink-faint">
           {hasLiveSession
-            ? "Suhbat davom etmoqda. Gap tugasa o'zi tahlil qiladi yoki xohlasangiz yakunlaysiz."
+            ? "Suhbat davom etmoqda. Gemini javobni shu yerning o'zida beradi, xohlasangiz keyin yakunlaysiz."
             : 'Uzbekcha yordam yoqilgan'}
         </span>
       </div>
@@ -814,7 +839,7 @@ function VoiceControls({
             disabled={busy || hasLiveSession || !transcript.trim()}
             onClick={onSubmit}
           >
-            Tahlil qilish
+            Javobni yuborish
           </Button>
         </div>
       )}
