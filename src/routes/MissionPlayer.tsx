@@ -91,6 +91,26 @@ export function MissionPlayer() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!mission || !feedback || !Array.isArray(mission.steps) || mission.steps.length === 0) {
+      return
+    }
+
+    const onLastStep = stepIndex >= mission.steps.length - 1
+    if (!onLastStep || feedback.score < 70) {
+      return
+    }
+
+    setAssistantReply(
+      "Zo'r aytdingiz. Bo'ldi, bugungi joyini chiroyli yopdik, endi keyingisida yana ko'rishamiz.",
+    )
+    const timer = window.setTimeout(() => {
+      void complete()
+    }, 1800)
+
+    return () => window.clearTimeout(timer)
+  }, [feedback, mission, stepIndex])
+
   if (isLoading) return <Spinner />
 
   if (loadError instanceof RequestError && loadError.isPaywall) {
@@ -160,19 +180,6 @@ export function MissionPlayer() {
       )
     })
   }
-
-  useEffect(() => {
-    if (!feedback || !isLastStep || feedback.score < 70) {
-      return
-    }
-
-    setAssistantReply("Zo'r aytdingiz. Bo'ldi, bugungi joyini chiroyli yopdik, endi keyingisida yana ko'rishamiz.")
-    const timer = window.setTimeout(() => {
-      void complete()
-    }, 1800)
-
-    return () => window.clearTimeout(timer)
-  }, [feedback, isLastStep])
 
   const needsRegisterLabel =
     summary.category === 'StreetRussian' ||
