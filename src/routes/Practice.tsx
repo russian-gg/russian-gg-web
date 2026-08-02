@@ -16,15 +16,12 @@ const FILTERS = [
 
 type ScenarioFilter = (typeof FILTERS)[number]['value']
 
-const SCENARIO_BY_SLUG: Record<string, Extract<ScenarioFilter, 'taxi' | 'dokon'>> = {
-  'practice-taxi-destination': 'taxi',
-  'practice-shop-question': 'dokon',
-}
-
-const CATEGORY_BY_MISSION: Record<string, Extract<ScenarioFilter, 'work' | 'daily' | 'social'>> = {
+const CATEGORY_BY_MISSION: Record<string, Exclude<ScenarioFilter, 'all'>> = {
   Work: 'work',
   DailyLife: 'daily',
   Social: 'social',
+  StreetRussian: 'taxi',
+  Repair: 'dokon',
 }
 
 export function Practice() {
@@ -37,17 +34,9 @@ export function Practice() {
 
   const filtered = useMemo(() => {
     if (!data) return []
-    const visible = data.filter(
-      (mission) => mission.category in CATEGORY_BY_MISSION || mission.slug in SCENARIO_BY_SLUG,
-    )
+    const visible = data.filter((mission) => mission.category in CATEGORY_BY_MISSION)
     if (category === 'all') return visible
-    return visible.filter((mission) => {
-      if (category === 'taxi' || category === 'dokon') {
-        return SCENARIO_BY_SLUG[mission.slug] === category
-      }
-
-      return CATEGORY_BY_MISSION[mission.category] === category
-    })
+    return visible.filter((mission) => CATEGORY_BY_MISSION[mission.category] === category)
   }, [category, data])
 
   return (

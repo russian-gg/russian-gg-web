@@ -68,7 +68,7 @@ export function MissionPlayer() {
         const started = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`)
         setAttempt(started)
         // Resuming lands the learner on the step they left, not back at the beginning.
-        setStepIndex(started.currentStepIndex)
+        setStepIndex(Math.max(0, started.currentStepIndex))
       } catch (caught) {
         setError(caught instanceof RequestError ? caught.message : "Mashqni ochib bo'lmadi.")
       }
@@ -99,16 +99,30 @@ export function MissionPlayer() {
   }
 
   if (!mission) return <ErrorNote>Mashq topilmadi.</ErrorNote>
+  if (
+    !mission.summary ||
+    !Array.isArray(mission.steps) ||
+    !Array.isArray(mission.targetPhrases) ||
+    mission.steps.length === 0
+  ) {
+    return (
+      <ErrorNote>
+        Bu mashq ma&apos;lumotlari to&apos;liq kelmadi. Sahifani yangilab ko&apos;ring yoki boshqa
+        kunni oching.
+      </ErrorNote>
+    )
+  }
   const currentMission = mission
 
   const step = currentMission.steps[stepIndex]
   const nextStep = currentMission.steps[stepIndex + 1]
   const totalSteps = currentMission.steps.length
   const isLastStep = stepIndex >= totalSteps - 1
+  const safeStep = step ?? currentMission.steps[Math.max(0, Math.min(stepIndex, totalSteps - 1))]
   const promptAudioText =
-    step?.kind === 'PhraseIntro'
+    safeStep?.kind === 'PhraseIntro'
       ? currentMission.targetPhrases.map((phrase) => phrase.russian).join('. ')
-      : step?.promptRu ?? currentMission.summary.titleRu
+      : safeStep?.promptRu ?? currentMission.summary.titleRu
 
   function handleListen(text: string) {
     setError(null)
@@ -179,7 +193,7 @@ export function MissionPlayer() {
 
       const liveSession = new LiveVoiceSession(
         outcome.ticket,
-        buildMissionVoiceInstruction(currentMission, step),
+        buildMissionVoiceInstruction(currentMission, safeStep),
         {
           onStatus: (status) => {
             setVoiceState(
@@ -381,7 +395,7 @@ export function MissionPlayer() {
         )}
 
         {/* The line the learner is working on, with its Uzbek support underneath. */}
-        {step?.kind === 'PhraseIntro' ? (
+        {safeStep?.kind === 'PhraseIntro' ? (
           <PhraseList
             phrases={currentMission.targetPhrases}
             promptAudioState={promptAudioState}
@@ -392,9 +406,9 @@ export function MissionPlayer() {
             <VoiceBadge state={voiceState} />
             <div className="min-w-0 flex-1">
               <p className="text-xl leading-snug font-medium text-ink sm:text-2xl">
-                "{step?.promptRu}"
+                "{safeStep?.promptRu}"
               </p>
-              {step?.promptUz && <UzHint>"{step.promptUz}"</UzHint>}
+              {safeStep?.promptUz && <UzHint>"{safeStep.promptUz}"</UzHint>}
             </div>
             <InlineListenButton
               active={promptAudioState === 'playing' && isPromptAudioPlaying(promptAudioText)}
