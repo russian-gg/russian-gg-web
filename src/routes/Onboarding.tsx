@@ -43,7 +43,13 @@ export function Onboarding() {
         selfRatedComprehension: comprehension,
         selfRatedSpeaking: speaking,
       })
-      setSession(started)
+      setSession({
+        ...started,
+        items: started.items.map((item) => ({
+          ...item,
+          options: shuffleOptions(item.options, `${started.attemptId}:${item.code}`),
+        })),
+      })
       setStage('items')
     } catch {
       setError("Testni boshlashda xatolik. Qayta urinib ko'ring.")
@@ -234,6 +240,35 @@ export function Onboarding() {
       </Button>
     </Layout>
   )
+}
+
+function shuffleOptions(options: string[], seed: string) {
+  if (options.length < 2) return options
+
+  const shuffled = [...options]
+  let state = hashSeed(seed)
+
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    state = nextSeed(state)
+    const j = state % (i + 1)
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+
+  return shuffled
+}
+
+function hashSeed(value: string) {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return hash >>> 0
+}
+
+function nextSeed(seed: number) {
+  return (Math.imul(seed, 1664525) + 1013904223) >>> 0
 }
 
 function Scale({
