@@ -147,6 +147,32 @@ async function sendRaw(method: Method, path: string, body?: unknown, retry = tru
 export const api = {
   get: <T>(path: string) => send<T>('GET', path),
   post: <T>(path: string, body?: unknown) => send<T>('POST', path, body),
+  postForm: async <T>(path: string, body: FormData) => {
+    const headers: Record<string, string> = {}
+    const access = tokenStore.access()
+    if (access) headers.authorization = `Bearer ${access}`
+
+    const response = await fetch(`/api${path}`, {
+      method: 'POST',
+      headers,
+      body,
+    })
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch<ApiError>(() => ({ code: 'network_error', message: 'Request failed.' }))
+
+      throw new RequestError(response.status, error.code, error.message)
+    }
+
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T
+    }
+
+    const text = await response.text()
+    return (text ? JSON.parse(text) : undefined) as T
+  },
   postBlob: async (path: string, body?: unknown) => {
     const response = await sendRaw('POST', path, body)
 

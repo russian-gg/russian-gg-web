@@ -203,7 +203,7 @@ export function Settings() {
               <Button variant="secondary" onClick={() => setFeedbackOpen(false)} disabled={feedbackBusy}>
                 Bekor qilish
               </Button>
-              <Button onClick={() => void submitComment()} disabled={feedbackBusy}>
+              <Button type="button" onClick={() => void submitComment()} disabled={feedbackBusy}>
                 {feedbackBusy ? 'Yuborilmoqda...' : 'Yuborish'}
               </Button>
             </div>

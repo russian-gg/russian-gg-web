@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { api, RequestError } from '../lib/api'
-import type { FeedbackSubmissionRequest } from '../lib/types'
 import { Button, Card, ErrorNote, SectionHeading, UzHint } from '../components/ui'
 
 const ISSUE_TYPES = [
@@ -17,7 +16,7 @@ export function FeedbacksPage() {
   const [issueType, setIssueType] = useState<(typeof ISSUE_TYPES)[number]>('Xatolik haqida xabar')
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
-  const [attachmentName, setAttachmentName] = useState<string | null>(null)
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -38,17 +37,19 @@ export function FeedbacksPage() {
     setSuccess(null)
 
     try {
-      await api.post('/auth/feedback', {
-        source: 'feedback_form',
-        issueType,
-        title: title.trim(),
-        message: message.trim(),
-        attachmentName,
-      } satisfies FeedbackSubmissionRequest)
+      const form = new FormData()
+      form.set('issueType', issueType)
+      form.set('title', title.trim())
+      form.set('message', message.trim())
+      if (attachmentFile) {
+        form.set('attachment', attachmentFile)
+      }
+
+      await api.postForm('/auth/feedback-form', form)
 
       setTitle('')
       setMessage('')
-      setAttachmentName(null)
+      setAttachmentFile(null)
       if (fileRef.current) {
         fileRef.current.value = ''
       }
@@ -109,7 +110,10 @@ export function FeedbacksPage() {
             <input
               ref={fileRef}
               type="file"
-              onChange={(event) => setAttachmentName(event.target.files?.[0]?.name ?? null)}
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null
+                setAttachmentFile(file)
+              }}
               className="block w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-sm text-ink"
             />
             <UzHint>
@@ -138,7 +142,7 @@ export function FeedbacksPage() {
               onClick={() => {
                 setTitle('')
                 setMessage('')
-                setAttachmentName(null)
+                setAttachmentFile(null)
                 setError(null)
                 setSuccess(null)
                 if (fileRef.current) {

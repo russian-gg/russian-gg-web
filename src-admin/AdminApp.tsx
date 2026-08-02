@@ -15,7 +15,7 @@ type UserItem = { id: string; displayName?: string | null; email: string; uiLang
 type UserDetail = UserItem & { role: string; currentDay?: number | null; recommendedStartDay?: number | null; recentMissions: Array<{ id: string; missionId: string; status: string; overallScore?: number | null; createdAt: string; completedAt?: string | null }> }
 type Transaction = { id: string; displayName?: string | null; email?: string | null; amount: number; currency: string; period: string; status: string; provider: string; createdAt: string; paidAt?: string | null }
 type Cms = { systemPrompt: string; outfitPrompt: string; enhancePrompt: string }
-type FeedbackItem = { id: string; userId: string; displayName?: string | null; email: string; source: string; issueType: string; title: string; message: string; attachmentName?: string | null; createdAt: string }
+type FeedbackItem = { id: string; userId: string; displayName?: string | null; email: string; source: string; issueType: string; title: string; message: string; attachmentName?: string | null; attachmentUrl?: string | null; createdAt: string }
 
 const sections: Array<{ id: Section; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -414,7 +414,7 @@ function Feedbacks({ token }: { token: string }) {
                 <td>{item.issueType || '-'}</td>
                 <td className="max-w-xs whitespace-pre-wrap break-words"><strong>{item.title || '-'}</strong></td>
                 <td className="max-w-xl whitespace-pre-wrap break-words">{item.message}</td>
-                <td>{item.attachmentName || '-'}</td>
+                <td>{item.attachmentUrl ? <a href={item.attachmentUrl} target="_blank" rel="noreferrer">{item.attachmentName || 'Yuklab olish'}</a> : '-'}</td>
                 <td>{formatDate(item.createdAt)}</td>
               </tr>
             ))}
