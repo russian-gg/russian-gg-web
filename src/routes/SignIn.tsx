@@ -196,12 +196,12 @@ export function SignUp() {
         <Divider />
 
         <Field
-          label="Ism"
+          label="Ism sharif"
           name="displayName"
           autoComplete="given-name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          hint="Ixtiyoriy."
+          hint="Ixtiyoriy: ism-sharifingizni kiriting."
         />
 
         <Field

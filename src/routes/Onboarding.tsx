@@ -8,23 +8,19 @@ import { Button, Card, ErrorNote, ProgressBar, Spinner, UzHint } from '../compon
 type Stage = 'goal' | 'self' | 'items' | 'result'
 
 const GOALS: Array<{ value: LearningGoal; title: string; body: string }> = [
-  { value: 'Work', title: 'Ish uchun', body: 'Hamkasblar, rahbar, mijozlar bilan muloqot.' },
-  { value: 'DailyLife', title: 'Kundalik hayot', body: 'Do’kon, transport, uy-joy, xizmatlar.' },
+  { value: 'Work', title: 'Ish uchun', body: 'Hamkasblar, rahbar va mijozlar bilan muloqot.' },
+  { value: 'DailyLife', title: 'Kundalik hayot', body: "Do'kon, transport, uy-joy va xizmatlar." },
   { value: 'Both', title: 'Ikkalasi ham', body: 'Ish va kundalik hayot birgalikda.' },
 ]
 
 const SELF_SCALE = [
   { value: 1, label: 'Deyarli hech narsa' },
-  { value: 2, label: 'Ayrim so’zlar' },
+  { value: 2, label: "Ayrim so'zlar" },
   { value: 3, label: 'Oddiy gaplar' },
-  { value: 4, label: 'Ko’p narsani' },
+  { value: 4, label: "Ko'p narsani" },
   { value: 5, label: 'Deyarli hammasini' },
 ]
 
-/**
- * Placement, framed as help rather than an exam (PRD §6). Self-assessment comes first so the
- * learner answers something easy before anything that could feel like a test.
- */
 export function Onboarding() {
   const navigate = useNavigate()
   const [stage, setStage] = useState<Stage>('goal')
@@ -50,7 +46,7 @@ export function Onboarding() {
       setSession(started)
       setStage('items')
     } catch {
-      setError('Testni boshlashda xatolik. Qayta urinib ko’ring.')
+      setError("Testni boshlashda xatolik. Qayta urinib ko'ring.")
     } finally {
       setBusy(false)
     }
@@ -74,7 +70,7 @@ export function Onboarding() {
       setResult(submitted)
       setStage('result')
     } catch {
-      setError('Natijani saqlashda xatolik. Qayta urinib ko’ring.')
+      setError("Natijani saqlashda xatolik. Qayta urinib ko'ring.")
     } finally {
       setBusy(false)
     }
@@ -82,7 +78,7 @@ export function Onboarding() {
 
   if (stage === 'goal') {
     return (
-      <Layout step={1} total={4} title="Rus tilini nima uchun o’rganyapsiz?">
+      <Layout step={1} total={4} title="Rus tilini nima uchun o'rganyapsiz?">
         {error && <ErrorNote>{error}</ErrorNote>}
         <div className="space-y-3">
           {GOALS.map((option) => (
@@ -111,7 +107,7 @@ export function Onboarding() {
 
   if (stage === 'self') {
     return (
-      <Layout step={2} total={4} title="O’zingizni qanday baholaysiz?">
+      <Layout step={2} total={4} title="O'zingizni qanday baholaysiz?">
         {error && <ErrorNote>{error}</ErrorNote>}
 
         <Scale
@@ -129,9 +125,9 @@ export function Onboarding() {
         </div>
 
         <Button size="lg" block className="mt-8" disabled={busy} onClick={() => void startDiagnostic()}>
-          {busy ? 'Tayyorlanmoqda…' : 'Qisqa testni boshlash'}
+          {busy ? 'Tayyorlanmoqda...' : 'Qisqa testni boshlash'}
         </Button>
-        <UzHint>5–7 daqiqa. Ovozli savollarni o’tkazib yuborsangiz ham bo’ladi.</UzHint>
+        <UzHint>5-7 daqiqa. Ovozli savollar ixtiyoriy, istasangiz o'tkazib yuborishingiz mumkin.</UzHint>
       </Layout>
     )
   }
@@ -155,6 +151,9 @@ export function Onboarding() {
         <Card>
           <p className="text-xl font-medium leading-relaxed text-ink">{item.promptRu}</p>
           {item.promptUz && <UzHint>{item.promptUz}</UzHint>}
+          {item.isOptional && (
+            <UzHint>Ixtiyoriy savol. Javob bersangiz gapirish darajasini aniqroq baholaymiz.</UzHint>
+          )}
 
           {item.audioUrl && (
             <audio controls src={item.audioUrl} className="mt-4 w-full">
@@ -194,7 +193,7 @@ export function Onboarding() {
   if (!result) return <Spinner />
 
   return (
-    <Layout step={4} total={4} title="Sizning boshlang’ich darajangiz">
+    <Layout step={4} total={4} title="Sizning boshlang'ich darajangiz">
       <Card>
         <div className="flex flex-wrap gap-8">
           <div>
@@ -215,9 +214,8 @@ export function Onboarding() {
         <UzHint>{result.summaryUz}</UzHint>
       </Card>
 
-      {/* The estimate keeps moving; it is never presented as certification (PRD §6). */}
       <p className="text-support mt-4">
-        Bu dastlabki baho — rasmiy til sertifikati emas. Har bir ovozli mashqdan keyin yangilanadi.
+        Bu dastlabki baho, rasmiy til sertifikati emas. Har bir ovozli mashqdan keyin yangilanadi.
       </p>
 
       <Button
@@ -274,10 +272,6 @@ function Scale({
   )
 }
 
-/**
- * Spoken items are optional and skipping is a first-class button, not a hidden link: a
- * learner who is too nervous to speak still has to be placeable (PRD §6).
- */
 function SpokenItem({
   onSubmit,
   onSkip,
@@ -296,16 +290,16 @@ function SpokenItem({
           onChange={(e) => setTranscript(e.target.value)}
           rows={3}
           className="w-full rounded-xl border border-hairline bg-ground-raised px-3.5 py-3 text-base text-ink"
-          placeholder="Меня зовут…"
+          placeholder="Masalan: ismim Rustam, Samarqanddanman, omborda ishlayman."
         />
       </label>
-      <UzHint>Ovoz bilan aytib, keyin yozing — yoki bu savolni o’tkazib yuboring.</UzHint>
+      <UzHint>Istasangiz og'zaki aytib, keyin yozing. Istamasangiz savolni o'tkazib yuboring.</UzHint>
 
       <Button size="lg" block className="mt-4" disabled={!transcript.trim()} onClick={() => onSubmit(transcript)}>
         Javobni yuborish
       </Button>
       <Button variant="secondary" block className="mt-2" onClick={onSkip}>
-        O’tkazib yuborish
+        O'tkazib yuborish
       </Button>
     </div>
   )
