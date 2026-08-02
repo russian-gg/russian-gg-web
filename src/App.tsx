@@ -51,7 +51,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (isLoading) return <Spinner />
   if (!user) return <Navigate to="/signin" replace state={{ from: location.pathname }} />
   if (isPendingOnboarding && location.pathname !== '/onboarding') {
-    return <Navigate to="/signup" replace />
+    return <Navigate to="/signup" replace state={{ clearPendingOnboarding: true }} />
   }
 
   return <>{children}</>

@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import googleGIcon from '../assets/google-g-official.svg'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
@@ -119,6 +119,7 @@ export function SignIn() {
 
 export function SignUp() {
   const { abandonPendingOnboarding, isPendingOnboarding, signInWithGoogle, signUp } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -127,12 +128,19 @@ export function SignUp() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
+  const didClearPendingRef = useRef(false)
 
   useEffect(() => {
-    if (isPendingOnboarding) {
-      abandonPendingOnboarding()
+    if (didClearPendingRef.current) {
+      return
     }
-  }, [abandonPendingOnboarding, isPendingOnboarding])
+
+    if (isPendingOnboarding && location.state?.clearPendingOnboarding === true) {
+      didClearPendingRef.current = true
+      abandonPendingOnboarding()
+      navigate('/signup', { replace: true })
+    }
+  }, [abandonPendingOnboarding, isPendingOnboarding, location.state, navigate])
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -334,18 +342,20 @@ function GoogleContinueButton({
 }) {
   const buttonRef = useRef<HTMLDivElement | null>(null)
   const onCredentialEvent = useEffectEvent(onCredential)
+  const initializedRef = useRef(false)
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
   const buttonLabel =
     text === 'signup_with' ? "Google bilan ro'yxatdan o'tish" : 'Google bilan davom etish'
 
   useEffect(() => {
-    if (!clientId || !buttonRef.current) return
+    if (!clientId || !buttonRef.current || initializedRef.current) return
 
     let cancelled = false
 
     void loadGoogleIdentityScript()
       .then(() => {
         if (cancelled || !buttonRef.current) return
+        initializedRef.current = true
         renderGoogleButton(
           buttonRef.current,
           clientId,
@@ -359,9 +369,6 @@ function GoogleContinueButton({
 
     return () => {
       cancelled = true
-      if (buttonRef.current) {
-        buttonRef.current.innerHTML = ''
-      }
     }
   }, [clientId, onCredentialEvent, text])
 
