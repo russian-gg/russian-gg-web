@@ -15,6 +15,7 @@ export interface AuthState {
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   completePendingOnboarding: () => Promise<void>
+  abandonPendingOnboarding: () => void
 }
 
 /**

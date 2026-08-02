@@ -118,7 +118,7 @@ export function SignIn() {
 }
 
 export function SignUp() {
-  const { signInWithGoogle, signUp } = useAuth()
+  const { abandonPendingOnboarding, isPendingOnboarding, signInWithGoogle, signUp } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -127,6 +127,12 @@ export function SignUp() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
+
+  useEffect(() => {
+    if (isPendingOnboarding) {
+      abandonPendingOnboarding()
+    }
+  }, [abandonPendingOnboarding, isPendingOnboarding])
 
   async function submit(event: FormEvent) {
     event.preventDefault()

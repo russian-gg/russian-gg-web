@@ -94,6 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(false)
         await loadUser()
       },
+      abandonPendingOnboarding() {
+        tokenStore.clear()
+        setUser(null)
+        setPendingOnboarding(false)
+      },
       refreshUser: loadUser,
     }),
     [user, isLoading, isPendingOnboarding, loadUser],
