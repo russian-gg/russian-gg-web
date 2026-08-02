@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'content' | 'cms' | 'future' | 'feedbacks'
+type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'content' | 'cms' | 'future' | 'notes' | 'feedbacks'
 
 type Overview = {
   users: { totalUsers: number; newUsers30d: number; activeUsers30d: number; activeUsers7d: number }
@@ -15,7 +15,7 @@ type UserItem = { id: string; displayName?: string | null; email: string; uiLang
 type UserDetail = UserItem & { role: string; currentDay?: number | null; recommendedStartDay?: number | null; recentMissions: Array<{ id: string; missionId: string; status: string; overallScore?: number | null; createdAt: string; completedAt?: string | null }> }
 type Transaction = { id: string; displayName?: string | null; email?: string | null; amount: number; currency: string; period: string; status: string; provider: string; createdAt: string; paidAt?: string | null }
 type Cms = { systemPrompt: string; outfitPrompt: string; enhancePrompt: string }
-type FeedbackItem = { id: string; userId: string; displayName?: string | null; email: string; message: string; createdAt: string }
+type FeedbackItem = { id: string; userId: string; displayName?: string | null; email: string; source: string; issueType: string; title: string; message: string; attachmentName?: string | null; createdAt: string }
 
 const sections: Array<{ id: Section; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -25,6 +25,7 @@ const sections: Array<{ id: Section; label: string }> = [
   { id: 'content', label: 'Content' },
   { id: 'cms', label: 'CMS' },
   { id: 'future', label: 'Future modules' },
+  { id: 'notes', label: 'Izohlar' },
   { id: 'feedbacks', label: 'Feedbacks' },
 ]
 
@@ -77,6 +78,7 @@ export function AdminApp() {
         {section === 'content' && <Content token={token} />}
         {section === 'cms' && <CmsEditor token={token} />}
         {section === 'future' && <FutureModules />}
+        {section === 'notes' && <Comments token={token} />}
         {section === 'feedbacks' && <Feedbacks token={token} />}
       </main>
     </div>
@@ -351,23 +353,68 @@ function FutureModules() {
   )
 }
 
-function Feedbacks({ token }: { token: string }) {
+function Comments({ token }: { token: string }) {
   const [page, setPage] = useState(1)
-  const { data, error } = useAdminFetch<Paged<FeedbackItem>>(token, `/api/admin-portal/feedback?page=${page}&pageSize=20`)
+  const { data, error } = useAdminFetch<Paged<FeedbackItem>>(token, `/api/admin-portal/feedback?source=comment&page=${page}&pageSize=20`)
   if (error) return <ErrorBox message={error} />
   if (!data) return <Loading />
 
   return (
     <section>
-      <Header title="Feedbacks" subtitle="Foydalanuvchilar yuborgan taklif, sharh va e'tirozlar." />
+      <Header title="Izohlar" subtitle="Eski Fikr yuborish oynasidan kelgan qisqa izohlar va kommentlar." />
       <div className="panel">
         <table className="table">
-          <thead><tr><th>User</th><th>Xabar</th><th>Vaqt</th></tr></thead>
+          <thead><tr><th>User</th><th>Izoh</th><th>Vaqt</th></tr></thead>
           <tbody>
             {data.items.map((item) => (
               <tr key={item.id}>
                 <td><strong>{item.displayName || 'No name'}</strong><div>{item.email}</div></td>
                 <td className="max-w-xl whitespace-pre-wrap break-words">{item.message}</td>
+                <td>{formatDate(item.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <Pager page={page} total={data.total} onPage={setPage} />
+      </div>
+    </section>
+  )
+}
+
+function Feedbacks({ token }: { token: string }) {
+  const [page, setPage] = useState(1)
+  const [issueType, setIssueType] = useState('')
+  const query = `/api/admin-portal/feedback?source=feedback_form&page=${page}&pageSize=20${issueType ? `&issueType=${encodeURIComponent(issueType)}` : ''}`
+  const { data, error } = useAdminFetch<Paged<FeedbackItem>>(token, query)
+  if (error) return <ErrorBox message={error} />
+  if (!data) return <Loading />
+
+  const issueTypes = Array.from(new Set(data.items.map((item) => item.issueType).filter(Boolean)))
+
+  return (
+    <section>
+      <Header title="Feedbacks" subtitle="Yangi feedback formasi orqali kelgan to'liq murojaatlar." />
+      <div className="toolbar">
+        <select value={issueType} onChange={(event) => { setPage(1); setIssueType(event.target.value) }}>
+          <option value="">Barcha masalalar</option>
+          {issueTypes.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="panel">
+        <table className="table">
+          <thead><tr><th>User</th><th>Turi</th><th>Sarlavha</th><th>Izoh</th><th>Fayl</th><th>Vaqt</th></tr></thead>
+          <tbody>
+            {data.items.map((item) => (
+              <tr key={item.id}>
+                <td><strong>{item.displayName || 'No name'}</strong><div>{item.email}</div></td>
+                <td>{item.issueType || '-'}</td>
+                <td className="max-w-xs whitespace-pre-wrap break-words"><strong>{item.title || '-'}</strong></td>
+                <td className="max-w-xl whitespace-pre-wrap break-words">{item.message}</td>
+                <td>{item.attachmentName || '-'}</td>
                 <td>{formatDate(item.createdAt)}</td>
               </tr>
             ))}

@@ -39,6 +39,7 @@ export function FeedbacksPage() {
 
     try {
       await api.post('/auth/feedback', {
+        source: 'feedback_form',
         issueType,
         title: title.trim(),
         message: message.trim(),

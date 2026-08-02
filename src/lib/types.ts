@@ -358,8 +358,9 @@ export interface ApiError {
 }
 
 export interface FeedbackSubmissionRequest {
-  issueType: string
-  title: string
+  source?: 'comment' | 'feedback_form'
+  issueType?: string
+  title?: string
   message: string
   attachmentName?: string | null
 }
