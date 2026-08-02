@@ -353,6 +353,7 @@ function GoogleContinueButton({
   const buttonRef = useRef<HTMLDivElement | null>(null)
   const onCredentialEvent = useEffectEvent(onCredential)
   const initializedRef = useRef(false)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
   const buttonLabel =
     text === 'signup_with' ? "Google bilan ro'yxatdan o'tish" : 'Google bilan davom etish'
@@ -361,6 +362,7 @@ function GoogleContinueButton({
     if (!clientId || !buttonRef.current || initializedRef.current) return
 
     let cancelled = false
+    let probe: ReturnType<typeof setTimeout> | undefined
 
     void loadGoogleIdentityScript()
       .then(() => {
@@ -374,16 +376,50 @@ function GoogleContinueButton({
           },
           text,
         )
+
+        /*
+         * Google refuses an unregistered origin *silently* — `renderButton` returns without
+         * throwing and simply leaves the container empty, which used to leave a handsome
+         * button on screen that could never do anything. Checking for the iframe is the only
+         * signal we get; the reason itself is only in the console, so it is logged there too.
+         */
+        probe = setTimeout(() => {
+          if (cancelled) return
+          const rendered = (buttonRef.current?.childElementCount ?? 0) > 0
+          if (!rendered) {
+            console.error(
+              '[auth] Google did not render its button. The most common cause is that this ' +
+                `origin (${window.location.origin}) is not an authorised JavaScript origin for ` +
+                `client ${clientId}. Check the browser console for the [GSI_LOGGER] message.`,
+            )
+          }
+          setStatus(rendered ? 'ready' : 'unavailable')
+        }, 1500)
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        if (cancelled) return
+        console.error('[auth] Google Identity Services failed to load.', error)
+        setStatus('unavailable')
+      })
 
     return () => {
       cancelled = true
+      if (probe) clearTimeout(probe)
     }
   }, [clientId, onCredentialEvent, text])
 
   if (!clientId) {
     return null
+  }
+
+  // A button that cannot work must not be shown as if it can: email sign-in still works, and
+  // saying so is better than letting the learner tap a dead control.
+  if (status === 'unavailable') {
+    return (
+      <p className="text-support rounded-xl bg-ground-sunken px-4 py-3">
+        Google orqali kirish hozir ishlamayapti. Quyida email va parol bilan davom eting.
+      </p>
+    )
   }
 
   return (

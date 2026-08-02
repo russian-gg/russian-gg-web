@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, tokenStore } from './api'
 import { AuthContext, type AuthState } from './auth-context'
 import { disableGoogleAutoSelect } from './google-auth'
 import type { AuthResponse, UserProfile } from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [isLoading, setLoading] = useState(true)
   const [isPendingOnboarding, setPendingOnboarding] = useState(tokenStore.hasPending())
@@ -36,6 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void loadUser()
   }, [loadUser])
 
+  /**
+   * Every cached query belongs to whoever was signed in when it was fetched. Identity is
+   * changing, so the cache has to go with it — otherwise the next account is served the
+   * previous one's entitlement, progress and home screen straight from memory, and a Free
+   * learner is shown Pro until the entry happens to go stale.
+   *
+   * Called synchronously before `setUser`, so it lands before the re-render mounts any
+   * query under the new token.
+   */
+  const resetCache = useCallback(() => queryClient.clear(), [queryClient])
+
   const value = useMemo<AuthState>(
     () => ({
       user,
@@ -44,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signIn(email, password) {
         const auth = await api.post<AuthResponse>('/auth/login', { email, password })
         tokenStore.set(auth)
+        resetCache()
         setUser(auth.user)
         setPendingOnboarding(false)
         return auth.user
@@ -57,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uiLanguage: 'uz',
         })
         tokenStore.setPending(auth)
+        resetCache()
         setUser(auth.user)
         setPendingOnboarding(true)
         return auth.user
@@ -75,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           tokenStore.set(auth)
           setPendingOnboarding(false)
         }
+        resetCache()
         setUser(auth.user)
         return auth.user
       },
@@ -86,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         disableGoogleAutoSelect()
         tokenStore.clear()
+        resetCache()
         setUser(null)
         setPendingOnboarding(false)
       },
@@ -96,12 +113,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       abandonPendingOnboarding() {
         tokenStore.clear()
+        resetCache()
         setUser(null)
         setPendingOnboarding(false)
       },
       refreshUser: loadUser,
     }),
-    [user, isLoading, isPendingOnboarding, loadUser],
+    [user, isLoading, isPendingOnboarding, loadUser, resetCache],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
