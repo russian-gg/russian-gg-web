@@ -25,7 +25,7 @@ export function AppShell() {
   const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
 
   return (
-    <div className="min-h-dvh md:flex">
+    <div className="min-h-dvh overflow-x-clip md:flex">
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Wordmark />
@@ -118,11 +118,11 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={`flex w-full items-center gap-3 rounded-2xl border border-hairline bg-ground-raised px-3 text-left transition hover:border-signal ${
-          compact ? 'w-auto py-2 pl-3 pr-2' : 'py-2.5'
+        className={`flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left transition hover:border-signal ${
+          compact ? 'max-w-[10.5rem] px-2.5 py-2' : 'w-full px-3 py-2'
         }`}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
           {initials}
         </span>
         {!compact && (
@@ -136,7 +136,9 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 
       {open && (
         <div className={`absolute z-30 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-2xl ${
-          compact ? 'right-0 mt-2 w-72' : 'bottom-full left-0 mb-3 w-72'
+          compact
+            ? 'right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-[15.5rem]'
+            : 'bottom-full left-0 mb-3 w-[15.5rem]'
         }`}>
           <button
             type="button"
