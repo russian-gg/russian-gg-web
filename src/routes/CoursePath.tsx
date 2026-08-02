@@ -28,7 +28,7 @@ export function CoursePath() {
   if (isLoading || !days) return <Spinner />
 
   const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
-  const isPreviewMode = entitlement?.hasProAccess === true && entitlement.status === 'None'
+  const maxUnlockedDay = entitlement?.maxUnlockedDay ?? 1
 
   const phases = [
     { phase: 'Foundation' as const, range: '1-30' },
@@ -37,8 +37,12 @@ export function CoursePath() {
   ]
 
   function handleToggle(day: CourseDayView) {
-    if (!day.isUnlocked && !isPreviewMode) {
-      setLockedMessage("Avval shu darajagacha yetib keling, keyin bu bo'lim ochiladi.")
+    if (!day.isUnlocked) {
+      setLockedMessage(
+        day.day > maxUnlockedDay
+          ? "Bu bo'limni ochish uchun Pro kerak."
+          : "Avval shu darajagacha yetib keling, keyin bu bo'lim ochiladi.",
+      )
       return
     }
     setOpenDay((current) => (current === day.day ? null : day.day))
@@ -72,7 +76,7 @@ export function CoursePath() {
                   key={day.day}
                   day={day}
                   isOpen={openDay === day.day}
-                  isPreviewMode={isPreviewMode}
+                  maxUnlockedDay={maxUnlockedDay}
                   onToggle={() => handleToggle(day)}
                 />
               ))}
@@ -99,12 +103,12 @@ export function CoursePath() {
 function DayRow({
   day,
   isOpen,
-  isPreviewMode,
+  maxUnlockedDay,
   onToggle,
 }: {
   day: CourseDayView
   isOpen: boolean
-  isPreviewMode: boolean
+  maxUnlockedDay: number
   onToggle: () => void
 }) {
   const { data: missions, isLoading } = useQuery({
@@ -132,7 +136,9 @@ function DayRow({
         </span>
 
         {isDone && <Badge tone="milestone">Bajarilgan</Badge>}
-        {!day.isUnlocked && !isPreviewMode && !isDone && <Badge tone="caution">Yopiq</Badge>}
+        {!day.isUnlocked && !isDone && (
+          <Badge tone="caution">{day.day > maxUnlockedDay ? 'Pro kerak' : 'Yopiq'}</Badge>
+        )}
       </button>
 
       {isOpen && (
