@@ -83,7 +83,7 @@ export class LiveVoiceSession {
         this.resolveTurnComplete = resolve
         this.rejectTurnComplete = reject
       })
-      this.ws.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }))
+      this.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }))
     }
 
     await Promise.race([
@@ -109,7 +109,6 @@ export class LiveVoiceSession {
     this.turnCompletePromise = null
     this.resolveTurnComplete = null
     this.rejectTurnComplete = null
-    this.ws.send(JSON.stringify({ realtimeInput: { activityStart: {} } }))
     this.recording = true
     this.callbacks.onStatus('listening')
   }
@@ -156,11 +155,6 @@ export class LiveVoiceSession {
             systemInstruction: {
               parts: [{ text: this.systemInstruction }],
             },
-            realtimeInputConfig: {
-              automaticActivityDetection: {
-                disabled: true,
-              },
-            },
             generationConfig: {
               responseModalities: ['AUDIO'],
               speechConfig: {
@@ -196,6 +190,7 @@ export class LiveVoiceSession {
             }
 
             if (serverContent.outputTranscription?.text) {
+              this.ensureTurnPromise()
               this.outputTranscript = mergeTranscript(
                 this.outputTranscript,
                 serverContent.outputTranscription.text,
@@ -206,6 +201,7 @@ export class LiveVoiceSession {
 
             for (const part of serverContent.modelTurn?.parts ?? []) {
               if (part.inlineData?.data) {
+                this.ensureTurnPromise()
                 this.playAudioChunk(part.inlineData.data)
               }
             }
@@ -378,6 +374,18 @@ export class LiveVoiceSession {
     this.rejectTurnComplete = null
     this.callbacks.onTurnComplete()
     this.callbacks.onStatus('idle')
+  }
+
+  private ensureTurnPromise() {
+    if (this.turnCompletePromise) {
+      return
+    }
+
+    this.turnSettled = false
+    this.turnCompletePromise = new Promise<void>((resolve, reject) => {
+      this.resolveTurnComplete = resolve
+      this.rejectTurnComplete = reject
+    })
   }
 }
 
