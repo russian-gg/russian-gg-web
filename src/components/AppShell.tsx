@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useState, type ReactNode } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { levelDescriptionUz } from '../lib/format'
 import { useQuery } from '@tanstack/react-query'
@@ -8,29 +8,21 @@ import type { ProgressView } from '../lib/types'
 
 const NAV = [
   { to: '/home', label: 'Bugungi dars' },
-  { to: '/path', label: '90 kunlik yo’l' },
-  { to: '/practice', label: 'Missionlar' },
+  { to: '/path', label: "90 kunlik yo'l" },
+  { to: '/practice', label: 'Topshiriqlar' },
   { to: '/progress', label: 'Progress' },
 ] as const
 
-/**
- * Left-side navigation on desktop, compact top navigation on mobile (PRD §6). Four
- * destinations only: the home screen carries the next action, so navigation does not
- * need to.
- */
 export function AppShell() {
   const { user, signOut } = useAuth()
   const isStaff = user?.role === 'ContentEditor' || user?.role === 'Administrator'
 
   return (
     <div className="min-h-dvh md:flex">
-      {/* Mobile: compact top bar. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Wordmark />
-          <NavLink to="/settings" className="text-sm font-medium text-ink-muted">
-            Sozlamalar
-          </NavLink>
+          <ProfileMenu compact />
         </div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Asosiy">
           {NAV.map((item) => (
@@ -39,16 +31,9 @@ export function AppShell() {
             </TabLink>
           ))}
           {isStaff && <TabLink to="/admin">Kontent</TabLink>}
-          <TabLink to="/feedbacks">Feedback</TabLink>
         </nav>
       </header>
 
-      {/*
-        Desktop: left rail with the learner anchored at the bottom. It is pinned to the
-        viewport (sticky + h-dvh) so "Chiqish" sits at the bottom of the screen, not the
-        bottom of a tall page — otherwise a long mission scrolls it below the fold. Scrolls
-        internally on a short viewport.
-      */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-hairline px-6 py-8 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
         <Wordmark />
 
@@ -59,11 +44,10 @@ export function AppShell() {
             </RailLink>
           ))}
           {isStaff && <RailLink to="/admin">Kontent</RailLink>}
-          <RailLink to="/feedbacks">Feedback</RailLink>
         </nav>
 
         <div className="mt-auto pt-8">
-          <LearnerBlock />
+          <ProfileMenu />
           <button
             type="button"
             onClick={() => void signOut()}
@@ -74,17 +58,13 @@ export function AppShell() {
         </div>
       </aside>
 
-      <main className="mx-auto w-full max-w-3xl px-5 py-8 md:px-12 md:py-12">
+      <main className="mx-auto w-full max-w-5xl px-5 py-8 md:px-12 md:py-12">
         <Outlet />
       </main>
     </div>
   )
 }
 
-/**
- * ".gg" carries the brand blue itself, not the darker text variant — a brand mark is
- * exempt from the text-contrast rule, and the lighter blue is the identity.
- */
 function Wordmark() {
   return (
     <NavLink to="/home" className="text-xl font-semibold tracking-tight text-ink">
@@ -93,9 +73,10 @@ function Wordmark() {
   )
 }
 
-/** Name and current level — the learner's own state, not a marketing badge. */
-function LearnerBlock() {
-  const { user } = useAuth()
+function ProfileMenu({ compact = false }: { compact?: boolean }) {
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
+  const [open, setOpen] = useState(false)
 
   const { data } = useQuery({
     queryKey: ['progress'],
@@ -105,14 +86,83 @@ function LearnerBlock() {
   })
 
   const name = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Talaba'
+  const subtitle = data ? `${data.speakingLevel} · ${levelDescriptionUz[data.speakingLevel]}` : 'Profil'
+  const initials = name.trim().slice(0, 2).toUpperCase()
+
+  async function go(path: string) {
+    setOpen(false)
+    navigate(path)
+  }
+
+  async function logout() {
+    setOpen(false)
+    await signOut()
+    navigate('/')
+  }
 
   return (
-    <NavLink to="/settings" className="block">
-      <p className="text-base font-semibold text-ink">{name}</p>
-      <p className="mt-0.5 text-sm text-ink-muted">
-        {data ? `${data.speakingLevel} · ${levelDescriptionUz[data.speakingLevel]}` : 'Sozlamalar'}
-      </p>
-    </NavLink>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={`flex w-full items-center gap-3 rounded-2xl border border-hairline bg-ground-raised px-3 py-3 text-left transition hover:border-signal ${
+          compact ? 'w-auto px-3 py-2' : ''
+        }`}
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
+          {initials}
+        </span>
+        {!compact && (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base font-semibold text-ink">{name}</span>
+            <span className="block text-sm text-ink-muted">{subtitle}</span>
+          </span>
+        )}
+        <span className="text-ink-muted">{open ? '˄' : '˅'}</span>
+      </button>
+
+      {open && (
+        <div className={`absolute z-30 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-2xl ${
+          compact ? 'right-0 mt-2 w-72' : 'bottom-full left-0 mb-3 w-72'
+        }`}>
+          <button type="button" onClick={() => void go('/settings')} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-ground-sunken">
+            <span className="text-lg">○</span>
+            <span>
+              <span className="block text-base font-semibold text-ink">Profile</span>
+              <span className="block text-sm text-ink-muted">{user?.email}</span>
+            </span>
+          </button>
+          <div className="my-2 border-t border-hairline" />
+          <MenuItem label="Sozlamalar" onClick={() => void go('/settings')} />
+          <MenuItem label="To'lovlar" onClick={() => void go('/paywall')} />
+          <MenuItem label="Feedback" onClick={() => void go('/feedbacks')} />
+          <div className="my-2 border-t border-hairline" />
+          <MenuItem label="Chiqish" onClick={() => void logout()} danger />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MenuItem({
+  label,
+  onClick,
+  danger = false,
+}: {
+  label: string
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center rounded-xl px-3 py-3 text-left text-base transition hover:bg-ground-sunken ${
+        danger ? 'text-danger' : 'text-ink'
+      }`}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -131,19 +181,13 @@ function TabLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-/**
- * The rail marks the active item with weight and ink colour rather than a filled pill —
- * closer to the approved direction, and it keeps the signal colour reserved for actions.
- */
 function RailLink({ to, children }: { to: string; children: ReactNode }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
         `-mx-2 rounded-lg px-2 py-2 text-base transition-colors ${
-          isActive
-            ? 'font-semibold text-ink'
-            : 'font-medium text-ink-muted hover:text-ink'
+          isActive ? 'font-semibold text-ink' : 'font-medium text-ink-muted hover:text-ink'
         }`
       }
     >

@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { phaseLabelUz } from '../lib/format'
-import type { CourseDayView, EntitlementView, MissionSummary } from '../lib/types'
+import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { Badge, Card, SectionHeading, Spinner } from '../components/ui'
+import { Badge, Button, Card, SectionHeading, Spinner } from '../components/ui'
 
-/** The 90-day map. Locked days stay visible so the shape of the journey is legible. */
 export function CoursePath() {
   const [openDay, setOpenDay] = useState<number | null>(null)
+  const [lockedMessage, setLockedMessage] = useState<string | null>(null)
 
   const { data: days, isLoading } = useQuery({
     queryKey: ['course-map'],
@@ -20,23 +20,40 @@ export function CoursePath() {
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
 
+  const { data: progress } = useQuery({
+    queryKey: ['progress'],
+    queryFn: () => api.get<ProgressView>('/course/progress'),
+  })
+
   if (isLoading || !days) return <Spinner />
 
+  const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
   const isPreviewMode = entitlement?.hasProAccess === true && entitlement.status === 'None'
 
   const phases = [
-    { phase: 'Foundation' as const, range: '1–30' },
-    { phase: 'Bridge' as const, range: '31–60' },
-    { phase: 'Immersion' as const, range: '61–90' },
+    { phase: 'Foundation' as const, range: '1-30' },
+    { phase: 'Bridge' as const, range: '31-60' },
+    { phase: 'Immersion' as const, range: '61-90' },
   ]
+
+  function handleToggle(day: CourseDayView) {
+    if (!day.isUnlocked && !isPreviewMode) {
+      setLockedMessage("Avval shu darajagacha yetib keling, keyin bu bo'lim ochiladi.")
+      return
+    }
+    setOpenDay((current) => (current === day.day ? null : day.day))
+  }
 
   return (
     <div className="space-y-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">90 kunlik yo’l</h1>
-        <p className="text-support mt-1">
-          Har bir kun bitta ovozli mashq. O’zbek tilidagi qo’llab-quvvatlash bosqichma-bosqich kamayadi.
-        </p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">90 kunlik yo'l</h1>
+          <p className="text-support mt-1">
+            Har bir kun bittadan aniq vazifa. Kunma-kun yurganingiz sari yo'l o'zi ochilib boradi.
+          </p>
+        </div>
+        <Badge tone="milestone">{completedDays}/90</Badge>
       </header>
 
       {phases.map(({ phase, range }) => {
@@ -56,13 +73,25 @@ export function CoursePath() {
                   day={day}
                   isOpen={openDay === day.day}
                   isPreviewMode={isPreviewMode}
-                  onToggle={() => setOpenDay(openDay === day.day ? null : day.day)}
+                  onToggle={() => handleToggle(day)}
                 />
               ))}
             </div>
           </section>
         )
       })}
+
+      {lockedMessage && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4">
+          <Card className="w-full max-w-md">
+            <h2 className="text-lg font-semibold text-ink">Bu kun hali yopiq</h2>
+            <p className="text-support mt-2">{lockedMessage}</p>
+            <Button className="mt-5" onClick={() => setLockedMessage(null)}>
+              Tushunarli
+            </Button>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
@@ -102,12 +131,8 @@ function DayRow({
           {day.focusUz}
         </span>
 
-        {isDone && <Badge tone="milestone">Bajarildi</Badge>}
-        {!isPreviewMode && !day.isUnlocked && !isDone && (
-          <Badge tone={day.isFreePreview ? 'neutral' : 'caution'}>
-            {day.isFreePreview ? 'Ochiq' : 'Yopiq'}
-          </Badge>
-        )}
+        {isDone && <Badge tone="milestone">Bajarilgan</Badge>}
+        {!day.isUnlocked && !isPreviewMode && !isDone && <Badge tone="caution">Yopiq</Badge>}
       </button>
 
       {isOpen && (
@@ -115,13 +140,11 @@ function DayRow({
           {isLoading && <Spinner label="Mashqlar" />}
           {missions && missions.length === 0 && (
             <Card>
-              <p className="text-support">
-                Bu kun uchun mashqlar tayyorlanmoqda. 1–30-kunlar to’liq ochiq.
-              </p>
+              <p className="text-support">Bu kun uchun mashqlar tayyorlanmoqda.</p>
             </Card>
           )}
           {missions && missions.length > 0 && (
-            <div className="space-y-3">
+            <div className="grid gap-3 lg:grid-cols-2">
               {missions.map((mission) => (
                 <MissionCard key={mission.id} mission={mission} />
               ))}

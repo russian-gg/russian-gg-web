@@ -1,35 +1,52 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
-import type { MissionCategory, MissionSummary } from '../lib/types'
+import type { MissionSummary } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { EmptyState, LinkButton, Spinner } from '../components/ui'
+import { Badge, EmptyState, LinkButton, Spinner } from '../components/ui'
 
-const FILTERS: Array<{ value: MissionCategory | null; label: string }> = [
-  { value: null, label: 'Barchasi' },
-  { value: 'Work', label: 'Ish' },
-  { value: 'DailyLife', label: 'Kundalik' },
-  { value: 'Social', label: 'Muloqot' },
-  { value: 'StreetRussian', label: 'Jonli nutq' },
-  { value: 'Repair', label: 'Mustahkamlash' },
-]
+const FILTERS = [
+  { value: 'all', label: 'Barchasi' },
+  { value: 'taxi', label: 'Taksi' },
+  { value: 'zal', label: 'Zal' },
+  { value: 'oshxona', label: 'Oshxona' },
+  { value: 'dokon', label: "Do'kon" },
+] as const
 
-/** The "practice for today" library, for a situation the learner is facing right now. */
+type ScenarioFilter = (typeof FILTERS)[number]['value']
+
+const SCENARIO_BY_SLUG: Record<string, Exclude<ScenarioFilter, 'all'>> = {
+  'practice-job-interview-basics': 'taxi',
+  'practice-complaint-politely': 'dokon',
+  'practice-small-talk': 'oshxona',
+  'practice-street-everyday-informal': 'zal',
+  'practice-street-workplace-slang': 'taxi',
+  'practice-repair-pronunciation': 'oshxona',
+}
+
 export function Practice() {
-  const [category, setCategory] = useState<MissionCategory | null>(null)
+  const [category, setCategory] = useState<ScenarioFilter>('all')
 
   const { data, isLoading } = useQuery({
-    queryKey: ['practice', category],
-    queryFn: () =>
-      api.get<MissionSummary[]>(`/course/practice${category ? `?category=${category}` : ''}`),
+    queryKey: ['practice'],
+    queryFn: () => api.get<MissionSummary[]>('/course/practice'),
   })
+
+  const filtered = useMemo(() => {
+    if (!data) return []
+    if (category === 'all') return data
+    return data.filter((mission) => SCENARIO_BY_SLUG[mission.slug] === category)
+  }, [category, data])
 
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Bugun mashq</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          Topshiriqlarni bajarishga tayyormisiz?
+        </h1>
         <p className="text-support mt-1">
-          Shoshilinch vaziyat uchun qisqa mashqlar — 90 kunlik yo’ldan tashqari.
+          Kun davomida kerak bo'ladigan suhbat va iboralarni topshiriqlarni bajarish orqali
+          oson va tez o'rganing.
         </p>
       </header>
 
@@ -41,7 +58,7 @@ export function Practice() {
             aria-pressed={category === filter.value}
             onClick={() => {
               setCategory(filter.value)
-              if (filter.value) track('practice_opened', { category: filter.value })
+              if (filter.value !== 'all') track('practice_opened', { category: filter.value })
             }}
             className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
               category === filter.value
@@ -56,17 +73,24 @@ export function Practice() {
 
       {isLoading && <Spinner />}
 
-      {data && data.length === 0 && (
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <Badge tone="neutral">Tezkor dialoglar</Badge>
+          <Badge tone="milestone">Bajarilgan topshiriq belgilanadi</Badge>
+        </div>
+      )}
+
+      {data && filtered.length === 0 && (
         <EmptyState
-          title="Bu toifada hozircha mashq yo’q"
-          body="Boshqa toifani tanlang yoki 90 kunlik yo’ldan davom eting."
-          action={<LinkButton to="/path">90 kunlik yo’l</LinkButton>}
+          title="Bu bo'limda hozircha topshiriq yo'q"
+          body="Boshqa bo'limni tanlang yoki 90 kunlik yo'ldan davom eting."
+          action={<LinkButton to="/path">90 kunlik yo'l</LinkButton>}
         />
       )}
 
-      {data && data.length > 0 && (
-        <div className="space-y-3">
-          {data.map((mission) => (
+      {filtered.length > 0 && (
+        <div className="grid gap-3 lg:grid-cols-3">
+          {filtered.map((mission) => (
             <MissionCard key={mission.id} mission={mission} />
           ))}
         </div>

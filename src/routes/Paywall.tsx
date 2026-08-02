@@ -72,7 +72,7 @@ export function Paywall() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Pro bilan to'liq yo'l</h1>
         <p className="text-support mt-1">
-          Bepul rejada daraja testi va birinchi 3 kun ochiq. Pro 90 kunlik to'liq yo'lni ochadi.
+          Bepul rejada daraja testi va birinchi 7 kun ochiq. Pro 90 kunlik to'liq yo'lni ochadi.
         </p>
       </header>
 
@@ -209,8 +209,7 @@ function ActiveSubscription({
         <>
           <Badge tone="milestone">Test uchun Pro ochiq</Badge>
           <p className="mt-3 text-base text-ink">
-            Click Payment vaqtincha o'chirilgan. To'liq test qilishingiz uchun barcha Pro
-            funksiyalar bepul ochiq turibdi.
+            Test rejimi yoqilgan. Shu sabab hozir barcha Pro funksiyalar vaqtincha ochiq turibdi.
           </p>
           <p className="text-support mt-2">
             Keyin xohlagan payt bu rejim o'chirilib, odatiy pullik holatga qaytariladi.

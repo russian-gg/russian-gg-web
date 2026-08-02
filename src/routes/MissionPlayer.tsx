@@ -110,6 +110,26 @@ export function MissionPlayer() {
       ? currentMission.targetPhrases.map((phrase) => phrase.russian).join('. ')
       : step?.promptRu ?? currentMission.summary.titleRu
 
+  function handleListen(text: string) {
+    setError(null)
+    if (isPromptAudioPlaying(text)) {
+      stopPromptAudio()
+      setPromptAudioState('idle')
+      return
+    }
+
+    void playPromptAudio(text, {
+      onStateChange: setPromptAudioState,
+    }).catch((caught) => {
+      setPromptAudioState('idle')
+      setError(
+        caught instanceof RequestError
+          ? caught.message
+          : "Gemini ovozini eshittirib bo'lmadi.",
+      )
+    })
+  }
+
   const needsRegisterLabel =
     currentMission.summary.category === 'StreetRussian' ||
     currentMission.summary.formality === 'Informal' ||
@@ -349,7 +369,11 @@ export function MissionPlayer() {
 
         {/* The line the learner is working on, with its Uzbek support underneath. */}
         {step?.kind === 'PhraseIntro' ? (
-          <PhraseList phrases={currentMission.targetPhrases} />
+          <PhraseList
+            phrases={currentMission.targetPhrases}
+            promptAudioState={promptAudioState}
+            onListenPhrase={handleListen}
+          />
         ) : (
           <div className="flex items-start gap-5 py-7">
             <VoiceBadge state={voiceState} />
@@ -359,6 +383,11 @@ export function MissionPlayer() {
               </p>
               {step?.promptUz && <UzHint>"{step.promptUz}"</UzHint>}
             </div>
+            <InlineListenButton
+              active={promptAudioState === 'playing' && isPromptAudioPlaying(promptAudioText)}
+              loading={promptAudioState === 'loading'}
+              onClick={() => handleListen(promptAudioText)}
+            />
           </div>
         )}
 
@@ -372,30 +401,10 @@ export function MissionPlayer() {
             assistantReply={assistantReply}
             transcript={transcript}
             onTranscript={setTranscript}
-            onListen={() => {
-              setError(null)
-              if (isPromptAudioPlaying(promptAudioText)) {
-                stopPromptAudio()
-                setPromptAudioState('idle')
-                return
-              }
-
-              void playPromptAudio(promptAudioText, {
-                onStateChange: setPromptAudioState,
-              }).catch((caught) => {
-                setPromptAudioState('idle')
-                setError(
-                  caught instanceof RequestError
-                    ? caught.message
-                    : "Gemini ovozini eshittirib bo'lmadi.",
-                )
-              })
-            }}
             onStart={() => void startVoice()}
             onStop={() => void stopVoice()}
             onSubmit={() => void submitTurn(false)}
             busy={busy}
-            promptAudioState={promptAudioState}
             voiceComposerOpen={voiceComposerOpen}
             hasLiveSession={hasLiveSession}
             promptRu={promptAudioText}
@@ -549,7 +558,42 @@ function languageGuidanceForPhase(phase: CoursePhase, targetLevel: MissionDetail
   ]
 }
 
-function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
+function InlineListenButton({
+  active,
+  loading,
+  onClick,
+}: {
+  active: boolean
+  loading: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={active ? "Eshitishni to'xtatish" : 'Eshitish'}
+      className="flex size-12 shrink-0 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink transition hover:border-signal hover:text-signal-ink"
+    >
+      {loading ? (
+        <span className="size-4 animate-spin rounded-full border-2 border-hairline border-t-current" />
+      ) : active ? (
+        <PauseGlyph />
+      ) : (
+        <PlayGlyph />
+      )}
+    </button>
+  )
+}
+
+function PhraseList({
+  phrases,
+  promptAudioState,
+  onListenPhrase,
+}: {
+  phrases: MissionDetail['targetPhrases']
+  promptAudioState: 'idle' | 'loading' | 'playing'
+  onListenPhrase: (text: string) => void
+}) {
   return (
     <ul className="divide-y divide-hairline">
       {phrases.map((phrase) => (
@@ -575,6 +619,11 @@ function PhraseList({ phrases }: { phrases: MissionDetail['targetPhrases'] }) {
               </audio>
             )}
           </div>
+          <InlineListenButton
+            active={promptAudioState === 'playing' && isPromptAudioPlaying(phrase.russian)}
+            loading={promptAudioState === 'loading'}
+            onClick={() => onListenPhrase(phrase.russian)}
+          />
         </li>
       ))}
     </ul>
@@ -587,12 +636,10 @@ function VoiceControls({
   assistantReply,
   transcript,
   onTranscript,
-  onListen,
   onStart,
   onStop,
   onSubmit,
   busy,
-  promptAudioState,
   voiceComposerOpen,
   hasLiveSession,
   promptRu,
@@ -606,12 +653,10 @@ function VoiceControls({
   assistantReply: string | null
   transcript: string
   onTranscript: (value: string) => void
-  onListen: () => void
   onStart: () => void
   onStop: () => void
   onSubmit: () => void
   busy: boolean
-  promptAudioState: 'idle' | 'loading' | 'playing'
   voiceComposerOpen: boolean
   hasLiveSession: boolean
   promptRu: string
@@ -638,21 +683,6 @@ function VoiceControls({
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button variant="secondary" size="lg" className="w-full sm:w-auto" disabled={busy} onClick={onListen}>
-          {promptAudioState === 'playing' ? (
-            <PauseGlyph />
-          ) : promptAudioState === 'loading' ? (
-            <span className="size-4 animate-spin rounded-full border-2 border-hairline border-t-current" />
-          ) : (
-            <PlayGlyph />
-          )}
-          {promptAudioState === 'loading'
-            ? 'Yuklanmoqda...'
-            : promptAudioState === 'playing'
-              ? 'To‘xtatish'
-              : 'Eshitish'}
-        </Button>
-
         <Button
           size="lg"
           className="w-full sm:w-auto"
@@ -736,6 +766,8 @@ function TurnFeedbackPanel({
   isLastStep: boolean
   busy: boolean
 }) {
+  const passed = feedback.score >= 70
+
   return (
     <div className="max-w-xl">
       <div className="rounded-xl bg-milestone-soft px-4 py-3">
@@ -748,13 +780,33 @@ function TurnFeedbackPanel({
         <p className="mt-1 text-base text-ink">{feedback.headlineCorrection}</p>
       </div>
 
+      {!passed && (
+        <div className="mt-3 rounded-xl bg-caution-soft px-4 py-3 text-ink">
+          <p className="text-sm font-semibold text-ink">Yana bir urinamiz</p>
+          <p className="mt-1 text-base">
+            Hali javob to'liq o'tmadi. Mayli, yana bir marta aytamiz — bu safar sal chaqqonroq va aniqroq bo'lsin.
+          </p>
+        </div>
+      )}
+
+      {passed && isLastStep && (
+        <div className="mt-3 rounded-xl bg-ground-sunken px-4 py-3 text-ink">
+          <p className="text-sm font-semibold text-ink">Zo'r</p>
+          <p className="mt-1 text-base">
+            To'g'ri tushdi. Endi Gemini sizni ushlab o'tirmaydi — darsni chiroyli yopsa bo'ladi.
+          </p>
+        </div>
+      )}
+
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <Button variant="secondary" size="lg" className="w-full sm:w-auto" onClick={onRetry} disabled={busy}>
           Yana bir marta
         </Button>
-        <Button size="lg" className="w-full sm:w-auto" onClick={onAdvance} disabled={busy}>
-          {isLastStep ? 'Yakunlash' : 'Davom etish'}
-        </Button>
+        {passed && (
+          <Button size="lg" className="w-full sm:w-auto" onClick={onAdvance} disabled={busy}>
+            {isLastStep ? 'Yakunlash' : 'Davom etish'}
+          </Button>
+        )}
       </div>
     </div>
   )
