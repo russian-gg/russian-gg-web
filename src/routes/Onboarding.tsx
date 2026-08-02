@@ -290,7 +290,7 @@ function SpokenItem({
           onChange={(e) => setTranscript(e.target.value)}
           rows={3}
           className="w-full rounded-xl border border-hairline bg-ground-raised px-3.5 py-3 text-base text-ink"
-          placeholder="Masalan: ismim Rustam, Samarqanddanman, omborda ishlayman."
+          placeholder="Masalan: Меня зовут Рустам. Я из Самарканда. Я работаю на складе."
         />
       </label>
       <UzHint>Istasangiz og'zaki aytib, keyin yozing. Istamasangiz savolni o'tkazib yuboring.</UzHint>
