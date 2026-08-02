@@ -384,12 +384,44 @@ function Comments({ token }: { token: string }) {
 function Feedbacks({ token }: { token: string }) {
   const [page, setPage] = useState(1)
   const [issueType, setIssueType] = useState('')
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState('')
   const query = `/api/admin-portal/feedback?source=feedback_form&page=${page}&pageSize=20${issueType ? `&issueType=${encodeURIComponent(issueType)}` : ''}`
   const { data, error } = useAdminFetch<Paged<FeedbackItem>>(token, query)
   if (error) return <ErrorBox message={error} />
   if (!data) return <Loading />
 
   const issueTypes = Array.from(new Set(data.items.map((item) => item.issueType).filter(Boolean)))
+
+  async function downloadAttachment(item: FeedbackItem) {
+    if (!item.attachmentUrl) return
+    setDownloadingId(item.id)
+    setDownloadError('')
+
+    try {
+      const response = await fetch(item.attachmentUrl, {
+        headers: { authorization: `Bearer ${token}` },
+      })
+
+      if (!response.ok) {
+        throw new Error('Faylni yuklab olishda xatolik yuz berdi.')
+      }
+
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = item.attachmentName || 'feedback-attachment'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(objectUrl)
+    } catch (next) {
+      setDownloadError(next instanceof Error ? next.message : 'Faylni yuklab olib bo‘lmadi.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   return (
     <section>
@@ -404,6 +436,7 @@ function Feedbacks({ token }: { token: string }) {
           ))}
         </select>
       </div>
+      {downloadError && <ErrorBox message={downloadError} />}
       <div className="panel">
         <table className="table">
           <thead><tr><th>User</th><th>Turi</th><th>Sarlavha</th><th>Izoh</th><th>Fayl</th><th>Vaqt</th></tr></thead>
@@ -414,7 +447,18 @@ function Feedbacks({ token }: { token: string }) {
                 <td>{item.issueType || '-'}</td>
                 <td className="max-w-xs whitespace-pre-wrap break-words"><strong>{item.title || '-'}</strong></td>
                 <td className="max-w-xl whitespace-pre-wrap break-words">{item.message}</td>
-                <td>{item.attachmentUrl ? <a href={item.attachmentUrl} target="_blank" rel="noreferrer">{item.attachmentName || 'Yuklab olish'}</a> : '-'}</td>
+                <td>
+                  {item.attachmentUrl ? (
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={downloadingId === item.id}
+                      onClick={() => void downloadAttachment(item)}
+                    >
+                      {downloadingId === item.id ? 'Yuklanmoqda...' : (item.attachmentName || 'Yuklab olish')}
+                    </button>
+                  ) : '-'}
+                </td>
                 <td>{formatDate(item.createdAt)}</td>
               </tr>
             ))}
