@@ -8,15 +8,11 @@ import type { ConsentKind, ConsentState } from '../lib/types'
 import { Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 import { cx } from '../lib/cx'
 
-/**
- * Consent is granular and withdrawable, and account deletion is reachable without contacting
- * support (PRD §12).
- */
 const CONSENTS: Array<{ kind: ConsentKind; title: string; body: string }> = [
   {
     kind: 'AudioRetention',
     title: 'Ovoz yozuvlarini saqlash',
-    body: 'Mashq tugagach ovozingiz saqlanadi, shunda keyin qayta tinglashingiz mumkin. Ruxsat bermasangiz, ovoz faqat izoh uchun ishlatiladi va saqlanmaydi.',
+    body: "Mashq tugagach ovozingiz saqlanadi, shunda keyin qayta tinglashingiz mumkin. Ruxsat bermasangiz, ovoz faqat izoh uchun ishlatiladi va saqlanmaydi.",
   },
   {
     kind: 'AudioHumanReview',
@@ -26,12 +22,12 @@ const CONSENTS: Array<{ kind: ConsentKind; title: string; body: string }> = [
   {
     kind: 'ProductReminders',
     title: 'Eslatmalar',
-    body: 'Mashqni o’tkazib yuborsangiz, o’z vaqt mintaqangizda eslatma yuboramiz.',
+    body: "Mashqni o'tkazib yuborsangiz, o'z vaqt mintaqangizda eslatma yuboramiz.",
   },
   {
     kind: 'ProductAnalytics',
     title: 'Mahsulot statistikasi',
-    body: 'Qaysi mashqlar foydali ekanini tushunish uchun anonim foydalanish ma’lumotlari.',
+    body: "Qaysi mashqlar foydali ekanini tushunish uchun anonim foydalanish ma'lumotlari.",
   },
 ]
 
@@ -62,9 +58,9 @@ export function Settings() {
 
   async function deleteAccount() {
     const confirmation = prompt(
-      'Hisobingiz va barcha yozuvlaringiz o’chiriladi. Tasdiqlash uchun O‘CHIRISH deb yozing.',
+      "Hisobingiz va barcha yozuvlaringiz o'chiriladi. Tasdiqlash uchun O'CHIRISH deb yozing.",
     )
-    if (confirmation !== 'O‘CHIRISH') return
+    if (confirmation !== "O'CHIRISH") return
 
     setBusy(true)
     try {
@@ -72,7 +68,7 @@ export function Settings() {
       await signOut()
       navigate('/', { replace: true })
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : 'O’chirishda xatolik.')
+      setError(caught instanceof RequestError ? caught.message : "O'chirishda xatolik.")
       setBusy(false)
     }
   }
@@ -80,7 +76,7 @@ export function Settings() {
   async function submitComment() {
     const message = feedbackMessage.trim()
     if (message.length < 8) {
-      setError("Xabarni biroz batafsilroq yozing.")
+      setError('Xabarni biroz batafsilroq yozing.')
       return
     }
 
@@ -114,35 +110,51 @@ export function Settings() {
       {error && <ErrorNote>{error}</ErrorNote>}
 
       <section>
-        <SectionHeading>Ko’rinish</SectionHeading>
+        <SectionHeading>Ko'rinish</SectionHeading>
         <ThemeChoice />
       </section>
 
       <section>
         <SectionHeading>Maxfiylik va ruxsatlar</SectionHeading>
         <div className="space-y-3">
-          {CONSENTS.map((consent) => (
-            <Card key={consent.kind} as="article">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-base font-semibold text-ink">{consent.title}</h3>
-                  <UzHint>{consent.body}</UzHint>
-                </div>
+          {CONSENTS.map((consent) => {
+            const isGranted = granted.get(consent.kind) ?? false
 
-                <label className="flex shrink-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={granted.get(consent.kind) ?? false}
-                    onChange={(event) => void toggle(consent.kind, event.target.checked)}
-                    className="size-5 accent-[var(--color-signal)]"
-                  />
-                  <span className="text-sm font-medium text-ink-muted">
-                    {granted.get(consent.kind) ? 'Yoqilgan' : 'O’chiq'}
-                  </span>
-                </label>
-              </div>
-            </Card>
-          ))}
+            return (
+              <Card key={consent.kind} as="article">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-ink">{consent.title}</h3>
+                    <UzHint>{consent.body}</UzHint>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-pressed={isGranted}
+                    onClick={() => void toggle(consent.kind, !isGranted)}
+                    className="flex shrink-0 items-center gap-3"
+                  >
+                    <span
+                      className={cx(
+                        'relative inline-flex h-7 w-12 rounded-full border transition-colors',
+                        isGranted ? 'border-signal bg-signal' : 'border-hairline bg-ground-sunken',
+                      )}
+                    >
+                      <span
+                        className={cx(
+                          'absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform',
+                          isGranted ? 'translate-x-6' : 'translate-x-0.5',
+                        )}
+                      />
+                    </span>
+                    <span className="text-sm font-medium text-ink-muted">
+                      {isGranted ? 'Yoqilgan' : "O'chiq"}
+                    </span>
+                  </button>
+                </div>
+              </Card>
+            )
+          })}
         </div>
 
         <p className="text-support mt-3">
@@ -170,24 +182,28 @@ export function Settings() {
             Chiqish
           </Button>
           <Button variant="danger" disabled={busy} onClick={() => void deleteAccount()}>
-            Hisobni o’chirish
+            Hisobni o'chirish
           </Button>
         </div>
         <p className="text-support mt-3">
-          Hisobni o’chirsangiz, barcha yozuvlar, transkriptlar va progress o’chiriladi. Buni
-          qaytarib bo’lmaydi.
+          Hisobni o'chirsangiz, barcha yozuvlar, transkriptlar va progress o'chiriladi. Buni
+          qaytarib bo'lmaydi.
         </p>
       </section>
 
       {feedbackOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4" onClick={() => setFeedbackOpen(false)}>
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4"
+          onClick={() => setFeedbackOpen(false)}
+        >
           <div
             className="w-full max-w-lg rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-ink">Fikr yuborish</h2>
             <p className="text-support mt-1">
-              O'zingizning fikringizni shu yerga yozib qoldirsangiz bo'ladi. Taklif, e'tiroz va izohlaringiz bizga yetib boradi.
+              O'zingizning fikringizni shu yerga yozib qoldirsangiz bo'ladi. Taklif, e'tiroz va
+              izohlaringiz bizga yetib boradi.
             </p>
             <label className="mt-4 block">
               <span className="mb-1.5 block text-sm font-medium text-ink">Xabar</span>
@@ -214,20 +230,16 @@ export function Settings() {
   )
 }
 
-/**
- * Light is the product default. Dark is a deliberate choice, remembered only once it is
- * made — the operating system setting is intentionally not consulted.
- */
 function ThemeChoice() {
   const { theme, setTheme } = useTheme()
 
   const options: Array<{ value: Theme; label: string; hint: string }> = [
-    { value: 'light', label: 'Yorug’', hint: 'Standart ko’rinish' },
-    { value: 'dark', label: 'Qorong’i', hint: 'Kechqurun mashq uchun' },
+    { value: 'light', label: "Yorug'", hint: "Standart ko'rinish" },
+    { value: 'dark', label: "Qorong'i", hint: 'Kechqurun mashq uchun' },
   ]
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Ko’rinish">
+    <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Ko'rinish">
       {options.map((option) => {
         const isActive = theme === option.value
         return (
@@ -245,7 +257,6 @@ function ThemeChoice() {
             )}
           >
             <span className="flex items-center gap-2">
-              {/* Swatch plus a word: the choice is never conveyed by colour alone. */}
               <span
                 aria-hidden="true"
                 className={cx(
@@ -258,7 +269,7 @@ function ThemeChoice() {
               <span className="text-base font-semibold text-ink">{option.label}</span>
               {isActive && <span className="text-sm font-medium text-signal-ink">Tanlangan</span>}
             </span>
-            <span className="text-support mt-1 block">{option.hint}</span>
+            <span className="text-support mt-2 block">{option.hint}</span>
           </button>
         )
       })}

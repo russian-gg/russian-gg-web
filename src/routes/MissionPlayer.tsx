@@ -130,6 +130,19 @@ export function MissionPlayer() {
     })
   }
 
+  useEffect(() => {
+    if (!feedback || !isLastStep || feedback.score < 70) {
+      return
+    }
+
+    setAssistantReply("Zo'r aytdingiz. Bo'ldi, bugungi joyini chiroyli yopdik, endi keyingisida yana ko'rishamiz.")
+    const timer = window.setTimeout(() => {
+      void complete()
+    }, 1800)
+
+    return () => window.clearTimeout(timer)
+  }, [feedback, isLastStep])
+
   const needsRegisterLabel =
     currentMission.summary.category === 'StreetRussian' ||
     currentMission.summary.formality === 'Informal' ||

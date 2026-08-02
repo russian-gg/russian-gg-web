@@ -14,8 +14,7 @@ const NAV = [
 ] as const
 
 export function AppShell() {
-  const { user, signOut } = useAuth()
-  const isStaff = user?.role === 'ContentEditor' || user?.role === 'Administrator'
+  const { signOut } = useAuth()
 
   return (
     <div className="min-h-dvh md:flex">
@@ -30,7 +29,6 @@ export function AppShell() {
               {item.label}
             </TabLink>
           ))}
-          {isStaff && <TabLink to="/admin">Kontent</TabLink>}
         </nav>
       </header>
 
@@ -43,7 +41,6 @@ export function AppShell() {
               {item.label}
             </RailLink>
           ))}
-          {isStaff && <RailLink to="/admin">Kontent</RailLink>}
         </nav>
 
         <div className="mt-auto pt-8">
