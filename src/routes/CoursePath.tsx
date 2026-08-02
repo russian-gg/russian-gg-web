@@ -1,14 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { phaseLabelUz } from '../lib/format'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { Badge, Button, Card, SectionHeading, Spinner } from '../components/ui'
+import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../components/ui'
+
+/**
+ * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
+ * through the earlier days, so offering Pro there would sell something that does not help.
+ */
+type LockedDay = { kind: 'pro' | 'progress'; day: number }
 
 export function CoursePath() {
   const [openDay, setOpenDay] = useState<number | null>(null)
-  const [lockedMessage, setLockedMessage] = useState<string | null>(null)
+  const [locked, setLocked] = useState<LockedDay | null>(null)
 
   const { data: days, isLoading } = useQuery({
     queryKey: ['course-map'],
@@ -38,11 +44,7 @@ export function CoursePath() {
 
   function handleToggle(day: CourseDayView) {
     if (!day.isUnlocked) {
-      setLockedMessage(
-        day.day > maxUnlockedDay
-          ? "Bu bo'limni ochish uchun Pro kerak."
-          : "Avval shu darajagacha yetib keling, keyin bu bo'lim ochiladi.",
-      )
+      setLocked({ kind: day.day > maxUnlockedDay ? 'pro' : 'progress', day: day.day })
       return
     }
     setOpenDay((current) => (current === day.day ? null : day.day))
@@ -85,17 +87,66 @@ export function CoursePath() {
         )
       })}
 
-      {lockedMessage && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4">
-          <Card className="w-full max-w-md">
-            <h2 className="text-lg font-semibold text-ink">Bu kun hali yopiq</h2>
-            <p className="text-support mt-2">{lockedMessage}</p>
-            <Button className="mt-5" onClick={() => setLockedMessage(null)}>
-              Tushunarli
+      {locked && <LockedDayDialog locked={locked} onDismiss={() => setLocked(null)} />}
+    </div>
+  )
+}
+
+/**
+ * A shut day, and the one thing that opens it. The Pro case leads with buying, because that
+ * is the actual next step — an "understood" button was a dead end at the exact moment the
+ * learner reached for more of the course.
+ */
+function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: () => void }) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onDismiss()
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onDismiss])
+
+  const isPro = locked.kind === 'pro'
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4"
+      onClick={onDismiss}
+    >
+      <Card
+        className="w-full max-w-md"
+        // The backdrop closes; the card itself must not.
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="locked-day-title"
+      >
+        <h2 id="locked-day-title" className="text-lg font-semibold text-ink">
+          {isPro ? `${locked.day}-kun Pro tarkibida` : 'Bu kun hali yopiq'}
+        </h2>
+
+        <p className="text-support mt-2">
+          {isPro
+            ? "Bepul rejada birinchi 7 kun ochiq. Qolgan 83 kunni va mashq kutubxonasini Pro ochadi."
+            : `Avval oldingi kunlarni yakunlang — shundan keyin ${locked.day}-kun o'zi ochiladi.`}
+        </p>
+
+        {isPro ? (
+          <>
+            <LinkButton to="/paywall" block className="mt-5">
+              Pro sotib olish
+            </LinkButton>
+            <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
+              Keyinroq
             </Button>
-          </Card>
-        </div>
-      )}
+          </>
+        ) : (
+          <Button className="mt-5" onClick={onDismiss}>
+            Tushunarli
+          </Button>
+        )}
+      </Card>
     </div>
   )
 }

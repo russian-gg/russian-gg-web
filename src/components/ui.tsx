@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { cx } from '../lib/cx'
 
@@ -116,13 +116,15 @@ export function Card({
   children,
   className,
   as: Tag = 'section',
-}: {
+  ...props
+}: HTMLAttributes<HTMLElement> & {
   children: ReactNode
   className?: string
   as?: 'section' | 'article' | 'div'
 }) {
   return (
     <Tag
+      {...props}
       className={cx(
         'rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5',
         className,
