@@ -187,7 +187,7 @@ export function Settings() {
           >
             <h2 className="text-lg font-semibold text-ink">Fikr yuborish</h2>
             <p className="text-support mt-1">
-              Taklif, e'tiroz yoki qisqa izoh bo'lsa shu yerga yozing. Bu admindagi Izohlar bo'limiga tushadi.
+              O'zingizning fikringizni shu yerga yozib qoldirsangiz bo'ladi. Taklif, e'tiroz va izohlaringiz bizga yetib boradi.
             </p>
             <label className="mt-4 block">
               <span className="mb-1.5 block text-sm font-medium text-ink">Xabar</span>
