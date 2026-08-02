@@ -10,7 +10,6 @@ export function Paywall() {
   const [period, setPeriod] = useState<BillingPeriod>('NinetyDay')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const queryClient = useQueryClient()
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['plans'],
