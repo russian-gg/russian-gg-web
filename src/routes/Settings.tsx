@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useTheme, type Theme } from '../lib/theme'
-import type { ConsentKind, ConsentState, FeedbackSubmissionRequest } from '../lib/types'
+import type { ConsentKind, ConsentState } from '../lib/types'
 import { Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 import { cx } from '../lib/cx'
 
@@ -41,9 +41,6 @@ export function Settings() {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [feedbackMessage, setFeedbackMessage] = useState('')
-  const [feedbackBusy, setFeedbackBusy] = useState(false)
 
   const { data: consents, isLoading } = useQuery({
     queryKey: ['consents'],
@@ -74,26 +71,6 @@ export function Settings() {
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : 'O’chirishda xatolik.')
       setBusy(false)
-    }
-  }
-
-  async function submitFeedback() {
-    const message = feedbackMessage.trim()
-    if (message.length < 8) {
-      setError("Xabarni biroz batafsilroq yozing.")
-      return
-    }
-
-    setFeedbackBusy(true)
-    setError(null)
-    try {
-      await api.post('/auth/feedback', { message } satisfies FeedbackSubmissionRequest)
-      setFeedbackMessage('')
-      setFeedbackOpen(false)
-    } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "Xabarni yuborib bo'lmadi.")
-    } finally {
-      setFeedbackBusy(false)
     }
   }
 
@@ -154,7 +131,7 @@ export function Settings() {
           <Button variant="secondary" onClick={() => navigate('/paywall')}>
             Obunani boshqarish
           </Button>
-          <Button variant="secondary" onClick={() => setFeedbackOpen(true)}>
+          <Button variant="secondary" onClick={() => navigate('/feedbacks')}>
             Fikr yuborish
           </Button>
         </div>
@@ -175,38 +152,6 @@ export function Settings() {
           qaytarib bo’lmaydi.
         </p>
       </section>
-
-      {feedbackOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4" onClick={() => setFeedbackOpen(false)}>
-          <div
-            className="w-full max-w-lg rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold text-ink">Fikr yuborish</h2>
-            <p className="text-support mt-1">
-              Taklif, e'tiroz yoki muammo bo'lsa shu yerga yozing. Xabaringiz adminda ko'rinadi.
-            </p>
-            <label className="mt-4 block">
-              <span className="mb-1.5 block text-sm font-medium text-ink">Xabar</span>
-              <textarea
-                value={feedbackMessage}
-                onChange={(event) => setFeedbackMessage(event.target.value)}
-                rows={6}
-                className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
-                placeholder="Holatingizni to'liq yozing"
-              />
-            </label>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <Button variant="secondary" onClick={() => setFeedbackOpen(false)} disabled={feedbackBusy}>
-                Bekor qilish
-              </Button>
-              <Button onClick={() => void submitFeedback()} disabled={feedbackBusy}>
-                {feedbackBusy ? 'Yuborilmoqda...' : 'Yuborish'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

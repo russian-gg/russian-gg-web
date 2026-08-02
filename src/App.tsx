@@ -5,6 +5,7 @@ import { Spinner } from './components/ui'
 import { useAuth } from './lib/auth-context'
 import { AdminContent } from './routes/AdminContent'
 import { CoursePath } from './routes/CoursePath'
+import { FeedbacksPage } from './routes/FeedbacksPage'
 import { Home } from './routes/Home'
 import { Landing } from './routes/Landing'
 import { MissionPlayer } from './routes/MissionPlayer'
@@ -31,6 +32,7 @@ export function App() {
         <Route path="/path" element={<CoursePath />} />
         <Route path="/practice" element={<Practice />} />
         <Route path="/progress" element={<Progress />} />
+        <Route path="/feedbacks" element={<FeedbacksPage />} />
         <Route path="/missions/:missionId" element={<MissionPlayer />} />
         <Route path="/missions/attempts/:attemptId/result" element={<MissionResult />} />
         <Route path="/paywall" element={<Paywall />} />

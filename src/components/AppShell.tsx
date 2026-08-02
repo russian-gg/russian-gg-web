@@ -39,6 +39,7 @@ export function AppShell() {
             </TabLink>
           ))}
           {isStaff && <TabLink to="/admin">Kontent</TabLink>}
+          <TabLink to="/feedbacks">Feedback</TabLink>
         </nav>
       </header>
 
@@ -58,6 +59,7 @@ export function AppShell() {
             </RailLink>
           ))}
           {isStaff && <RailLink to="/admin">Kontent</RailLink>}
+          <RailLink to="/feedbacks">Feedback</RailLink>
         </nav>
 
         <div className="mt-auto pt-8">
