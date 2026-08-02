@@ -15,7 +15,6 @@ import { Practice } from './routes/Practice'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
 import { SignIn, SignUp } from './routes/SignIn'
-import { signupDraftStore } from './lib/signup-draft'
 
 export function App() {
   return (
@@ -25,7 +24,7 @@ export function App() {
       <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
 
       {/* Onboarding sits outside the shell: nothing should compete with placement. */}
-      <Route path="/onboarding" element={<RequireOnboarding><Onboarding /></RequireOnboarding>} />
+      <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
 
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route path="/home" element={<Home />} />
@@ -58,15 +57,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-function RequireOnboarding({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth()
-
-  if (isLoading) return <Spinner />
-  if (user || signupDraftStore.get()) return <>{children}</>
-
-  return <Navigate to="/signup" replace />
-}
-
 /**
  * A signed-in learner never sees the marketing or auth pages; they go straight to where
  * they left off, or to placement if they have not been placed.
@@ -76,7 +66,6 @@ function PublicOnly({ children }: { children: ReactNode }) {
 
   if (isLoading) return <Spinner />
   if (isPendingOnboarding) return <>{children}</>
-  if (signupDraftStore.get()) return <>{children}</>
   if (user) return <Navigate to={user.hasCompletedDiagnostic ? '/home' : '/onboarding'} replace />
 
   return <>{children}</>

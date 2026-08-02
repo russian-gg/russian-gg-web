@@ -1,16 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { phaseLabelUz, levelDescriptionUz } from '../lib/format'
-import { onboardingDraftStore, signupDraftStore } from '../lib/signup-draft'
-import type {
-  DiagnosticAnswer,
-  DiagnosticPreview,
-  DiagnosticResult,
-  DiagnosticSession,
-  LearningGoal,
-} from '../lib/types'
+import type { DiagnosticAnswer, DiagnosticResult, DiagnosticSession, LearningGoal } from '../lib/types'
 import { Button, Card, ErrorNote, ProgressBar, Spinner, UzHint } from '../components/ui'
 
 type Stage = 'goal' | 'self' | 'items' | 'result'
@@ -31,7 +24,7 @@ const SELF_SCALE = [
 
 export function Onboarding() {
   const navigate = useNavigate()
-  const { refreshUser, signInWithGoogle, signUp, user } = useAuth()
+  const { completePendingOnboarding } = useAuth()
   const [stage, setStage] = useState<Stage>('goal')
   const [goal, setGoal] = useState<LearningGoal>('Both')
   const [comprehension, setComprehension] = useState(3)
@@ -43,76 +36,21 @@ export function Onboarding() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    if (!user && !signupDraftStore.get()) {
-      navigate('/signup', { replace: true })
-      return
-    }
-
-    if (user?.hasCompletedDiagnostic) {
-      navigate('/home', { replace: true })
-      return
-    }
-
-    const saved = onboardingDraftStore.get()
-    if (!saved) return
-
-    setGoal(saved.goal)
-    setComprehension(saved.selfRatedComprehension)
-    setSpeaking(saved.selfRatedSpeaking)
-    setSession({
-      attemptId: saved.clientAttemptId,
-      items: saved.items,
-    })
-    setAnswers(saved.answers)
-    setIndex(saved.answers.length)
-    setStage(saved.items.length > 0 ? 'items' : 'self')
-  }, [navigate, user])
-
   async function startDiagnostic() {
     setBusy(true)
     setError(null)
     try {
-      const clientAttemptId = crypto.randomUUID()
-      let attemptId: string = clientAttemptId
-      let items: DiagnosticSession['items']
-
-      if (user) {
-        const started = await api.post<DiagnosticSession>('/onboarding/diagnostic', {
-          goal,
-          selfRatedComprehension: comprehension,
-          selfRatedSpeaking: speaking,
-        })
-        attemptId = started.attemptId
-        items = started.items.map((item) => ({
-          ...item,
-          options: shuffleOptions(item.options, `${started.attemptId}:${item.code}`),
-        }))
-        const localSession = {
-          attemptId: started.attemptId,
-          items,
-        }
-        setSession(localSession)
-      } else {
-        const preview = await api.get<DiagnosticPreview>('/onboarding/diagnostic/items')
-        items = preview.items.map((item) => ({
-          ...item,
-          options: shuffleOptions(item.options, `${clientAttemptId}:${item.code}`),
-        }))
-        const localSession = {
-          attemptId: clientAttemptId,
-          items,
-        }
-        setSession(localSession)
-      }
-
-      onboardingDraftStore.set({
-        clientAttemptId: attemptId,
+      const started = await api.post<DiagnosticSession>('/onboarding/diagnostic', {
         goal,
         selfRatedComprehension: comprehension,
         selfRatedSpeaking: speaking,
-        items,
-        answers: [],
+      })
+      setSession({
+        ...started,
+        items: started.items.map((item) => ({
+          ...item,
+          options: shuffleOptions(item.options, `${started.attemptId}:${item.code}`),
+        })),
       })
       setStage('items')
     } catch {
@@ -121,19 +59,6 @@ export function Onboarding() {
       setBusy(false)
     }
   }
-
-  useEffect(() => {
-    if (!session) return
-
-    onboardingDraftStore.set({
-      clientAttemptId: session.attemptId,
-      goal,
-      selfRatedComprehension: comprehension,
-      selfRatedSpeaking: speaking,
-      items: session.items,
-      answers,
-    })
-  }, [answers, comprehension, goal, session, speaking])
 
   async function recordAnswer(answer: DiagnosticAnswer) {
     const next = [...answers, answer]
@@ -145,36 +70,12 @@ export function Onboarding() {
     }
 
     setBusy(true)
-    setError(null)
-
     try {
-      let signedInUser = user
-
-      if (!signedInUser) {
-        const draft = signupDraftStore.get()
-        if (!draft) {
-          throw new Error('Signup draft missing.')
-        }
-
-        signedInUser =
-          draft.kind === 'google'
-            ? await signInWithGoogle(draft.credential, draft.displayName)
-            : await signUp(draft.email, draft.password, draft.displayName)
-      }
-
-      const started = await api.post<DiagnosticSession>('/onboarding/diagnostic', {
-        goal,
-        selfRatedComprehension: comprehension,
-        selfRatedSpeaking: speaking,
-      })
       const submitted = await api.post<DiagnosticResult>('/onboarding/diagnostic/submit', {
-        attemptId: started.attemptId,
+        attemptId: session.attemptId,
         answers: next,
       })
-
-      signupDraftStore.clear()
-      onboardingDraftStore.clear()
-      await refreshUser()
+      await completePendingOnboarding()
       setResult(submitted)
       setStage('result')
     } catch {
