@@ -3,6 +3,7 @@ import type {
   FormalityLevel,
   MissionCategory,
   MissionStepKind,
+  MissionTopic,
   ProficiencyLevel,
   SkillArea,
   WorkplaceAppropriateness,
@@ -28,6 +29,48 @@ export const phaseLabelUz: Record<CoursePhase, string> = {
   Bridge: "Ko'prik",
   Immersion: 'Immersiya',
 }
+
+/**
+ * Situation labels for the practice library. Ordered as the learner meets them: the
+ * everyday errands first, then work, then the occasional ones. `Unset` is absent on
+ * purpose — a mission without a situation must never be filed under an invented one.
+ */
+export const topicLabelUz: Record<Exclude<MissionTopic, 'Unset'>, string> = {
+  Introductions: 'Tanishish',
+  Shopping: "Do'kon",
+  CafeRestaurant: 'Kafe va restoran',
+  Taxi: 'Taksi',
+  Directions: "Yo'l so'rash",
+  PhoneCall: "Telefon qo'ng'irog'i",
+  Pharmacy: 'Dorixona',
+  Doctor: 'Shifokor',
+  Gym: 'Trenirovka',
+  Housing: 'Uy-joy',
+  Bank: 'Bank',
+  Hotel: 'Mehmonxona',
+  Celebrations: 'Tug‘ilgan kun va tabriklar',
+  WorkAndProfession: 'Kasb va ish',
+  Delivery: 'Yetkazib berish',
+}
+
+/** The order situation chips appear in. Anything missing here sorts to the end. */
+export const TOPIC_ORDER: Array<Exclude<MissionTopic, 'Unset'>> = [
+  'Introductions',
+  'Shopping',
+  'CafeRestaurant',
+  'Taxi',
+  'Directions',
+  'PhoneCall',
+  'Pharmacy',
+  'Doctor',
+  'Gym',
+  'Housing',
+  'Bank',
+  'Hotel',
+  'Celebrations',
+  'WorkAndProfession',
+  'Delivery',
+]
 
 export const categoryLabelUz: Record<MissionCategory, string> = {
   Work: 'Ish',

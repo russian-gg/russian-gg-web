@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import googleGIcon from '../assets/google-g-official.svg'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { onboardingDraft } from '../lib/onboardingDraft'
 import {
   loadGoogleIdentityScript,
   renderGoogleButton,
@@ -13,6 +14,15 @@ import { Button, ErrorNote, Field } from '../components/ui'
 
 const DEFAULT_GOOGLE_CLIENT_ID =
   '718388409500-ljra0b5j8j3dpubieljmd228gd1c55p3.apps.googleusercontent.com'
+
+/**
+ * Where to land after authenticating. A placement run taken while signed out outranks
+ * everything: those answers are only held for this hop and must be spent immediately.
+ */
+function destinationAfterAuth(hasCompletedDiagnostic: boolean) {
+  if (onboardingDraft.exists()) return '/onboarding'
+  return hasCompletedDiagnostic ? '/home' : '/onboarding'
+}
 
 export function SignIn() {
   const { signIn, signInWithGoogle } = useAuth()
@@ -31,7 +41,7 @@ export function SignIn() {
 
     try {
       const user = await signIn(email, password)
-      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
+      navigate(destinationAfterAuth(user.hasCompletedDiagnostic), { replace: true })
     } catch (caught) {
       setError(
         caught instanceof RequestError ? caught.message : 'Kirishda xatolik. Qayta urinib ko‘ring.',
@@ -52,7 +62,7 @@ export function SignIn() {
 
     try {
       const user = await signInWithGoogle(response.credential)
-      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
+      navigate(destinationAfterAuth(user.hasCompletedDiagnostic), { replace: true })
     } catch (caught) {
       setError(
         caught instanceof RequestError
@@ -176,7 +186,7 @@ export function SignUp() {
         pendingOnboarding: true,
       })
       track('signup_completed')
-      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding')
+      navigate(destinationAfterAuth(user.hasCompletedDiagnostic))
     } catch (caught) {
       setError(
         caught instanceof RequestError

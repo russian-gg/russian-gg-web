@@ -194,6 +194,55 @@ export function Field({
   )
 }
 
+/**
+ * A radio drawn from tokens rather than by the browser. `accent-color` on a native radio
+ * leaves the user agent in charge of the ring, which renders near-black in several engines
+ * and drags a colour into the palette that the design system does not contain. The input
+ * itself stays a real radio — only its painting is ours — so keyboard, grouping and screen
+ * readers behave exactly as before.
+ */
+export function RadioOption({
+  name,
+  label,
+  checked,
+  onChange,
+}: {
+  name: string
+  label: ReactNode
+  checked: boolean
+  onChange: () => void
+}) {
+  return (
+    <label
+      className={cx(
+        'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
+        checked
+          ? 'border-signal bg-signal-soft'
+          : 'border-hairline bg-ground-raised hover:border-ink-faint',
+      )}
+    >
+      <input
+        type="radio"
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={cx(
+          'flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors',
+          'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-signal',
+          checked ? 'border-signal bg-signal' : 'border-ink-faint bg-ground',
+        )}
+      >
+        {checked && <span className="size-1.5 rounded-full bg-on-signal" />}
+      </span>
+      <span className="text-base text-ink">{label}</span>
+    </label>
+  )
+}
+
 /* ------------------------------------------------------------------------- feedback */
 
 /** Linear mission progress for a session (PRD §7). */
@@ -224,10 +273,13 @@ export function Badge({
   children,
   tone = 'neutral',
   outline = false,
+  size = 'md',
 }: {
   children: ReactNode
   tone?: 'neutral' | 'signal' | 'milestone' | 'caution'
   outline?: boolean
+  /** `sm` is the counter chip that rides inside a nav row; `md` is the standalone badge. */
+  size?: 'sm' | 'md'
 }) {
   const filled = {
     neutral: 'bg-ground-sunken text-ink-muted',
@@ -243,10 +295,16 @@ export function Badge({
     caution: 'border border-caution text-caution',
   } as const
 
+  const sizing = {
+    sm: 'px-2 py-0.5 text-[11px] tabular-nums',
+    md: 'px-3 py-1 text-xs',
+  } as const
+
   return (
     <span
       className={cx(
-        'inline-flex items-center rounded-[var(--radius-control)] px-3 py-1 text-xs font-semibold',
+        'inline-flex items-center rounded-[var(--radius-control)] font-semibold',
+        sizing[size],
         outline ? outlined[tone] : filled[tone],
       )}
     >

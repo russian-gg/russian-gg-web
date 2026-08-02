@@ -23,8 +23,10 @@ export function Landing() {
         15–20 daqiqa ovozli mashq qilasiz — haqiqiy vaziyatlarda, o’zbek tilidagi qo’llab-quvvatlash bilan.
       </p>
 
+      {/* Straight into the placement check, not into a sign-up form: the visitor should meet
+          the product before they are asked to make an account. */}
       <div className="mt-9 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <LinkButton to="/signup">Bepul boshlash</LinkButton>
+        <LinkButton to="/onboarding">Darajangizni aniqlang · 2 daqiqa</LinkButton>
         {/* Borderless on purpose: one action carries the emphasis, the other stays quiet. */}
         <LinkButton to="/signin" variant="ghost">
           Kirish

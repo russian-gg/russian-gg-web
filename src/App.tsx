@@ -13,6 +13,7 @@ import { MissionResult } from './routes/MissionResult'
 import { Onboarding } from './routes/Onboarding'
 import { BillingReturn, Paywall } from './routes/Paywall'
 import { Practice } from './routes/Practice'
+import { Profile } from './routes/Profile'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
 import { SignIn, SignUp } from './routes/SignIn'
@@ -24,8 +25,13 @@ export function App() {
       <Route path="/signin" element={<PublicOnly><SignIn /></PublicOnly>} />
       <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
 
-      {/* Onboarding sits outside the shell: nothing should compete with placement. */}
-      <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+      {/*
+        Onboarding sits outside the shell: nothing should compete with placement. It is also
+        deliberately public — the placement check is the product's first taste, and putting
+        sign-up in front of it charges the highest price before showing any value. Answers
+        given while signed out are held in the session and placed straight after sign-up.
+      */}
+      <Route path="/onboarding" element={<Onboarding />} />
 
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route path="/home" element={<Home />} />
@@ -37,6 +43,7 @@ export function App() {
         <Route path="/missions/attempts/:attemptId/result" element={<MissionResult />} />
         <Route path="/paywall" element={<Paywall />} />
         <Route path="/billing/return" element={<BillingReturn />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin" element={<RequireStaff><AdminContent /></RequireStaff>} />
       </Route>

@@ -1,12 +1,23 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { onboardingDraft } from '../lib/onboardingDraft'
+import { useSpeechRecognition } from '../lib/speech'
 import { phaseLabelUz, levelDescriptionUz } from '../lib/format'
-import type { DiagnosticAnswer, DiagnosticResult, DiagnosticSession, LearningGoal } from '../lib/types'
-import { Button, Card, ErrorNote, ProgressBar, Spinner, UzHint } from '../components/ui'
+import type {
+  DiagnosticAnswer,
+  DiagnosticItemView,
+  DiagnosticPreview,
+  DiagnosticResult,
+  DiagnosticSession,
+  LearningGoal,
+  ProficiencyLevel,
+} from '../lib/types'
+import { VoiceSignal } from '../components/VoiceSignal'
+import { Button, Card, ErrorNote, ProgressBar, RadioOption, Spinner, UzHint } from '../components/ui'
 
-type Stage = 'goal' | 'self' | 'items' | 'result'
+type Stage = 'goal' | 'self' | 'items' | 'gate' | 'result'
 
 const GOALS: Array<{ value: LearningGoal; title: string; body: string }> = [
   { value: 'Work', title: 'Ish uchun', body: 'Hamkasblar, rahbar va mijozlar bilan muloqot.' },
@@ -22,62 +33,162 @@ const SELF_SCALE = [
   { value: 5, label: 'Deyarli hammasini' },
 ]
 
+/** The short claim above the result. The CEFR code is a caption, never the headline. */
+const RESULT_HEADLINE_UZ: Record<ProficiencyLevel, string> = {
+  A0: 'Noldan boshlaymiz',
+  A1: 'Oddiy iboralar sizda bor',
+  A2: 'Kundalik muloqotni uddalaysiz',
+  B1: 'Mustaqil gapira olasiz',
+  B2: 'Erkin gapirasiz',
+}
+
 export function Onboarding() {
   const navigate = useNavigate()
-  const { completePendingOnboarding } = useAuth()
+  const { user, completePendingOnboarding } = useAuth()
+
   const [stage, setStage] = useState<Stage>('goal')
+  const [items, setItems] = useState<DiagnosticItemView[] | null>(null)
   const [goal, setGoal] = useState<LearningGoal>('Both')
   const [comprehension, setComprehension] = useState(3)
   const [speaking, setSpeaking] = useState(2)
-  const [session, setSession] = useState<DiagnosticSession | null>(null)
+  const [attemptId, setAttemptId] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<DiagnosticAnswer[]>([])
   const [result, setResult] = useState<DiagnosticResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const resumedRef = useRef(false)
 
-  async function startDiagnostic() {
-    setBusy(true)
-    setError(null)
-    try {
-      const started = await api.post<DiagnosticSession>('/onboarding/diagnostic', {
-        goal,
-        selfRatedComprehension: comprehension,
-        selfRatedSpeaking: speaking,
+  /**
+   * Places a completed run. The attempt is only opened here for a draft taken while signed
+   * out — a signed-in learner already opened one before the first question.
+   */
+  const place = useCallback(
+    async (
+      submitted: DiagnosticAnswer[],
+      context: { goal: LearningGoal; comprehension: number; speaking: number },
+      existingAttemptId: string | null,
+    ) => {
+      let id = existingAttemptId
+
+      if (!id) {
+        const started = await api.post<DiagnosticSession>('/onboarding/diagnostic', {
+          goal: context.goal,
+          selfRatedComprehension: context.comprehension,
+          selfRatedSpeaking: context.speaking,
+        })
+        id = started.attemptId
+      }
+
+      const placement = await api.post<DiagnosticResult>('/onboarding/diagnostic/submit', {
+        attemptId: id,
+        answers: submitted,
       })
-      setSession({
-        ...started,
-        items: started.items.map((item) => ({
-          ...item,
-          options: shuffleOptions(item.options, `${started.attemptId}:${item.code}`),
-        })),
+
+      onboardingDraft.clear()
+      await completePendingOnboarding()
+      setResult(placement)
+      setStage('result')
+    },
+    [completePendingOnboarding],
+  )
+
+  // The item list is fetched anonymously so the question count — and therefore the honest
+  // time estimate — is known before the learner commits to anything.
+  useEffect(() => {
+    let cancelled = false
+
+    void api
+      .get<DiagnosticPreview>('/onboarding/diagnostic/items')
+      .then((preview) => {
+        if (!cancelled) setItems(preview.items)
       })
-      setStage('items')
-    } catch {
-      setError("Testni boshlashda xatolik. Qayta urinib ko'ring.")
-    } finally {
-      setBusy(false)
+      .catch(() => {
+        if (!cancelled) setError("Testni yuklab bo'lmadi. Sahifani yangilang.")
+      })
+
+    return () => {
+      cancelled = true
     }
+  }, [])
+
+  // Coming back from sign-up with answers already given: place them and go straight to the
+  // result. The learner must never be asked the same ten questions twice.
+  useEffect(() => {
+    if (!user || resumedRef.current) return
+
+    const draft = onboardingDraft.read()
+    if (!draft) return
+
+    resumedRef.current = true
+    setBusy(true)
+    setStage('gate')
+
+    void place(
+      draft.answers,
+      {
+        goal: draft.goal,
+        comprehension: draft.selfRatedComprehension,
+        speaking: draft.selfRatedSpeaking,
+      },
+      null,
+    )
+      .catch(() => {
+        onboardingDraft.clear()
+        setError("Natijani saqlashda xatolik. Testni qaytadan boshlang.")
+        setStage('goal')
+      })
+      .finally(() => setBusy(false))
+  }, [place, user])
+
+  async function beginItems() {
+    setError(null)
+
+    // A signed-in learner opens the attempt now, so "started" and "completed" stay honest in
+    // the funnel. Signed out, there is nobody to attribute it to yet.
+    if (user) {
+      setBusy(true)
+      try {
+        const started = await api.post<DiagnosticSession>('/onboarding/diagnostic', {
+          goal,
+          selfRatedComprehension: comprehension,
+          selfRatedSpeaking: speaking,
+        })
+        setAttemptId(started.attemptId)
+      } catch {
+        setError("Testni boshlashda xatolik. Qayta urinib ko'ring.")
+        return
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    setStage('items')
   }
 
   async function recordAnswer(answer: DiagnosticAnswer) {
     const next = [...answers, answer]
     setAnswers(next)
 
-    if (!session || index + 1 < session.items.length) {
+    if (!items || index + 1 < items.length) {
       setIndex(index + 1)
+      return
+    }
+
+    if (!user) {
+      onboardingDraft.save({
+        goal,
+        selfRatedComprehension: comprehension,
+        selfRatedSpeaking: speaking,
+        answers: next,
+      })
+      setStage('gate')
       return
     }
 
     setBusy(true)
     try {
-      const submitted = await api.post<DiagnosticResult>('/onboarding/diagnostic/submit', {
-        attemptId: session.attemptId,
-        answers: next,
-      })
-      await completePendingOnboarding()
-      setResult(submitted)
-      setStage('result')
+      await place(next, { goal, comprehension, speaking }, attemptId)
     } catch {
       setError("Natijani saqlashda xatolik. Qayta urinib ko'ring.")
     } finally {
@@ -85,9 +196,13 @@ export function Onboarding() {
     }
   }
 
+  const total = items ? items.length + 2 : 2
+  const position =
+    stage === 'goal' ? 0 : stage === 'self' ? 1 : stage === 'items' ? 2 + index : total
+
   if (stage === 'goal') {
     return (
-      <Layout step={1} total={4} title="Rus tilini nima uchun o'rganyapsiz?">
+      <Layout caption="Maqsad" progress={{ value: position, max: total }} title="Rus tilini nima uchun o'rganyapsiz?">
         {error && <ErrorNote>{error}</ErrorNote>}
         <div className="space-y-3">
           {GOALS.map((option) => (
@@ -116,7 +231,7 @@ export function Onboarding() {
 
   if (stage === 'self') {
     return (
-      <Layout step={2} total={4} title="O'zingizni qanday baholaysiz?">
+      <Layout caption="O'z bahoyingiz" progress={{ value: position, max: total }} title="O'zingizni qanday baholaysiz?">
         {error && <ErrorNote>{error}</ErrorNote>}
 
         <Scale
@@ -133,27 +248,36 @@ export function Onboarding() {
           />
         </div>
 
-        <Button size="lg" block className="mt-8" disabled={busy} onClick={() => void startDiagnostic()}>
-          {busy ? 'Tayyorlanmoqda...' : 'Qisqa testni boshlash'}
+        <Button
+          size="lg"
+          block
+          className="mt-8"
+          disabled={busy || !items || items.length === 0}
+          onClick={() => void beginItems()}
+        >
+          {busy ? 'Tayyorlanmoqda...' : 'Testni boshlash'}
         </Button>
-        <UzHint>5-7 daqiqa. Ovozli savollar ixtiyoriy, istasangiz o'tkazib yuborishingiz mumkin.</UzHint>
+        {/* The honest cost, not a padded one: eight taps and two optional spoken answers. */}
+        <UzHint>
+          {items ? `2 daqiqa · ${items.length} ta savol.` : 'Test yuklanmoqda…'} Ovozli savollar
+          ixtiyoriy, istasangiz o'tkazib yuborishingiz mumkin.
+        </UzHint>
       </Layout>
     )
   }
 
   if (stage === 'items') {
-    if (!session) return <Spinner />
+    if (!items) return <Spinner />
     if (busy) return <Spinner label="Natija hisoblanmoqda" />
 
-    const item = session.items[index]
+    const item = items[index]
     if (!item) return <Spinner />
 
     return (
       <Layout
-        step={3}
-        total={4}
-        title={`Savol ${index + 1} / ${session.items.length}`}
-        progress={{ value: index, max: session.items.length }}
+        caption={`Savol ${index + 1} / ${items.length}`}
+        progress={{ value: position, max: total }}
+        title={item.kind === 'Speaking' ? 'Ovozli javob' : 'Ma’noni tanlang'}
       >
         {error && <ErrorNote>{error}</ErrorNote>}
 
@@ -181,7 +305,7 @@ export function Onboarding() {
           />
         ) : (
           <div className="mt-4 space-y-3">
-            {item.options.map((option) => (
+            {shuffleOptions(item.options, item.code).map((option) => (
               <button
                 key={option}
                 type="button"
@@ -199,28 +323,68 @@ export function Onboarding() {
     )
   }
 
+  if (stage === 'gate') {
+    return (
+      <Layout caption="Natija tayyor" progress={{ value: total, max: total }} title="Javoblaringiz qabul qilindi">
+        {error && <ErrorNote>{error}</ErrorNote>}
+
+        {busy ? (
+          <Spinner label="Darajangiz hisoblanmoqda" />
+        ) : (
+          <>
+            <Card>
+              <p className="text-base leading-relaxed text-ink">
+                Darajangiz va 90 kunlik rejangiz tayyor. Uni ko'rish va saqlab qo'yish uchun
+                qisqa hisob oching — javoblaringiz yo'qolmaydi.
+              </p>
+              <UzHint>Bir daqiqa vaqt oladi. Kartani so'ramaymiz.</UzHint>
+            </Card>
+
+            <Button size="lg" block className="mt-7" onClick={() => navigate('/signup')}>
+              Natijani ko'rish
+            </Button>
+            <p className="text-support mt-4 text-center">
+              Hisobingiz bormi?{' '}
+              <Link to="/signin" className="font-semibold text-signal-ink">
+                Kiring
+              </Link>
+            </p>
+          </>
+        )}
+      </Layout>
+    )
+  }
+
   if (!result) return <Spinner />
 
   return (
-    <Layout step={4} total={4} title="Sizning boshlang'ich darajangiz">
+    <Layout caption="Natija" progress={{ value: total, max: total }} title={RESULT_HEADLINE_UZ[result.speaking]}>
       <Card>
-        <div className="flex flex-wrap gap-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">Tushunish</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">{result.comprehension}</p>
-            <p className="text-support">{levelDescriptionUz[result.comprehension]}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">Gapirish</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">{result.speaking}</p>
-            <p className="text-support">{levelDescriptionUz[result.speaking]}</p>
-          </div>
-        </div>
+        <p className="text-base leading-relaxed text-ink">{result.summaryUz}</p>
 
-        <p className="mt-6 border-t border-hairline pt-5 text-base text-ink">
-          {result.recommendedStartDay}-kundan boshlaysiz · {phaseLabelUz[result.startPhase]} bosqichi
+        {/* The codes stay, but as a caption under the claim — "A2" is not an answer. */}
+        <p className="text-support mt-4 border-t border-hairline pt-4">
+          Tushunish {result.comprehension} · {levelDescriptionUz[result.comprehension]} — Gapirish{' '}
+          {result.speaking} · {levelDescriptionUz[result.speaking]}
         </p>
-        <UzHint>{result.summaryUz}</UzHint>
+      </Card>
+
+      {result.selfPerceptionNoteUz && (
+        <p className="mt-3 rounded-[var(--radius-card)] bg-signal-soft px-4 py-3 text-base text-signal-ink">
+          {result.selfPerceptionNoteUz}
+        </p>
+      )}
+
+      <Card className="mt-3">
+        <p className="text-xs font-semibold tracking-[0.14em] text-ink-faint uppercase">
+          Birinchi mashqingiz
+        </p>
+        <p className="mt-1 text-lg font-semibold text-ink">
+          {result.firstMissionTitleUz || 'Birinchi mashq'}
+        </p>
+        <p className="text-support">
+          {result.recommendedStartDay}-kun · {phaseLabelUz[result.startPhase]} bosqichi · ovozli
+        </p>
       </Card>
 
       <p className="text-support mt-4">
@@ -230,13 +394,13 @@ export function Onboarding() {
       <Button
         size="lg"
         block
-        className="mt-7"
+        className="mt-6"
         onClick={() => {
           track('mission_opened', { source: 'onboarding' })
           navigate(result.firstMissionId ? `/missions/${result.firstMissionId}` : '/home')
         }}
       >
-        Birinchi mashqni boshlash
+        Boshlash
       </Button>
       <Button variant="ghost" block className="mt-2" onClick={() => navigate('/home')}>
         Keyinroq
@@ -245,6 +409,10 @@ export function Onboarding() {
   )
 }
 
+/**
+ * Options are shuffled per item code, deterministically: the same learner sees a stable
+ * order across a re-render, but the correct answer is not always in the same position.
+ */
 function shuffleOptions(options: string[], seed: string) {
   if (options.length < 2) return options
 
@@ -288,28 +456,24 @@ function Scale({
       <legend className="mb-3 text-base font-medium text-ink">{legend}</legend>
       <div className="space-y-2">
         {SELF_SCALE.map((option) => (
-          <label
+          <RadioOption
             key={option.value}
-            className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
-              value === option.value ? 'border-signal bg-signal-soft' : 'border-hairline bg-ground-raised'
-            }`}
-          >
-            <input
-              type="radio"
-              name={legend}
-              value={option.value}
-              checked={value === option.value}
-              onChange={() => onChange(option.value)}
-              className="accent-[var(--color-signal)]"
-            />
-            <span className="text-base text-ink">{option.label}</span>
-          </label>
+            name={legend}
+            label={option.label}
+            checked={value === option.value}
+            onChange={() => onChange(option.value)}
+          />
         ))}
       </div>
     </fieldset>
   )
 }
 
+/**
+ * The spoken item. Speaking is the product's whole promise, so the microphone is the default
+ * path and typing is the fallback — not the other way round. Where the browser has no
+ * recogniser, the text field is all that is offered, without pretending otherwise.
+ */
 function SpokenItem({
   onSubmit,
   onSkip,
@@ -317,56 +481,125 @@ function SpokenItem({
   onSubmit: (transcript: string) => void
   onSkip: () => void
 }) {
-  const [transcript, setTranscript] = useState('')
+  const speech = useSpeechRecognition('ru-RU')
+  const [typed, setTyped] = useState('')
+  const [typing, setTyping] = useState(false)
+
+  const useKeyboard = !speech.supported || typing || speech.status === 'denied' || speech.status === 'failed'
+  const answer = useKeyboard ? typed : speech.transcript
+
+  if (useKeyboard) {
+    return (
+      <div className="mt-4">
+        {speech.status === 'denied' && (
+          <p className="text-support mb-2">
+            Mikrofonga ruxsat berilmadi. Javobingizni yozib ham yuborishingiz mumkin.
+          </p>
+        )}
+        {speech.status === 'failed' && (
+          <p className="text-support mb-2">
+            Ovozni aniqlab bo'lmadi. Javobingizni yozib yuboring.
+          </p>
+        )}
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-medium text-ink">Javobingizni yozing</span>
+          <textarea
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            rows={3}
+            className="w-full rounded-xl border border-hairline bg-ground-raised px-3.5 py-3 text-base text-ink"
+            placeholder="Masalan: Меня зовут Рустам. Я из Самарканда. Я работаю на складе."
+          />
+        </label>
+
+        <Button size="lg" block className="mt-4" disabled={!answer.trim()} onClick={() => onSubmit(answer)}>
+          Javobni yuborish
+        </Button>
+        {speech.supported && (
+          <Button
+            variant="secondary"
+            block
+            className="mt-2"
+            onClick={() => {
+              setTyping(false)
+              speech.reset()
+            }}
+          >
+            Ovoz bilan javob berish
+          </Button>
+        )}
+        <Button variant="ghost" block className="mt-2" onClick={onSkip}>
+          O'tkazib yuborish
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="mt-4">
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-ink">Javobingizni yozing</span>
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          rows={3}
-          className="w-full rounded-xl border border-hairline bg-ground-raised px-3.5 py-3 text-base text-ink"
-          placeholder="Masalan: Меня зовут Рустам. Я из Самарканда. Я работаю на складе."
-        />
-      </label>
-      <UzHint>Istasangiz og'zaki aytib, keyin yozing. Istamasangiz savolni o'tkazib yuboring.</UzHint>
+      <Card className="flex flex-col items-center gap-4 py-7">
+        <VoiceSignal state={speech.status === 'listening' ? 'listening' : answer ? 'feedback' : 'idle'} />
+        {answer ? (
+          <p className="text-center text-lg leading-relaxed text-ink">{answer}</p>
+        ) : (
+          <p className="text-support text-center">
+            Tugmani bosing va ruscha javob bering. Gapirib bo'lgach o'zi to'xtaydi.
+          </p>
+        )}
+      </Card>
 
-      <Button size="lg" block className="mt-4" disabled={!transcript.trim()} onClick={() => onSubmit(transcript)}>
-        Javobni yuborish
+      {speech.status === 'listening' ? (
+        <Button size="lg" block className="mt-4" variant="secondary" onClick={speech.stop}>
+          To'xtatish
+        </Button>
+      ) : answer ? (
+        <>
+          <Button size="lg" block className="mt-4" onClick={() => onSubmit(answer)}>
+            Javobni yuborish
+          </Button>
+          <Button variant="secondary" block className="mt-2" onClick={speech.start}>
+            Qayta aytish
+          </Button>
+        </>
+      ) : (
+        <Button size="lg" block className="mt-4" onClick={speech.start}>
+          Gapirishni boshlash
+        </Button>
+      )}
+
+      <Button variant="ghost" block className="mt-2" onClick={() => setTyping(true)}>
+        Yozib yuboraman
       </Button>
-      <Button variant="secondary" block className="mt-2" onClick={onSkip}>
+      <Button variant="ghost" block className="mt-1" onClick={onSkip}>
         O'tkazib yuborish
       </Button>
     </div>
   )
 }
 
+/**
+ * One continuous scale across the whole flow. The bar previously restarted at zero when the
+ * questions began, so a learner who was halfway through watched their progress vanish.
+ */
 function Layout({
-  step,
-  total,
+  caption,
   title,
   children,
   progress,
 }: {
-  step: number
-  total: number
+  caption: string
   title: string
   children: React.ReactNode
-  progress?: { value: number; max: number }
+  progress: { value: number; max: number }
 }) {
   return (
     <div className="mx-auto max-w-lg px-5 py-10">
       <div className="mb-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-          Qadam {step} / {total}
+          {caption}
         </p>
-        <ProgressBar
-          value={progress ? progress.value : step}
-          max={progress ? progress.max : total}
-          label="Onboarding progressi"
-        />
+        <ProgressBar value={progress.value} max={progress.max} label="Onboarding progressi" />
       </div>
 
       <h1 className="mb-6 text-2xl font-semibold leading-snug tracking-tight text-ink">{title}</h1>

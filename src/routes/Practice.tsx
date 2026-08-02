@@ -1,43 +1,44 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
-import type { MissionSummary } from '../lib/types'
+import { TOPIC_ORDER, topicLabelUz } from '../lib/format'
+import type { MissionSummary, MissionTopic } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { Badge, EmptyState, LinkButton, Spinner } from '../components/ui'
 
-const FILTERS = [
-  { value: 'all', label: 'Barchasi' },
-  { value: 'work', label: 'Ish' },
-  { value: 'daily', label: 'Kundalik' },
-  { value: 'social', label: 'Muloqot' },
-  { value: 'taxi', label: 'Taksi' },
-  { value: 'dokon', label: "Do'kon" },
-] as const
-
-type ScenarioFilter = (typeof FILTERS)[number]['value']
-
-const CATEGORY_BY_MISSION: Record<string, Exclude<ScenarioFilter, 'all'>> = {
-  Work: 'work',
-  DailyLife: 'daily',
-  Social: 'social',
-  StreetRussian: 'taxi',
-  Repair: 'dokon',
-}
+type Filter = 'all' | Exclude<MissionTopic, 'Unset'>
 
 export function Practice() {
-  const [category, setCategory] = useState<ScenarioFilter>('all')
+  const [filter, setFilter] = useState<Filter>('all')
 
   const { data, isLoading } = useQuery({
     queryKey: ['practice'],
     queryFn: () => api.get<MissionSummary[]>('/course/practice'),
   })
 
+  /*
+   * Chips are derived from the missions that actually came back, never from a hardcoded
+   * list. A filter that leads to an empty shelf is a promise the library cannot keep, and
+   * that is exactly what the previous mapping did — it filed every Street Russian mission
+   * under "Taksi" and every repair drill under "Do'kon".
+   */
+  const topics = useMemo(() => {
+    if (!data) return []
+
+    const present = new Set(
+      data
+        .map((mission) => mission.topic)
+        .filter((topic): topic is Exclude<MissionTopic, 'Unset'> => topic !== 'Unset'),
+    )
+
+    return TOPIC_ORDER.filter((topic) => present.has(topic))
+  }, [data])
+
   const filtered = useMemo(() => {
     if (!data) return []
-    const visible = data.filter((mission) => mission.category in CATEGORY_BY_MISSION)
-    if (category === 'all') return visible
-    return visible.filter((mission) => CATEGORY_BY_MISSION[mission.category] === category)
-  }, [category, data])
+    if (filter === 'all') return data
+    return data.filter((mission) => mission.topic === filter)
+  }, [data, filter])
 
   return (
     <div className="space-y-7">
@@ -51,26 +52,26 @@ export function Practice() {
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Toifa">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter.label}
-            type="button"
-            aria-pressed={category === filter.value}
-            onClick={() => {
-              setCategory(filter.value)
-              if (filter.value !== 'all') track('practice_opened', { category: filter.value })
-            }}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
-              category === filter.value
-                ? 'bg-signal text-on-signal'
-                : 'border border-hairline text-ink-muted hover:text-ink'
-            }`}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
+      {topics.length > 0 && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Vaziyat">
+          <TopicChip
+            label="Barchasi"
+            active={filter === 'all'}
+            onClick={() => setFilter('all')}
+          />
+          {topics.map((topic) => (
+            <TopicChip
+              key={topic}
+              label={topicLabelUz[topic]}
+              active={filter === topic}
+              onClick={() => {
+                setFilter(topic)
+                track('practice_opened', { topic })
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {isLoading && <Spinner />}
 
@@ -97,5 +98,30 @@ export function Practice() {
         </div>
       )}
     </div>
+  )
+}
+
+function TopicChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+        active
+          ? 'bg-signal text-on-signal'
+          : 'border border-hairline text-ink-muted hover:border-ink-faint hover:text-ink'
+      }`}
+    >
+      {label}
+    </button>
   )
 }

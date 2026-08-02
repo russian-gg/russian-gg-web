@@ -7,6 +7,24 @@ export type ProficiencyLevel = 'A0' | 'A1' | 'A2' | 'B1' | 'B2'
 export type CoursePhase = 'Foundation' | 'Bridge' | 'Immersion'
 export type LanguagePolicy = 'UzbekLed' | 'Balanced' | 'RussianFirst'
 export type MissionCategory = 'Work' | 'DailyLife' | 'Social' | 'StreetRussian' | 'Repair'
+/** The concrete situation a mission rehearses. `Unset` never appears as a filter. */
+export type MissionTopic =
+  | 'Unset'
+  | 'Introductions'
+  | 'Shopping'
+  | 'CafeRestaurant'
+  | 'Taxi'
+  | 'Directions'
+  | 'PhoneCall'
+  | 'Pharmacy'
+  | 'Doctor'
+  | 'Gym'
+  | 'Housing'
+  | 'Bank'
+  | 'Hotel'
+  | 'Celebrations'
+  | 'WorkAndProfession'
+  | 'Delivery'
 export type SkillArea = 'Listening' | 'Speaking' | 'Pronunciation' | 'Vocabulary' | 'Grammar'
 export type LearningGoal = 'Work' | 'DailyLife' | 'Both'
 export type MissionStepKind =
@@ -96,6 +114,12 @@ export interface DiagnosticResult {
   summaryUz: string
   firstMissionId: string
   firstMissionTitleUz: string
+  /** Only set when the measured level differs from what the learner predicted. */
+  selfPerceptionNoteUz?: string | null
+}
+
+export interface DiagnosticPreview {
+  items: DiagnosticItemView[]
 }
 
 export interface MissionSummary {
@@ -105,6 +129,7 @@ export interface MissionSummary {
   titleRu: string
   objectiveUz: string
   category: MissionCategory
+  topic: MissionTopic
   phase: CoursePhase
   courseDay?: number | null
   estimatedMinutes: number
