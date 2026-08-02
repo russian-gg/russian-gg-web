@@ -4,7 +4,7 @@ import type { VoiceSessionTicket } from './types'
 const INPUT_SAMPLE_RATE = 16_000
 const OUTPUT_SAMPLE_RATE = 24_000
 const TURN_COMPLETE_TIMEOUT_MS = 40_000
-const AUTO_STOP_SILENCE_MS = 2_500
+const AUTO_STOP_SILENCE_MS = 5_000
 const SPEECH_RMS_THRESHOLD = 0.012
 
 export type LiveVoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'closed'

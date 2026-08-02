@@ -44,6 +44,7 @@ export function MissionPlayer() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [promptAudioState, setPromptAudioState] = useState<'idle' | 'loading' | 'playing'>('idle')
+  const [promptAudioTextKey, setPromptAudioTextKey] = useState<string | null>(null)
   const [voiceComposerOpen, setVoiceComposerOpen] = useState(false)
   const [hasLiveSession, setHasLiveSession] = useState(false)
   const liveSessionRef = useRef<LiveVoiceSession | null>(null)
@@ -83,6 +84,7 @@ export function MissionPlayer() {
     return () => {
       stopPromptAudio()
       setPromptAudioState('idle')
+      setPromptAudioTextKey(null)
       const liveSession = liveSessionRef.current
       if (!liveSession) return
       liveSessionRef.current = null
@@ -162,17 +164,26 @@ export function MissionPlayer() {
       : safeStep?.promptRu ?? summary.titleRu
 
   function handleListen(text: string) {
+    const normalized = text.trim()
     setError(null)
-    if (isPromptAudioPlaying(text)) {
+    if (isPromptAudioPlaying(normalized)) {
       stopPromptAudio()
       setPromptAudioState('idle')
+      setPromptAudioTextKey(null)
       return
     }
 
-    void playPromptAudio(text, {
-      onStateChange: setPromptAudioState,
+    setPromptAudioTextKey(normalized)
+    void playPromptAudio(normalized, {
+      onStateChange: (state) => {
+        setPromptAudioState(state)
+        if (state === 'idle') {
+          setPromptAudioTextKey(null)
+        }
+      },
     }).catch((caught) => {
       setPromptAudioState('idle')
+      setPromptAudioTextKey(null)
       setError(
         caught instanceof RequestError
           ? caught.message
@@ -282,6 +293,10 @@ export function MissionPlayer() {
     try {
       await liveSession.stopAndAwaitTurn()
       await teardownVoice(true, null)
+      if (transcript.trim()) {
+        await submitTurn(false, transcript, assistantReply)
+        return
+      }
       setVoiceState('idle')
     } catch (caught) {
       const message =
@@ -294,8 +309,12 @@ export function MissionPlayer() {
     }
   }
 
-  async function submitTurn(isRetry: boolean) {
-    if (!attempt || !transcript.trim()) return
+  async function submitTurn(
+    isRetry: boolean,
+    transcriptValue = transcript,
+    tutorReply = assistantReply,
+  ) {
+    if (!attempt || !transcriptValue.trim()) return
 
     setBusy(true)
     setVoiceState('thinking')
@@ -305,8 +324,8 @@ export function MissionPlayer() {
       const result = await api.post<TurnFeedback>('/missions/attempts/turns', {
         attemptId: attempt.attemptId,
         stepIndex,
-        learnerTranscript: transcript,
-        tutorTranscript: assistantReply,
+        learnerTranscript: transcriptValue,
+        tutorTranscript: tutorReply,
         isRetry,
       })
 
@@ -423,6 +442,7 @@ export function MissionPlayer() {
           <PhraseList
             phrases={safePhrases}
             promptAudioState={promptAudioState}
+            promptAudioTextKey={promptAudioTextKey}
             onListenPhrase={handleListen}
           />
         ) : (
@@ -435,8 +455,8 @@ export function MissionPlayer() {
               {safeStep?.promptUz && <UzHint>"{safeStep.promptUz}"</UzHint>}
             </div>
             <InlineListenButton
-              active={promptAudioState === 'playing' && isPromptAudioPlaying(promptAudioText)}
-              loading={promptAudioState === 'loading'}
+              active={promptAudioState === 'playing' && promptAudioTextKey === promptAudioText}
+              loading={promptAudioState === 'loading' && promptAudioTextKey === promptAudioText}
               onClick={() => handleListen(promptAudioText)}
             />
           </div>
@@ -639,10 +659,12 @@ function InlineListenButton({
 function PhraseList({
   phrases,
   promptAudioState,
+  promptAudioTextKey,
   onListenPhrase,
 }: {
   phrases: MissionDetail['targetPhrases']
   promptAudioState: 'idle' | 'loading' | 'playing'
+  promptAudioTextKey: string | null
   onListenPhrase: (text: string) => void
 }) {
   return (
@@ -671,8 +693,8 @@ function PhraseList({
             )}
           </div>
           <InlineListenButton
-            active={promptAudioState === 'playing' && isPromptAudioPlaying(phrase.russian)}
-            loading={promptAudioState === 'loading'}
+            active={promptAudioState === 'playing' && promptAudioTextKey === phrase.russian}
+            loading={promptAudioState === 'loading' && promptAudioTextKey === phrase.russian}
             onClick={() => onListenPhrase(phrase.russian)}
           />
         </li>
@@ -743,13 +765,13 @@ function VoiceControls({
           {state === 'thinking'
             ? 'Kutilmoqda...'
             : hasLiveSession
-              ? 'Hozir yakunlash'
+              ? 'Yakunlash'
               : 'Javob berish'}
         </Button>
 
         <span className="text-sm text-ink-faint">
           {hasLiveSession
-            ? "Avval gapiring, keyin 'Hozir yakunlash' ni bosib tahlilga yuboring"
+            ? "Suhbat davom etmoqda. Gap tugasa o'zi tahlil qiladi yoki xohlasangiz yakunlaysiz."
             : 'Uzbekcha yordam yoqilgan'}
         </span>
       </div>
@@ -792,7 +814,7 @@ function VoiceControls({
             disabled={busy || hasLiveSession || !transcript.trim()}
             onClick={onSubmit}
           >
-            Javobni yuborish
+            Tahlil qilish
           </Button>
         </div>
       )}
