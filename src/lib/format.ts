@@ -93,6 +93,18 @@ export const stepLabelUz: Record<MissionStepKind, string> = {
   Recap: 'xulosa',
 }
 
+/**
+ * Standalone name for a step. `stepLabelUz` is a sentence fragment for "Keyingi: …"; this is
+ * the form used where a step has to stand on its own, such as the lesson checklist.
+ */
+export const stepTitleUz: Record<MissionStepKind, string> = {
+  PhraseIntro: 'Yangi iboralar',
+  ListenAndUnderstand: 'Tinglab tushunish',
+  SpeakingTurn: 'Gapirib javob berish',
+  RolePlay: 'Rol o’yini',
+  Recap: 'Xulosa',
+}
+
 export const skillLabelUz: Record<SkillArea, string> = {
   Listening: 'Tinglash',
   Speaking: 'Gapirish',

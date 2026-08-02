@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
-import { categoryLabelUz, formalityLabelUz, stepLabelUz, workplaceLabelUz } from '../lib/format'
+import {
+  categoryLabelUz,
+  formalityLabelUz,
+  stepLabelUz,
+  stepTitleUz,
+  workplaceLabelUz,
+} from '../lib/format'
 import { LiveVoiceSession, isPromptAudioPlaying, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
 import type {
   CoursePhase,
@@ -19,7 +26,6 @@ import {
   PauseGlyph,
   PlayGlyph,
   ProgressBar,
-  Rule,
   Spinner,
   UzHint,
 } from '../components/ui'
@@ -47,6 +53,11 @@ export function MissionPlayer() {
   const [promptAudioTextKey, setPromptAudioTextKey] = useState<string | null>(null)
   const [voiceComposerOpen, setVoiceComposerOpen] = useState(false)
   const [hasLiveSession, setHasLiveSession] = useState(false)
+  // Turns already closed. The live transcript and reply stay in their own state and are
+  // folded in here when the step ends, so the thread grows instead of resetting each step.
+  const [history, setHistory] = useState<ChatMessage[]>([])
+  // Latched once the provider answers 503: the lesson keeps working without audio.
+  const [ttsUnavailable, setTtsUnavailable] = useState(false)
   const liveSessionRef = useRef<LiveVoiceSession | null>(null)
   const liveSessionIdRef = useRef<string | null>(null)
   const currentStepRef = useRef(0)
@@ -198,11 +209,18 @@ export function MissionPlayer() {
     }).catch((caught) => {
       setPromptAudioState('idle')
       setPromptAudioTextKey(null)
-      setError(
-        caught instanceof RequestError
-          ? caught.message
-          : "Gemini ovozini eshittirib bo'lmadi.",
-      )
+
+      /*
+       * A trace id is not an answer. The provider being unavailable is a state the lesson
+       * carries on through — reading and speaking still work — so it is said once, in Uzbek,
+       * and the play controls stop offering something that cannot happen.
+       */
+      if (caught instanceof RequestError && (caught.status === 503 || caught.status >= 500)) {
+        setTtsUnavailable(true)
+        return
+      }
+
+      setError("Talaffuzni eshittirib bo'lmadi. Biroz keyinroq urinib ko'ring.")
     })
   }
 
@@ -459,6 +477,28 @@ export function MissionPlayer() {
 
   async function advance() {
     await teardownVoice(true, null)
+
+    // Fold the turn that just closed into the thread before the live state is cleared.
+    setHistory((current) => [
+      ...current,
+      ...(safeStep?.promptRu
+        ? [{ key: `p${stepIndex}`, role: 'tutor' as const, ru: safeStep.promptRu, uz: safeStep.promptUz }]
+        : []),
+      ...(transcript.trim() ? [{ key: `l${stepIndex}`, role: 'learner' as const, text: transcript.trim() }] : []),
+      ...(assistantReply ? [{ key: `r${stepIndex}`, role: 'tutor' as const, ru: assistantReply, uz: null }] : []),
+      ...(feedback
+        ? [
+            {
+              key: `f${stepIndex}`,
+              role: 'feedback' as const,
+              strength: feedback.strengthNote,
+              correction: feedback.headlineCorrection,
+              passed: feedback.score >= 70,
+            },
+          ]
+        : []),
+    ])
+
     setFeedback(null)
     setTranscript('')
     setAssistantReply(null)
@@ -486,119 +526,226 @@ export function MissionPlayer() {
 
   const week = summary.courseDay ? Math.ceil(summary.courseDay / 7) : null
 
+  // The thread: everything already closed, then the turn currently in flight.
+  const liveMessages: ChatMessage[] = [
+    ...(safeStep?.promptRu && safeStep.kind !== 'PhraseIntro'
+      ? [{ key: 'now-prompt', role: 'tutor' as const, ru: safeStep.promptRu, uz: safeStep.promptUz }]
+      : []),
+    ...(transcript.trim()
+      ? [{ key: 'now-learner', role: 'learner' as const, text: transcript.trim() }]
+      : []),
+    ...(assistantReply
+      ? [{ key: 'now-reply', role: 'tutor' as const, ru: assistantReply, uz: null }]
+      : []),
+    ...(feedback
+      ? [
+          {
+            key: 'now-feedback',
+            role: 'feedback' as const,
+            strength: feedback.strengthNote,
+            correction: feedback.headlineCorrection,
+            passed: feedback.score >= 70,
+          },
+        ]
+      : []),
+  ]
+
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
-      {/* Context line: where this sits in the journey, and which day it is. */}
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-            <p className="truncate text-sm text-ink-muted">
-            {categoryLabelUz[summary.category] ?? 'Muloqot'}
-            {week !== null && ` / ${week}-hafta`}
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
+        <header className="flex items-start justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex min-w-0 items-center gap-2 text-sm text-ink-muted transition-colors hover:text-ink"
+          >
+            <BackGlyph />
+            <span className="truncate">
+              {categoryLabelUz[summary.category] ?? 'Muloqot'}
+              {week !== null && ` / ${week}-hafta`}
+            </span>
+          </button>
+
+          {summary.courseDay !== null && summary.courseDay !== undefined && (
+            <Badge outline>{summary.courseDay}-kun</Badge>
+          )}
+        </header>
+
+        <div className="mt-8 flex-1">
+          <h1 className="text-3xl leading-[1.15] font-semibold tracking-tight text-ink">
+            {summary.titleUz}
+          </h1>
+          <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
+            {summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
           </p>
-        </div>
 
-        {summary.courseDay !== null && summary.courseDay !== undefined && (
-          <Badge outline>{summary.courseDay}-kun</Badge>
-        )}
-      </header>
-
-      <div className="mt-14 flex-1">
-        {/* One clear lesson objective, with the supporting detail directly under it. */}
-        <h1 className="text-3xl leading-[1.15] font-semibold tracking-tight text-ink sm:text-4xl">
-          {summary.titleUz}
-        </h1>
-        <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-muted">
-          {summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
-        </p>
-
-        {needsRegisterLabel && (
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Badge tone="caution">{formalityLabelUz[summary.formality] ?? 'Neytral'}</Badge>
-            <Badge tone="caution">{workplaceLabelUz[summary.workplaceUse] ?? 'Ishda ishlatsa bo\'ladi'}</Badge>
-          </div>
-        )}
-
-        {currentMission.usageNoteUz && needsRegisterLabel && (
-          <p className="text-support mt-4 rounded-xl bg-caution-soft px-4 py-3">
-            {currentMission.usageNoteUz}
-          </p>
-        )}
-
-        <Rule className="mt-10" />
-
-        {error && (
-          <div className="mt-6">
-            <ErrorNote>{error}</ErrorNote>
-          </div>
-        )}
-
-        {/* The line the learner is working on, with its Uzbek support underneath. */}
-        {safeStep?.kind === 'PhraseIntro' ? (
-          <PhraseList
-            phrases={safePhrases}
-            promptAudioState={promptAudioState}
-            promptAudioTextKey={promptAudioTextKey}
-            onListenPhrase={handleListen}
-          />
-        ) : (
-          <div className="flex items-start gap-5 py-7">
-            <VoiceBadge state={voiceState} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xl leading-snug font-medium text-ink sm:text-2xl">
-                "{safeStep?.promptRu}"
-              </p>
-              {safeStep?.promptUz && <UzHint>"{safeStep.promptUz}"</UzHint>}
+          {needsRegisterLabel && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge tone="caution">{formalityLabelUz[summary.formality] ?? 'Neytral'}</Badge>
+              <Badge tone="caution">
+                {workplaceLabelUz[summary.workplaceUse] ?? "Ishda ishlatsa bo'ladi"}
+              </Badge>
             </div>
-            <InlineListenButton
-              active={promptAudioState === 'playing' && promptAudioTextKey === promptAudioText}
-              loading={promptAudioState === 'loading' && promptAudioTextKey === promptAudioText}
-              onClick={() => handleListen(promptAudioText)}
+          )}
+
+          {error && (
+            <div className="mt-6">
+              <ErrorNote>{error}</ErrorNote>
+            </div>
+          )}
+
+          {/* Phrase introduction stays a list: it is material to study, not a conversation. */}
+          {safeStep?.kind === 'PhraseIntro' ? (
+            <div className="mt-6">
+              <PhraseList
+                phrases={safePhrases}
+                promptAudioState={promptAudioState}
+                promptAudioTextKey={promptAudioTextKey}
+                audioAvailable={!ttsUnavailable}
+                onListenPhrase={handleListen}
+              />
+            </div>
+          ) : (
+            <ConversationThread
+              messages={[...history, ...liveMessages]}
+              voiceState={voiceState}
+              promptAudioState={promptAudioState}
+              promptAudioTextKey={promptAudioTextKey}
+              audioAvailable={!ttsUnavailable}
+              onListen={handleListen}
             />
+          )}
+
+          {ttsUnavailable && (
+            <p className="text-support mt-6 rounded-xl bg-ground-sunken px-4 py-3">
+              Talaffuzni eshittirish hozir ishlamayapti. Mashqning qolgan qismi ishlaydi -
+              iboralarni o'qib, ovoz bilan javob berishingiz mumkin.
+            </p>
+          )}
+
+          {degraded && (
+            <p className="text-support mt-6 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
+          )}
+        </div>
+
+        <MicControl
+          state={voiceState}
+          busy={busy}
+          hasLiveSession={hasLiveSession}
+          latestTurnAccepted={latestTurnPassedRef.current}
+          canReplay={safeStep?.kind !== 'PhraseIntro' && !ttsUnavailable}
+          replaying={promptAudioState === 'playing' && promptAudioTextKey === promptAudioText}
+          onReplay={() => handleListen(promptAudioText)}
+          onStart={() => void startVoice()}
+          onStop={() => void stopVoice()}
+          feedback={feedback}
+          isLastStep={isLastStep}
+          onRetry={() => {
+            setVoiceState('idle')
+            setFeedback(null)
+            setAssistantReply(null)
+          }}
+          onAdvance={isLastStep ? () => void complete() : () => void advance()}
+        />
+
+        {/* Text fallback, only when live voice is genuinely unavailable (PRD §11). */}
+        {(degraded !== null || (voiceComposerOpen && !hasLiveSession && voiceState === 'unavailable')) && (
+          <div className="mt-6 max-w-xl">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-ink">Aytganingizni yozing</span>
+              <textarea
+                value={transcript}
+                onChange={(event) => setTranscript(event.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
+                placeholder={promptAudioText}
+              />
+            </label>
+            <Button
+              size="lg"
+              className="mt-3 w-full sm:w-auto"
+              disabled={busy || !transcript.trim()}
+              onClick={() => void submitTurn(false)}
+            >
+              Javobni yuborish
+            </Button>
           </div>
         )}
 
-        <Rule />
-
-        {/* Action row. One high-emphasis action; everything else stays quiet. */}
-        <div className="py-7">
-          <VoiceControls
-            state={voiceState}
-            degraded={degraded}
-            assistantReply={assistantReply}
-            transcript={transcript}
-            onTranscript={setTranscript}
-            onStart={() => void startVoice()}
-            onStop={() => void stopVoice()}
-            onSubmit={() => void submitTurn(false)}
-            busy={busy}
-            voiceComposerOpen={voiceComposerOpen}
-            hasLiveSession={hasLiveSession}
-            promptRu={promptAudioText}
-            feedback={feedback}
-            latestTurnAccepted={latestTurnPassedRef.current}
-            isLastStep={isLastStep}
-            onRetry={() => {
-              setVoiceState('idle')
-              setFeedback(null)
-              setAssistantReply(null)
-            }}
-            onAdvance={isLastStep ? () => void complete() : () => void advance()}
-          />
-        </div>
+        <footer className="mt-8">
+          <ProgressBar value={stepIndex + 1} max={totalSteps} label="Mashq progressi" />
+          <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
+            <span>
+              {stepIndex + 1} / {totalSteps} qadam
+            </span>
+            <span className="truncate">
+              {nextStep ? `Keyingi: ${stepLabelUz[nextStep.kind]}` : 'Oxirgi qadam'}
+            </span>
+          </div>
+        </footer>
       </div>
 
-      {/* Step progress at the bottom, not competing metrics (PRD §6). */}
-      <footer className="mt-10">
-        <ProgressBar value={stepIndex + 1} max={totalSteps} label="Mashq progressi" />
-        <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
-          <span>
-            {stepIndex + 1} / {totalSteps} qadam
-          </span>
-          <span className="truncate">
-            {nextStep ? `Keyingi: ${stepLabelUz[nextStep.kind]}` : 'Oxirgi qadam'}
-          </span>
-        </div>
-      </footer>
+      <aside className="mt-10 space-y-4 lg:mt-0 lg:sticky lg:top-8">
+        <GoalCard steps={safeSteps} stepIndex={stepIndex} />
+
+        {safeStep?.promptUz && (
+          <RailCard title="Maslahat" icon={<HintGlyph />}>
+            <p className="text-base leading-relaxed text-ink">{safeStep.promptUz}</p>
+          </RailCard>
+        )}
+
+        {safePhrases.length > 0 && (
+          <RailCard
+            title="Bugungi iboralar"
+            icon={<PhraseGlyph />}
+            trailing={`${safePhrases.length} ta`}
+          >
+            <ul className="space-y-2">
+              {safePhrases.map((phrase) => (
+                <li
+                  key={phrase.order}
+                  className="flex items-center gap-3 rounded-xl bg-ground-sunken px-3 py-2.5"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base text-ink">{phrase.russian}</span>
+                    <span className="block truncate text-sm text-ink-muted">
+                      {phrase.uzbekMeaning}
+                    </span>
+                  </span>
+                  {!ttsUnavailable && (
+                    <InlineListenButton
+                      small
+                      active={promptAudioState === 'playing' && promptAudioTextKey === phrase.russian}
+                      loading={promptAudioState === 'loading' && promptAudioTextKey === phrase.russian}
+                      onClick={() => handleListen(phrase.russian)}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </RailCard>
+        )}
+
+        {/*
+          The mockup carried a pronunciation tip here. There is no such field in the content
+          model, so rather than invent one this slot shows the correction the tutor actually
+          gave — real, specific to this learner, and empty when there is nothing to say.
+        */}
+        {feedback && (
+          <RailCard title="AI izohi" icon={<CoachGlyph />}>
+            <p className="text-base leading-relaxed text-ink">{feedback.headlineCorrection}</p>
+            <p className="text-support mt-2">
+              Bu AI izohi, rasmiy baholash emas.
+            </p>
+          </RailCard>
+        )}
+
+        {currentMission.usageNoteUz && (
+          <RailCard title="Qayerda ishlatiladi" icon={<HintGlyph />}>
+            <p className="text-base leading-relaxed text-ink">{currentMission.usageNoteUz}</p>
+          </RailCard>
+        )}
+      </aside>
     </div>
   )
 }
@@ -725,21 +872,431 @@ function languageGuidanceForPhase(phase: CoursePhase, targetLevel: MissionDetail
   ]
 }
 
+/* ----------------------------------------------------------------- conversation thread */
+
+type ChatMessage =
+  | { key: string; role: 'tutor'; ru: string; uz?: string | null }
+  | { key: string; role: 'learner'; text: string }
+  | { key: string; role: 'feedback'; strength: string; correction: string; passed: boolean }
+
+/**
+ * The lesson reads as one continuous exchange rather than a prompt that is replaced each
+ * step: the learner can see what they already said, which is what makes it feel like a
+ * conversation with someone instead of a form.
+ */
+function ConversationThread({
+  messages,
+  voiceState,
+  promptAudioState,
+  promptAudioTextKey,
+  audioAvailable,
+  onListen,
+}: {
+  messages: ChatMessage[]
+  voiceState: VoiceState
+  promptAudioState: 'idle' | 'loading' | 'playing'
+  promptAudioTextKey: string | null
+  audioAvailable: boolean
+  onListen: (text: string) => void
+}) {
+  const endRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [messages.length])
+
+  return (
+    <div className="mt-6 space-y-4">
+      {messages.map((message) => {
+        if (message.role === 'learner') {
+          return (
+            <div key={message.key} className="flex justify-end gap-3">
+              <p className="max-w-[80%] rounded-2xl rounded-br-md bg-signal-soft px-4 py-3 text-base leading-relaxed text-ink">
+                {message.text}
+              </p>
+              <VoiceBadge state={voiceState === 'listening' ? 'listening' : 'idle'} />
+            </div>
+          )
+        }
+
+        if (message.role === 'feedback') {
+          return (
+            <div key={message.key} className="flex gap-3">
+              <TutorMark />
+              <div
+                className={`max-w-[80%] rounded-2xl rounded-tl-md px-4 py-3 ${
+                  message.passed ? 'bg-milestone-soft' : 'bg-caution-soft'
+                }`}
+              >
+                <p className="text-sm font-semibold text-ink-muted">
+                  {message.passed ? 'Yaxshi tomoni' : 'Yana bir urinamiz'}
+                </p>
+                <p className="mt-1 text-base leading-relaxed text-ink">{message.strength}</p>
+                <p className="mt-2 border-t border-hairline pt-2 text-base leading-relaxed text-ink">
+                  {message.correction}
+                </p>
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div key={message.key} className="flex gap-3">
+            <TutorMark />
+            <div className="max-w-[80%] rounded-2xl rounded-tl-md border border-hairline bg-ground-raised px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-base leading-relaxed text-ink">{message.ru}</p>
+                  {message.uz && <UzHint>{message.uz}</UzHint>}
+                </div>
+                {audioAvailable && (
+                  <InlineListenButton
+                    small
+                    active={promptAudioState === 'playing' && promptAudioTextKey === message.ru}
+                    loading={promptAudioState === 'loading' && promptAudioTextKey === message.ru}
+                    onClick={() => onListen(message.ru)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+      <div ref={endRef} />
+    </div>
+  )
+}
+
+/** Drop a square image at this path to give the tutor a face; see public/README.md. */
+const TUTOR_AVATAR_SRC = '/tutor-avatar.jpg'
+
+/**
+ * The tutor's mark. Uses the avatar image when one is present and falls back to the abstract
+ * signal if it is missing or fails to load, so the lesson never renders a broken image.
+ *
+ * The label always says "AI repetitor". A human face must not let a learner believe they are
+ * talking to a person — the product's own positioning is that this never replaces a teacher.
+ */
+function TutorMark() {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
+    return (
+      <span
+        className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-soft"
+        role="img"
+        aria-label="AI repetitor"
+      >
+        <span className="flex h-3.5 items-center gap-[2px]" aria-hidden="true">
+          {[0.55, 1, 0.7].map((scale, index) => (
+            <span
+              key={index}
+              className="w-[2.5px] rounded-full bg-signal"
+              style={{ height: '100%', transform: `scaleY(${scale})` }}
+            />
+          ))}
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <img
+      src={TUTOR_AVATAR_SRC}
+      alt="AI repetitor"
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="mt-1 size-9 shrink-0 rounded-full bg-signal-soft object-cover"
+    />
+  )
+}
+
+/* ---------------------------------------------------------------------- mic control */
+
+/**
+ * One high-emphasis action, always in the same place. Replay and the step's own outcome sit
+ * beside it as quiet controls so nothing competes with the microphone (PRD §6).
+ */
+function MicControl({
+  state,
+  busy,
+  hasLiveSession,
+  latestTurnAccepted,
+  canReplay,
+  replaying,
+  onReplay,
+  onStart,
+  onStop,
+  feedback,
+  isLastStep,
+  onRetry,
+  onAdvance,
+}: {
+  state: VoiceState
+  busy: boolean
+  hasLiveSession: boolean
+  latestTurnAccepted: boolean
+  canReplay: boolean
+  replaying: boolean
+  onReplay: () => void
+  onStart: () => void
+  onStop: () => void
+  feedback: TurnFeedback | null
+  isLastStep: boolean
+  onRetry: () => void
+  onAdvance: () => void
+}) {
+  // Once the turn is judged, the decision replaces the microphone: retry, or move on.
+  if (state === 'feedback' && feedback) {
+    const passed = feedback.score >= 70
+
+    return (
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <Button variant="secondary" size="lg" onClick={onRetry} disabled={busy}>
+          Yana bir marta
+        </Button>
+        {passed && (
+          <Button size="lg" onClick={onAdvance} disabled={busy}>
+            {isLastStep ? 'Yakunlash' : 'Davom etish'}
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  const status = busy
+    ? 'Kutilmoqda…'
+    : state === 'listening'
+      ? 'Gapiring… AI sizni eshitmoqda'
+      : hasLiveSession
+        ? latestTurnAccepted
+          ? 'Javob qabul qilindi. Yakunlashni bosing.'
+          : 'Suhbat davom etmoqda'
+        : 'Mikrofonni bosing va gapiring'
+
+  return (
+    <div className="mt-8">
+      <div className="flex items-center justify-center gap-4">
+        {canReplay ? (
+          <Button variant="secondary" onClick={onReplay} className="shrink-0">
+            {replaying ? <PauseGlyph /> : <PlayGlyph />}
+            <span className="hidden sm:inline">Qayta eshittirish</span>
+          </Button>
+        ) : (
+          <span className="hidden w-32 sm:block" aria-hidden="true" />
+        )}
+
+        <button
+          type="button"
+          onClick={hasLiveSession ? onStop : onStart}
+          disabled={busy}
+          aria-label={hasLiveSession ? 'Yakunlash' : 'Javob berish'}
+          className={`flex size-20 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
+            hasLiveSession ? 'bg-signal-strong' : 'bg-signal'
+          } hover:bg-signal-strong`}
+        >
+          {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
+        </button>
+
+        <span className="hidden w-32 sm:block" aria-hidden="true" />
+      </div>
+
+      <p className="mt-4 text-center text-sm text-ink-muted" role="status" aria-live="polite">
+        {status}
+      </p>
+
+      {state === 'listening' && (
+        <div className="mt-3 flex justify-center">
+          <VoiceSignal state="listening" size="sm" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* --------------------------------------------------------------------------- the rail */
+
+function RailCard({
+  title,
+  icon,
+  trailing,
+  children,
+}: {
+  title: string
+  icon: ReactNode
+  trailing?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-signal-ink" aria-hidden="true">
+          {icon}
+        </span>
+        <h2 className="flex-1 text-sm font-semibold text-ink">{title}</h2>
+        {trailing && <span className="text-sm text-ink-faint">{trailing}</span>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+/** The mission's own steps as a checklist — the learner sees what "done" will mean. */
+function GoalCard({ steps, stepIndex }: { steps: MissionDetail['steps']; stepIndex: number }) {
+  const done = Math.min(stepIndex, steps.length)
+
+  return (
+    <RailCard title="Bugungi maqsad" icon={<TargetGlyph />} trailing={`${done} / ${steps.length}`}>
+      <ul className="space-y-2.5">
+        {steps.map((step, index) => {
+          const isDone = index < stepIndex
+          const isCurrent = index === stepIndex
+
+          return (
+            <li key={step.order} className="flex items-start gap-2.5">
+              <CheckMark done={isDone} current={isCurrent} />
+              <span
+                className={`text-sm leading-snug ${
+                  isDone ? 'text-ink-muted line-through' : isCurrent ? 'text-ink' : 'text-ink-faint'
+                }`}
+              >
+                {shortStepLabel(step)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="mt-3">
+        <ProgressBar value={done} max={steps.length} label="Maqsad progressi" />
+      </div>
+    </RailCard>
+  )
+}
+
+/**
+ * A checklist line has to be scannable. A step's Uzbek support is used when it reads as one,
+ * but a phrase-introduction step carries the whole joined phrase list, which would wrap to
+ * four lines and tell the learner nothing they cannot already see in the phrase card.
+ */
+function shortStepLabel(step: MissionDetail['steps'][number]) {
+  const prompt = step.promptUz?.trim()
+  if (!prompt || prompt.length > 52 || prompt.includes('·')) {
+    return stepTitleUz[step.kind]
+  }
+
+  return prompt
+}
+
+function CheckMark({ done, current }: { done: boolean; current: boolean }) {
+  if (done) {
+    return (
+      <span
+        className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-milestone"
+        aria-label="Bajarildi"
+        role="img"
+      >
+        <svg viewBox="0 0 12 12" aria-hidden="true" className="size-2.5 fill-none stroke-white stroke-[2.2]">
+          <path d="m2 6.3 2.6 2.6L10 3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className={`mt-0.5 size-4 shrink-0 rounded-full border-2 ${
+        current ? 'border-signal' : 'border-hairline'
+      }`}
+      aria-label={current ? 'Hozirgi qadam' : 'Hali bajarilmagan'}
+      role="img"
+    />
+  )
+}
+
+/* -------------------------------------------------------------------------- glyphs */
+
+const railGlyph = 'size-4 fill-none stroke-current stroke-[1.7]'
+
+function TargetGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  )
+}
+
+function HintGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
+      <path d="M12 3.5v2M4.7 8.2l1.7 1M19.3 8.2l-1.7 1M9.5 19h5" strokeLinecap="round" />
+      <path d="M8.6 14.8a4.6 4.6 0 1 1 6.8 0c-.6.7-.9 1.3-.9 2.2h-5c0-.9-.3-1.5-.9-2.2Z" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function PhraseGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
+      <path d="M4 5.5h6a2 2 0 0 1 2 2v11a2 2 0 0 0-2-2H4Z" strokeLinejoin="round" />
+      <path d="M20 5.5h-6a2 2 0 0 0-2 2v11a2 2 0 0 1 2-2h6Z" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function CoachGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
+      <path d="M5 17V9.5M9.7 17V6M14.3 17v-7M19 17v-4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function BackGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 shrink-0 fill-none stroke-current stroke-[1.8]">
+      <path d="M14 5.5 7.5 12l6.5 6.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function MicGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8 fill-none stroke-on-signal stroke-[1.7]">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function StopGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-7 fill-on-signal">
+      <rect x="6" y="6" width="12" height="12" rx="2.5" />
+    </svg>
+  )
+}
+
 function InlineListenButton({
   active,
   loading,
   onClick,
+  small = false,
 }: {
   active: boolean
   loading: boolean
   onClick: () => void
+  small?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={active ? "Eshitishni to'xtatish" : 'Eshitish'}
-      className="flex size-12 shrink-0 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink transition hover:border-signal hover:text-signal-ink"
+      className={`flex shrink-0 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink transition hover:border-signal hover:text-signal-ink ${
+        small ? 'size-9' : 'size-12'
+      }`}
     >
       {loading ? (
         <span className="size-4 animate-spin rounded-full border-2 border-hairline border-t-current" />
@@ -756,11 +1313,13 @@ function PhraseList({
   phrases,
   promptAudioState,
   promptAudioTextKey,
+  audioAvailable,
   onListenPhrase,
 }: {
   phrases: MissionDetail['targetPhrases']
   promptAudioState: 'idle' | 'loading' | 'playing'
   promptAudioTextKey: string | null
+  audioAvailable: boolean
   onListenPhrase: (text: string) => void
 }) {
   return (
@@ -788,199 +1347,15 @@ function PhraseList({
               </audio>
             )}
           </div>
-          <InlineListenButton
-            active={promptAudioState === 'playing' && promptAudioTextKey === phrase.russian}
-            loading={promptAudioState === 'loading' && promptAudioTextKey === phrase.russian}
-            onClick={() => onListenPhrase(phrase.russian)}
-          />
+          {audioAvailable && (
+            <InlineListenButton
+              active={promptAudioState === 'playing' && promptAudioTextKey === phrase.russian}
+              loading={promptAudioState === 'loading' && promptAudioTextKey === phrase.russian}
+              onClick={() => onListenPhrase(phrase.russian)}
+            />
+          )}
         </li>
       ))}
     </ul>
-  )
-}
-
-function VoiceControls({
-  state,
-  degraded,
-  assistantReply,
-  transcript,
-  onTranscript,
-  onStart,
-  onStop,
-  onSubmit,
-  busy,
-  voiceComposerOpen,
-  hasLiveSession,
-  promptRu,
-  feedback,
-  latestTurnAccepted,
-  isLastStep,
-  onRetry,
-  onAdvance,
-}: {
-  state: VoiceState
-  degraded: string | null
-  assistantReply: string | null
-  transcript: string
-  onTranscript: (value: string) => void
-  onStart: () => void
-  onStop: () => void
-  onSubmit: () => void
-  busy: boolean
-  voiceComposerOpen: boolean
-  hasLiveSession: boolean
-  promptRu: string
-  feedback: TurnFeedback | null
-  latestTurnAccepted: boolean
-  isLastStep: boolean
-  onRetry: () => void
-  onAdvance: () => void
-}) {
-  if (state === 'feedback' && feedback) {
-    return (
-      <TurnFeedbackPanel
-        feedback={feedback}
-        onRetry={onRetry}
-        onAdvance={onAdvance}
-        isLastStep={isLastStep}
-        busy={busy}
-      />
-    )
-  }
-
-  const showComposer =
-    voiceComposerOpen || degraded !== null || transcript.trim().length > 0 || assistantReply !== null
-
-  return (
-    <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button
-          size="lg"
-          className="w-full sm:w-auto"
-          disabled={busy}
-          onClick={hasLiveSession ? onStop : onStart}
-        >
-          {state === 'thinking'
-            ? 'Kutilmoqda...'
-            : hasLiveSession
-              ? 'Yakunlash'
-              : 'Javob berish'}
-        </Button>
-
-        <span className="text-sm text-ink-faint">
-          {hasLiveSession
-            ? latestTurnAccepted
-              ? "Gemini javobni qabul qildi. Endi Yakunlash ni bossangiz keyingi bosqichga o'tadi."
-              : "Suhbat davom etmoqda. Siz gapni tugatganingizda Gemini darrov javob beradi."
-            : 'Uzbekcha yordam yoqilgan'}
-        </span>
-      </div>
-
-      {state === 'thinking' && (
-        <div className="mt-7">
-          <VoiceSignal state="thinking" />
-        </div>
-      )}
-
-      {degraded && (
-        <p className="text-support mt-5 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
-      )}
-
-      {showComposer && (
-        <div className="mt-6 max-w-xl">
-          {assistantReply && (
-            <div className="mb-4 rounded-xl bg-ground-sunken px-4 py-3">
-              <p className="text-sm font-semibold text-ink-faint uppercase">Gemini javobi</p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-base leading-relaxed text-ink">
-                {assistantReply}
-              </p>
-            </div>
-          )}
-
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Aytganingizni yozing</span>
-            <textarea
-              value={transcript}
-              onChange={(event) => onTranscript(event.target.value)}
-              rows={3}
-              disabled={hasLiveSession}
-              className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint disabled:opacity-70"
-              placeholder={promptRu}
-            />
-          </label>
-          <Button
-            size="lg"
-            className="mt-3 w-full sm:w-auto"
-            disabled={busy || hasLiveSession || !transcript.trim()}
-            onClick={onSubmit}
-          >
-            Javobni yuborish
-          </Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Short in-mission feedback only: what went well, then one correction, then a retry that
- * carries no shaming language (PRD §6).
- */
-function TurnFeedbackPanel({
-  feedback,
-  onRetry,
-  onAdvance,
-  isLastStep,
-  busy,
-}: {
-  feedback: TurnFeedback
-  onRetry: () => void
-  onAdvance: () => void
-  isLastStep: boolean
-  busy: boolean
-}) {
-  const passed = feedback.score >= 70
-
-  return (
-    <div className="max-w-xl">
-      <div className="rounded-xl bg-milestone-soft px-4 py-3">
-        <p className="text-sm font-semibold text-milestone">Yaxshi tomoni</p>
-        <p className="mt-1 text-base text-ink">{feedback.strengthNote}</p>
-      </div>
-
-      <div className="mt-3 rounded-xl bg-signal-soft px-4 py-3">
-        <p className="text-sm font-semibold text-signal-ink">Bitta tuzatish</p>
-        <p className="mt-1 text-base text-ink">{feedback.headlineCorrection}</p>
-      </div>
-
-      {!passed && (
-        <div className="mt-3 rounded-xl bg-caution-soft px-4 py-3 text-ink">
-          <p className="text-sm font-semibold text-ink">Yana bir urinamiz</p>
-          <p className="mt-1 text-base">
-            Hali javob to'liq o'tmadi. Mayli, yana bir marta aytamiz — bu safar sal chaqqonroq va aniqroq bo'lsin.
-          </p>
-        </div>
-      )}
-
-      {passed && isLastStep && (
-        <div className="mt-3 rounded-xl bg-ground-sunken px-4 py-3 text-ink">
-          <p className="text-sm font-semibold text-ink">Zo'r</p>
-          <p className="mt-1 text-base">
-            To'g'ri tushdi. Endi Gemini sizni ushlab o'tirmaydi — darsni chiroyli yopsa bo'ladi.
-          </p>
-        </div>
-      )}
-
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Button variant="secondary" size="lg" className="w-full sm:w-auto" onClick={onRetry} disabled={busy}>
-          Yana bir marta
-        </Button>
-        {passed && (
-          <Button size="lg" className="w-full sm:w-auto" onClick={onAdvance} disabled={busy}>
-            {isLastStep ? 'Yakunlash' : 'Davom etish'}
-          </Button>
-        )}
-      </div>
-    </div>
   )
 }
