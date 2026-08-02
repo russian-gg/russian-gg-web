@@ -1,5 +1,6 @@
 import type {
   CoursePhase,
+  EntitlementView,
   FormalityLevel,
   MissionCategory,
   MissionStepKind,
@@ -115,6 +116,23 @@ export const workplaceLabelUz: Record<WorkplaceAppropriateness, string> = {
   Safe: 'Ishda ishlatsa bo’ladi',
   UseWithCare: 'Ishda ehtiyot bo’ling',
   Avoid: 'Ishda ishlatmang',
+}
+
+/**
+ * The learner's plan, in one short phrase. Always read off `EntitlementView` — paid state is
+ * the server's answer and is never re-derived from a tier string or an expiry date here
+ * (PRD §11). Returns null while the entitlement is still loading, so a caller can hold the
+ * space rather than briefly claim the learner is on the free plan.
+ */
+export function planLabelUz(entitlement: EntitlementView | undefined | null): string | null {
+  if (!entitlement) return null
+
+  if (entitlement.status === 'PastDue') return "To'lov kutilmoqda"
+  if (!entitlement.hasProAccess) return 'Bepul'
+  if (entitlement.status === 'Trialing') return 'Pro · sinov'
+  if (entitlement.cancelAtPeriodEnd) return 'Pro · tugaydi'
+
+  return 'Pro'
 }
 
 export const levelDescriptionUz: Record<ProficiencyLevel, string> = {

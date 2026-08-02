@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
-import { levelDescriptionUz } from '../lib/format'
+import { planLabelUz } from '../lib/format'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import type { ProgressView } from '../lib/types'
+import type { EntitlementView, ProgressView } from '../lib/types'
 import { Badge } from './ui'
 
 const NAV = [
@@ -87,15 +87,17 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
 
-  const { data } = useQuery({
-    queryKey: ['progress'],
-    queryFn: () => api.get<ProgressView>('/course/progress'),
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
     staleTime: 60_000,
     retry: false,
   })
 
   const name = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Talaba'
-  const subtitle = data ? `${data.speakingLevel} · ${levelDescriptionUz[data.speakingLevel]}` : 'Profil'
+  // The plan, not the level: this row is the account, and the level already has a home on
+  // the profile and progress screens.
+  const subtitle = planLabelUz(entitlement)
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   function go(path: string) {
@@ -127,7 +129,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         {!compact && (
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-semibold leading-5 text-ink">{name}</span>
-            <span className="block text-sm text-ink-muted">{subtitle}</span>
+            {subtitle && <span className="block truncate text-sm text-ink-muted">{subtitle}</span>}
           </span>
         )}
         <ChevronGlyph direction={open ? 'up' : 'down'} />
@@ -148,7 +150,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[15px] font-semibold leading-5 text-ink">{name}</span>
-              <span className="block truncate text-sm text-ink-muted">{subtitle}</span>
+              {subtitle && <span className="block truncate text-sm text-ink-muted">{subtitle}</span>}
             </span>
             <ChevronGlyph direction="right" />
           </button>
