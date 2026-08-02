@@ -113,16 +113,33 @@ export function MissionPlayer() {
     )
   }
   const currentMission = mission
-
-  const step = currentMission.steps[stepIndex]
-  const nextStep = currentMission.steps[stepIndex + 1]
-  const totalSteps = currentMission.steps.length
+  const summary = {
+    ...currentMission.summary,
+    category: currentMission.summary.category ?? 'Social',
+    phase: currentMission.summary.phase ?? 'Foundation',
+    targetLevel: currentMission.summary.targetLevel ?? 'A0',
+    formality: currentMission.summary.formality ?? 'Neutral',
+    workplaceUse: currentMission.summary.workplaceUse ?? 'Safe',
+    titleUz: currentMission.summary.titleUz ?? 'Mashq',
+    titleRu: currentMission.summary.titleRu ?? 'Упражнение',
+    objectiveUz: currentMission.summary.objectiveUz ?? '',
+  }
+  const safePhrases = currentMission.targetPhrases.filter(
+    (phrase): phrase is NonNullable<(typeof currentMission.targetPhrases)[number]> =>
+      Boolean(phrase && phrase.russian),
+  )
+  const safeSteps = currentMission.steps.filter(
+    (item): item is NonNullable<(typeof currentMission.steps)[number]> => Boolean(item),
+  )
+  const step = safeSteps[stepIndex]
+  const nextStep = safeSteps[stepIndex + 1]
+  const totalSteps = safeSteps.length
   const isLastStep = stepIndex >= totalSteps - 1
-  const safeStep = step ?? currentMission.steps[Math.max(0, Math.min(stepIndex, totalSteps - 1))]
+  const safeStep = step ?? safeSteps[Math.max(0, Math.min(stepIndex, totalSteps - 1))]
   const promptAudioText =
     safeStep?.kind === 'PhraseIntro'
-      ? currentMission.targetPhrases.map((phrase) => phrase.russian).join('. ')
-      : safeStep?.promptRu ?? currentMission.summary.titleRu
+      ? safePhrases.map((phrase) => phrase.russian).join('. ')
+      : safeStep?.promptRu ?? summary.titleRu
 
   function handleListen(text: string) {
     setError(null)
@@ -158,10 +175,10 @@ export function MissionPlayer() {
   }, [feedback, isLastStep])
 
   const needsRegisterLabel =
-    currentMission.summary.category === 'StreetRussian' ||
-    currentMission.summary.formality === 'Informal' ||
-    currentMission.summary.formality === 'Slang' ||
-    currentMission.summary.workplaceUse !== 'Safe'
+    summary.category === 'StreetRussian' ||
+    summary.formality === 'Informal' ||
+    summary.formality === 'Slang' ||
+    summary.workplaceUse !== 'Safe'
 
   async function startVoice() {
     if (!attempt) return
@@ -346,37 +363,37 @@ export function MissionPlayer() {
     }
   }
 
-  const week = currentMission.summary.courseDay ? Math.ceil(currentMission.summary.courseDay / 7) : null
+  const week = summary.courseDay ? Math.ceil(summary.courseDay / 7) : null
 
   return (
     <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
       {/* Context line: where this sits in the journey, and which day it is. */}
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="truncate text-sm text-ink-muted">
-            {categoryLabelUz[currentMission.summary.category]}
+            <p className="truncate text-sm text-ink-muted">
+            {categoryLabelUz[summary.category] ?? 'Muloqot'}
             {week !== null && ` / ${week}-hafta`}
           </p>
         </div>
 
-        {currentMission.summary.courseDay !== null && currentMission.summary.courseDay !== undefined && (
-          <Badge outline>{currentMission.summary.courseDay}-kun</Badge>
+        {summary.courseDay !== null && summary.courseDay !== undefined && (
+          <Badge outline>{summary.courseDay}-kun</Badge>
         )}
       </header>
 
       <div className="mt-14 flex-1">
         {/* One clear lesson objective, with the supporting detail directly under it. */}
         <h1 className="text-3xl leading-[1.15] font-semibold tracking-tight text-ink sm:text-4xl">
-          {currentMission.summary.titleUz}
+          {summary.titleUz}
         </h1>
         <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-muted">
-          {currentMission.summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
+          {summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
         </p>
 
         {needsRegisterLabel && (
           <div className="mt-5 flex flex-wrap gap-2">
-            <Badge tone="caution">{formalityLabelUz[currentMission.summary.formality]}</Badge>
-            <Badge tone="caution">{workplaceLabelUz[currentMission.summary.workplaceUse]}</Badge>
+            <Badge tone="caution">{formalityLabelUz[summary.formality] ?? 'Neytral'}</Badge>
+            <Badge tone="caution">{workplaceLabelUz[summary.workplaceUse] ?? 'Ishda ishlatsa bo\'ladi'}</Badge>
           </div>
         )}
 
@@ -397,7 +414,7 @@ export function MissionPlayer() {
         {/* The line the learner is working on, with its Uzbek support underneath. */}
         {safeStep?.kind === 'PhraseIntro' ? (
           <PhraseList
-            phrases={currentMission.targetPhrases}
+            phrases={safePhrases}
             promptAudioState={promptAudioState}
             onListenPhrase={handleListen}
           />
