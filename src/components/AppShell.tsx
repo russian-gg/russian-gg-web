@@ -15,6 +15,14 @@ const NAV = [
 
 export function AppShell() {
   const { signOut } = useAuth()
+  const { data: progress } = useQuery({
+    queryKey: ['progress'],
+    queryFn: () => api.get<ProgressView>('/course/progress'),
+    staleTime: 60_000,
+    retry: false,
+  })
+
+  const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
 
   return (
     <div className="min-h-dvh md:flex">
@@ -25,7 +33,11 @@ export function AppShell() {
         </div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Asosiy">
           {NAV.map((item) => (
-            <TabLink key={item.to} to={item.to}>
+            <TabLink
+              key={item.to}
+              to={item.to}
+              trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
+            >
               {item.label}
             </TabLink>
           ))}
@@ -37,7 +49,11 @@ export function AppShell() {
 
         <nav className="mt-12 flex flex-col gap-1" aria-label="Asosiy">
           {NAV.map((item) => (
-            <RailLink key={item.to} to={item.to}>
+            <RailLink
+              key={item.to}
+              to={item.to}
+              trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
+            >
               {item.label}
             </RailLink>
           ))}
@@ -102,16 +118,16 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={`flex w-full items-center gap-3 rounded-2xl border border-hairline bg-ground-raised px-3 py-3 text-left transition hover:border-signal ${
-          compact ? 'w-auto px-3 py-2' : ''
+        className={`flex w-full items-center gap-3 rounded-2xl border border-hairline bg-ground-raised px-3 text-left transition hover:border-signal ${
+          compact ? 'w-auto py-2 pl-3 pr-2' : 'py-2.5'
         }`}
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
           {initials}
         </span>
         {!compact && (
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-semibold text-ink">{name}</span>
+            <span className="block truncate text-[15px] font-semibold leading-5 text-ink">{name}</span>
             <span className="block text-sm text-ink-muted">{subtitle}</span>
           </span>
         )}
@@ -125,7 +141,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
           <button
             type="button"
             onClick={() => void go('/settings')}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-ground-sunken"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-ground-sunken"
           >
             <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-ink-muted/60" aria-hidden="true">
               <span className="size-1.5 rounded-full bg-ground-raised" />
@@ -169,7 +185,15 @@ function MenuItem({
   )
 }
 
-function TabLink({ to, children }: { to: string; children: ReactNode }) {
+function TabLink({
+  to,
+  children,
+  trailing,
+}: {
+  to: string
+  children: ReactNode
+  trailing?: string
+}) {
   return (
     <NavLink
       to={to}
@@ -179,22 +203,34 @@ function TabLink({ to, children }: { to: string; children: ReactNode }) {
         }`
       }
     >
-      {children}
+      <span className="flex items-center gap-2">
+        <span>{children}</span>
+        {trailing && <span className="text-[11px] font-semibold tabular-nums opacity-80">{trailing}</span>}
+      </span>
     </NavLink>
   )
 }
 
-function RailLink({ to, children }: { to: string; children: ReactNode }) {
+function RailLink({
+  to,
+  children,
+  trailing,
+}: {
+  to: string
+  children: ReactNode
+  trailing?: string
+}) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `-mx-2 rounded-lg px-2 py-2 text-base transition-colors ${
+        `-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-base transition-colors ${
           isActive ? 'font-semibold text-ink' : 'font-medium text-ink-muted hover:text-ink'
         }`
       }
     >
-      {children}
+      <span>{children}</span>
+      {trailing && <span className="text-xs font-semibold tabular-nums text-ink-faint">{trailing}</span>}
     </NavLink>
   )
 }

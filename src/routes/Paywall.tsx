@@ -28,8 +28,6 @@ export function Paywall() {
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
 
-  const isPreviewMode = entitlement?.hasProAccess === true && entitlement.status === 'None'
-
   if (isLoading || !plans) return <Spinner />
 
   async function startTrial() {
@@ -39,7 +37,6 @@ export function Paywall() {
       const result = await api.post<SubscriptionActionResponse>('/billing/trial')
       track('trial_started')
       await queryClient.invalidateQueries()
-      setError(null)
       alert(result.messageUz)
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : "Sinovni boshlab bo'lmadi.")
@@ -57,7 +54,6 @@ export function Paywall() {
         returnUrl: `${window.location.origin}/billing/return`,
       })
       track('checkout_started', { period })
-      // Click hosts the payment form; the server is the only thing that decides paid state.
       window.location.href = result.checkoutUrl
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : "To'lovni boshlab bo'lmadi.")
@@ -72,14 +68,14 @@ export function Paywall() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Pro bilan to'liq yo'l</h1>
         <p className="text-support mt-1">
-          Bepul rejada daraja testi va birinchi 7 kun ochiq. Pro 90 kunlik to'liq yo'lni ochadi.
+          Bepul rejada daraja testi va birinchi 7 kun ochiq. Keyingi kunlarni davom ettirish uchun
+          Pro obuna kerak bo'ladi.
         </p>
       </header>
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
       {entitlement?.paymentProcessing && (
-        // Paid state is never taken on trust from the client (PRD §11).
         <Card>
           <Badge tone="caution">To'lov tekshirilmoqda</Badge>
           <p className="mt-3 text-base text-ink">
@@ -89,7 +85,7 @@ export function Paywall() {
       )}
 
       {entitlement?.hasProAccess ? (
-        <ActiveSubscription entitlement={entitlement} isPreviewMode={isPreviewMode} />
+        <ActiveSubscription entitlement={entitlement} />
       ) : (
         <>
           <div className="space-y-3">
@@ -126,7 +122,7 @@ export function Paywall() {
           <Button size="lg" block disabled={busy} onClick={() => void checkout()}>
             {busy
               ? 'Ochilmoqda...'
-              : `Click orqali to'lash · ${formatPrice(selected.amountTiyin, selected.currency)}`}
+              : `Click orqali to'lash - ${formatPrice(selected.amountTiyin, selected.currency)}`}
           </Button>
 
           {plans.trialAvailable && (
@@ -169,24 +165,15 @@ export function Paywall() {
         </ul>
       </section>
 
-      {/* Cancellation is stated plainly, never hidden (PRD §13). */}
-      {!isPreviewMode && (
-        <p className="text-support border-t border-hairline pt-5">
-          Obunani istalgan vaqtda Sozlamalar bo'limidan bekor qilishingiz mumkin. Bekor qilganingizda
-          to'langan muddat oxirigacha Pro ochiq qoladi.
-        </p>
-      )}
+      <p className="text-support border-t border-hairline pt-5">
+        Obunani istalgan vaqtda Sozlamalar bo'limidan bekor qilishingiz mumkin. Bekor qilganingizda
+        to'langan muddat oxirigacha Pro ochiq qoladi.
+      </p>
     </div>
   )
 }
 
-function ActiveSubscription({
-  entitlement,
-  isPreviewMode,
-}: {
-  entitlement: EntitlementView
-  isPreviewMode: boolean
-}) {
+function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -205,51 +192,33 @@ function ActiveSubscription({
 
   return (
     <Card>
-      {isPreviewMode ? (
-        <>
-          <Badge tone="milestone">Test uchun Pro ochiq</Badge>
-          <p className="mt-3 text-base text-ink">
-            Test rejimi yoqilgan. Shu sabab hozir barcha Pro funksiyalar vaqtincha ochiq turibdi.
-          </p>
-          <p className="text-support mt-2">
-            Keyin xohlagan payt bu rejim o'chirilib, odatiy pullik holatga qaytariladi.
-          </p>
-        </>
-      ) : (
-        <>
-          <Badge tone="milestone">
-            {entitlement.status === 'Trialing' ? 'Sinov muddati' : 'Pro faol'}
-          </Badge>
+      <Badge tone="milestone">
+        {entitlement.status === 'Trialing' ? 'Sinov muddati' : 'Pro faol'}
+      </Badge>
 
-          <p className="mt-3 text-base text-ink">
-            {entitlement.status === 'Trialing'
-              ? `Sinov ${formatDate(entitlement.trialEndsAt)} gacha.`
-              : `Amal qilish muddati ${formatDate(entitlement.currentPeriodEnd)}.`}
-          </p>
+      <p className="mt-3 text-base text-ink">
+        {entitlement.status === 'Trialing'
+          ? `Sinov ${formatDate(entitlement.trialEndsAt)} gacha.`
+          : `Amal qilish muddati ${formatDate(entitlement.currentPeriodEnd)}.`}
+      </p>
 
-          {entitlement.cancelAtPeriodEnd && (
-            <p className="text-support mt-2">
-              Obuna bekor qilingan. Muddat tugagach bepul rejaga o'tasiz.
-            </p>
-          )}
+      {entitlement.cancelAtPeriodEnd && (
+        <p className="text-support mt-2">
+          Obuna bekor qilingan. Muddat tugagach bepul rejaga o'tasiz.
+        </p>
+      )}
 
-          {message && <p className="text-support mt-3">{message}</p>}
+      {message && <p className="text-support mt-3">{message}</p>}
 
-          {!entitlement.cancelAtPeriodEnd && (
-            <Button variant="danger" className="mt-5" disabled={busy} onClick={() => void cancel()}>
-              Obunani bekor qilish
-            </Button>
-          )}
-        </>
+      {!entitlement.cancelAtPeriodEnd && (
+        <Button variant="danger" className="mt-5" disabled={busy} onClick={() => void cancel()}>
+          Obunani bekor qilish
+        </Button>
       )}
     </Card>
   )
 }
 
-/**
- * Landing page after Click. Shows a verifying state rather than claiming success: only the
- * server's entitlement response is authoritative.
- */
 export function BillingReturn() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -257,7 +226,6 @@ export function BillingReturn() {
   const { data, isLoading } = useQuery({
     queryKey: ['entitlement', 'return'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
-    // Click's callback may land a moment after the browser redirect.
     refetchInterval: (query) => (query.state.data?.hasProAccess ? false : 2500),
   })
 
@@ -282,7 +250,7 @@ export function BillingReturn() {
       <Badge tone="caution">Tekshirilmoqda</Badge>
       <h1 className="mt-4 text-xl font-semibold text-ink">To'lov tasdiqlanmoqda</h1>
       <p className="text-support mt-2">
-        Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi - bu sahifani
+        Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi, bu sahifani
         yopsangiz ham.
       </p>
       {params.get('error') && <p className="text-support mt-3">To'lov tizimidan xatolik kodi qaytdi.</p>}
