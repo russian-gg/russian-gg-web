@@ -56,9 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
           uiLanguage: 'uz',
         })
-        tokenStore.setPending(auth)
+        tokenStore.set(auth)
         setUser(auth.user)
-        setPendingOnboarding(true)
+        setPendingOnboarding(false)
         return auth.user
       },
       async signInWithGoogle(credential, displayName, options) {

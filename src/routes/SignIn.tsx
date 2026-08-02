@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import googleGIcon from '../assets/google-g-official.svg'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { onboardingDraftStore, signupDraftStore } from '../lib/signup-draft'
 import {
   loadGoogleIdentityScript,
   renderGoogleButton,
@@ -118,7 +119,7 @@ export function SignIn() {
 }
 
 export function SignUp() {
-  const { abandonPendingOnboarding, isPendingOnboarding, signInWithGoogle, signUp } = useAuth()
+  const { abandonPendingOnboarding, isPendingOnboarding } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -148,7 +149,13 @@ export function SignUp() {
     setError(null)
 
     try {
-      await signUp(email, password, displayName || undefined)
+      signupDraftStore.set({
+        kind: 'email',
+        email,
+        password,
+        displayName: displayName || undefined,
+      })
+      onboardingDraftStore.clear()
       track('signup_completed')
       navigate('/onboarding')
     } catch (caught) {
@@ -172,11 +179,14 @@ export function SignUp() {
     setError(null)
 
     try {
-      const user = await signInWithGoogle(response.credential, displayName || undefined, {
-        pendingOnboarding: true,
+      signupDraftStore.set({
+        kind: 'google',
+        credential: response.credential,
+        displayName: displayName || undefined,
       })
+      onboardingDraftStore.clear()
       track('signup_completed')
-      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding')
+      navigate('/onboarding')
     } catch (caught) {
       setError(
         caught instanceof RequestError

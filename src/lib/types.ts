@@ -81,6 +81,10 @@ export interface DiagnosticSession {
   items: DiagnosticItemView[]
 }
 
+export interface DiagnosticPreview {
+  items: DiagnosticItemView[]
+}
+
 export interface DiagnosticAnswer {
   itemCode: string
   selectedOption?: string | null
