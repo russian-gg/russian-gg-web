@@ -136,7 +136,7 @@ export function SignUp() {
     try {
       await signUp(email, password, displayName || undefined)
       track('signup_completed')
-      navigate('/onboarding', { replace: true })
+      navigate('/onboarding')
     } catch (caught) {
       setError(
         caught instanceof RequestError
@@ -162,7 +162,7 @@ export function SignUp() {
         pendingOnboarding: true,
       })
       track('signup_completed')
-      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
+      navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding')
     } catch (caught) {
       setError(
         caught instanceof RequestError
