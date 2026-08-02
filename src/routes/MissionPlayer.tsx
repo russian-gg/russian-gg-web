@@ -579,6 +579,8 @@ export function MissionPlayer() {
             {summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
           </p>
 
+          <TutorIntro />
+
           {needsRegisterLabel && (
             <div className="mt-4 flex flex-wrap gap-2">
               <Badge tone="caution">{formalityLabelUz[summary.formality] ?? 'Neytral'}</Badge>
@@ -977,13 +979,14 @@ const TUTOR_AVATAR_SRC = '/tutor-avatar.jpg'
  * The label always says "AI repetitor". A human face must not let a learner believe they are
  * talking to a person — the product's own positioning is that this never replaces a teacher.
  */
-function TutorMark() {
+function TutorMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
   const [failed, setFailed] = useState(false)
+  const box = size === 'lg' ? 'size-11' : 'mt-1 size-9'
 
   if (failed) {
     return (
       <span
-        className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-soft"
+        className={`flex shrink-0 items-center justify-center rounded-full bg-signal-soft ${box}`}
         role="img"
         aria-label="AI repetitor"
       >
@@ -1004,10 +1007,27 @@ function TutorMark() {
     <img
       src={TUTOR_AVATAR_SRC}
       alt="AI repetitor"
-      loading="lazy"
+      // Eager: it identifies who the learner is about to speak to, so it must not pop in late.
       onError={() => setFailed(true)}
-      className="mt-1 size-9 shrink-0 rounded-full bg-signal-soft object-cover"
+      className={`shrink-0 rounded-full bg-signal-soft object-cover ${box}`}
     />
+  )
+}
+
+/**
+ * The tutor introduced once, at the top. Without this the coach only appeared after the
+ * conversation had already started — on the phrase-introduction step there are no bubbles
+ * yet, so the learner met a wall of text with nobody attached to it.
+ */
+function TutorIntro() {
+  return (
+    <div className="mt-5 flex items-center gap-3">
+      <TutorMark size="lg" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-ink">AI repetitor</p>
+        <p className="text-support">Sizni tinglaydi va darhol izoh beradi</p>
+      </div>
+    </div>
   )
 }
 
