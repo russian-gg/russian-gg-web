@@ -4,11 +4,17 @@ import type { UserProfile } from './types'
 export interface AuthState {
   user: UserProfile | null
   isLoading: boolean
+  isPendingOnboarding: boolean
   signIn: (email: string, password: string) => Promise<UserProfile>
   signUp: (email: string, password: string, displayName?: string) => Promise<UserProfile>
-  signInWithGoogle: (credential: string, displayName?: string) => Promise<UserProfile>
+  signInWithGoogle: (
+    credential: string,
+    displayName?: string,
+    options?: { pendingOnboarding?: boolean },
+  ) => Promise<UserProfile>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
+  completePendingOnboarding: () => Promise<void>
 }
 
 /**

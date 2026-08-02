@@ -2,6 +2,8 @@ import type { ApiError, AuthResponse } from './types'
 
 const ACCESS_KEY = 'rgg.access'
 const REFRESH_KEY = 'rgg.refresh'
+const PENDING_ACCESS_KEY = 'rgg.pending.access'
+const PENDING_REFRESH_KEY = 'rgg.pending.refresh'
 
 /**
  * Tokens live in localStorage so a refresh keeps the learner signed in on a phone that
@@ -9,15 +11,36 @@ const REFRESH_KEY = 'rgg.refresh'
  * payment state the server has not confirmed (PRD §11).
  */
 export const tokenStore = {
-  access: () => localStorage.getItem(ACCESS_KEY),
-  refresh: () => localStorage.getItem(REFRESH_KEY),
+  access: () => localStorage.getItem(ACCESS_KEY) ?? sessionStorage.getItem(PENDING_ACCESS_KEY),
+  refresh: () => localStorage.getItem(REFRESH_KEY) ?? sessionStorage.getItem(PENDING_REFRESH_KEY),
+  hasPending: () => !!sessionStorage.getItem(PENDING_ACCESS_KEY),
   set(auth: Pick<AuthResponse, 'accessToken' | 'refreshToken'>) {
     localStorage.setItem(ACCESS_KEY, auth.accessToken)
     localStorage.setItem(REFRESH_KEY, auth.refreshToken)
+    sessionStorage.removeItem(PENDING_ACCESS_KEY)
+    sessionStorage.removeItem(PENDING_REFRESH_KEY)
+  },
+  setPending(auth: Pick<AuthResponse, 'accessToken' | 'refreshToken'>) {
+    sessionStorage.setItem(PENDING_ACCESS_KEY, auth.accessToken)
+    sessionStorage.setItem(PENDING_REFRESH_KEY, auth.refreshToken)
+    localStorage.removeItem(ACCESS_KEY)
+    localStorage.removeItem(REFRESH_KEY)
+  },
+  promotePending() {
+    const access = sessionStorage.getItem(PENDING_ACCESS_KEY)
+    const refresh = sessionStorage.getItem(PENDING_REFRESH_KEY)
+    if (!access || !refresh) return
+
+    localStorage.setItem(ACCESS_KEY, access)
+    localStorage.setItem(REFRESH_KEY, refresh)
+    sessionStorage.removeItem(PENDING_ACCESS_KEY)
+    sessionStorage.removeItem(PENDING_REFRESH_KEY)
   },
   clear() {
     localStorage.removeItem(ACCESS_KEY)
     localStorage.removeItem(REFRESH_KEY)
+    sessionStorage.removeItem(PENDING_ACCESS_KEY)
+    sessionStorage.removeItem(PENDING_REFRESH_KEY)
   },
 }
 

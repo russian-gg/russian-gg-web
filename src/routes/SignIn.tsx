@@ -158,7 +158,9 @@ export function SignUp() {
     setError(null)
 
     try {
-      const user = await signInWithGoogle(response.credential, displayName || undefined)
+      const user = await signInWithGoogle(response.credential, displayName || undefined, {
+        pendingOnboarding: true,
+      })
       track('signup_completed')
       navigate(user.hasCompletedDiagnostic ? '/home' : '/onboarding', { replace: true })
     } catch (caught) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, track } from '../lib/api'
+import { useAuth } from '../lib/auth-context'
 import { phaseLabelUz, levelDescriptionUz } from '../lib/format'
 import type { DiagnosticAnswer, DiagnosticResult, DiagnosticSession, LearningGoal } from '../lib/types'
 import { Button, Card, ErrorNote, ProgressBar, Spinner, UzHint } from '../components/ui'
@@ -23,6 +24,7 @@ const SELF_SCALE = [
 
 export function Onboarding() {
   const navigate = useNavigate()
+  const { completePendingOnboarding } = useAuth()
   const [stage, setStage] = useState<Stage>('goal')
   const [goal, setGoal] = useState<LearningGoal>('Both')
   const [comprehension, setComprehension] = useState(3)
@@ -73,6 +75,7 @@ export function Onboarding() {
         attemptId: session.attemptId,
         answers: next,
       })
+      await completePendingOnboarding()
       setResult(submitted)
       setStage('result')
     } catch {

@@ -45,11 +45,14 @@ export function App() {
 }
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isPendingOnboarding } = useAuth()
   const location = useLocation()
 
   if (isLoading) return <Spinner />
   if (!user) return <Navigate to="/signin" replace state={{ from: location.pathname }} />
+  if (isPendingOnboarding && location.pathname !== '/onboarding') {
+    return <Navigate to="/signup" replace />
+  }
 
   return <>{children}</>
 }
@@ -59,9 +62,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
  * they left off, or to placement if they have not been placed.
  */
 function PublicOnly({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isPendingOnboarding } = useAuth()
 
   if (isLoading) return <Spinner />
+  if (isPendingOnboarding) return <>{children}</>
   if (user) return <Navigate to={user.hasCompletedDiagnostic ? '/home' : '/onboarding'} replace />
 
   return <>{children}</>
