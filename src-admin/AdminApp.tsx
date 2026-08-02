@@ -29,10 +29,15 @@ const sections: Array<{ id: Section; label: string }> = [
   { id: 'feedbacks', label: 'Feedbacks' },
 ]
 
+function readStoredSection(): Section {
+  const stored = localStorage.getItem('rgg.admin.section')
+  return sections.some((item) => item.id === stored) ? (stored as Section) : 'dashboard'
+}
+
 export function AdminApp() {
   const [token, setToken] = useState(() => localStorage.getItem('rgg.admin.token') ?? '')
   const [name, setName] = useState(() => localStorage.getItem('rgg.admin.name') ?? 'Russian.gg Admin')
-  const [section, setSection] = useState<Section>('dashboard')
+  const [section, setSection] = useState<Section>(() => readStoredSection())
 
   useEffect(() => {
     if (token) localStorage.setItem('rgg.admin.token', token)
@@ -42,6 +47,10 @@ export function AdminApp() {
   useEffect(() => {
     localStorage.setItem('rgg.admin.name', name)
   }, [name])
+
+  useEffect(() => {
+    localStorage.setItem('rgg.admin.section', section)
+  }, [section])
 
   if (!token) {
     return <LoginScreen onLogin={(nextToken, nextName) => { setToken(nextToken); setName(nextName) }} />
