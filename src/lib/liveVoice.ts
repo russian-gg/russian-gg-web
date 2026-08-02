@@ -65,16 +65,10 @@ export class LiveVoiceSession {
     }
 
     await this.openWebSocket()
-    await this.startMicrophone()
-    this.heardSpeechThisTurn = false
-    this.autoStopRequested = false
-    this.lastSpeechAt = Date.now()
-    this.ws?.send(JSON.stringify({ realtimeInput: { activityStart: {} } }))
-    this.recording = true
-    this.callbacks.onStatus('listening')
+    await this.beginNextTurn()
   }
 
-  async stopAndAwaitTurn() {
+  async finishCurrentTurn() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return
     }
@@ -98,6 +92,26 @@ export class LiveVoiceSession {
         throw new Error("Gemini javobi kutilyapti, lekin juda cho'zilib ketdi.")
       }),
     ])
+  }
+
+  async beginNextTurn() {
+    if (this.closed || !this.ws || this.ws.readyState !== WebSocket.OPEN || this.recording) {
+      return
+    }
+
+    await this.startMicrophone()
+    this.heardSpeechThisTurn = false
+    this.autoStopRequested = false
+    this.lastSpeechAt = Date.now()
+    this.inputTranscript = ''
+    this.outputTranscript = ''
+    this.turnSettled = false
+    this.turnCompletePromise = null
+    this.resolveTurnComplete = null
+    this.rejectTurnComplete = null
+    this.ws.send(JSON.stringify({ realtimeInput: { activityStart: {} } }))
+    this.recording = true
+    this.callbacks.onStatus('listening')
   }
 
   async close() {

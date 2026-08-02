@@ -53,6 +53,9 @@ export function MissionPlayer() {
   const transcriptRef = useRef('')
   const assistantReplyRef = useRef<string | null>(null)
   const submittingTurnRef = useRef(false)
+  const latestTurnPassedRef = useRef(false)
+  const latestTurnScoreRef = useRef<number | null>(null)
+  const manualStopRequestedRef = useRef(false)
 
   const {
     data: mission,
@@ -217,6 +220,10 @@ export function MissionPlayer() {
     setDegraded(null)
     setAssistantReply(null)
     setTranscript('')
+    setFeedback(null)
+    latestTurnPassedRef.current = false
+    latestTurnScoreRef.current = null
+    manualStopRequestedRef.current = false
     setVoiceState('thinking')
 
     try {
@@ -264,10 +271,12 @@ export function MissionPlayer() {
           },
           onTurnComplete: () => {
             setVoiceComposerOpen(true)
-            void submitTurnFromLive()
+            if (!manualStopRequestedRef.current) {
+              void submitTurnFromLive()
+            }
           },
           onSilenceTimeout: () => {
-            void stopVoice()
+            void finishLiveTurn()
           },
         },
       )
@@ -301,11 +310,28 @@ export function MissionPlayer() {
 
     setBusy(true)
     setError(null)
+    manualStopRequestedRef.current = true
 
     try {
-      await liveSession.stopAndAwaitTurn()
       await teardownVoice(true, null)
       setVoiceState('idle')
+
+      const transcriptValue = transcriptRef.current.trim()
+      if (transcriptValue && !latestTurnPassedRef.current) {
+        const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
+        if (!passed) {
+          setError("Gemini hali javobni to'liq qabul qilmadi. Yana bir marta urinib ko'ring.")
+          return
+        }
+      }
+
+      if (latestTurnPassedRef.current) {
+        if (isLastStep) {
+          await complete()
+        } else {
+          await advance()
+        }
+      }
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : "Ovozli seansni tugatib bo'lmadi."
@@ -317,15 +343,46 @@ export function MissionPlayer() {
     }
   }
 
+  async function finishLiveTurn() {
+    const liveSession = liveSessionRef.current
+    if (!liveSession || manualStopRequestedRef.current) {
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+
+    try {
+      await liveSession.finishCurrentTurn()
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Gemini javobini kutib bo'lmadi."
+      setError(message)
+      setVoiceState('idle')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function submitTurnFromLive() {
     const transcriptValue = transcriptRef.current.trim()
     if (!transcriptValue || submittingTurnRef.current) {
+      if (!manualStopRequestedRef.current) {
+        window.setTimeout(() => {
+          void liveSessionRef.current?.beginNextTurn()
+        }, 250)
+      }
       return
     }
 
     submittingTurnRef.current = true
     try {
-      await submitTurn(false, transcriptValue, assistantReplyRef.current, false)
+      const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
+      if (!manualStopRequestedRef.current && !passed) {
+        window.setTimeout(() => {
+          void liveSessionRef.current?.beginNextTurn()
+        }, 350)
+      }
     } finally {
       submittingTurnRef.current = false
     }
@@ -336,6 +393,7 @@ export function MissionPlayer() {
     transcriptValue = transcript,
     tutorReply = assistantReply,
     showThinking = true,
+    showFeedbackPanel = true,
   ) {
     if (!attempt || !transcriptValue.trim()) return
 
@@ -354,11 +412,20 @@ export function MissionPlayer() {
         isRetry,
       })
 
-      setFeedback(result)
-      setVoiceState('feedback')
+      latestTurnScoreRef.current = result.score
+      latestTurnPassedRef.current = result.score >= 70
+      if (showFeedbackPanel) {
+        setFeedback(result)
+        setVoiceState('feedback')
+      } else {
+        setFeedback(null)
+        setVoiceState('idle')
+      }
+      return result.score >= 70
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : "Javobni yuborib bo'lmadi.")
       setVoiceState('idle')
+      return false
     } finally {
       setBusy(false)
     }
@@ -398,6 +465,9 @@ export function MissionPlayer() {
     setVoiceState('idle')
     setDegraded(null)
     setVoiceComposerOpen(false)
+    latestTurnPassedRef.current = false
+    latestTurnScoreRef.current = null
+    manualStopRequestedRef.current = false
     setStepIndex((current) => Math.min(current + 1, totalSteps - 1))
   }
 
@@ -505,6 +575,7 @@ export function MissionPlayer() {
             hasLiveSession={hasLiveSession}
             promptRu={promptAudioText}
             feedback={feedback}
+            latestTurnAccepted={latestTurnPassedRef.current}
             isLastStep={isLastStep}
             onRetry={() => {
               setVoiceState('idle')
@@ -742,6 +813,7 @@ function VoiceControls({
   hasLiveSession,
   promptRu,
   feedback,
+  latestTurnAccepted,
   isLastStep,
   onRetry,
   onAdvance,
@@ -759,6 +831,7 @@ function VoiceControls({
   hasLiveSession: boolean
   promptRu: string
   feedback: TurnFeedback | null
+  latestTurnAccepted: boolean
   isLastStep: boolean
   onRetry: () => void
   onAdvance: () => void
@@ -796,7 +869,9 @@ function VoiceControls({
 
         <span className="text-sm text-ink-faint">
           {hasLiveSession
-            ? "Suhbat davom etmoqda. Gemini javobni shu yerning o'zida beradi, xohlasangiz keyin yakunlaysiz."
+            ? latestTurnAccepted
+              ? "Gemini javobni qabul qildi. Endi Yakunlash ni bossangiz keyingi bosqichga o'tadi."
+              : "Suhbat davom etmoqda. Siz gapni tugatganingizda Gemini darrov javob beradi."
             : 'Uzbekcha yordam yoqilgan'}
         </span>
       </div>
