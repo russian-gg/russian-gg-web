@@ -122,8 +122,14 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         <div className={`absolute z-30 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-2xl ${
           compact ? 'right-0 mt-2 w-72' : 'bottom-full left-0 mb-3 w-72'
         }`}>
-          <button type="button" onClick={() => void go('/settings')} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-ground-sunken">
-            <span className="text-lg">○</span>
+          <button
+            type="button"
+            onClick={() => void go('/settings')}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-ground-sunken"
+          >
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-ink-muted/60" aria-hidden="true">
+              <span className="size-1.5 rounded-full bg-ground-raised" />
+            </span>
             <span>
               <span className="block text-base font-semibold text-ink">Profile</span>
               <span className="block text-sm text-ink-muted">{user?.email}</span>
