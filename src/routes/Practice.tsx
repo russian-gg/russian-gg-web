@@ -7,19 +7,24 @@ import { Badge, EmptyState, LinkButton, Spinner } from '../components/ui'
 
 const FILTERS = [
   { value: 'all', label: 'Barchasi' },
+  { value: 'work', label: 'Ish' },
+  { value: 'daily', label: 'Kundalik' },
+  { value: 'social', label: 'Muloqot' },
   { value: 'taxi', label: 'Taksi' },
-  { value: 'zal', label: 'Zal' },
-  { value: 'oshxona', label: 'Oshxona' },
   { value: 'dokon', label: "Do'kon" },
 ] as const
 
 type ScenarioFilter = (typeof FILTERS)[number]['value']
 
-const SCENARIO_BY_SLUG: Record<string, Exclude<ScenarioFilter, 'all'>> = {
+const SCENARIO_BY_SLUG: Record<string, Extract<ScenarioFilter, 'taxi' | 'dokon'>> = {
   'practice-taxi-destination': 'taxi',
-  'practice-gym-trainer': 'zal',
-  'practice-kitchen-order': 'oshxona',
   'practice-shop-question': 'dokon',
+}
+
+const CATEGORY_BY_MISSION: Record<string, Extract<ScenarioFilter, 'work' | 'daily' | 'social'>> = {
+  Work: 'work',
+  DailyLife: 'daily',
+  Social: 'social',
 }
 
 export function Practice() {
@@ -32,9 +37,17 @@ export function Practice() {
 
   const filtered = useMemo(() => {
     if (!data) return []
-    const visible = data.filter((mission) => mission.slug in SCENARIO_BY_SLUG)
+    const visible = data.filter(
+      (mission) => mission.category in CATEGORY_BY_MISSION || mission.slug in SCENARIO_BY_SLUG,
+    )
     if (category === 'all') return visible
-    return visible.filter((mission) => SCENARIO_BY_SLUG[mission.slug] === category)
+    return visible.filter((mission) => {
+      if (category === 'taxi' || category === 'dokon') {
+        return SCENARIO_BY_SLUG[mission.slug] === category
+      }
+
+      return CATEGORY_BY_MISSION[mission.category] === category
+    })
   }, [category, data])
 
   return (
