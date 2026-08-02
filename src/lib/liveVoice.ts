@@ -369,31 +369,73 @@ export class LiveVoiceSession {
 
 let promptAudio: HTMLAudioElement | null = null
 let promptAudioUrl: string | null = null
+let promptAudioText: string | null = null
+const promptAudioCache = new Map<string, Blob>()
 
-export async function playPromptAudio(text: string) {
-  if (!text.trim()) {
+type PromptAudioState = 'idle' | 'loading' | 'playing'
+type PromptAudioCallbacks = {
+  onStateChange?: (state: PromptAudioState) => void
+}
+
+function setCachedPromptAudio(text: string, blob: Blob) {
+  if (promptAudioCache.has(text)) {
+    promptAudioCache.delete(text)
+  }
+
+  promptAudioCache.set(text, blob)
+
+  while (promptAudioCache.size > 12) {
+    const oldestKey = promptAudioCache.keys().next().value
+    if (!oldestKey) break
+    promptAudioCache.delete(oldestKey)
+  }
+}
+
+export function isPromptAudioPlaying(text?: string) {
+  if (!promptAudio || promptAudio.paused) {
+    return false
+  }
+
+  return text ? promptAudioText === text.trim() : true
+}
+
+export async function playPromptAudio(text: string, callbacks?: PromptAudioCallbacks) {
+  const normalized = text.trim()
+  if (!normalized) {
     return
   }
 
+  callbacks?.onStateChange?.('loading')
   stopPromptAudio()
 
-  const audioBlob = await api.postBlob('/missions/voice/prompt-audio', { text })
+  const audioBlob =
+    promptAudioCache.get(normalized) ?? await api.postBlob('/missions/voice/prompt-audio', { text: normalized })
+
+  if (!promptAudioCache.has(normalized)) {
+    setCachedPromptAudio(normalized, audioBlob)
+  }
+
   const audioUrl = URL.createObjectURL(audioBlob)
   const audio = new Audio(audioUrl)
   promptAudio = audio
   promptAudioUrl = audioUrl
+  promptAudioText = normalized
 
   audio.onended = () => {
+    callbacks?.onStateChange?.('idle')
     stopPromptAudio()
   }
 
   audio.onerror = () => {
+    callbacks?.onStateChange?.('idle')
     stopPromptAudio()
   }
 
   try {
     await audio.play()
+    callbacks?.onStateChange?.('playing')
   } catch (error) {
+    callbacks?.onStateChange?.('idle')
     stopPromptAudio()
     throw error
   }
@@ -410,6 +452,8 @@ export function stopPromptAudio() {
     URL.revokeObjectURL(promptAudioUrl)
     promptAudioUrl = null
   }
+
+  promptAudioText = null
 }
 
 function buildLiveWebSocketUrl(ticket: VoiceSessionTicket) {

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
 import { categoryLabelUz, formalityLabelUz, stepLabelUz, workplaceLabelUz } from '../lib/format'
-import { LiveVoiceSession, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
+import { LiveVoiceSession, isPromptAudioPlaying, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
 import type {
   CoursePhase,
   MissionDetail,
@@ -16,6 +16,7 @@ import {
   Badge,
   Button,
   ErrorNote,
+  PauseGlyph,
   PlayGlyph,
   ProgressBar,
   Rule,
@@ -42,6 +43,7 @@ export function MissionPlayer() {
   const [assistantReply, setAssistantReply] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [promptAudioState, setPromptAudioState] = useState<'idle' | 'loading' | 'playing'>('idle')
   const [voiceComposerOpen, setVoiceComposerOpen] = useState(false)
   const [hasLiveSession, setHasLiveSession] = useState(false)
   const liveSessionRef = useRef<LiveVoiceSession | null>(null)
@@ -80,6 +82,7 @@ export function MissionPlayer() {
   useEffect(() => {
     return () => {
       stopPromptAudio()
+      setPromptAudioState('idle')
       const liveSession = liveSessionRef.current
       if (!liveSession) return
       liveSessionRef.current = null
@@ -371,7 +374,16 @@ export function MissionPlayer() {
             onTranscript={setTranscript}
             onListen={() => {
               setError(null)
-              void playPromptAudio(promptAudioText).catch((caught) => {
+              if (isPromptAudioPlaying(promptAudioText)) {
+                stopPromptAudio()
+                setPromptAudioState('idle')
+                return
+              }
+
+              void playPromptAudio(promptAudioText, {
+                onStateChange: setPromptAudioState,
+              }).catch((caught) => {
+                setPromptAudioState('idle')
                 setError(
                   caught instanceof RequestError
                     ? caught.message
@@ -383,6 +395,7 @@ export function MissionPlayer() {
             onStop={() => void stopVoice()}
             onSubmit={() => void submitTurn(false)}
             busy={busy}
+            promptAudioState={promptAudioState}
             voiceComposerOpen={voiceComposerOpen}
             hasLiveSession={hasLiveSession}
             promptRu={promptAudioText}
@@ -579,6 +592,7 @@ function VoiceControls({
   onStop,
   onSubmit,
   busy,
+  promptAudioState,
   voiceComposerOpen,
   hasLiveSession,
   promptRu,
@@ -597,6 +611,7 @@ function VoiceControls({
   onStop: () => void
   onSubmit: () => void
   busy: boolean
+  promptAudioState: 'idle' | 'loading' | 'playing'
   voiceComposerOpen: boolean
   hasLiveSession: boolean
   promptRu: string
@@ -624,8 +639,18 @@ function VoiceControls({
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button variant="secondary" size="lg" className="w-full sm:w-auto" disabled={busy} onClick={onListen}>
-          <PlayGlyph />
-          Eshitish
+          {promptAudioState === 'playing' ? (
+            <PauseGlyph />
+          ) : promptAudioState === 'loading' ? (
+            <span className="size-4 animate-spin rounded-full border-2 border-hairline border-t-current" />
+          ) : (
+            <PlayGlyph />
+          )}
+          {promptAudioState === 'loading'
+            ? 'Yuklanmoqda...'
+            : promptAudioState === 'playing'
+              ? 'To‘xtatish'
+              : 'Eshitish'}
         </Button>
 
         <Button

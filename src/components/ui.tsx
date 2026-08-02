@@ -101,6 +101,14 @@ export function PlayGlyph() {
   )
 }
 
+export function PauseGlyph() {
+  return (
+    <svg viewBox="0 0 10 12" aria-hidden="true" className="size-2.5 fill-current">
+      <path d="M1 0h2.25A1 1 0 0 1 4.25 1v10a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1A1 1 0 0 1 1 0Zm5.75 0H9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6.75a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1Z" />
+    </svg>
+  )
+}
+
 /* ------------------------------------------------------------------------- surfaces */
 
 /** Whitespace and a thin separator, not a boxed dashboard widget (PRD §7). */
