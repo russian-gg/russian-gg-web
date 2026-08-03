@@ -9,10 +9,10 @@ import type { EntitlementView, ProgressView } from '../lib/types'
 import { Badge } from './ui'
 
 const NAV = [
-  { to: '/home', label: 'Bugungi dars', icon: TodayGlyph },
-  { to: '/path', label: "90 kunlik yo'l", icon: PathGlyph },
-  { to: '/practice', label: 'Topshiriqlar', icon: TasksGlyph },
-  { to: '/progress', label: 'Progress', icon: ProgressGlyph },
+  { to: '/home', label: 'Bugungi dars', short: 'Bugun', icon: TodayGlyph },
+  { to: '/path', label: "90 kunlik yo'l", short: '90 kun', icon: PathGlyph },
+  { to: '/practice', label: 'Topshiriqlar', short: 'Topshiriq', icon: TasksGlyph },
+  { to: '/progress', label: 'Progress', short: 'Progress', icon: ProgressGlyph },
 ] as const
 
 export function AppShell() {
@@ -74,6 +74,7 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               label={item.label}
+              short={item.short}
               icon={item.icon}
               count={item.to === '/path' ? `${completedDays}/90` : undefined}
             />
@@ -350,11 +351,15 @@ function ExitGlyph() {
 function TabLink({
   to,
   label,
+  short,
   icon: Icon,
   count,
 }: {
   to: string
+  /** The full name, used for the accessible label. */
   label: string
+  /** What fits under a 24px glyph on a phone. */
+  short: string
   icon: () => ReactNode
   /** Announced to screen readers only: a pill over a 24px glyph hides the glyph. */
   count?: string
@@ -364,25 +369,17 @@ function TabLink({
       to={to}
       aria-label={count ? `${label}, ${count} kun bajarildi` : label}
       className={({ isActive }) =>
-        `relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors ${
+        `flex flex-1 flex-col items-center justify-center gap-1.5 py-2.5 transition-colors ${
           isActive ? 'text-signal-ink' : 'text-ink-faint'
         }`
       }
     >
-      {({ isActive }) => (
-        <>
-          <span className="flex h-7 items-center" aria-hidden="true">
-            <Icon />
-          </span>
-          {/* A short bar rather than a label: it marks the active tab without adding text. */}
-          <span
-            aria-hidden="true"
-            className={`h-0.5 w-6 rounded-full transition-colors ${
-              isActive ? 'bg-signal' : 'bg-transparent'
-            }`}
-          />
-        </>
-      )}
+      <span className="flex h-6 items-center" aria-hidden="true">
+        <Icon />
+      </span>
+      <span aria-hidden="true" className="text-[11px] leading-none font-medium">
+        {short}
+      </span>
     </NavLink>
   )
 }
