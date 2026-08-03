@@ -356,6 +356,7 @@ function TabLink({
   to: string
   label: string
   icon: () => ReactNode
+  /** Announced to screen readers only: a pill over a 24px glyph hides the glyph. */
   count?: string
 }) {
   return (
@@ -370,15 +371,8 @@ function TabLink({
     >
       {({ isActive }) => (
         <>
-          <span className="relative flex h-7 items-center" aria-hidden="true">
+          <span className="flex h-7 items-center" aria-hidden="true">
             <Icon />
-            {count && (
-              <span className="absolute -top-0.5 -right-3.5">
-                <Badge tone="neutral" size="sm">
-                  {count}
-                </Badge>
-              </span>
-            )}
           </span>
           {/* A short bar rather than a label: it marks the active tab without adding text. */}
           <span
@@ -406,12 +400,13 @@ function TodayGlyph() {
   )
 }
 
+/** A route: where you started, where you are heading, and the winding way between. */
 function PathGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <path d="M7 4.5v9a3.5 3.5 0 0 0 3.5 3.5h3a3.5 3.5 0 0 1 3.5 3.5" strokeLinecap="round" />
-      <circle cx="7" cy="4.5" r="1.8" />
-      <circle cx="17" cy="20" r="1.8" />
+      <circle cx="5.5" cy="18.5" r="1.9" />
+      <circle cx="18.5" cy="5.5" r="1.9" />
+      <path d="M5.5 16.6C5.5 12.4 18.5 11.6 18.5 7.4" strokeLinecap="round" />
     </svg>
   )
 }

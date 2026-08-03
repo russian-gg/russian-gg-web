@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { phaseLabelUz } from '../lib/format'
 import type { HomeView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { Badge, Card, EmptyState, LinkButton, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
 /**
  * One next best action, and what it leads to. Deliberately not a dashboard of unrelated
@@ -62,70 +61,10 @@ export function Home() {
       </section>
 
       {/*
-        No progress block here. This screen answers "what do I do today"; the numbers have
-        their own screen, and repeating them under the one action they should be taking was
-        the second thing competing for attention (PRD §6).
+        One section, deliberately. Progress numbers, the milestone preview, repair suggestions
+        and the practice shelf all have their own screens; stacked here they turned the one
+        thing the learner came to do into a fifth of the page (PRD §6).
       */}
-      {data.nextMilestone && (
-        <section>
-          <SectionHeading>Keyingi bosqich</SectionHeading>
-          <Card>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="signal">{data.nextMilestone.day}-kun</Badge>
-              <Badge>
-                {data.nextMilestone.daysRemaining === 0
-                  ? 'Bugun'
-                  : `${data.nextMilestone.daysRemaining} kun qoldi`}
-              </Badge>
-            </div>
-            <h3 className="mt-3 text-lg font-semibold text-ink">{data.nextMilestone.titleUz}</h3>
-            <UzHint>{data.nextMilestone.outcomeUz}</UzHint>
-          </Card>
-        </section>
-      )}
-
-      {data.repairs.length > 0 && (
-        <section>
-          <SectionHeading>Mustahkamlash kerak</SectionHeading>
-          <div className="space-y-3">
-            {data.repairs.map((repair) => (
-              <Card key={repair.id} as="article">
-                <p className="text-base text-ink">{repair.reasonUz}</p>
-                {repair.missionId && repair.missionTitleUz && (
-                  <Link
-                    to={`/missions/${repair.missionId}`}
-                    className="mt-3 inline-block text-sm font-semibold text-signal-ink"
-                  >
-                    {repair.missionTitleUz} →
-                  </Link>
-                )}
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section>
-        <SectionHeading
-          action={<Link to="/practice" className="text-sm font-semibold text-signal-ink">Barchasi</Link>}
-        >
-          Bugun mashq qilish
-        </SectionHeading>
-
-        {data.practiceForToday.length > 0 ? (
-          <div className="space-y-3">
-            {data.practiceForToday.map((mission) => (
-              <MissionCard key={mission.id} mission={mission} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="Mashq kutubxonasi Pro tarkibida"
-            body="Shoshilinch vaziyat uchun qisqa mashqlar — ish suhbati, shikoyat, telefon suhbati."
-            action={<LinkButton to="/paywall">Pro haqida</LinkButton>}
-          />
-        )}
-      </section>
     </div>
   )
 }
