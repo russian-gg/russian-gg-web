@@ -139,6 +139,11 @@ export interface MissionSummary {
   isLocked: boolean
   lockReason?: string | null
   isCompleted: boolean
+  /** How many phrases this mission teaches; 2-5 by editorial rule. */
+  targetPhraseCount: number
+  /** What the learner will be able to say, taken from the target phrases themselves. */
+  learningPointsUz: string[]
+  hasVoiceStep: boolean
 }
 
 export interface TargetPhraseView {
