@@ -158,6 +158,17 @@ export class LiveVoiceSession {
             generationConfig: {
               responseModalities: ['AUDIO'],
               speechConfig: {
+                /*
+                 * Without this the recogniser auto-detects, and an Uzbek speaker's Russian —
+                 * accented, hesitant, often a single word — gets detected as something else
+                 * entirely. It was returning Devanagari for spoken Russian, which then scored
+                 * as a failed turn and left the learner repeating themselves.
+                 *
+                 * The learner speaks Russian and Russian is what gets scored, so the input is
+                 * pinned to it. The tutor's Uzbek support is generated text, not transcribed,
+                 * so it is unaffected.
+                 */
+                languageCode: 'ru-RU',
                 voiceConfig: {
                   prebuiltVoiceConfig: {
                     voiceName: 'Kore',

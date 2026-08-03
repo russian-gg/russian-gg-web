@@ -287,6 +287,8 @@ export interface VoiceSessionTicket {
   maxDurationSeconds: number
   resumeStepIndex: number
   languagePolicy: LanguagePolicy
+  /** Built, versioned and tested on the server. Send it through unchanged. */
+  systemInstruction: string
 }
 
 export interface VoiceUnavailable {

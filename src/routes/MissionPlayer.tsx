@@ -12,7 +12,6 @@ import {
 } from '../lib/format'
 import { LiveVoiceSession, isPromptAudioPlaying, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
 import type {
-  CoursePhase,
   MissionDetail,
   StartAttemptResponse,
   TurnFeedback,
@@ -67,6 +66,10 @@ export function MissionPlayer() {
   const latestTurnPassedRef = useRef(false)
   const latestTurnScoreRef = useRef<number | null>(null)
   const manualStopRequestedRef = useRef(false)
+  const totalStepsRef = useRef(1)
+  // Mirrors latestTurnPassedRef as state: a ref cannot re-render, so the status line
+  // never told the learner their answer had been accepted.
+  const [turnAccepted, setTurnAccepted] = useState(false)
 
   const {
     data: mission,
@@ -183,6 +186,13 @@ export function MissionPlayer() {
   const totalSteps = safeSteps.length
   const isLastStep = stepIndex >= totalSteps - 1
   const safeStep = step ?? safeSteps[Math.max(0, Math.min(stepIndex, totalSteps - 1))]
+  totalStepsRef.current = totalSteps
+  /*
+   * The single definition of progress on this screen. The footer used to count the step the
+   * learner was *standing on* while the checklist counted the ones they had *finished*, so a
+   * half-done last step read as "5 / 5 qadam" next to "4 / 5".
+   */
+  const completedSteps = Math.min(stepIndex + (turnAccepted ? 1 : 0), totalSteps)
   const promptAudioText =
     safeStep?.kind === 'PhraseIntro'
       ? safePhrases.map((phrase) => phrase.russian).join('. ')
@@ -241,6 +251,7 @@ export function MissionPlayer() {
     setFeedback(null)
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
+    setTurnAccepted(false)
     manualStopRequestedRef.current = false
     setVoiceState('thinking')
 
@@ -264,7 +275,10 @@ export function MissionPlayer() {
 
       const liveSession = new LiveVoiceSession(
         outcome.ticket,
-        buildMissionVoiceInstruction(currentMission, safeStep),
+        // The scenario contract is the server's: versioned, tested, and aware of the step
+        // boundary. Composing a second prompt here is what let the tutor run the whole
+        // mission inside step one.
+        outcome.ticket.systemInstruction,
         {
           onStatus: (status) => {
             setVoiceState(
@@ -335,7 +349,9 @@ export function MissionPlayer() {
       setVoiceState('idle')
 
       const transcriptValue = transcriptRef.current.trim()
-      if (transcriptValue && !latestTurnPassedRef.current) {
+      // A live turn may already be in flight; submitting the same words twice would record
+      // two attempts for one answer.
+      if (transcriptValue && !latestTurnPassedRef.current && !submittingTurnRef.current) {
         const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
         if (!passed) {
           setError("Gemini hali javobni to'liq qabul qilmadi. Yana bir marta urinib ko'ring.")
@@ -396,10 +412,22 @@ export function MissionPlayer() {
     submittingTurnRef.current = true
     try {
       const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
-      if (!manualStopRequestedRef.current && !passed) {
+      if (manualStopRequestedRef.current) return
+
+      if (!passed) {
         window.setTimeout(() => {
           void liveSessionRef.current?.beginNextTurn()
         }, 350)
+        return
+      }
+
+      /*
+       * The recap is the end of the mission — there is nothing left to ask. Without this the
+       * session simply idled after a passing final turn and the only way out was the stop
+       * button, so a learner who had already answered correctly was asked again and again.
+       */
+      if (currentStepRef.current >= totalStepsRef.current - 1) {
+        await complete()
       }
     } finally {
       submittingTurnRef.current = false
@@ -432,6 +460,7 @@ export function MissionPlayer() {
 
       latestTurnScoreRef.current = result.score
       latestTurnPassedRef.current = result.score >= 70
+      setTurnAccepted(result.score >= 70)
       if (showFeedbackPanel) {
         setFeedback(result)
         setVoiceState('feedback')
@@ -507,6 +536,7 @@ export function MissionPlayer() {
     setVoiceComposerOpen(false)
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
+    setTurnAccepted(false)
     manualStopRequestedRef.current = false
     setStepIndex((current) => Math.min(current + 1, totalSteps - 1))
   }
@@ -634,7 +664,7 @@ export function MissionPlayer() {
           state={voiceState}
           busy={busy}
           hasLiveSession={hasLiveSession}
-          latestTurnAccepted={latestTurnPassedRef.current}
+          latestTurnAccepted={turnAccepted}
           canReplay={safeStep?.kind !== 'PhraseIntro' && !ttsUnavailable}
           replaying={promptAudioState === 'playing' && promptAudioTextKey === promptAudioText}
           onReplay={() => handleListen(promptAudioText)}
@@ -675,10 +705,10 @@ export function MissionPlayer() {
         )}
 
         <footer className="mt-8">
-          <ProgressBar value={stepIndex + 1} max={totalSteps} label="Mashq progressi" />
+          <ProgressBar value={completedSteps} max={totalSteps} label="Mashq progressi" />
           <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
             <span>
-              {stepIndex + 1} / {totalSteps} qadam
+              {completedSteps} / {totalSteps} qadam bajarildi
             </span>
             <span className="truncate">
               {nextStep ? `Keyingi: ${stepLabelUz[nextStep.kind]}` : 'Oxirgi qadam'}
@@ -688,14 +718,13 @@ export function MissionPlayer() {
       </div>
 
       <aside className="mt-10 space-y-4 lg:mt-0 lg:sticky lg:top-8">
-        <GoalCard steps={safeSteps} stepIndex={stepIndex} />
+        <GoalCard steps={safeSteps} stepIndex={stepIndex} completed={completedSteps} />
 
-        {safeStep?.promptUz && (
-          <RailCard title="Maslahat" icon={<HintGlyph />}>
-            <p className="text-base leading-relaxed text-ink">{safeStep.promptUz}</p>
-          </RailCard>
-        )}
-
+        {/*
+          No "Maslahat" card here: on a phrase step it repeated the phrase list verbatim, and
+          on the others the step's Uzbek support already sits under the tutor's own message,
+          where the learner is actually reading.
+        */}
         {safePhrases.length > 0 && (
           <RailCard
             title="Bugungi iboralar"
@@ -752,127 +781,8 @@ export function MissionPlayer() {
   )
 }
 
-function buildMissionVoiceInstruction(
-  mission: MissionDetail,
-  step: MissionDetail['steps'][number] | undefined,
-) {
-  const targetPhrases = mission.targetPhrases.map((phrase) => phrase.russian).join(', ')
-  const promptUz = step?.promptUz ? `Uzbek help: ${step.promptUz}` : ''
-  const acceptedAnswers =
-    step?.acceptedAnswers?.length
-      ? `Answers that fully satisfy this step: ${step.acceptedAnswers.join(' | ')}`
-      : ''
-  const scoringRubric = step?.rubric ? `Scoring rubric: ${step.rubric}` : ''
-  const tutorInstruction = step?.tutorInstruction ? `Tutor instruction: ${step.tutorInstruction}` : ''
-  const languageGuidance = languageGuidanceForPhase(mission.summary.phase, mission.summary.targetLevel)
-  const stepGuidance = stepSpecificGuidance(step, mission.steps.length)
 
-  return [
-    'You are a Russian speaking coach for an Uzbek-speaking adult learner.',
-    `Mission objective in Russian: ${mission.objectiveRu}`,
-    `Mission objective in Uzbek: ${mission.summary.objectiveUz}`,
-    `Current learner task in Russian: ${step?.promptRu ?? mission.summary.titleRu}`,
-    `Current step number: ${step?.order ?? 1} of ${mission.steps.length}.`,
-    promptUz,
-    targetPhrases ? `Steer gently toward these target phrases: ${targetPhrases}` : '',
-    acceptedAnswers,
-    scoringRubric,
-    tutorInstruction,
-    `Learner phase: ${mission.summary.phase}.`,
-    `Learner level: ${mission.summary.targetLevel}.`,
-    ...languageGuidance,
-    ...stepGuidance,
-    'First check whether the learner answered the current question itself.',
-    'If the learner answered the wrong question or missed a required detail, do not praise it as correct.',
-    'In that case, explain briefly in Uzbek what was expected, give one short Russian model answer, and ask them to try again.',
-    'After the learner speaks, reply very briefly and stop.',
-    'Do not ask the next question, do not mention later steps, and do not combine multiple prompts.',
-    'Stay only inside the current step and never advance the lesson on your own.',
-    'Do not switch to unrelated topics.',
-  ]
-    .filter(Boolean)
-    .join('\n')
-}
 
-function stepSpecificGuidance(
-  step: MissionDetail['steps'][number] | undefined,
-  totalSteps: number,
-) {
-  if (!step) {
-    return [
-      'Focus only on the current learner prompt.',
-      'Do not introduce any other part of the lesson.',
-    ]
-  }
-
-  if (step.kind === 'PhraseIntro') {
-    return [
-      `This is a phrase-practice step, not step 2-${totalSteps}.`,
-      'Let the learner repeat one phrase or say one short example using the phrase.',
-      'After one learner answer, acknowledge it briefly, give at most one tiny correction, and stop.',
-      'Do not ask the remaining lesson questions.',
-    ]
-  }
-
-  if (step.kind === 'ListenAndUnderstand') {
-    return [
-      'This is a listening-check step.',
-      'Ask only about this one listening line and accept one short understanding answer.',
-      'After one learner answer, confirm briefly and stop.',
-      'Do not move into speaking turn, role play, recap, or any later question.',
-    ]
-  }
-
-  if (step.kind === 'SpeakingTurn') {
-    return [
-      'This is one speaking answer only.',
-      'Ask or support only the current speaking prompt.',
-      'If the learner gives an off-topic answer, say it does not answer this question yet and ask for a retry.',
-      'After one learner answer, respond briefly and stop.',
-    ]
-  }
-
-  if (step.kind === 'RolePlay') {
-    return [
-      'Keep the role play to one short exchange only.',
-      'Do not treat an off-topic answer as correct just to keep the conversation moving.',
-      'Do not continue into additional questions after the learner answers once.',
-      'After one brief in-character reply, stop.',
-    ]
-  }
-
-  return [
-    'This is a recap step.',
-    'Accept one short learner answer or repetition, then stop.',
-    'Do not open a new question after that.',
-  ]
-}
-
-function languageGuidanceForPhase(phase: CoursePhase, targetLevel: MissionDetail['summary']['targetLevel']) {
-  if (phase === 'Foundation') {
-    return [
-      'Use Uzbek as the main language for instructions, help, and corrections.',
-      'Keep your Russian very short and simple, around beginner level.',
-      'When you ask a question in Russian, immediately support it with one short Uzbek explanation.',
-      'If the learner is confused, explain what they should say in Uzbek first, then model the Russian answer.',
-      `The learner is a beginner (${targetLevel}), so do not stay in Russian only.`,
-    ]
-  }
-
-  if (phase === 'Bridge') {
-    return [
-      'Use simple Russian first, but add one short Uzbek explanation when giving help or correction.',
-      'Keep sentences short, clear, and slower than normal native speed.',
-      'If the learner hesitates or misunderstands, switch briefly to Uzbek to unblock them, then return to Russian.',
-    ]
-  }
-
-  return [
-    'Use Russian first for the main interaction.',
-    'Use Uzbek only when the learner is clearly confused, stuck, or explicitly asks for help.',
-    'Keep the interaction natural, but still stay at the learner level.',
-  ]
-}
 
 /* ----------------------------------------------------------------- conversation thread */
 
@@ -1109,7 +1019,13 @@ function MicControl({
         <button
           type="button"
           onClick={hasLiveSession ? onStop : onStart}
-          disabled={busy}
+          /*
+           * Stopping is never blocked. `busy` is true while a turn is being scored, which is
+           * exactly the moment a learner reaches for the stop button — and a disabled control
+           * there means a live session they cannot end, on the clock, spending voice budget.
+           * Only starting waits.
+           */
+          disabled={busy && !hasLiveSession}
           aria-label={hasLiveSession ? 'Yakunlash' : 'Javob berish'}
           className={`flex size-20 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
             hasLiveSession ? 'bg-signal-strong' : 'bg-signal'
@@ -1162,15 +1078,23 @@ function RailCard({
 }
 
 /** The mission's own steps as a checklist — the learner sees what "done" will mean. */
-function GoalCard({ steps, stepIndex }: { steps: MissionDetail['steps']; stepIndex: number }) {
-  const done = Math.min(stepIndex, steps.length)
+function GoalCard({
+  steps,
+  stepIndex,
+  completed,
+}: {
+  steps: MissionDetail['steps']
+  stepIndex: number
+  completed: number
+}) {
+  const done = completed
 
   return (
     <RailCard title="Bugungi maqsad" icon={<TargetGlyph />} trailing={`${done} / ${steps.length}`}>
       <ul className="space-y-2.5">
         {steps.map((step, index) => {
-          const isDone = index < stepIndex
-          const isCurrent = index === stepIndex
+          const isDone = index < completed
+          const isCurrent = index === stepIndex && !isDone
 
           return (
             <li key={step.order} className="flex items-start gap-2.5">
