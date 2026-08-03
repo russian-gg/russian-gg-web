@@ -44,6 +44,17 @@ export const tokenStore = {
   },
 }
 
+/**
+ * The language the app is rendering, mirrored onto every request so the server can answer
+ * its own messages in the same one. Set by the locale provider; defaults to Uzbek before it
+ * mounts, which matches the product default.
+ */
+let requestLanguage = 'uz'
+
+export function setRequestLanguage(language: string) {
+  requestLanguage = language
+}
+
 export class RequestError extends Error {
   constructor(
     readonly status: number,
@@ -126,7 +137,7 @@ async function send<T>(method: Method, path: string, body?: unknown, retry = tru
 }
 
 async function sendRaw(method: Method, path: string, body?: unknown, retry = true): Promise<Response> {
-  const headers: Record<string, string> = {}
+  const headers: Record<string, string> = { 'accept-language': requestLanguage }
   const access = tokenStore.access()
   if (access) headers.authorization = `Bearer ${access}`
   if (body !== undefined) headers['content-type'] = 'application/json'
@@ -148,7 +159,7 @@ export const api = {
   get: <T>(path: string) => send<T>('GET', path),
   post: <T>(path: string, body?: unknown) => send<T>('POST', path, body),
   postForm: async <T>(path: string, body: FormData) => {
-    const headers: Record<string, string> = {}
+    const headers: Record<string, string> = { 'accept-language': requestLanguage }
     const access = tokenStore.access()
     if (access) headers.authorization = `Bearer ${access}`
 

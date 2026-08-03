@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { api, tokenStore } from './api'
+import { api, setRequestLanguage, tokenStore } from './api'
 import {
   DEFAULT_LOCALE,
   LocaleContext,
@@ -23,14 +23,17 @@ const DICTIONARIES: Record<Locale, Dictionary> = { uz, ru, en }
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(detectLocale)
 
-  // `lang` matters for hyphenation, spell-check and screen-reader pronunciation.
+  // `lang` matters for hyphenation, spell-check and screen-reader pronunciation. The same
+  // value goes onto every request so the server answers its messages in this language too.
   useEffect(() => {
     document.documentElement.lang = locale
+    setRequestLanguage(locale)
   }, [locale])
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next)
     storeLocale(next)
+    setRequestLanguage(next)
 
     // Best effort: not being signed in, or a failed write, must not block the switch.
     if (tokenStore.access()) {
