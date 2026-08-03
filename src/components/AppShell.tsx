@@ -9,10 +9,10 @@ import type { EntitlementView, ProgressView } from '../lib/types'
 import { Badge } from './ui'
 
 const NAV = [
-  { to: '/home', label: 'Bugungi dars' },
-  { to: '/path', label: "90 kunlik yo'l" },
-  { to: '/practice', label: 'Topshiriqlar' },
-  { to: '/progress', label: 'Progress' },
+  { to: '/home', label: 'Bugungi dars', icon: TodayGlyph },
+  { to: '/path', label: "90 kunlik yo'l", icon: PathGlyph },
+  { to: '/practice', label: 'Topshiriqlar', icon: TasksGlyph },
+  { to: '/progress', label: 'Progress', icon: ProgressGlyph },
 ] as const
 
 export function AppShell() {
@@ -27,22 +27,12 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh overflow-x-clip md:flex">
+      {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Wordmark />
           <ProfileMenu compact />
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Asosiy">
-          {NAV.map((item) => (
-            <TabLink
-              key={item.to}
-              to={item.to}
-              trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
-            >
-              {item.label}
-            </TabLink>
-          ))}
-        </nav>
       </header>
 
       <aside className="hidden w-64 shrink-0 flex-col border-r border-hairline px-6 py-8 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
@@ -66,9 +56,30 @@ export function AppShell() {
         </div>
       </aside>
 
-      <main className="mx-auto w-full max-w-5xl px-5 py-8 md:px-12 md:py-12">
+      {/*
+        The bottom padding clears the tab bar plus the home indicator; without it the last
+        card on every screen sits under the bar and cannot be reached.
+      */}
+      <main className="mx-auto w-full max-w-5xl px-5 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-12 md:py-12 md:pb-12">
         <Outlet />
       </main>
+
+      <nav
+        aria-label="Asosiy"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-ground/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <div className="flex items-stretch">
+          {NAV.map((item) => (
+            <TabLink
+              key={item.to}
+              to={item.to}
+              label={item.label}
+              icon={item.icon}
+              count={item.to === '/path' ? `${completedDays}/90` : undefined}
+            />
+          ))}
+        </div>
+      </nav>
     </div>
   )
 }
@@ -331,34 +342,96 @@ function ExitGlyph() {
   )
 }
 
+/**
+ * The phone tab bar. Icon-only by request, so every item carries an `aria-label` and
+ * `NavLink` marks the active one with `aria-current` — the meaning must survive for anyone
+ * not reading the glyph. Targets are a full 56px tall so they clear the 44px touch minimum.
+ */
 function TabLink({
   to,
-  children,
-  trailing,
+  label,
+  icon: Icon,
+  count,
 }: {
   to: string
-  children: ReactNode
-  trailing?: string
+  label: string
+  icon: () => ReactNode
+  count?: string
 }) {
   return (
     <NavLink
       to={to}
+      aria-label={count ? `${label}, ${count} kun bajarildi` : label}
       className={({ isActive }) =>
-        `shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-sm font-semibold transition-colors ${
-          isActive ? 'bg-signal-soft text-signal-ink' : 'text-ink-muted'
+        `relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors ${
+          isActive ? 'text-signal-ink' : 'text-ink-faint'
         }`
       }
     >
-      <span className="flex items-center gap-2">
-        <span>{children}</span>
-        {trailing && (
-          <Badge tone="neutral" size="sm">
-            {trailing}
-            <span className="sr-only"> kun bajarildi</span>
-          </Badge>
-        )}
-      </span>
+      {({ isActive }) => (
+        <>
+          <span className="relative flex h-7 items-center" aria-hidden="true">
+            <Icon />
+            {count && (
+              <span className="absolute -top-0.5 -right-3.5">
+                <Badge tone="neutral" size="sm">
+                  {count}
+                </Badge>
+              </span>
+            )}
+          </span>
+          {/* A short bar rather than a label: it marks the active tab without adding text. */}
+          <span
+            aria-hidden="true"
+            className={`h-0.5 w-6 rounded-full transition-colors ${
+              isActive ? 'bg-signal' : 'bg-transparent'
+            }`}
+          />
+        </>
+      )}
     </NavLink>
+  )
+}
+
+/* Abstract line glyphs for the tab bar — circle, line and wave motifs only (PRD §7). */
+
+const navGlyph = 'size-6 fill-none stroke-current stroke-[1.7]'
+
+function TodayGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9 10.5v3M12 8.5v7M15 10.5v3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function PathGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <path d="M7 4.5v9a3.5 3.5 0 0 0 3.5 3.5h3a3.5 3.5 0 0 1 3.5 3.5" strokeLinecap="round" />
+      <circle cx="7" cy="4.5" r="1.8" />
+      <circle cx="17" cy="20" r="1.8" />
+    </svg>
+  )
+}
+
+function TasksGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <rect x="4" y="4.5" width="7" height="7" rx="2" />
+      <rect x="13" y="4.5" width="7" height="7" rx="2" />
+      <rect x="4" y="13" width="7" height="7" rx="2" />
+      <rect x="13" y="13" width="7" height="7" rx="2" />
+    </svg>
+  )
+}
+
+function ProgressGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <path d="M5 19V11M12 19V5M19 19v-5" strokeLinecap="round" />
+    </svg>
   )
 }
 
