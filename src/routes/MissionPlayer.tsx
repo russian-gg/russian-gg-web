@@ -665,9 +665,6 @@ export function MissionPlayer() {
           busy={busy}
           hasLiveSession={hasLiveSession}
           latestTurnAccepted={turnAccepted}
-          canReplay={safeStep?.kind !== 'PhraseIntro' && !ttsUnavailable}
-          replaying={promptAudioState === 'playing' && promptAudioTextKey === promptAudioText}
-          onReplay={() => handleListen(promptAudioText)}
           onStart={() => void startVoice()}
           onStop={() => void stopVoice()}
           feedback={feedback}
@@ -952,9 +949,6 @@ function MicControl({
   busy,
   hasLiveSession,
   latestTurnAccepted,
-  canReplay,
-  replaying,
-  onReplay,
   onStart,
   onStop,
   feedback,
@@ -966,9 +960,6 @@ function MicControl({
   busy: boolean
   hasLiveSession: boolean
   latestTurnAccepted: boolean
-  canReplay: boolean
-  replaying: boolean
-  onReplay: () => void
   onStart: () => void
   onStop: () => void
   feedback: TurnFeedback | null
@@ -1006,16 +997,7 @@ function MicControl({
 
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-center gap-4">
-        {canReplay ? (
-          <Button variant="secondary" onClick={onReplay} className="shrink-0">
-            {replaying ? <PauseGlyph /> : <PlayGlyph />}
-            <span className="hidden sm:inline">Qayta eshittirish</span>
-          </Button>
-        ) : (
-          <span className="hidden w-32 sm:block" aria-hidden="true" />
-        )}
-
+      <div className="flex items-center justify-center">
         <button
           type="button"
           onClick={hasLiveSession ? onStop : onStart}
@@ -1033,8 +1015,6 @@ function MicControl({
         >
           {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
         </button>
-
-        <span className="hidden w-32 sm:block" aria-hidden="true" />
       </div>
 
       <p className="mt-4 text-center text-sm text-ink-muted" role="status" aria-live="polite">

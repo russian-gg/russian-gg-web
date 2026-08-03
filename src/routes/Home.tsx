@@ -2,16 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { phaseLabelUz } from '../lib/format'
-import type { HomeView, SkillArea } from '../lib/types'
-import { ConfidenceTrend, SkillRow } from '../components/Progress'
+import type { HomeView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { Badge, Card, EmptyState, LinkButton, SectionHeading, Spinner, UzHint } from '../components/ui'
 
-const SKILLS: SkillArea[] = ['Listening', 'Speaking', 'Pronunciation', 'Vocabulary']
-
 /**
- * One next best action plus meaningful evidence of progress. Deliberately not a dashboard of
- * unrelated cards (PRD §6).
+ * One next best action, and what it leads to. Deliberately not a dashboard of unrelated
+ * cards (PRD §6) — the numbers live on the progress screen.
  */
 export function Home() {
   const { data, isLoading, isError } = useQuery({
@@ -64,26 +61,11 @@ export function Home() {
         )}
       </section>
 
-      <section>
-        <SectionHeading action={<Link to="/progress" className="text-sm font-semibold text-signal-ink">Batafsil</Link>}>
-          Progress
-        </SectionHeading>
-
-        <Card>
-          <ConfidenceTrend value={data.speakingConfidence} delta={data.speakingConfidenceDelta30d} />
-
-          <div className="mt-5 border-t border-hairline pt-2">
-            {SKILLS.map((skill) => (
-              <SkillRow key={skill} skill={skill} value={data.skills[skill]} />
-            ))}
-          </div>
-
-          <p className="text-support mt-4">
-            Bu hafta {data.completedMissionsThisWeek} ta mashq bajarildi.
-          </p>
-        </Card>
-      </section>
-
+      {/*
+        No progress block here. This screen answers "what do I do today"; the numbers have
+        their own screen, and repeating them under the one action they should be taking was
+        the second thing competing for attention (PRD §6).
+      */}
       {data.nextMilestone && (
         <section>
           <SectionHeading>Keyingi bosqich</SectionHeading>
