@@ -3,10 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, RequestError, track } from '../lib/api'
 import { formatDate, formatPrice } from '../lib/format'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { BillingPeriod, CheckoutResponse, EntitlementView, PlansView, SubscriptionActionResponse } from '../lib/types'
 import { Badge, Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 export function Paywall() {
+  const t = useT()
+  const { locale } = useLocale()
   const [period, setPeriod] = useState<BillingPeriod>('NinetyDay')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -34,7 +37,7 @@ export function Paywall() {
       track('checkout_started', { period })
       window.location.href = result.checkoutUrl
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "To'lovni boshlab bo'lmadi.")
+      setError(caught instanceof RequestError ? caught.message : t.billing.checkoutFailed)
       setBusy(false)
     }
   }
@@ -44,10 +47,9 @@ export function Paywall() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Pro bilan to'liq yo'l</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.billing.title}</h1>
         <p className="text-support mt-1">
-          Bepul rejada daraja testi va birinchi 7 kun ochiq. Keyingi kunlarni davom ettirish uchun
-          Pro obuna kerak bo'ladi.
+          {t.billing.subtitle}
         </p>
       </header>
 
@@ -55,9 +57,9 @@ export function Paywall() {
 
       {entitlement?.paymentProcessing && (
         <Card>
-          <Badge tone="caution">To'lov tekshirilmoqda</Badge>
+          <Badge tone="caution">{t.billing.processing}</Badge>
           <p className="mt-3 text-base text-ink">
-            To'lovingiz qabul qilindi va tasdiqlanmoqda. Tasdiqlangach Pro avtomatik ochiladi.
+            {t.billing.processingBody}
           </p>
         </Card>
       )}
@@ -82,15 +84,17 @@ export function Paywall() {
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-base font-semibold text-ink">{option.labelUz}</span>
                   {option.savingsPercent > 0 && (
-                    <Badge tone="milestone">{option.savingsPercent}% tejash</Badge>
+                    <Badge tone="milestone">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
                   )}
                 </div>
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-                  {formatPrice(option.amountTiyin, option.currency)}
+                  {formatPrice(option.amountTiyin, option.currency, locale)}
                 </p>
                 {option.period === 'NinetyDay' && (
                   <p className="text-support">
-                    Oyiga {formatPrice(option.effectiveMonthlyTiyin, option.currency)}
+                    {fill(t.billing.perMonth, {
+                      amount: formatPrice(option.effectiveMonthlyTiyin, option.currency, locale),
+                    })}
                   </p>
                 )}
               </button>
@@ -99,19 +103,20 @@ export function Paywall() {
 
           <Button size="lg" block disabled={busy} onClick={() => void checkout()}>
             {busy
-              ? 'Ochilmoqda...'
-              : `Click orqali to'lash - ${formatPrice(selected.amountTiyin, selected.currency)}`}
+              ? t.billing.opening
+              : fill(t.billing.payWithClick, {
+                  amount: formatPrice(selected.amountTiyin, selected.currency, locale),
+                })}
           </Button>
 
           <UzHint>
-            Bepul rejada daraja testi va yo'lning birinchi 7 kuni ochiq. Keyingi kunlar Click orqali
-            Pro obuna bilan ochiladi.
+            {t.billing.freeNote}
           </UzHint>
         </>
       )}
 
       <section>
-        <SectionHeading>Pro nimani ochadi</SectionHeading>
+        <SectionHeading>{t.billing.proUnlocks}</SectionHeading>
         <ul className="space-y-2">
           {plans.proBenefitsUz.map((benefit) => (
             <li key={benefit} className="flex gap-3 text-base text-ink">
@@ -123,7 +128,7 @@ export function Paywall() {
       </section>
 
       <section>
-        <SectionHeading>Bepul rejada</SectionHeading>
+        <SectionHeading>{t.billing.freeLimits}</SectionHeading>
         <ul className="space-y-2">
           {plans.freeLimitsUz.map((limit) => (
             <li key={limit} className="flex gap-3 text-base text-ink-muted">
@@ -138,20 +143,21 @@ export function Paywall() {
       </section>
 
       <p className="text-support border-t border-hairline pt-5">
-        Obunani istalgan vaqtda Sozlamalar bo'limidan bekor qilishingiz mumkin. Bekor qilganingizda
-        to'langan muddat oxirigacha Pro ochiq qoladi.
+        {t.billing.cancelNote}
       </p>
     </div>
   )
 }
 
 function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
+  const t = useT()
+  const { locale } = useLocale()
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   async function cancel() {
-    if (!confirm('Obunani bekor qilishni tasdiqlaysizmi?')) return
+    if (!confirm(t.billing.cancelConfirm)) return
     setBusy(true)
     try {
       const result = await api.post<SubscriptionActionResponse>('/billing/cancel')
@@ -165,18 +171,20 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
   return (
     <Card>
       <Badge tone="milestone">
-        {entitlement.status === 'Trialing' ? 'Sinov muddati' : 'Pro faol'}
+        {entitlement.status === 'Trialing' ? t.billing.trialActive : t.billing.proActive}
       </Badge>
 
       <p className="mt-3 text-base text-ink">
         {entitlement.status === 'Trialing'
-          ? `Sinov ${formatDate(entitlement.trialEndsAt)} gacha.`
-          : `Amal qilish muddati ${formatDate(entitlement.currentPeriodEnd)}.`}
+          ? fill(t.billing.trialUntil, { date: formatDate(entitlement.trialEndsAt, locale) })
+          : fill(t.billing.activeUntil, {
+              date: formatDate(entitlement.currentPeriodEnd, locale),
+            })}
       </p>
 
       {entitlement.cancelAtPeriodEnd && (
         <p className="text-support mt-2">
-          Obuna bekor qilingan. Muddat tugagach bepul rejaga o'tasiz.
+          {t.billing.cancelled}
         </p>
       )}
 
@@ -184,7 +192,7 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
 
       {!entitlement.cancelAtPeriodEnd && (
         <Button variant="danger" className="mt-5" disabled={busy} onClick={() => void cancel()}>
-          Obunani bekor qilish
+          {t.billing.cancel}
         </Button>
       )}
     </Card>
@@ -192,6 +200,7 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
 }
 
 export function BillingReturn() {
+  const t = useT()
   const navigate = useNavigate()
   const [params] = useSearchParams()
 
@@ -201,17 +210,17 @@ export function BillingReturn() {
     refetchInterval: (query) => (query.state.data?.hasProAccess ? false : 2500),
   })
 
-  if (isLoading) return <Spinner label="To'lov tekshirilmoqda" />
+  if (isLoading) return <Spinner label={t.billing.returnChecking} />
 
   if (data?.hasProAccess) {
     track('payment_confirmed')
     return (
       <Card className="text-center">
-        <Badge tone="milestone">To'lov tasdiqlandi</Badge>
-        <h1 className="mt-4 text-xl font-semibold text-ink">Pro ochildi</h1>
-        <p className="text-support mt-2">90 kunlik to'liq yo'l endi sizga ochiq.</p>
+        <Badge tone="milestone">{t.billing.returnConfirmed}</Badge>
+        <h1 className="mt-4 text-xl font-semibold text-ink">{t.billing.returnProOpen}</h1>
+        <p className="text-support mt-2">{t.billing.returnProBody}</p>
         <Button className="mt-6" onClick={() => navigate('/home')}>
-          Davom etish
+          {t.common.continue}
         </Button>
       </Card>
     )
@@ -219,15 +228,14 @@ export function BillingReturn() {
 
   return (
     <Card className="text-center">
-      <Badge tone="caution">Tekshirilmoqda</Badge>
-      <h1 className="mt-4 text-xl font-semibold text-ink">To'lov tasdiqlanmoqda</h1>
+      <Badge tone="caution">{t.billing.returnChecking}</Badge>
+      <h1 className="mt-4 text-xl font-semibold text-ink">{t.billing.returnPending}</h1>
       <p className="text-support mt-2">
-        Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi, bu sahifani
-        yopsangiz ham.
+        {t.billing.returnPendingBody}
       </p>
-      {params.get('error') && <p className="text-support mt-3">To'lov tizimidan xatolik kodi qaytdi.</p>}
+      {params.get('error') && <p className="text-support mt-3">{t.billing.returnError}</p>}
       <Button variant="secondary" className="mt-6" onClick={() => navigate('/home')}>
-        Bugungi sahifaga qaytish
+        {t.result.backHome}
       </Button>
     </Card>
   )

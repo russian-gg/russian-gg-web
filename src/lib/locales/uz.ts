@@ -432,6 +432,21 @@ export const uz = {
     },
   },
 
+  feedbackPage: {
+    title: 'Fikr bildirish',
+    formTitle: 'Izoh formasi',
+    kind: 'Muammo turi',
+    subject: 'Sarlavha',
+    subjectPlaceholder: 'Masalan: Google login ishlamayapti',
+    attach: 'Fayl ilova qilish',
+    details: 'Batafsil izoh',
+    detailsPlaceholder: 'Muammoni, qachon yuz berganini va kutgan natijangizni yozing',
+    subjectTooShort: "Sarlavhani to'liqroq yozing.",
+    detailsTooShort: 'Izohni biroz batafsilroq yozing.',
+    sent: "Izohingiz yuborildi. Tez orada ko'rib chiqamiz.",
+    failed: "Izohni yuborib bo'lmadi.",
+  },
+
   labels: {
     phase: {
       Foundation: 'Poydevor',

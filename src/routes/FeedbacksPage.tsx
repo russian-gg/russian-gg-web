@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useT } from '../lib/i18n'
 import { api, RequestError } from '../lib/api'
 import { Button, Card, ErrorNote, SectionHeading, UzHint } from '../components/ui'
 
@@ -12,6 +13,7 @@ const ISSUE_TYPES = [
 ] as const
 
 export function FeedbacksPage() {
+  const t = useT()
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [issueType, setIssueType] = useState<(typeof ISSUE_TYPES)[number]>('Xatolik haqida xabar')
   const [title, setTitle] = useState('')
@@ -23,7 +25,7 @@ export function FeedbacksPage() {
 
   async function submit() {
     if (title.trim().length < 4) {
-      setError("Sarlavhani to'liqroq yozing.")
+      setError(t.feedbackPage.subjectTooShort)
       return
     }
 
@@ -53,9 +55,9 @@ export function FeedbacksPage() {
       if (fileRef.current) {
         fileRef.current.value = ''
       }
-      setSuccess("Izohingiz yuborildi. Tez orada ko'rib chiqamiz.")
+      setSuccess(t.feedbackPage.sent)
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "Izohni yuborib bo'lmadi.")
+      setError(caught instanceof RequestError ? caught.message : t.feedbackPage.failed)
     } finally {
       setBusy(false)
     }
@@ -64,7 +66,7 @@ export function FeedbacksPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Feedback</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.feedbackPage.title}</h1>
         <p className="text-support mt-1">
           Muammo, taklif yoki eʼtirozingizni shu yerda alohida forma orqali yuboring.
         </p>
@@ -78,10 +80,10 @@ export function FeedbacksPage() {
       )}
 
       <Card as="section">
-        <SectionHeading>Izoh formasi</SectionHeading>
+        <SectionHeading>{t.feedbackPage.formTitle}</SectionHeading>
         <div className="mt-5 space-y-5">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Muammo turi</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.kind}</span>
             <select
               value={issueType}
               onChange={(event) => setIssueType(event.target.value as (typeof ISSUE_TYPES)[number])}
@@ -96,17 +98,17 @@ export function FeedbacksPage() {
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Sarlavha</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.subject}</span>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               className="h-12 w-full rounded-xl border border-hairline bg-ground-raised px-4 text-base text-ink"
-              placeholder="Masalan: Google login ishlamayapti"
+              placeholder={t.feedbackPage.subjectPlaceholder}
             />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Fayl ilova qilish</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.attach}</span>
             <input
               ref={fileRef}
               type="file"
@@ -122,13 +124,13 @@ export function FeedbacksPage() {
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Batafsil izoh</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.details}</span>
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               rows={7}
               className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink"
-              placeholder="Muammoni, qachon yuz berganini va kutgan natijangizni yozing"
+              placeholder={t.feedbackPage.detailsPlaceholder}
             />
           </label>
 

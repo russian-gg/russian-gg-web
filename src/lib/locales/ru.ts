@@ -430,6 +430,21 @@ export const ru: Dictionary = {
     },
   },
 
+  feedbackPage: {
+    title: 'Обратная связь',
+    formTitle: 'Форма отзыва',
+    kind: 'Тип проблемы',
+    subject: 'Заголовок',
+    subjectPlaceholder: 'Например: не работает вход через Google',
+    attach: 'Прикрепить файл',
+    details: 'Подробное описание',
+    detailsPlaceholder: 'Опишите проблему, когда она возникла и что вы ожидали',
+    subjectTooShort: 'Напишите заголовок подробнее.',
+    detailsTooShort: 'Напишите описание чуть подробнее.',
+    sent: 'Ваш отзыв отправлен. Скоро рассмотрим.',
+    failed: 'Не удалось отправить отзыв.',
+  },
+
   labels: {
     phase: {
       Foundation: 'Основа',

@@ -425,6 +425,21 @@ export const en: Dictionary = {
     },
   },
 
+  feedbackPage: {
+    title: 'Feedback',
+    formTitle: 'Feedback form',
+    kind: 'Type of problem',
+    subject: 'Subject',
+    subjectPlaceholder: 'For example: Google sign-in is not working',
+    attach: 'Attach a file',
+    details: 'Details',
+    detailsPlaceholder: 'Describe the problem, when it happened and what you expected',
+    subjectTooShort: 'Please write a fuller subject.',
+    detailsTooShort: 'Please write a little more detail.',
+    sent: 'Your feedback has been sent. We will look at it shortly.',
+    failed: 'Could not send the feedback.',
+  },
+
   labels: {
     phase: {
       Foundation: 'Foundation',

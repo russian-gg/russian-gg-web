@@ -5,6 +5,7 @@ import googleGIcon from '../assets/google-g-official.svg'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { onboardingDraft } from '../lib/onboardingDraft'
+import { useT } from '../lib/i18n'
 import {
   loadGoogleIdentityScript,
   renderGoogleButton,
@@ -25,6 +26,7 @@ function destinationAfterAuth(hasCompletedDiagnostic: boolean) {
 }
 
 export function SignIn() {
+  const t = useT()
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -44,7 +46,7 @@ export function SignIn() {
       navigate(destinationAfterAuth(user.hasCompletedDiagnostic), { replace: true })
     } catch (caught) {
       setError(
-        caught instanceof RequestError ? caught.message : 'Kirishda xatolik. Qayta urinib ko‘ring.',
+        caught instanceof RequestError ? caught.message : t.auth.signInFailed,
       )
     } finally {
       setBusy(false)
@@ -53,7 +55,7 @@ export function SignIn() {
 
   async function handleGoogleCredential(response: GoogleCredentialResponse) {
     if (!response.credential) {
-      setError('Google orqali kirishda token kelmadi.')
+      setError(t.auth.googleNoToken)
       return
     }
 
@@ -67,7 +69,7 @@ export function SignIn() {
       setError(
         caught instanceof RequestError
           ? caught.message
-          : 'Google orqali kirishda xatolik. Qayta urinib ko‘ring.',
+          : t.auth.googleFailed,
       )
     } finally {
       setGoogleBusy(false)
@@ -76,12 +78,12 @@ export function SignIn() {
 
   return (
     <AuthLayout
-      title="Kirish"
+      title={t.auth.signInTitle}
       footer={
         <>
-          Hisobingiz yo‘qmi?{' '}
+          {t.auth.noAccount}{' '}
           <Link to="/signup" className="font-semibold text-signal-ink">
-            Ro‘yxatdan o‘ting
+            {t.auth.goSignUp}
           </Link>
         </>
       }
@@ -98,7 +100,7 @@ export function SignIn() {
         <Divider />
 
         <Field
-          label="Email"
+          label={t.auth.email}
           name="email"
           type="email"
           autoComplete="email"
@@ -108,7 +110,7 @@ export function SignIn() {
         />
 
         <PasswordField
-          label="Parol"
+          label={t.auth.password}
           name="password"
           type={showPassword ? 'text' : 'password'}
           autoComplete="current-password"
@@ -120,7 +122,7 @@ export function SignIn() {
         />
 
         <Button type="submit" size="lg" block disabled={busy}>
-          {busy ? 'Kirilmoqda…' : 'Kirish'}
+          {busy ? t.auth.signingIn : t.auth.signInAction}
         </Button>
       </form>
     </AuthLayout>
@@ -128,6 +130,7 @@ export function SignIn() {
 }
 
 export function SignUp() {
+  const t = useT()
   const { abandonPendingOnboarding, isPendingOnboarding, signInWithGoogle, signUp } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -165,7 +168,7 @@ export function SignUp() {
       setError(
         caught instanceof RequestError
           ? caught.message
-          : 'Ro‘yxatdan o‘tishda xatolik. Qayta urinib ko‘ring.',
+          : t.auth.signUpFailed,
       )
     } finally {
       setBusy(false)
@@ -174,7 +177,7 @@ export function SignUp() {
 
   async function handleGoogleCredential(response: GoogleCredentialResponse) {
     if (!response.credential) {
-      setError('Google orqali ro‘yxatdan o‘tishda token kelmadi.')
+      setError(t.auth.googleNoToken)
       return
     }
 
@@ -191,7 +194,7 @@ export function SignUp() {
       setError(
         caught instanceof RequestError
           ? caught.message
-          : 'Google orqali ro‘yxatdan o‘tishda xatolik. Qayta urinib ko‘ring.',
+          : t.auth.googleFailed,
       )
     } finally {
       setGoogleBusy(false)
@@ -200,12 +203,12 @@ export function SignUp() {
 
   return (
     <AuthLayout
-      title="Ro‘yxatdan o‘tish"
+      title={t.auth.signUpTitle}
       footer={
         <>
-          Hisobingiz bormi?{' '}
+          {t.auth.haveAccount}{' '}
           <Link to="/signin" className="font-semibold text-signal-ink">
-            Kiring
+            {t.auth.goSignIn}
           </Link>
         </>
       }
@@ -222,16 +225,16 @@ export function SignUp() {
         <Divider />
 
         <Field
-          label="Ism sharif"
+          label={t.auth.displayName}
           name="displayName"
           autoComplete="given-name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          hint="Ixtiyoriy: ism-sharifingizni kiriting."
+          hint={t.auth.displayNameHint}
         />
 
         <Field
-          label="Email"
+          label={t.auth.email}
           name="email"
           type="email"
           autoComplete="email"
@@ -241,7 +244,7 @@ export function SignUp() {
         />
 
         <PasswordField
-          label="Parol"
+          label={t.auth.password}
           name="password"
           type={showPassword ? 'text' : 'password'}
           autoComplete="new-password"
@@ -249,13 +252,13 @@ export function SignUp() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          hint="Kamida 8 belgi, harf va raqam bilan."
+          hint={t.auth.passwordHint}
           showPassword={showPassword}
           onTogglePassword={() => setShowPassword((value) => !value)}
         />
 
         <Button type="submit" size="lg" block disabled={busy}>
-          {busy ? 'Yaratilmoqda…' : 'Bepul boshlash'}
+          {busy ? t.auth.signingUp : t.auth.signUpAction}
         </Button>
       </form>
     </AuthLayout>
@@ -295,6 +298,7 @@ function PasswordField({
   showPassword: boolean
   onTogglePassword: () => void
 }) {
+  const t = useT()
   const id = props.id ?? props.name ?? label
 
   return (
@@ -310,7 +314,7 @@ function PasswordField({
           type="button"
           onClick={onTogglePassword}
           className="absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-faint transition-colors hover:text-ink"
-          aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+          aria-label={showPassword ? t.auth.hidePassword : t.auth.showPassword}
           aria-pressed={showPassword}
         >
           <EyeGlyph open={showPassword} />
@@ -354,9 +358,9 @@ function GoogleContinueButton({
   const onCredentialEvent = useEffectEvent(onCredential)
   const initializedRef = useRef(false)
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+  const t = useT()
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
-  const buttonLabel =
-    text === 'signup_with' ? "Google bilan ro'yxatdan o'tish" : 'Google bilan davom etish'
+  const buttonLabel = text === 'signup_with' ? t.auth.googleSignUp : t.auth.googleContinue
 
   useEffect(() => {
     if (!clientId || !buttonRef.current || initializedRef.current) return
@@ -417,7 +421,7 @@ function GoogleContinueButton({
   if (status === 'unavailable') {
     return (
       <p className="text-support rounded-xl bg-ground-sunken px-4 py-3">
-        Google orqali kirish hozir ishlamayapti. Quyida email va parol bilan davom eting.
+        {t.auth.googleUnavailable}
       </p>
     )
   }
@@ -434,16 +438,18 @@ function GoogleContinueButton({
           <span>{buttonLabel}</span>
         </div>
       </div>
-      {busy && <p className="text-support text-center">Google bilan kirilmoqda…</p>}
+      {busy && <p className="text-support text-center">{t.auth.googleWorking}</p>}
     </div>
   )
 }
 
 function Divider() {
+  const t = useT()
+
   return (
     <div className="flex items-center gap-3 py-1">
       <div className="h-px flex-1 bg-hairline" />
-      <span className="text-support">yoki</span>
+      <span className="text-support">{t.auth.or}</span>
       <div className="h-px flex-1 bg-hairline" />
     </div>
   )

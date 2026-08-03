@@ -4,34 +4,36 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useTheme, type Theme } from '../lib/theme'
+import { LOCALES, LOCALE_NAMES, useLocale, useT, type Dictionary } from '../lib/i18n'
 import type { ConsentKind, ConsentState } from '../lib/types'
 import { Button, Card, ErrorNote, RadioOption, SectionHeading, Spinner, UzHint } from '../components/ui'
 import { cx } from '../lib/cx'
 
-const CONSENTS: Array<{ kind: ConsentKind; title: string; body: string }> = [
+const consentList = (t: Dictionary): Array<{ kind: ConsentKind; title: string; body: string }> => [
   {
     kind: 'AudioRetention',
-    title: 'Ovoz yozuvlarini saqlash',
-    body: "Mashq tugagach ovozingiz saqlanadi, shunda keyin qayta tinglashingiz mumkin. Ruxsat bermasangiz, ovoz faqat izoh uchun ishlatiladi va saqlanmaydi.",
+    title: t.settings.consents.audioRetention,
+    body: t.settings.consents.audioRetentionBody,
   },
   {
     kind: 'AudioHumanReview',
-    title: 'Sifat nazorati uchun tinglash',
-    body: 'Muharrir tanlangan yozuvlarni izoh sifatini tekshirish uchun tinglashi mumkin.',
+    title: t.settings.consents.audioHumanReview,
+    body: t.settings.consents.audioHumanReviewBody,
   },
   {
     kind: 'ProductReminders',
-    title: 'Eslatmalar',
-    body: "Mashqni o'tkazib yuborsangiz, o'z vaqt mintaqangizda eslatma yuboramiz.",
+    title: t.settings.consents.productReminders,
+    body: t.settings.consents.productRemindersBody,
   },
   {
     kind: 'ProductAnalytics',
-    title: 'Mahsulot statistikasi',
-    body: "Qaysi mashqlar foydali ekanini tushunish uchun anonim foydalanish ma'lumotlari.",
+    title: t.settings.consents.productAnalytics,
+    body: t.settings.consents.productAnalyticsBody,
   },
 ]
 
 export function Settings() {
+  const t = useT()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -52,15 +54,13 @@ export function Settings() {
       await api.put<ConsentState[]>('/auth/consents', { kind, granted })
       await queryClient.invalidateQueries({ queryKey: ['consents'] })
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : 'Saqlashda xatolik.')
+      setError(caught instanceof RequestError ? caught.message : t.settings.saveFailed)
     }
   }
 
   async function deleteAccount() {
-    const confirmation = prompt(
-      "Hisobingiz va barcha yozuvlaringiz o'chiriladi. Tasdiqlash uchun O'CHIRISH deb yozing.",
-    )
-    if (confirmation !== "O'CHIRISH") return
+    const confirmation = prompt(t.settings.deletePrompt)
+    if (confirmation !== t.settings.deleteConfirmWord) return
 
     setBusy(true)
     try {
@@ -68,7 +68,7 @@ export function Settings() {
       await signOut()
       navigate('/', { replace: true })
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "O'chirishda xatolik.")
+      setError(caught instanceof RequestError ? caught.message : t.settings.deleteFailed)
       setBusy(false)
     }
   }
@@ -76,7 +76,7 @@ export function Settings() {
   async function submitComment() {
     const message = feedbackMessage.trim()
     if (message.length < 8) {
-      setError('Xabarni biroz batafsilroq yozing.')
+      setError(t.settings.feedbackTooShort)
       return
     }
 
@@ -90,7 +90,7 @@ export function Settings() {
       setFeedbackMessage('')
       setFeedbackOpen(false)
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "Xabarni yuborib bo'lmadi.")
+      setError(caught instanceof RequestError ? caught.message : t.settings.feedbackFailed)
     } finally {
       setFeedbackBusy(false)
     }
@@ -98,26 +98,32 @@ export function Settings() {
 
   if (isLoading) return <Spinner />
 
+  const consents_ = consentList(t)
   const granted = new Map(consents?.map((consent) => [consent.kind, consent.granted]) ?? [])
 
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Sozlamalar</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.settings.title}</h1>
         <p className="text-support mt-1">{user?.email}</p>
       </header>
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
       <section>
-        <SectionHeading>Ko'rinish</SectionHeading>
+        <SectionHeading>{t.settings.appearance}</SectionHeading>
         <ThemeChoice />
       </section>
 
       <section>
-        <SectionHeading>Maxfiylik va ruxsatlar</SectionHeading>
+        <SectionHeading>{t.settings.language}</SectionHeading>
+        <LanguageChoice />
+      </section>
+
+      <section>
+        <SectionHeading>{t.settings.privacy}</SectionHeading>
         <div className="space-y-3">
-          {CONSENTS.map((consent) => {
+          {consents_.map((consent) => {
             const isGranted = granted.get(consent.kind) ?? false
 
             return (
@@ -148,7 +154,7 @@ export function Settings() {
                       />
                     </span>
                     <span className="text-sm font-medium text-ink-muted">
-                      {isGranted ? 'Yoqilgan' : "O'chiq"}
+                      {isGranted ? t.settings.on : t.settings.off}
                     </span>
                   </button>
                 </div>
@@ -158,36 +164,34 @@ export function Settings() {
         </div>
 
         <p className="text-support mt-3">
-          Ruxsat bermasangiz ham mashqlar ishlaydi. Ovoz yozuvlari faqat siz ruxsat bergan
-          taqdirdagina saqlanadi.
+          {t.settings.privacyNote}
         </p>
       </section>
 
       <section>
-        <SectionHeading>Obuna</SectionHeading>
+        <SectionHeading>{t.settings.subscription}</SectionHeading>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button variant="secondary" onClick={() => navigate('/paywall')}>
-            Obunani boshqarish
+            {t.settings.manage}
           </Button>
           <Button variant="secondary" onClick={() => setFeedbackOpen(true)}>
-            Fikr yuborish
+            {t.settings.sendFeedback}
           </Button>
         </div>
       </section>
 
       <section>
-        <SectionHeading>Hisob</SectionHeading>
+        <SectionHeading>{t.settings.account}</SectionHeading>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button variant="secondary" onClick={() => void signOut().then(() => navigate('/'))}>
-            Chiqish
+            {t.account.signOut}
           </Button>
           <Button variant="danger" disabled={busy} onClick={() => void deleteAccount()}>
-            Hisobni o'chirish
+            {t.settings.deleteAccount}
           </Button>
         </div>
         <p className="text-support mt-3">
-          Hisobni o'chirsangiz, barcha yozuvlar, transkriptlar va progress o'chiriladi. Buni
-          qaytarib bo'lmaydi.
+          {t.settings.deleteNote}
         </p>
       </section>
 
@@ -200,27 +204,26 @@ export function Settings() {
             className="w-full max-w-lg rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-ink">Fikr yuborish</h2>
+            <h2 className="text-lg font-semibold text-ink">{t.settings.feedbackTitle}</h2>
             <p className="text-support mt-1">
-              O'zingizning fikringizni shu yerga yozib qoldirsangiz bo'ladi. Taklif, e'tiroz va
-              izohlaringiz bizga yetib boradi.
+              {t.settings.feedbackBody}
             </p>
             <label className="mt-4 block">
-              <span className="mb-1.5 block text-sm font-medium text-ink">Xabar</span>
+              <span className="mb-1.5 block text-sm font-medium text-ink">{t.settings.feedbackLabel}</span>
               <textarea
                 value={feedbackMessage}
                 onChange={(event) => setFeedbackMessage(event.target.value)}
                 rows={6}
                 className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
-                placeholder="Holatingizni to'liq yozing"
+                placeholder={t.settings.feedbackPlaceholder}
               />
             </label>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Button variant="secondary" onClick={() => setFeedbackOpen(false)} disabled={feedbackBusy}>
-                Bekor qilish
+                {t.common.cancel}
               </Button>
               <Button type="button" onClick={() => void submitComment()} disabled={feedbackBusy}>
-                {feedbackBusy ? 'Yuborilmoqda...' : 'Yuborish'}
+                {feedbackBusy ? t.common.sending : t.common.send}
               </Button>
             </div>
           </div>
@@ -231,11 +234,12 @@ export function Settings() {
 }
 
 function ThemeChoice() {
+  const t = useT()
   const { theme, setTheme } = useTheme()
 
   const options: Array<{ value: Theme; label: string; hint: string }> = [
-    { value: 'light', label: "Yorug'", hint: "Standart ko'rinish" },
-    { value: 'dark', label: "Qorong'i", hint: 'Kechqurun mashq uchun' },
+    { value: 'light', label: t.settings.themeLight, hint: t.settings.themeLightHint },
+    { value: 'dark', label: t.settings.themeDark, hint: t.settings.themeDarkHint },
   ]
 
   /*
@@ -244,7 +248,7 @@ function ThemeChoice() {
    * row belonged to the option that was not chosen, which read as "dark is on".
    */
   return (
-    <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Ko'rinish">
+    <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t.settings.appearance}>
       {options.map((option) => (
         <RadioOption
           key={option.value}
@@ -266,6 +270,26 @@ function ThemeChoice() {
               </span>
             </span>
           }
+        />
+      ))}
+    </div>
+  )
+}
+
+/** The same choice as the profile menu, spelled out where someone comes looking for it. */
+function LanguageChoice() {
+  const t = useT()
+  const { locale, setLocale } = useLocale()
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label={t.settings.language}>
+      {LOCALES.map((option) => (
+        <RadioOption
+          key={option}
+          name="locale"
+          checked={locale === option}
+          onChange={() => setLocale(option)}
+          label={LOCALE_NAMES[option]}
         />
       ))}
     </div>
