@@ -2,17 +2,22 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
-import { formatDate, levelDescriptionUz, phaseLabelUz } from '../lib/format'
+import { formatDate } from '../lib/format'
+import { useLocale, useT, type Dictionary } from '../lib/i18n'
 import type { EntitlementView, ProgressView, SubscriptionStatus } from '../lib/types'
 import { Badge, Button, Card, Rule, SectionHeading, Spinner, UzHint } from '../components/ui'
 
-const STATUS_LABEL_UZ: Record<SubscriptionStatus, string> = {
-  None: 'Obuna yo‘q',
-  Trialing: 'Sinov davri',
-  Active: 'Faol',
-  PastDue: 'To‘lov kutilmoqda',
-  Cancelled: 'Bekor qilingan',
-  Expired: 'Muddati tugagan',
+function statusLabel(status: SubscriptionStatus, t: Dictionary): string {
+  const map: Record<SubscriptionStatus, string> = {
+    None: t.profile.status.none,
+    Trialing: t.profile.status.trialing,
+    Active: t.profile.status.active,
+    PastDue: t.profile.status.pastDue,
+    Cancelled: t.profile.status.cancelled,
+    Expired: t.profile.status.expired,
+  }
+
+  return map[status]
 }
 
 /**
@@ -21,6 +26,8 @@ const STATUS_LABEL_UZ: Record<SubscriptionStatus, string> = {
  * not "what do I want changed".
  */
 export function Profile() {
+  const t = useT()
+  const { locale } = useLocale()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
 
@@ -40,7 +47,7 @@ export function Profile() {
 
   if (progressLoading) return <Spinner />
 
-  const name = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Talaba'
+  const name = user?.displayName?.trim() || user?.email?.split('@')[0] || t.account.learner
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   return (
@@ -59,96 +66,103 @@ export function Profile() {
       </header>
 
       <section>
-        <SectionHeading>Darajangiz</SectionHeading>
+        <SectionHeading>{t.profile.level}</SectionHeading>
         <Card>
           <div className="grid gap-6 sm:grid-cols-2">
-            <LevelStat label="Tushunish" level={progress?.comprehensionLevel} />
-            <LevelStat label="Gapirish" level={progress?.speakingLevel} />
+            <LevelStat label={t.progress.comprehension} level={progress?.comprehensionLevel} t={t} />
+            <LevelStat label={t.progress.speaking} level={progress?.speakingLevel} t={t} />
           </div>
           <UzHint>
-            Bu dastlabki baho, rasmiy til sertifikati emas. Har bir ovozli mashqdan keyin
-            yangilanadi.
+            {t.profile.levelNote}
           </UzHint>
         </Card>
       </section>
 
       <section>
-        <SectionHeading>Kursdagi o‘rningiz</SectionHeading>
+        <SectionHeading>{t.profile.coursePosition}</SectionHeading>
         <Card>
           <dl className="grid gap-5 sm:grid-cols-3">
             <Stat
-              label="Bugungi kun"
+              label={t.profile.currentDay}
               value={progress ? `${progress.currentDay}/90` : null}
-              hint={progress ? `${phaseLabelUz[progress.phase]} bosqichi` : undefined}
+              hint={progress ? t.labels.phase[progress.phase] : undefined}
             />
-            <Stat label="Bajarilgan mashqlar" value={progress?.totalMissionsCompleted ?? null} />
+            <Stat label={t.profile.missionsDone} value={progress?.totalMissionsCompleted ?? null} />
             <Stat
-              label="Ketma-ket kunlar"
+              label={t.profile.streakDays}
               value={progress?.streakDays ?? null}
-              hint={progress && progress.streakDays > 0 ? 'Shu maromda davom eting' : undefined}
+              hint={progress && progress.streakDays > 0 ? t.profile.keepGoing : undefined}
             />
           </dl>
         </Card>
       </section>
 
       <section>
-        <SectionHeading>Obuna</SectionHeading>
+        <SectionHeading>{t.profile.subscription}</SectionHeading>
         <Card>
           {entitlement ? (
             <>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-lg font-semibold text-ink">{entitlement.tier}</span>
                 <Badge tone={entitlement.hasProAccess ? 'signal' : 'neutral'}>
-                  {STATUS_LABEL_UZ[entitlement.status]}
+                  {statusLabel(entitlement.status, t)}
                 </Badge>
-                {entitlement.paymentProcessing && <Badge tone="caution">To‘lov tekshirilmoqda</Badge>}
+                {entitlement.paymentProcessing && <Badge tone="caution">{t.profile.paymentChecking}</Badge>}
               </div>
 
               <Rule className="my-4" />
 
               <dl className="grid gap-5 sm:grid-cols-2">
-                <Stat label="Ochilgan kunlar" value={`${entitlement.maxUnlockedDay}/90`} />
+                <Stat label={t.profile.unlockedDays} value={`${entitlement.maxUnlockedDay}/90`} />
                 <Stat
-                  label={entitlement.cancelAtPeriodEnd ? 'Amal qiladi' : 'Keyingi to‘lov'}
+                  label={entitlement.cancelAtPeriodEnd ? t.profile.validUntil : t.profile.nextPayment}
                   value={
                     entitlement.currentPeriodEnd
-                      ? formatDate(entitlement.currentPeriodEnd)
+                      ? formatDate(entitlement.currentPeriodEnd, locale)
                       : entitlement.trialEndsAt
-                        ? formatDate(entitlement.trialEndsAt)
+                        ? formatDate(entitlement.trialEndsAt, locale)
                         : null
                   }
                 />
               </dl>
             </>
           ) : (
-            <p className="text-support">Obuna ma‘lumotini hozir yuklab bo‘lmadi.</p>
+            <p className="text-support">{t.profile.subscriptionUnavailable}</p>
           )}
 
           <Button variant="secondary" className="mt-5" onClick={() => navigate('/paywall')}>
-            Obunani boshqarish
+            {t.profile.manage}
           </Button>
         </Card>
       </section>
 
       <section>
-        <SectionHeading>Hisob</SectionHeading>
+        <SectionHeading>{t.profile.account}</SectionHeading>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button variant="secondary" onClick={() => navigate('/settings')}>
-            Sozlamalar
+            {t.account.settings}
           </Button>
           <Button variant="ghost" onClick={() => void signOut().then(() => navigate('/'))}>
-            Chiqish
+            {t.account.signOut}
           </Button>
         </div>
         <p className="text-support mt-3">
-          Hisobni o‘chirish va maxfiylik ruxsatlari Sozlamalar sahifasida.
+          {t.profile.accountNote}
         </p>
       </section>
     </div>
   )
 }
 
-function LevelStat({ label, level }: { label: string; level?: ProgressView['speakingLevel'] }) {
+function LevelStat({
+  label,
+  level,
+  t,
+}: {
+  label: string
+  level?: ProgressView['speakingLevel']
+  t: Dictionary
+}) {
   return (
     <div>
       <p className="text-xs font-semibold tracking-[0.14em] text-ink-faint uppercase">{label}</p>
@@ -156,10 +170,10 @@ function LevelStat({ label, level }: { label: string; level?: ProgressView['spea
       {level ? (
         <>
           <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">{level}</p>
-          <p className="text-support">{levelDescriptionUz[level]}</p>
+          <p className="text-support">{t.labels.level[level]}</p>
         </>
       ) : (
-        <p className="mt-1 text-3xl font-semibold tracking-tight text-ink-faint">Hali yo‘q</p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight text-ink-faint">{t.common.notYet}</p>
       )}
     </div>
   )

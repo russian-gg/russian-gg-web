@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError } from '../lib/api'
-import { formalityLabelUz, workplaceLabelUz } from '../lib/format'
+import { useT } from '../lib/i18n'
 import type {
   ContentReviewStatus,
   ContentReviewView,
@@ -34,6 +34,8 @@ const NEXT_STATES: Record<ContentReviewStatus, ContentReviewStatus[]> = {
  * to Published, so this screen is the gate, not a convenience.
  */
 export function AdminContent() {
+  const t = useT()
+
   const [filter, setFilter] = useState<ContentReviewStatus | null>('InReview')
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -110,8 +112,8 @@ export function AdminContent() {
             <p className="text-support">{mission.slug}</p>
 
             <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
-              <Row term="Uslub" value={formalityLabelUz[mission.formality]} />
-              <Row term="Ishda" value={workplaceLabelUz[mission.workplaceUse]} />
+              <Row term="Uslub" value={t.labels.formality[mission.formality]} />
+              <Row term="Ishda" value={t.labels.workplace[mission.workplaceUse]} />
               <Row term="Iboralar" value={String(mission.targetPhraseCount)} />
               <Row term="Qadamlar" value={String(mission.stepCount)} />
             </dl>

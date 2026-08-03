@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { TOPIC_ORDER, topicLabelUz } from '../lib/format'
+import { TOPIC_ORDER } from '../lib/format'
+import { useT } from '../lib/i18n'
 import type { MissionSummary, MissionTopic } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
@@ -9,6 +10,7 @@ import { EmptyState, LinkButton, SectionHeading, Spinner } from '../components/u
 type Situation = Exclude<MissionTopic, 'Unset'>
 
 export function Practice() {
+  const t = useT()
   const { data, isLoading } = useQuery({
     queryKey: ['practice'],
     queryFn: () => api.get<MissionSummary[]>('/course/practice'),
@@ -38,24 +40,23 @@ export function Practice() {
 
     const ordered = TOPIC_ORDER.filter((topic) => byTopic.has(topic)).map((topic) => ({
       key: topic as string,
-      label: topicLabelUz[topic],
+      label: t.labels.topic[topic],
       missions: byTopic.get(topic)!,
     }))
 
     return untagged.length > 0
-      ? [...ordered, { key: 'other', label: 'Boshqa mashqlar', missions: untagged }]
+      ? [...ordered, { key: 'other', label: t.practice.other, missions: untagged }]
       : ordered
-  }, [data])
+  }, [data, t])
 
   return (
     <div className="space-y-10">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Topshiriqlarni bajarishga tayyormisiz?
+          {t.practice.title}
         </h1>
         <p className="text-support mt-1">
-          Kun davomida kerak bo'ladigan suhbat va iboralarni topshiriqlarni bajarish orqali
-          oson va tez o'rganing.
+          {t.practice.subtitle}
         </p>
       </header>
 
@@ -63,9 +64,9 @@ export function Practice() {
 
       {data && groups.length === 0 && (
         <EmptyState
-          title="Hozircha topshiriq yo'q"
-          body="90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda."
-          action={<LinkButton to="/path">90 kunlik yo'l</LinkButton>}
+          title={t.practice.empty}
+          body={t.practice.emptyBody}
+          action={<LinkButton to="/path">{t.nav.path}</LinkButton>}
         />
       )}
 

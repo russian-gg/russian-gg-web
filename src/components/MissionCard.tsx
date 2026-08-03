@@ -1,17 +1,10 @@
 import { Link } from 'react-router-dom'
-import { formalityLabelUz, workplaceLabelUz } from '../lib/format'
+import { fill, useT } from '../lib/i18n'
 import type { MissionSummary } from '../lib/types'
 import { Badge } from './ui'
 
-const categoryLabelUz = {
-  Work: 'Ish',
-  DailyLife: 'Kundalik hayot',
-  Social: 'Muloqot',
-  StreetRussian: 'Jonli nutq',
-  Repair: 'Mustahkamlash',
-} as const
-
 export function MissionCard({ mission }: { mission: MissionSummary }) {
+  const t = useT()
   const isProLock =
     mission.isLocked && (mission.lockReason?.toLowerCase().includes('pro') ?? false)
 
@@ -24,10 +17,10 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
   const body = (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>{categoryLabelUz[mission.category]}</Badge>
-        {mission.courseDay && <Badge>{mission.courseDay}-kun</Badge>}
-        {mission.isCompleted && <Badge tone="milestone">Bajarildi</Badge>}
-        {mission.isLocked && <Badge tone="caution">{isProLock ? 'Pro kerak' : 'Keyinroq'}</Badge>}
+        <Badge>{t.labels.category[mission.category]}</Badge>
+        {mission.courseDay && <Badge>{fill(t.common.day, { day: mission.courseDay })}</Badge>}
+        {mission.isCompleted && <Badge tone="milestone">{t.path.done}</Badge>}
+        {mission.isLocked && <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>}
       </div>
 
       <h3 className="mt-3 text-lg font-semibold leading-snug text-ink">{mission.titleUz}</h3>
@@ -39,15 +32,15 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
       */}
       {needsRegisterLabel && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge tone="caution">{formalityLabelUz[mission.formality]}</Badge>
+          <Badge tone="caution">{t.labels.formality[mission.formality]}</Badge>
           <Badge tone={mission.workplaceUse === 'Safe' ? 'neutral' : 'caution'}>
-            {workplaceLabelUz[mission.workplaceUse]}
+            {t.labels.workplace[mission.workplaceUse]}
           </Badge>
         </div>
       )}
 
       <p className="mt-4 text-xs font-medium uppercase tracking-[0.12em] text-ink-faint">
-        {mission.estimatedMinutes} daqiqa · {mission.targetLevel}
+        {fill(t.common.minutes, { count: mission.estimatedMinutes })} · {mission.targetLevel}
         {mission.isLocked && mission.lockReason ? ` · ${mission.lockReason}` : ''}
       </p>
     </>

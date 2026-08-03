@@ -1,4 +1,5 @@
-import { formatDelta, skillLabelUz } from '../lib/format'
+import { formatDelta } from '../lib/format'
+import { fill, useT } from '../lib/i18n'
 import type { MilestoneView, SkillArea } from '../lib/types'
 import { Badge } from './ui'
 
@@ -15,12 +16,13 @@ export function SkillRow({
   value: number | null | undefined
   delta?: number | null
 }) {
+  const t = useT()
   const measured = value !== null && value !== undefined
   const deltaLabel = formatDelta(delta)
 
   return (
     <div className="flex items-center gap-4 border-b border-hairline py-3 last:border-b-0">
-      <span className="w-28 shrink-0 text-sm font-medium text-ink">{skillLabelUz[skill]}</span>
+      <span className="w-28 shrink-0 text-sm font-medium text-ink">{t.labels.skill[skill]}</span>
 
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ground-sunken">
         {measured && (
@@ -32,7 +34,7 @@ export function SkillRow({
       </div>
 
       <span className="w-16 shrink-0 text-right text-sm tabular-nums text-ink-muted">
-        {measured ? value : 'Hali yo’q'}
+        {measured ? value : t.common.notYet}
       </span>
 
       {deltaLabel && (
@@ -56,6 +58,8 @@ export function MilestoneTimeline({
   milestones: MilestoneView[]
   currentDay: number
 }) {
+  const t = useT()
+
   return (
     <ol className="relative ml-2 border-l border-hairline pl-6">
       {milestones.map((milestone) => {
@@ -75,14 +79,14 @@ export function MilestoneTimeline({
 
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-                {milestone.day}-kun
+                {fill(t.common.day, { day: milestone.day })}
               </span>
-              {milestone.isCompleted && <Badge tone="milestone">Bajarildi</Badge>}
+              {milestone.isCompleted && <Badge tone="milestone">{t.path.done}</Badge>}
               {isNext && !milestone.isCompleted && (
                 <Badge tone="signal">
                   {milestone.daysRemaining === 0
-                    ? 'Bugun'
-                    : `${milestone.daysRemaining} kun qoldi`}
+                    ? t.path.today
+                    : fill(t.progress.daysLeft, { count: milestone.daysRemaining })}
                 </Badge>
               )}
             </div>
@@ -107,11 +111,13 @@ export function ConfidenceTrend({
   value: number | null | undefined
   delta: number | null | undefined
 }) {
+  const t = useT()
+
   if (value === null || value === undefined) {
     return (
       <div>
         <p className="text-3xl font-semibold tracking-tight text-ink-faint">—</p>
-        <p className="text-support">Birinchi ovozli mashqdan keyin paydo bo’ladi.</p>
+        <p className="text-support">{t.progress.confidenceEmpty}</p>
       </div>
     )
   }
@@ -128,11 +134,11 @@ export function ConfidenceTrend({
               (delta ?? 0) >= 0 ? 'text-milestone' : 'text-signal-ink'
             }`}
           >
-            {deltaLabel} · 30 kun
+            {fill(t.progress.days30, { delta: deltaLabel })}
           </span>
         )}
       </div>
-      <p className="text-support">Gapirishga ishonch</p>
+      <p className="text-support">{t.progress.confidence}</p>
     </div>
   )
 }

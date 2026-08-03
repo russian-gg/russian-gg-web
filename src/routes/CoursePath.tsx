@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { phaseLabelUz } from '../lib/format'
+import { fill, useT } from '../lib/i18n'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { Badge, Button, Card, CheckCircle, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
@@ -13,6 +13,7 @@ import { Badge, Button, Card, CheckCircle, LinkButton, SectionHeading, Spinner }
 type LockedDay = { kind: 'pro' | 'progress'; day: number }
 
 export function CoursePath() {
+  const t = useT()
   const [openDay, setOpenDay] = useState<number | null>(null)
   const [locked, setLocked] = useState<LockedDay | null>(null)
 
@@ -54,9 +55,9 @@ export function CoursePath() {
     <div className="space-y-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">90 kunlik yo'l</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.path.title}</h1>
           <p className="text-support mt-1">
-            Har bir kun bittadan aniq vazifa. Kunma-kun yurganingiz sari yo'l o'zi ochilib boradi.
+            {t.path.subtitle}
           </p>
         </div>
         <Badge tone="milestone">{completedDays}/90</Badge>
@@ -69,7 +70,7 @@ export function CoursePath() {
         return (
           <section key={phase}>
             <SectionHeading>
-              {phaseLabelUz[phase]} · {range}-kun
+              {t.labels.phase[phase]} · {range}
             </SectionHeading>
 
             <div className="space-y-2">
@@ -99,6 +100,8 @@ export function CoursePath() {
  * learner reached for more of the course.
  */
 function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: () => void }) {
+  const t = useT()
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onDismiss()
@@ -124,27 +127,27 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
         aria-labelledby="locked-day-title"
       >
         <h2 id="locked-day-title" className="text-lg font-semibold text-ink">
-          {isPro ? `${locked.day}-kun Pro tarkibida` : 'Bu kun hali yopiq'}
+          {isPro ? fill(t.path.lockedProTitle, { day: locked.day }) : t.path.lockedProgressTitle}
         </h2>
 
         <p className="text-support mt-2">
           {isPro
-            ? "Bepul rejada birinchi 7 kun ochiq. Qolgan 83 kunni va mashq kutubxonasini Pro ochadi."
-            : `Avval oldingi kunlarni yakunlang — shundan keyin ${locked.day}-kun o'zi ochiladi.`}
+            ? t.path.lockedProBody
+            : fill(t.path.lockedProgressBody, { day: locked.day })}
         </p>
 
         {isPro ? (
           <>
             <LinkButton to="/paywall" block className="mt-5">
-              Pro sotib olish
+              {t.path.buyPro}
             </LinkButton>
             <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
-              Keyinroq
+              {t.common.later}
             </Button>
           </>
         ) : (
           <Button className="mt-5" onClick={onDismiss}>
-            Tushunarli
+            {t.common.understood}
           </Button>
         )}
       </Card>
@@ -171,6 +174,7 @@ function DayRow({
     enabled: isOpen,
   })
 
+  const t = useT()
   const isDone = day.completedMissionCount >= day.requiredMissionCount
   const isToday = day.day === currentDay
 
@@ -205,20 +209,20 @@ function DayRow({
           {day.focusUz}
         </span>
 
-        {isToday && !isDone && <Badge tone="signal">Bugun</Badge>}
+        {isToday && !isDone && <Badge tone="signal">{t.path.today}</Badge>}
         {isDone && <CheckCircle />}
         {!day.isUnlocked && !isDone && (
-          <Badge tone="caution">{day.day > maxUnlockedDay ? 'Pro kerak' : 'Yopiq'}</Badge>
+          <Badge tone="caution">{day.day > maxUnlockedDay ? t.path.needsPro : t.path.locked}</Badge>
         )}
         <ChevronGlyph open={isOpen} />
       </button>
 
       {isOpen && (
         <div className="px-4 pb-4">
-          {isLoading && <Spinner label="Mashqlar" />}
+          {isLoading && <Spinner label={t.path.missions} />}
           {missions && missions.length === 0 && (
             <Card>
-              <p className="text-support">Bu kun uchun mashqlar tayyorlanmoqda.</p>
+              <p className="text-support">{t.path.preparing}</p>
             </Card>
           )}
           {missions?.map((mission) => <MissionBrief key={mission.id} mission={mission} />)}
@@ -234,18 +238,20 @@ function DayRow({
  * of those, so the decision to start was made on a title alone.
  */
 function MissionBrief({ mission }: { mission: MissionSummary }) {
+  const t = useT()
+
   return (
     <div className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4 md:p-5">
       <div className="grid gap-6 md:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,17rem)]">
         <dl className="space-y-3">
-          <Meta icon={<ClockGlyph />} label={`${mission.estimatedMinutes} daqiqa`} />
-          <Meta icon={<PhraseGlyph />} label={`${mission.targetPhraseCount} ta ibora`} />
-          {mission.hasVoiceStep && <Meta icon={<MicGlyph />} label="AI suhbat mashqi" />}
-          <Meta icon={<LevelGlyph />} label={`${mission.targetLevel} daraja`} />
+          <Meta icon={<ClockGlyph />} label={fill(t.common.minutes, { count: mission.estimatedMinutes })} />
+          <Meta icon={<PhraseGlyph />} label={fill(t.path.phraseCount, { count: mission.targetPhraseCount })} />
+          {mission.hasVoiceStep && <Meta icon={<MicGlyph />} label={t.path.voicePractice} />}
+          <Meta icon={<LevelGlyph />} label={fill(t.path.levelLabel, { level: mission.targetLevel })} />
         </dl>
 
         <div>
-          <h3 className="text-base font-semibold text-ink">Bugun o&apos;rganasiz</h3>
+          <h3 className="text-base font-semibold text-ink">{t.path.willLearn}</h3>
           {mission.learningPointsUz.length > 0 ? (
             <ul className="mt-3 space-y-2">
               {mission.learningPointsUz.map((point) => (
@@ -264,21 +270,21 @@ function MissionBrief({ mission }: { mission: MissionSummary }) {
           <div className="flex items-start gap-3">
             <TutorAvatar />
             <div className="min-w-0">
-              <p className="text-base font-semibold text-ink">AI repetitor bilan suhbat</p>
+              <p className="text-base font-semibold text-ink">{t.path.tutorTitle}</p>
               <p className="text-support mt-1">
-                Siz bilan rus tilida suhbatlashadi, talaffuz va iboralarni o&apos;rgatadi.
+                {t.path.tutorBody}
               </p>
             </div>
           </div>
 
           {mission.isLocked ? (
             <p className="text-support mt-4 rounded-xl bg-ground-sunken px-3 py-2">
-              {mission.lockReason ?? 'Bu mashq hozir yopiq.'}
+              {mission.lockReason ?? t.path.lockedFallback}
             </p>
           ) : (
             <LinkButton to={`/missions/${mission.id}`} block className="mt-4">
               <MicGlyph />
-              Suhbatni boshlash
+              {t.path.startConversation}
             </LinkButton>
           )}
         </div>

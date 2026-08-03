@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { phaseLabelUz } from '../lib/format'
+import { fill, useT } from '../lib/i18n'
 import type { HomeView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
@@ -10,6 +10,7 @@ import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../compo
  * cards (PRD §6) — the numbers live on the progress screen.
  */
 export function Home() {
+  const t = useT()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeView>('/course/home'),
@@ -19,8 +20,8 @@ export function Home() {
   if (isError || !data) {
     return (
       <EmptyState
-        title="Ma’lumotni yuklab bo’lmadi"
-        body="Internetni tekshirib, sahifani yangilang."
+        title={t.common.loadFailed}
+        body={t.common.loadFailedBody}
       />
     )
   }
@@ -29,33 +30,33 @@ export function Home() {
     <div className="space-y-10">
       <header>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="signal">{data.currentDay}-kun / 90</Badge>
-          <Badge>{phaseLabelUz[data.phase]}</Badge>
-          {data.streakDays > 1 && <Badge tone="milestone">{data.streakDays} kun ketma-ket</Badge>}
-          {data.tier === 'Free' && <Badge tone="caution">Bepul</Badge>}
+          <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: 90 })}</Badge>
+          <Badge>{t.labels.phase[data.phase]}</Badge>
+          {data.streakDays > 1 && <Badge tone="milestone">{fill(t.home.streak, { count: data.streakDays })}</Badge>}
+          {data.tier === 'Free' && <Badge tone="caution">{t.account.plan.free}</Badge>}
         </div>
 
         <h1 className="mt-4 text-2xl font-semibold leading-snug tracking-tight text-ink">
-          {data.dayFocusUz || 'Bugungi mashq'}
+          {data.dayFocusUz || t.home.fallbackTitle}
         </h1>
       </header>
 
       <section>
-        <SectionHeading>Bugungi ovozli mashq</SectionHeading>
+        <SectionHeading>{t.home.todayMission}</SectionHeading>
         {data.todayMission ? (
           <>
             <MissionCard mission={data.todayMission} />
             {!data.todayMission.isLocked && (
               <LinkButton to={`/missions/${data.todayMission.id}`} block className="mt-3">
-                Mashqni boshlash
+                {t.home.start}
               </LinkButton>
             )}
           </>
         ) : (
           <EmptyState
-            title="Bugunga mashq topilmadi"
-            body="90 kunlik yo’ldan boshqa mashqni tanlang yoki mashq kutubxonasiga o’ting."
-            action={<LinkButton to="/path">90 kunlik yo’l</LinkButton>}
+            title={t.home.empty}
+            body={t.home.emptyBody}
+            action={<LinkButton to="/path">{t.nav.path}</LinkButton>}
           />
         )}
       </section>

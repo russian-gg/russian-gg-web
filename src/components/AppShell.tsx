@@ -2,22 +2,25 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
-import { planLabelUz } from '../lib/format'
+import { planLabel } from '../lib/format'
 import { useTheme } from '../lib/theme'
+import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { EntitlementView, ProgressView } from '../lib/types'
 import { Badge, Switch } from './ui'
 
 const NAV = [
-  { to: '/home', label: 'Bugungi dars', short: 'Bugun', icon: TodayGlyph },
-  { to: '/path', label: "90 kunlik yo'l", short: '90 kun', icon: PathGlyph },
-  { to: '/practice', label: 'Topshiriqlar', short: 'Topshiriq', icon: TasksGlyph },
-  { to: '/tests', label: 'Testlar', short: 'Testlar', icon: TestsGlyph, isNew: true },
-  { to: '/progress', label: 'Progress', short: 'Progress', icon: ProgressGlyph },
+  { to: '/home', key: 'today', icon: TodayGlyph },
+  { to: '/path', key: 'path', icon: PathGlyph },
+  { to: '/practice', key: 'practice', icon: TasksGlyph },
+  // No route: the chip says it is not built yet, so the row must not lead anywhere.
+  { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
+  { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 
 export function AppShell() {
+  const t = useT()
   const { data: progress } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
@@ -40,15 +43,17 @@ export function AppShell() {
       <aside className="hidden w-64 shrink-0 flex-col border-r border-hairline px-6 py-8 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
         <Wordmark />
 
-        <nav className="mt-12 flex flex-col gap-1" aria-label="Asosiy">
+        <nav className="mt-12 flex flex-col gap-1" aria-label={t.nav.main}>
           {NAV.map((item) => (
             <RailLink
-              key={item.to}
+              key={item.key}
               to={item.to}
               trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
-              isNew={'isNew' in item && item.isNew}
+              trailingHint={fill(t.nav.daysDone, { count: completedDays })}
+              comingSoon={'comingSoon' in item && item.comingSoon}
+              comingSoonLabel={t.nav.comingSoon}
             >
-              {item.label}
+              {t.nav[item.key]}
             </RailLink>
           ))}
         </nav>
@@ -68,19 +73,24 @@ export function AppShell() {
       </main>
 
       <nav
-        aria-label="Asosiy"
+        aria-label={t.nav.main}
         className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-ground/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <div className="flex items-stretch">
           {NAV.map((item) => (
             <TabLink
-              key={item.to}
+              key={item.key}
               to={item.to}
-              label={item.label}
-              short={item.short}
+              label={t.nav[item.key]}
+              short={t.nav[`${item.key}Short`]}
               icon={item.icon}
-              count={item.to === '/path' ? `${completedDays}/90` : undefined}
-              isNew={'isNew' in item && item.isNew}
+              count={
+                item.to === '/path'
+                  ? fill(t.nav.daysDone, { count: completedDays })
+                  : undefined
+              }
+              comingSoon={'comingSoon' in item && item.comingSoon}
+              comingSoonHint={t.nav.comingSoon}
             />
           ))}
         </div>
@@ -99,6 +109,7 @@ function Wordmark() {
 
 function ProfileMenu({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate()
+  const t = useT()
   const { user, signOut } = useAuth()
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -110,10 +121,10 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
     retry: false,
   })
 
-  const name = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Talaba'
+  const name = user?.displayName?.trim() || user?.email?.split('@')[0] || t.account.learner
   // The plan, not the level: this row is the account, and the level already has a home on
   // the profile and progress screens.
-  const subtitle = planLabelUz(entitlement)
+  const subtitle = planLabel(entitlement, t)
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   function go(path: string) {
@@ -152,7 +163,12 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
       </button>
 
       {open && (
-        <ProfilePopover anchor={triggerRef} compact={compact} onDismiss={() => setOpen(false)}>
+        <ProfilePopover
+          anchor={triggerRef}
+          compact={compact}
+          label={t.account.menu}
+          onDismiss={() => setOpen(false)}
+        >
           {/* Account row first, exactly like the trigger it grew out of, so the menu reads
               as an expansion of the button rather than an unrelated list. */}
           <button
@@ -173,15 +189,16 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 
           <div className="my-2 border-t border-hairline" />
 
-          <MenuItem label="Obuna va to'lovlar" icon={<SparkGlyph />} onClick={() => go('/paywall')} />
-          <MenuItem label="Profil" icon={<PersonGlyph />} onClick={() => go('/profile')} />
-          <MenuItem label="Sozlamalar" icon={<GearGlyph />} onClick={() => go('/settings')} />
+          <MenuItem label={t.account.billing} icon={<SparkGlyph />} onClick={() => go('/paywall')} />
+          <MenuItem label={t.account.profile} icon={<PersonGlyph />} onClick={() => go('/profile')} />
+          <MenuItem label={t.account.settings} icon={<GearGlyph />} onClick={() => go('/settings')} />
           <ThemeToggleItem />
+          <LanguageItem />
 
           <div className="my-2 border-t border-hairline" />
 
-          <MenuItem label="Fikr bildirish" icon={<ChatGlyph />} onClick={() => go('/feedbacks')} />
-          <MenuItem label="Chiqish" icon={<ExitGlyph />} onClick={() => void logout()} danger />
+          <MenuItem label={t.account.feedback} icon={<ChatGlyph />} onClick={() => go('/feedbacks')} />
+          <MenuItem label={t.account.signOut} icon={<ExitGlyph />} onClick={() => void logout()} danger />
         </ProfilePopover>
       )}
     </>
@@ -197,11 +214,13 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 function ProfilePopover({
   anchor,
   compact,
+  label,
   onDismiss,
   children,
 }: {
   anchor: React.RefObject<HTMLButtonElement | null>
   compact: boolean
+  label: string
   onDismiss: () => void
   children: ReactNode
 }) {
@@ -248,7 +267,7 @@ function ProfilePopover({
       <div className="fixed inset-0 z-40" onClick={onDismiss} aria-hidden="true" />
       <div
         role="menu"
-        aria-label="Hisob"
+        aria-label={label}
         style={style ?? { visibility: 'hidden' }}
         className="fixed z-50 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-2 shadow-2xl"
       >
@@ -260,6 +279,7 @@ function ProfilePopover({
 }
 
 function ThemeToggleItem() {
+  const t = useT()
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -274,8 +294,32 @@ function ThemeToggleItem() {
       <span className="shrink-0" aria-hidden="true">
         <MoonGlyph />
       </span>
-      <span className="flex-1">Qorong'i rejim</span>
+      <span className="flex-1">{t.account.darkMode}</span>
       <Switch checked={isDark} />
+    </button>
+  )
+}
+
+/**
+ * Cycles through the three languages in place. A submenu would mean a second popover inside
+ * a popover for a three-item list, and the current language is always visible on the row.
+ */
+function LanguageItem() {
+  const t = useT()
+  const { locale, setLocale } = useLocale()
+
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() => setLocale(LOCALES[(LOCALES.indexOf(locale) + 1) % LOCALES.length])}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] text-ink transition-colors hover:bg-ground-sunken"
+    >
+      <span className="shrink-0" aria-hidden="true">
+        <GlobeGlyph />
+      </span>
+      <span className="flex-1">{t.account.language}</span>
+      <span className="text-sm font-medium text-ink-muted">{LOCALE_NAMES[locale]}</span>
     </button>
   )
 }
@@ -368,6 +412,15 @@ function MoonGlyph() {
   )
 }
 
+function GlobeGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5S14.2 18.1 12 20.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5Z" />
+    </svg>
+  )
+}
+
 function ExitGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
@@ -388,9 +441,10 @@ function TabLink({
   short,
   icon: Icon,
   count,
-  isNew,
+  comingSoon,
+  comingSoonHint,
 }: {
-  to: string
+  to: string | null
   /** The full name, used for the accessible label. */
   label: string
   /** What fits under a 24px glyph on a phone. */
@@ -398,11 +452,27 @@ function TabLink({
   icon: () => ReactNode
   /** Announced to screen readers only: a pill over a 24px glyph hides the glyph. */
   count?: string
-  isNew?: boolean
+  comingSoon?: boolean
+  comingSoonHint?: string
 }) {
-  const description = [label, count && `${count} kun bajarildi`, isNew && 'yangi']
-    .filter(Boolean)
-    .join(', ')
+  const description = [label, count, comingSoon && comingSoonHint].filter(Boolean).join(', ')
+
+  // Nothing to navigate to yet: rendered as plain, quiet text rather than a dead link.
+  if (!to) {
+    return (
+      <span
+        aria-label={description}
+        className="flex flex-1 flex-col items-center justify-center gap-1.5 py-2.5 text-ink-faint opacity-60"
+      >
+        <span className="flex h-6 items-center" aria-hidden="true">
+          <Icon />
+        </span>
+        <span aria-hidden="true" className="text-[11px] leading-none font-medium">
+          {short}
+        </span>
+      </span>
+    )
+  }
 
   return (
     <NavLink
@@ -414,11 +484,8 @@ function TabLink({
         }`
       }
     >
-      <span className="relative flex h-6 items-center" aria-hidden="true">
+      <span className="flex h-6 items-center" aria-hidden="true">
         <Icon />
-        {isNew && (
-          <span className="absolute -top-0.5 -right-1.5 size-2 rounded-full bg-signal" />
-        )}
       </span>
       <span aria-hidden="true" className="text-[11px] leading-none font-medium">
         {short}
@@ -484,13 +551,30 @@ function RailLink({
   to,
   children,
   trailing,
-  isNew,
+  trailingHint,
+  comingSoon,
+  comingSoonLabel,
 }: {
-  to: string
+  to: string | null
   children: ReactNode
   trailing?: string
-  isNew?: boolean
+  trailingHint?: string
+  comingSoon?: boolean
+  comingSoonLabel?: string
 }) {
+  if (!to) {
+    return (
+      <span className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-base font-medium text-ink-faint">
+        <span>{children}</span>
+        {comingSoon && comingSoonLabel && (
+          <Badge tone="neutral" size="sm">
+            {comingSoonLabel}
+          </Badge>
+        )}
+      </span>
+    )
+  }
+
   return (
     <NavLink
       to={to}
@@ -501,15 +585,10 @@ function RailLink({
       }
     >
       <span>{children}</span>
-      {isNew && (
-        <Badge tone="signal" size="sm">
-          New
-        </Badge>
-      )}
       {trailing && (
         <Badge tone="neutral" size="sm">
           {trailing}
-          <span className="sr-only"> kun bajarildi</span>
+          {trailingHint && <span className="sr-only"> · {trailingHint}</span>}
         </Badge>
       )}
     </NavLink>

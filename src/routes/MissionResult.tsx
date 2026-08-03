@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
-import { skillLabelUz } from '../lib/format'
+import { fill, useT } from '../lib/i18n'
 import type { MissionResult as MissionResultDto, SkillArea } from '../lib/types'
 import { Badge, Card, LinkButton, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
 export function MissionResult() {
+  const t = useT()
   const { attemptId = '' } = useParams()
   const [expanded, setExpanded] = useState(false)
 
@@ -18,14 +19,14 @@ export function MissionResult() {
     refetchInterval: (query) => (query.state.data?.enrichmentPending ? 3000 : false),
   })
 
-  if (isLoading || !data) return <Spinner label="Natija tayyorlanmoqda" />
+  if (isLoading || !data) return <Spinner label={t.result.preparing} />
 
   const skills = Object.entries(data.skillScores) as Array<[SkillArea, number]>
 
   return (
     <div className="space-y-8">
       <header>
-        <Badge tone="milestone">Mashq bajarildi</Badge>
+        <Badge tone="milestone">{t.result.completed}</Badge>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink">
           {data.overallScore} <span className="text-lg font-medium text-ink-faint">/ 100</span>
         </h1>
@@ -34,33 +35,33 @@ export function MissionResult() {
 
       {data.unlockedMilestone && (
         <Card>
-          <Badge tone="milestone">{data.unlockedMilestone.day}-kun bosqichi ochildi</Badge>
+          <Badge tone="milestone">{fill(t.result.milestoneUnlocked, { day: data.unlockedMilestone.day })}</Badge>
           <h2 className="mt-3 text-lg font-semibold text-ink">{data.unlockedMilestone.titleUz}</h2>
           <UzHint>{data.unlockedMilestone.outcomeUz}</UzHint>
         </Card>
       )}
 
       <section>
-        <SectionHeading>Asosiy tuzatish</SectionHeading>
+        <SectionHeading>{t.result.mainCorrection}</SectionHeading>
         <Card>
           <p className="text-base text-ink">{data.headlineFeedbackUz}</p>
           <p className="text-support mt-2">{data.headlineFeedbackRu}</p>
         </Card>
         <p className="text-support mt-2">
-          Bu AI izohi, rasmiy baholash emas. Xato deb hisoblasangiz, bizga xabar bering.
+          {t.result.aiDisclaimer}
         </p>
       </section>
 
       {skills.length > 0 && (
         <section>
-          <SectionHeading>Ko'nikmalar</SectionHeading>
+          <SectionHeading>{t.result.skills}</SectionHeading>
           <Card>
             {skills.map(([skill, score]) => (
               <div
                 key={skill}
                 className="flex items-center justify-between border-b border-hairline py-2.5 last:border-b-0"
               >
-                <span className="text-sm font-medium text-ink">{skillLabelUz[skill]}</span>
+                <span className="text-sm font-medium text-ink">{t.labels.skill[skill]}</span>
                 <span className="text-sm tabular-nums text-ink-muted">{score}</span>
               </div>
             ))}
@@ -79,11 +80,11 @@ export function MissionResult() {
               }}
               className="text-sm font-semibold text-signal-ink"
             >
-              {expanded ? 'Yopish' : 'Batafsil'}
+              {expanded ? t.result.hide : t.result.details}
             </button>
           }
         >
-          Javoblaringiz
+          {t.result.yourAnswers}
         </SectionHeading>
 
         {expanded ? (
@@ -92,8 +93,8 @@ export function MissionResult() {
               <Card key={turn.turnIndex} as="article">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-                    Qadam {turn.stepIndex + 1}
-                    {turn.wasRetry && ' · takror'}
+                    {fill(t.result.step, { index: turn.stepIndex + 1 })}
+                    {turn.wasRetry && ` · ${t.result.retryTag}`}
                   </span>
                   {turn.score !== null && turn.score !== undefined && (
                     <span className="text-sm tabular-nums text-ink-muted">{turn.score}</span>
@@ -112,32 +113,32 @@ export function MissionResult() {
                 ) : null}
 
                 <dl className="mt-3 space-y-1.5">
-                  {turn.pronunciationNote && <Note term="Talaffuz" value={turn.pronunciationNote} />}
-                  {turn.wordChoiceNote && <Note term="So'z tanlash" value={turn.wordChoiceNote} />}
-                  {turn.grammarNote && <Note term="Grammatika" value={turn.grammarNote} />}
+                  {turn.pronunciationNote && <Note term={t.result.pronunciation} value={turn.pronunciationNote} />}
+                  {turn.wordChoiceNote && <Note term={t.result.wordChoice} value={turn.wordChoiceNote} />}
+                  {turn.grammarNote && <Note term={t.result.grammar} value={turn.grammarNote} />}
                 </dl>
               </Card>
             ))}
           </div>
         ) : (
-          <p className="text-support">{data.turns.length} ta javob yozib olindi.</p>
+          <p className="text-support">{fill(t.result.turnsRecorded, { count: data.turns.length })}</p>
         )}
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <LinkButton to="/home" block>
-          Bugungi sahifaga qaytish
+          {t.result.backHome}
         </LinkButton>
         <Link
           to="/practice"
           className="inline-flex items-center justify-center rounded-xl border border-hairline px-6 py-4 text-base font-semibold text-ink"
         >
-          Yana mashq qilish
+          {t.result.practiceMore}
         </Link>
       </div>
 
       {data.newCurrentDay && (
-        <p className="text-support text-center">Siz {data.newCurrentDay}-kunga o'tdingiz.</p>
+        <p className="text-support text-center">{fill(t.result.movedToDay, { day: data.newCurrentDay })}</p>
       )}
     </div>
   )

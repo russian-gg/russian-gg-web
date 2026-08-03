@@ -3,13 +3,7 @@ import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
-import {
-  categoryLabelUz,
-  formalityLabelUz,
-  stepLabelUz,
-  stepTitleUz,
-  workplaceLabelUz,
-} from '../lib/format'
+import { fill, useT, type Dictionary } from '../lib/i18n'
 import { LiveVoiceSession, isPromptAudioPlaying, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
 import type {
   MissionDetail,
@@ -36,6 +30,7 @@ import {
  * deliberately withheld until the mission ends.
  */
 export function MissionPlayer() {
+  const t = useT()
   const { missionId = '' } = useParams()
   const navigate = useNavigate()
 
@@ -91,10 +86,10 @@ export function MissionPlayer() {
         // Resuming lands the learner on the step they left, not back at the beginning.
         setStepIndex(Math.max(0, started.currentStepIndex))
       } catch (caught) {
-        setError(caught instanceof RequestError ? caught.message : "Mashqni ochib bo'lmadi.")
+        setError(caught instanceof RequestError ? caught.message : t.player.openFailed)
       }
     })()
-  }, [mission, missionId])
+  }, [mission, missionId, t])
 
   useEffect(() => {
     currentStepRef.current = stepIndex
@@ -148,7 +143,7 @@ export function MissionPlayer() {
     return <Spinner />
   }
 
-  if (!mission) return <ErrorNote>Mashq topilmadi.</ErrorNote>
+  if (!mission) return <ErrorNote>{t.player.notFound}</ErrorNote>
   if (
     !mission.summary ||
     !Array.isArray(mission.steps) ||
@@ -156,10 +151,7 @@ export function MissionPlayer() {
     mission.steps.length === 0
   ) {
     return (
-      <ErrorNote>
-        Bu mashq ma&apos;lumotlari to&apos;liq kelmadi. Sahifani yangilab ko&apos;ring yoki boshqa
-        kunni oching.
-      </ErrorNote>
+      <ErrorNote>{t.player.incomplete}</ErrorNote>
     )
   }
   const currentMission = mission
@@ -230,7 +222,7 @@ export function MissionPlayer() {
         return
       }
 
-      setError("Talaffuzni eshittirib bo'lmadi. Biroz keyinroq urinib ko'ring.")
+      setError(t.player.ttsFailed)
     })
   }
 
@@ -327,7 +319,7 @@ export function MissionPlayer() {
           ? caught.message
           : caught instanceof Error
             ? caught.message
-            : "Ovozli seansni boshlab bo'lmadi."
+            : t.player.startFailed
       setError(message)
       await teardownVoice(false, 'start_failed')
       setVoiceState('idle')
@@ -368,7 +360,7 @@ export function MissionPlayer() {
       }
     } catch (caught) {
       const message =
-        caught instanceof Error ? caught.message : "Ovozli seansni tugatib bo'lmadi."
+        caught instanceof Error ? caught.message : t.player.stopFailed
       setError(message)
       await teardownVoice(false, 'stop_failed')
       setVoiceState('idle')
@@ -470,7 +462,7 @@ export function MissionPlayer() {
       }
       return result.score >= 70
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "Javobni yuborib bo'lmadi.")
+      setError(caught instanceof RequestError ? caught.message : t.player.submitFailed)
       setVoiceState('idle')
       return false
     } finally {
@@ -549,7 +541,7 @@ export function MissionPlayer() {
       await api.post(`/missions/attempts/${attempt.attemptId}/complete`)
       navigate(`/missions/attempts/${attempt.attemptId}/result`, { replace: true })
     } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : "Mashqni yakunlab bo'lmadi.")
+      setError(caught instanceof RequestError ? caught.message : t.player.completeFailed)
       setBusy(false)
     }
   }
@@ -591,8 +583,8 @@ export function MissionPlayer() {
           >
             <BackGlyph />
             <span className="truncate">
-              {categoryLabelUz[summary.category] ?? 'Muloqot'}
-              {week !== null && ` / ${week}-hafta`}
+              {t.labels.category[summary.category]}
+              {week !== null && ` / ${week}`}
             </span>
           </button>
 
@@ -606,16 +598,16 @@ export function MissionPlayer() {
             {summary.titleUz}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
-            {summary.objectiveUz} Sizga {currentMission.maxVoiceMinutes} daqiqa yetadi.
+            {summary.objectiveUz} {fill(t.player.minutesLeft, { count: currentMission.maxVoiceMinutes })}
           </p>
 
           <TutorIntro />
 
           {needsRegisterLabel && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <Badge tone="caution">{formalityLabelUz[summary.formality] ?? 'Neytral'}</Badge>
+              <Badge tone="caution">{t.labels.formality[summary.formality]}</Badge>
               <Badge tone="caution">
-                {workplaceLabelUz[summary.workplaceUse] ?? "Ishda ishlatsa bo'ladi"}
+                {t.labels.workplace[summary.workplaceUse]}
               </Badge>
             </div>
           )}
@@ -650,8 +642,7 @@ export function MissionPlayer() {
 
           {ttsUnavailable && (
             <p className="text-support mt-6 rounded-xl bg-ground-sunken px-4 py-3">
-              Talaffuzni eshittirish hozir ishlamayapti. Mashqning qolgan qismi ishlaydi -
-              iboralarni o'qib, ovoz bilan javob berishingiz mumkin.
+              {t.player.ttsUnavailable}
             </p>
           )}
 
@@ -681,7 +672,7 @@ export function MissionPlayer() {
         {(degraded !== null || (voiceComposerOpen && !hasLiveSession && voiceState === 'unavailable')) && (
           <div className="mt-6 max-w-xl">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-ink">Aytganingizni yozing</span>
+              <span className="mb-1.5 block text-sm font-medium text-ink">{t.player.writeAnswer}</span>
               <textarea
                 value={transcript}
                 onChange={(event) => setTranscript(event.target.value)}
@@ -696,26 +687,26 @@ export function MissionPlayer() {
               disabled={busy || !transcript.trim()}
               onClick={() => void submitTurn(false)}
             >
-              Javobni yuborish
+              {t.player.submitAnswer}
             </Button>
           </div>
         )}
 
         <footer className="mt-8">
-          <ProgressBar value={completedSteps} max={totalSteps} label="Mashq progressi" />
+          <ProgressBar value={completedSteps} max={totalSteps} label={t.player.stepProgress} />
           <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
             <span>
-              {completedSteps} / {totalSteps} qadam bajarildi
+              {fill(t.player.stepsDone, { done: completedSteps, total: totalSteps })}
             </span>
             <span className="truncate">
-              {nextStep ? `Keyingi: ${stepLabelUz[nextStep.kind]}` : 'Oxirgi qadam'}
+              {nextStep ? fill(t.player.nextStep, { step: t.labels.step[nextStep.kind] }) : t.player.lastStep}
             </span>
           </div>
         </footer>
       </div>
 
       <aside className="mt-10 space-y-4 lg:mt-0 lg:sticky lg:top-8">
-        <GoalCard steps={safeSteps} stepIndex={stepIndex} completed={completedSteps} />
+        <GoalCard steps={safeSteps} stepIndex={stepIndex} completed={completedSteps} t={t} />
 
         {/*
           No "Maslahat" card here: on a phrase step it repeated the phrase list verbatim, and
@@ -724,9 +715,9 @@ export function MissionPlayer() {
         */}
         {safePhrases.length > 0 && (
           <RailCard
-            title="Bugungi iboralar"
+            title={t.player.phrases}
             icon={<PhraseGlyph />}
-            trailing={`${safePhrases.length} ta`}
+            trailing={fill(t.player.phraseCount, { count: safePhrases.length })}
           >
             <ul className="space-y-2">
               {safePhrases.map((phrase) => (
@@ -760,16 +751,14 @@ export function MissionPlayer() {
           gave — real, specific to this learner, and empty when there is nothing to say.
         */}
         {feedback && (
-          <RailCard title="AI izohi" icon={<CoachGlyph />}>
+          <RailCard title={t.player.aiNote} icon={<CoachGlyph />}>
             <p className="text-base leading-relaxed text-ink">{feedback.headlineCorrection}</p>
-            <p className="text-support mt-2">
-              Bu AI izohi, rasmiy baholash emas.
-            </p>
+            <p className="text-support mt-2">{t.player.aiDisclaimer}</p>
           </RailCard>
         )}
 
         {currentMission.usageNoteUz && (
-          <RailCard title="Qayerda ishlatiladi" icon={<HintGlyph />}>
+          <RailCard title={t.player.usageNote} icon={<HintGlyph />}>
             <p className="text-base leading-relaxed text-ink">{currentMission.usageNoteUz}</p>
           </RailCard>
         )}
@@ -887,6 +876,7 @@ const TUTOR_AVATAR_SRC = '/tutor-avatar.jpg'
  * talking to a person — the product's own positioning is that this never replaces a teacher.
  */
 function TutorMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
+  const t = useT()
   const [failed, setFailed] = useState(false)
   const box = size === 'lg' ? 'size-11' : 'mt-1 size-9'
 
@@ -895,7 +885,7 @@ function TutorMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       <span
         className={`flex shrink-0 items-center justify-center rounded-full bg-signal-soft ${box}`}
         role="img"
-        aria-label="AI repetitor"
+        aria-label={t.player.tutorName}
       >
         <span className="flex h-3.5 items-center gap-[2px]" aria-hidden="true">
           {[0.55, 1, 0.7].map((scale, index) => (
@@ -927,12 +917,14 @@ function TutorMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
  * yet, so the learner met a wall of text with nobody attached to it.
  */
 function TutorIntro() {
+  const t = useT()
+
   return (
     <div className="mt-5 flex items-center gap-3">
       <TutorMark size="lg" />
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-ink">AI repetitor</p>
-        <p className="text-support">Sizni tinglaydi va darhol izoh beradi</p>
+        <p className="text-sm font-semibold text-ink">{t.player.tutorName}</p>
+        <p className="text-support">{t.player.tutorTagline}</p>
       </div>
     </div>
   )
@@ -1062,15 +1054,17 @@ function GoalCard({
   steps,
   stepIndex,
   completed,
+  t,
 }: {
   steps: MissionDetail['steps']
   stepIndex: number
   completed: number
+  t: Dictionary
 }) {
   const done = completed
 
   return (
-    <RailCard title="Bugungi maqsad" icon={<TargetGlyph />} trailing={`${done} / ${steps.length}`}>
+    <RailCard title={t.player.goal} icon={<TargetGlyph />} trailing={`${done} / ${steps.length}`}>
       <ul className="space-y-2.5">
         {steps.map((step, index) => {
           const isDone = index < completed
@@ -1084,7 +1078,7 @@ function GoalCard({
                   isDone ? 'text-ink-muted line-through' : isCurrent ? 'text-ink' : 'text-ink-faint'
                 }`}
               >
-                {shortStepLabel(step)}
+                {shortStepLabel(step, t)}
               </span>
             </li>
           )
@@ -1092,7 +1086,7 @@ function GoalCard({
       </ul>
 
       <div className="mt-3">
-        <ProgressBar value={done} max={steps.length} label="Maqsad progressi" />
+        <ProgressBar value={done} max={steps.length} label={t.player.goalProgress} />
       </div>
     </RailCard>
   )
@@ -1103,10 +1097,10 @@ function GoalCard({
  * but a phrase-introduction step carries the whole joined phrase list, which would wrap to
  * four lines and tell the learner nothing they cannot already see in the phrase card.
  */
-function shortStepLabel(step: MissionDetail['steps'][number]) {
+function shortStepLabel(step: MissionDetail['steps'][number], t: Dictionary) {
   const prompt = step.promptUz?.trim()
   if (!prompt || prompt.length > 52 || prompt.includes('·')) {
-    return stepTitleUz[step.kind]
+    return t.labels.stepTitle[step.kind]
   }
 
   return prompt
