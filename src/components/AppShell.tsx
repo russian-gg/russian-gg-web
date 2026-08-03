@@ -3,15 +3,17 @@ import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { planLabelUz } from '../lib/format'
+import { useTheme } from '../lib/theme'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { EntitlementView, ProgressView } from '../lib/types'
-import { Badge } from './ui'
+import { Badge, Switch } from './ui'
 
 const NAV = [
   { to: '/home', label: 'Bugungi dars', short: 'Bugun', icon: TodayGlyph },
   { to: '/path', label: "90 kunlik yo'l", short: '90 kun', icon: PathGlyph },
   { to: '/practice', label: 'Topshiriqlar', short: 'Topshiriq', icon: TasksGlyph },
+  { to: '/tests', label: 'Testlar', short: 'Testlar', icon: TestsGlyph, isNew: true },
   { to: '/progress', label: 'Progress', short: 'Progress', icon: ProgressGlyph },
 ] as const
 
@@ -44,6 +46,7 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
+              isNew={'isNew' in item && item.isNew}
             >
               {item.label}
             </RailLink>
@@ -77,6 +80,7 @@ export function AppShell() {
               short={item.short}
               icon={item.icon}
               count={item.to === '/path' ? `${completedDays}/90` : undefined}
+              isNew={'isNew' in item && item.isNew}
             />
           ))}
         </div>
@@ -172,6 +176,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
           <MenuItem label="Obuna va to'lovlar" icon={<SparkGlyph />} onClick={() => go('/paywall')} />
           <MenuItem label="Profil" icon={<PersonGlyph />} onClick={() => go('/profile')} />
           <MenuItem label="Sozlamalar" icon={<GearGlyph />} onClick={() => go('/settings')} />
+          <ThemeToggleItem />
 
           <div className="my-2 border-t border-hairline" />
 
@@ -251,6 +256,27 @@ function ProfilePopover({
       </div>
     </>,
     document.body,
+  )
+}
+
+function ThemeToggleItem() {
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === 'dark'
+
+  return (
+    <button
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={isDark}
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] text-ink transition-colors hover:bg-ground-sunken"
+    >
+      <span className="shrink-0" aria-hidden="true">
+        <MoonGlyph />
+      </span>
+      <span className="flex-1">Qorong'i rejim</span>
+      <Switch checked={isDark} />
+    </button>
   )
 }
 
@@ -334,6 +360,14 @@ function ChatGlyph() {
   )
 }
 
+function MoonGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
+      <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.5 8.5 0 1 0 20 14.2Z" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function ExitGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
@@ -354,6 +388,7 @@ function TabLink({
   short,
   icon: Icon,
   count,
+  isNew,
 }: {
   to: string
   /** The full name, used for the accessible label. */
@@ -363,19 +398,27 @@ function TabLink({
   icon: () => ReactNode
   /** Announced to screen readers only: a pill over a 24px glyph hides the glyph. */
   count?: string
+  isNew?: boolean
 }) {
+  const description = [label, count && `${count} kun bajarildi`, isNew && 'yangi']
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <NavLink
       to={to}
-      aria-label={count ? `${label}, ${count} kun bajarildi` : label}
+      aria-label={description}
       className={({ isActive }) =>
         `flex flex-1 flex-col items-center justify-center gap-1.5 py-2.5 transition-colors ${
           isActive ? 'text-signal-ink' : 'text-ink-faint'
         }`
       }
     >
-      <span className="flex h-6 items-center" aria-hidden="true">
+      <span className="relative flex h-6 items-center" aria-hidden="true">
         <Icon />
+        {isNew && (
+          <span className="absolute -top-0.5 -right-1.5 size-2 rounded-full bg-signal" />
+        )}
       </span>
       <span aria-hidden="true" className="text-[11px] leading-none font-medium">
         {short}
@@ -419,6 +462,16 @@ function TasksGlyph() {
   )
 }
 
+function TestsGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <rect x="5" y="3.5" width="14" height="17" rx="2.5" />
+      <path d="M8.5 9h4M8.5 12.5h7" strokeLinecap="round" />
+      <path d="m8.5 16.4 1.6 1.6 3.2-3.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function ProgressGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
@@ -431,10 +484,12 @@ function RailLink({
   to,
   children,
   trailing,
+  isNew,
 }: {
   to: string
   children: ReactNode
   trailing?: string
+  isNew?: boolean
 }) {
   return (
     <NavLink
@@ -446,6 +501,11 @@ function RailLink({
       }
     >
       <span>{children}</span>
+      {isNew && (
+        <Badge tone="signal" size="sm">
+          New
+        </Badge>
+      )}
       {trailing && (
         <Badge tone="neutral" size="sm">
           {trailing}

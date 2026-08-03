@@ -16,6 +16,7 @@ import { Practice } from './routes/Practice'
 import { Profile } from './routes/Profile'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
+import { Tests } from './routes/Tests'
 import { SignIn, SignUp } from './routes/SignIn'
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/path" element={<CoursePath />} />
         <Route path="/practice" element={<Practice />} />
+        <Route path="/tests" element={<Tests />} />
         <Route path="/progress" element={<Progress />} />
         <Route path="/feedbacks" element={<FeedbacksPage />} />
         <Route path="/missions/:missionId" element={<MissionPlayer />} />

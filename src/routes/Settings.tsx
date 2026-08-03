@@ -5,7 +5,7 @@ import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useTheme, type Theme } from '../lib/theme'
 import type { ConsentKind, ConsentState } from '../lib/types'
-import { Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Button, Card, ErrorNote, RadioOption, SectionHeading, Spinner, UzHint } from '../components/ui'
 import { cx } from '../lib/cx'
 
 const CONSENTS: Array<{ kind: ConsentKind; title: string; body: string }> = [
@@ -238,41 +238,36 @@ function ThemeChoice() {
     { value: 'dark', label: "Qorong'i", hint: 'Kechqurun mashq uchun' },
   ]
 
+  /*
+   * A real radio carries the selection. The previous cards signalled it only with a tinted
+   * border, while the dark option always drew a solid black swatch — the boldest mark on the
+   * row belonged to the option that was not chosen, which read as "dark is on".
+   */
   return (
     <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Ko'rinish">
-      {options.map((option) => {
-        const isActive = theme === option.value
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            onClick={() => setTheme(option.value)}
-            className={cx(
-              'rounded-[var(--radius-card)] border p-4 text-left transition-colors',
-              isActive
-                ? 'border-signal bg-signal-soft'
-                : 'border-hairline bg-ground-raised hover:border-ink-faint',
-            )}
-          >
-            <span className="flex items-center gap-2">
+      {options.map((option) => (
+        <RadioOption
+          key={option.value}
+          name="theme"
+          checked={theme === option.value}
+          onChange={() => setTheme(option.value)}
+          label={
+            <span className="flex items-center gap-2.5">
               <span
                 aria-hidden="true"
                 className={cx(
-                  'size-4 rounded-full border',
-                  option.value === 'light'
-                    ? 'border-hairline bg-white'
-                    : 'border-transparent bg-[#101216]',
+                  'size-4 shrink-0 rounded-full border border-hairline',
+                  option.value === 'light' ? 'bg-white' : 'bg-[#101216]',
                 )}
               />
-              <span className="text-base font-semibold text-ink">{option.label}</span>
-              {isActive && <span className="text-sm font-medium text-signal-ink">Tanlangan</span>}
+              <span>
+                <span className="block font-semibold text-ink">{option.label}</span>
+                <span className="text-support block">{option.hint}</span>
+              </span>
             </span>
-            <span className="text-support mt-2 block">{option.hint}</span>
-          </button>
-        )
-      })}
+          }
+        />
+      ))}
     </div>
   )
 }

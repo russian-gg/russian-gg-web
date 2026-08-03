@@ -4,7 +4,7 @@ import { api } from '../lib/api'
 import { phaseLabelUz } from '../lib/format'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../components/ui'
+import { Badge, Button, Card, CheckCircle, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -186,7 +186,7 @@ function DayRow({
           {day.focusUz}
         </span>
 
-        {isDone && <Badge tone="milestone">Bajarilgan</Badge>}
+        {isDone && <CheckCircle />}
         {!day.isUnlocked && !isDone && (
           <Badge tone="caution">{day.day > maxUnlockedDay ? 'Pro kerak' : 'Yopiq'}</Badge>
         )}

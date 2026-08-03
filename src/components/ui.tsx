@@ -315,6 +315,67 @@ export function Badge({
   )
 }
 
+/**
+ * The track and knob only. The caller owns the button or label that wraps it, so the same
+ * switch can sit in a settings row or inside a menu item without either one restyling it.
+ */
+export function Switch({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cx(
+        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors',
+        checked ? 'border-signal bg-signal' : 'border-hairline bg-ground-sunken',
+      )}
+    >
+      <span
+        className={cx(
+          'absolute size-[1.125rem] rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-[1.4375rem]' : 'translate-x-[0.1875rem]',
+        )}
+      />
+    </span>
+  )
+}
+
+/**
+ * Completion, drawn instead of spelled out — a tick reads at a glance where a word has to be
+ * parsed. It carries its own accessible name, so the meaning is not colour- or shape-only.
+ *
+ * Soft fill with a `milestone` stroke rather than white-on-green: `--color-milestone` is a
+ * deep green in light and a light green in dark, so a white tick would vanish in one of them.
+ * This is the same pairing `Badge tone="milestone"` already uses.
+ */
+export function CheckCircle({
+  label = 'Bajarilgan',
+  size = 'md',
+}: {
+  label?: string
+  size?: 'sm' | 'md'
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className={cx(
+        'flex shrink-0 items-center justify-center rounded-full bg-milestone-soft',
+        size === 'sm' ? 'size-6' : 'size-7',
+      )}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        className={cx(
+          'fill-none stroke-milestone stroke-[2.6]',
+          size === 'sm' ? 'size-3.5' : 'size-4',
+        )}
+      >
+        <path d="m5 12.5 4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  )
+}
+
 export function Spinner({ label = 'Yuklanmoqda' }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-12 text-ink-faint" role="status">

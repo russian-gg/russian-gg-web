@@ -29,8 +29,18 @@ export function applyTheme(theme: Theme) {
     ?.setAttribute('content', theme === 'dark' ? '#101216' : '#ffffff')
 }
 
+/**
+ * What the learner is actually looking at. The pre-paint script in index.html is what puts
+ * the theme on the page, so the DOM — not storage — is the truth about the current state;
+ * reading storage alone let the picker claim one thing while the page showed another.
+ */
+export function readAppliedTheme(): Theme {
+  if (typeof document === 'undefined') return readStoredTheme()
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : DEFAULT_THEME
+}
+
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(readStoredTheme)
+  const [theme, setThemeState] = useState<Theme>(readAppliedTheme)
 
   useEffect(() => {
     applyTheme(theme)
