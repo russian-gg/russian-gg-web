@@ -245,12 +245,19 @@ function MissionBrief({ mission }: { mission: MissionSummary }) {
   return (
     <div className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 md:p-5">
       <div className="grid gap-6 md:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,17rem)]">
-        <dl className="space-y-3">
-          <Meta icon={<ClockGlyph />} label={fill(t.common.minutes, { count: mission.estimatedMinutes })} />
-          <Meta icon={<PhraseGlyph />} label={fill(t.path.phraseCount, { count: mission.targetPhraseCount })} />
-          {mission.hasVoiceStep && <Meta icon={<MicGlyph />} label={t.path.voicePractice} />}
-          <Meta icon={<LevelGlyph />} label={fill(t.path.levelLabel, { level: mission.targetLevel })} />
-        </dl>
+        {/*
+          The facts column had no heading while the one beside it did, so two columns of the
+          same weight read as a stray list next to a section. They are both sections.
+        */}
+        <div>
+          <h3 className="text-base font-extrabold text-ink">{t.path.aboutMission}</h3>
+          <dl className="mt-3 space-y-3">
+            <Meta icon={<ClockGlyph />} label={fill(t.common.minutes, { count: mission.estimatedMinutes })} />
+            <Meta icon={<PhraseGlyph />} label={fill(t.path.phraseCount, { count: mission.targetPhraseCount })} />
+            {mission.hasVoiceStep && <Meta icon={<MicGlyph />} label={t.path.voicePractice} />}
+            <Meta icon={<LevelGlyph />} label={fill(t.path.levelLabel, { level: mission.targetLevel })} />
+          </dl>
+        </div>
 
         <div>
           <h3 className="text-base font-extrabold text-ink">{t.path.willLearn}</h3>

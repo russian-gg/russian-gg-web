@@ -195,6 +195,7 @@ export const en: Dictionary = {
     needsPro: 'Pro needed',
     missions: 'Lessons',
     preparing: 'Lessons for this day are being prepared.',
+    aboutMission: 'About this lesson',
     willLearn: 'Today you will learn',
     phraseCount: '{count} phrases',
     voicePractice: 'AI conversation',

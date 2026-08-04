@@ -198,6 +198,7 @@ export const ru: Dictionary = {
     needsPro: 'Нужен Pro',
     missions: 'Занятия',
     preparing: 'Занятия для этого дня готовятся.',
+    aboutMission: 'О занятии',
     willLearn: 'Сегодня вы научитесь',
     phraseCount: 'фраз: {count}',
     voicePractice: 'Разговор с AI',

@@ -199,6 +199,7 @@ export const uz = {
     needsPro: 'Pro kerak',
     missions: 'Mashqlar',
     preparing: 'Bu kun uchun mashqlar tayyorlanmoqda.',
+    aboutMission: 'Mashq haqida',
     willLearn: "Bugun o'rganasiz",
     phraseCount: '{count} ta ibora',
     voicePractice: 'AI suhbat mashqi',
