@@ -103,16 +103,45 @@ export function MissionPlayer() {
     assistantReplyRef.current = assistantReply
   }, [assistantReply])
 
+  /**
+   * Leaving the lesson has to close the session on the server, not just locally. An open
+   * session holds its whole cap against the daily allowance, so a learner who pressed back
+   * twice used to lose the rest of their day of speaking. This covers the two ways out:
+   * navigating away (unmount) and the tab going away (pagehide).
+   */
   useEffect(() => {
+    function releaseSession(reason: string) {
+      const liveSession = liveSessionRef.current
+      const sessionId = liveSessionIdRef.current
+      if (!liveSession || !sessionId) return
+
+      liveSessionRef.current = null
+      liveSessionIdRef.current = null
+      // The page can come back from the back/forward cache after pagehide; it must not
+      // return showing a live session that was closed while it was away.
+      setHasLiveSession(false)
+      setVoiceState('idle')
+
+      api.postOnExit('/missions/voice/sessions/end', {
+        sessionId,
+        elapsedSeconds: liveSession.elapsedSeconds,
+        lastStepIndex: currentStepRef.current,
+        completed: false,
+        failureReason: reason,
+      })
+
+      void liveSession.close()
+    }
+
+    const onPageHide = () => releaseSession('page_hidden')
+    window.addEventListener('pagehide', onPageHide)
+
     return () => {
+      window.removeEventListener('pagehide', onPageHide)
       stopPromptAudio()
       setPromptAudioState('idle')
       setPromptAudioTextKey(null)
-      const liveSession = liveSessionRef.current
-      if (!liveSession) return
-      liveSessionRef.current = null
-      liveSessionIdRef.current = null
-      void liveSession.close()
+      releaseSession('left_lesson')
     }
   }, [])
 
@@ -247,6 +276,9 @@ export function MissionPlayer() {
     manualStopRequestedRef.current = false
     setVoiceState('thinking')
 
+    // Measured from the press, not from the socket: the learner is waiting for all of it.
+    const pressedAt = Date.now()
+
     try {
       const outcome = await api.post<VoiceSessionOutcome>('/missions/voice/sessions', {
         attemptId: attempt.attemptId,
@@ -312,6 +344,14 @@ export function MissionPlayer() {
       await liveSession.start()
 
       setVoiceComposerOpen(true)
+      // Recorded server-side so a slow connection is a number somebody can look at, rather
+      // than a report that "Gemini feels slow".
+      void api
+        .post('/missions/voice/sessions/connected', {
+          sessionId: outcome.ticket.sessionId,
+          connectMilliseconds: Date.now() - pressedAt,
+        })
+        .catch(() => {})
       track('voice_started', { mission: currentMission.summary.slug })
     } catch (caught) {
       const message =

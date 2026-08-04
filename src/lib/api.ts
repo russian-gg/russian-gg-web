@@ -155,9 +155,38 @@ async function sendRaw(method: Method, path: string, body?: unknown, retry = tru
   return response
 }
 
+/**
+ * A request the browser must finish even though the page is going away. `sendBeacon` cannot
+ * carry an Authorization header, so this is a keepalive fetch instead: the browser keeps it
+ * alive past unload, which is what closing a voice session on pagehide depends on.
+ *
+ * It never refreshes the token and never throws — there is no page left to show an error to.
+ */
+function sendOnExit(path: string, body: unknown) {
+  const headers: Record<string, string> = {
+    'accept-language': requestLanguage,
+    'content-type': 'application/json',
+  }
+  const access = tokenStore.access()
+  if (access) headers.authorization = `Bearer ${access}`
+
+  try {
+    void fetch(`/api${path}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(() => {})
+  } catch {
+    // Over the keepalive size limit, or the tab died first. Nothing left to do here; the
+    // server reaps sessions the client never closed.
+  }
+}
+
 export const api = {
   get: <T>(path: string) => send<T>('GET', path),
   post: <T>(path: string, body?: unknown) => send<T>('POST', path, body),
+  postOnExit: sendOnExit,
   postForm: async <T>(path: string, body: FormData) => {
     const headers: Record<string, string> = { 'accept-language': requestLanguage }
     const access = tokenStore.access()
