@@ -298,7 +298,6 @@ export const uz = {
     stepsDone: '{done} / {total} qadam bajarildi',
     nextStep: 'Keyingi: {step}',
     lastStep: 'Oxirgi qadam',
-    stepProgress: 'Mashq progressi',
     goalProgress: 'Maqsad progressi',
     goal: 'Bugungi maqsad',
     phrases: 'Bugungi iboralar',

@@ -288,7 +288,6 @@ export const en: Dictionary = {
     stepsDone: '{done} / {total} steps done',
     nextStep: 'Next: {step}',
     lastStep: 'Last step',
-    stepProgress: 'Lesson progress',
     goalProgress: 'Goal progress',
     goal: "Today's goal",
     phrases: "Today's phrases",

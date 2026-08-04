@@ -931,9 +931,14 @@ export function MissionPlayer() {
           </div>
         )}
 
+        {/*
+          No bar here. The goal card carries one already, over the same numbers, and two
+          progress bars on one screen make a learner check whether they disagree. The line
+          stays: on a phone the goal card is below the fold, so this is the only place
+          progress is visible while speaking.
+        */}
         <footer className="mt-8 shrink-0">
-          <ProgressBar value={completedSteps} max={totalSteps} label={t.player.stepProgress} />
-          <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
+          <div className="flex items-center justify-between gap-4 text-sm text-ink-muted">
             <span>
               {fill(t.player.stepsDone, { done: completedSteps, total: totalSteps })}
             </span>

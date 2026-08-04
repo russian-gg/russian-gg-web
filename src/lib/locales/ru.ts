@@ -293,7 +293,6 @@ export const ru: Dictionary = {
     stepsDone: 'шагов выполнено: {done} / {total}',
     nextStep: 'Далее: {step}',
     lastStep: 'Последний шаг',
-    stepProgress: 'Прогресс занятия',
     goalProgress: 'Прогресс цели',
     goal: 'Цель на сегодня',
     phrases: 'Фразы дня',
