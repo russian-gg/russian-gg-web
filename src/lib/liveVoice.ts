@@ -42,14 +42,19 @@ export class LiveVoiceSession {
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
   private readonly openingCue: string
-  /** The tutor's own opening turn: it closes nothing the learner said, so it is not a turn. */
-  private awaitingOpening = false
+  /**
+   * A tutor turn that closes nothing the learner said — the opening, or a reply the learner
+   * cut short. Reporting either as a completed turn would submit an empty answer for scoring.
+   */
+  private suppressTurnReport = false
   private ws: WebSocket | null = null
   private mediaStream: MediaStream | null = null
   private captureContext: AudioContext | null = null
   private captureSource: MediaStreamAudioSourceNode | null = null
   private captureProcessor: ScriptProcessorNode | null = null
   private playbackContext: AudioContext | null = null
+  /** Everything scheduled but not yet played. Without a handle on these, nothing can stop. */
+  private playbackSources: AudioBufferSourceNode[] = []
   private nextPlaybackTime = 0
   private recording = false
   private closed = false
@@ -117,7 +122,7 @@ export class LiveVoiceSession {
     }
 
     this.callbacks.onStatus('thinking')
-    this.awaitingOpening = true
+    this.suppressTurnReport = true
     this.ensureTurnPromise()
 
     this.ws.send(JSON.stringify({
@@ -130,7 +135,7 @@ export class LiveVoiceSession {
     // A tutor that fails to open is not a reason to abandon the lesson: the learner can
     // still speak first, so this waits and then moves on rather than throwing.
     await Promise.race([this.turnCompletePromise ?? Promise.resolve(), wait(OPENING_TIMEOUT_MS)])
-    this.awaitingOpening = false
+    this.suppressTurnReport = false
   }
 
   async finishCurrentTurn() {
@@ -187,6 +192,7 @@ export class LiveVoiceSession {
     this.closed = true
     this.recording = false
     this.teardownCapture()
+    this.stopPlayback()
     this.resolveTurnComplete?.()
     this.resolveTurnComplete = null
     this.rejectTurnComplete = null
@@ -289,6 +295,15 @@ export class LiveVoiceSession {
             // Gemini's audio models can report generation completion before the later
             // turn-complete event that assumes realtime playback finished. We close the
             // learner turn when generation is done and the locally queued audio drained.
+            /*
+             * The provider cut its own turn short — usually because it decided the learner
+             * had started talking. Whatever is queued here is the rest of a sentence that is
+             * no longer being said, and playing it out is the tutor talking over the learner.
+             */
+            if (serverContent.interrupted) {
+              this.stopPlayback()
+            }
+
             if (serverContent.generationComplete) {
               this.finishTurnAfterPlaybackDrain()
             }
@@ -419,10 +434,44 @@ export class LiveVoiceSession {
     const source = this.playbackContext.createBufferSource()
     source.buffer = audioBuffer
     source.connect(this.playbackContext.destination)
+    source.onended = () => {
+      this.playbackSources = this.playbackSources.filter((queued) => queued !== source)
+    }
+    this.playbackSources.push(source)
 
     const startAt = Math.max(this.playbackContext.currentTime, this.nextPlaybackTime)
     source.start(startAt)
     this.nextPlaybackTime = startAt + audioBuffer.duration
+  }
+
+  /**
+   * Hands the turn back to the learner mid-reply. The tutor can be long-winded at A0, where
+   * every sentence is repeated slowly, and waiting it out was the only option.
+   */
+  async interruptTutor() {
+    if (this.closed || this.recording) {
+      return
+    }
+
+    this.stopPlayback()
+    // Nothing the learner said is being closed here, so this turn is not reported.
+    this.suppressTurnReport = true
+    this.finishTurn()
+    await this.beginNextTurn()
+  }
+
+  /** Drops everything scheduled. Sources that already finished throw, which is not a problem. */
+  private stopPlayback() {
+    for (const source of this.playbackSources) {
+      try {
+        source.stop()
+      } catch {
+        // Already ended.
+      }
+    }
+
+    this.playbackSources = []
+    this.nextPlaybackTime = 0
   }
 
   private finishTurnAfterPlaybackDrain() {
@@ -474,8 +523,8 @@ export class LiveVoiceSession {
 
     // The opening turn closes nothing: the learner has not spoken yet, so reporting it as a
     // completed turn would submit an empty answer for scoring.
-    if (this.awaitingOpening) {
-      this.awaitingOpening = false
+    if (this.suppressTurnReport) {
+      this.suppressTurnReport = false
       this.callbacks.onStatus('idle')
       return
     }
@@ -890,6 +939,7 @@ type LiveServerMessage = {
   serverContent?: {
     turnComplete?: boolean
     generationComplete?: boolean
+    interrupted?: boolean
     inputTranscription?: { text?: string }
     outputTranscription?: { text?: string }
     modelTurn?: {

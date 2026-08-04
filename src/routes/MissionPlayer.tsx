@@ -762,6 +762,11 @@ export function MissionPlayer() {
           hint={micHint}
           onStart={() => void startVoice()}
           onStop={() => void stopVoice()}
+          onInterrupt={
+            hasLiveSession && voiceState === 'thinking' && !busy
+              ? () => void liveSessionRef.current?.interruptTutor()
+              : null
+          }
           feedback={feedback}
           isLastStep={isLastStep}
           stepExhausted={stepExhausted}
@@ -1052,6 +1057,7 @@ function MicControl({
   hint,
   onStart,
   onStop,
+  onInterrupt,
   feedback,
   isLastStep,
   stepExhausted,
@@ -1066,6 +1072,8 @@ function MicControl({
   hint: string | null
   onStart: () => void
   onStop: () => void
+  /** Offered only while the tutor is speaking; null the rest of the time. */
+  onInterrupt: (() => void) | null
   feedback: TurnFeedback | null
   isLastStep: boolean
   /** Out of attempts on this step; moving on is offered without having passed. */
@@ -1138,6 +1146,14 @@ function MicControl({
       <p className="mt-4 text-center text-sm text-ink-muted" role="status" aria-live="polite">
         {status}
       </p>
+
+      {onInterrupt && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={onInterrupt}>
+            {t.player.interrupt}
+          </Button>
+        </div>
+      )}
 
       {hint && (
         <p className="text-support mx-auto mt-3 max-w-sm text-center">{hint}</p>

@@ -254,6 +254,7 @@ export const ru: Dictionary = {
     listening: 'Говорите… AI вас слушает',
     waiting: 'Ожидание…',
     evaluating: 'Оцениваем ваш ответ…',
+    interrupt: 'Я скажу',
     noSpeechHint:
       'Мы вас не слышим. Проверьте, включён ли микрофон и выбрано ли нужное устройство.',
     inConversation: 'Разговор продолжается',

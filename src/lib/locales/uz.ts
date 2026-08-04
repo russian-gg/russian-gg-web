@@ -256,6 +256,7 @@ export const uz = {
     listening: 'Gapiring… AI sizni eshitmoqda',
     waiting: 'Kutilmoqda…',
     evaluating: 'Javobingiz baholanmoqda…',
+    interrupt: "Men gapiraman",
     noSpeechHint:
       "Sizni eshitmayapmiz. Mikrofon yoqilganini va to'g'ri qurilma tanlanganini tekshiring.",
     inConversation: 'Suhbat davom etmoqda',
