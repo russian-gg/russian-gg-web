@@ -871,10 +871,17 @@ export function MissionPlayer() {
           onMoveOn={
             // Only while the conversation is live: in the feedback panel the same choice is
             // already one of the two buttons.
-            stepExhausted && hasLiveSession && !busy
+            (stepExhausted || completedSteps >= totalSteps) && hasLiveSession && !busy
               ? () => void (isLastStep ? complete() : advance())
               : null
           }
+          /*
+           * The checklist ticks off a step as soon as the server counts the turn, whatever it
+           * scored. Finishing still waited for a passing one, so a learner could work through
+           * every step, watch all three goals tick, and be left with a lesson the roadmap
+           * still called unfinished. When the work is done, finishing is the main action.
+           */
+          allStepsDone={completedSteps >= totalSteps}
           feedback={feedback}
           isLastStep={isLastStep}
           stepExhausted={stepExhausted}
@@ -1182,6 +1189,7 @@ function MicControl({
   feedback,
   isLastStep,
   stepExhausted,
+  allStepsDone,
   onRetry,
   onAdvance,
 }: {
@@ -1203,6 +1211,8 @@ function MicControl({
   isLastStep: boolean
   /** Out of attempts on this step; moving on is offered without having passed. */
   stepExhausted: boolean
+  /** Every step of the mission has been answered. Finishing becomes the main action. */
+  allStepsDone: boolean
   onRetry: () => void
   onAdvance: () => void
 }) {
@@ -1329,8 +1339,14 @@ function MicControl({
 
       {onMoveOn && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-          <span className="text-support">{t.player.stepOffer}</span>
-          <Button variant="ghost" size="sm" onClick={onMoveOn}>
+          <span className="text-support">
+            {allStepsDone ? t.player.lessonReady : t.player.stepOffer}
+          </span>
+          <Button
+            variant={allStepsDone ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={onMoveOn}
+          >
             {isLastStep ? t.player.finish : t.player.advance}
           </Button>
         </div>

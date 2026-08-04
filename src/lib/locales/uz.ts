@@ -291,6 +291,7 @@ export const uz = {
     strength: 'Yaxshi tomoni',
     tryAgainTitle: 'Yana bir urinamiz',
     stepOffer: "Bu qadam cho'zildi.",
+    lessonReady: 'Barcha qadamlar bajarildi.',
     parkedStep:
       "Bu qadamni keyinroq yana ko'ramiz. Xohlasangiz yana urinib ko'ring, " +
       "yoki hozir davom etaylik.",

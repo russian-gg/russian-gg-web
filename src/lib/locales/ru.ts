@@ -287,6 +287,7 @@ export const ru: Dictionary = {
     strength: 'Что получилось',
     tryAgainTitle: 'Попробуем ещё раз',
     stepOffer: 'Шаг затянулся.',
+    lessonReady: 'Все шаги пройдены.',
     parkedStep:
       'К этому шагу вернёмся позже. Можно попробовать ещё раз или продолжить сейчас.',
     stepsDone: 'шагов выполнено: {done} / {total}',
