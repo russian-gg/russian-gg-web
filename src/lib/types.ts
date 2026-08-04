@@ -294,6 +294,8 @@ export interface VoiceSessionTicket {
   languagePolicy: LanguagePolicy
   /** Built, versioned and tested on the server. Send it through unchanged. */
   systemInstruction: string
+  /** Sent as soon as the connection is up, to make the tutor speak first. */
+  openingCue: string
 }
 
 export interface VoiceUnavailable {

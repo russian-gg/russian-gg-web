@@ -4,6 +4,8 @@ import type { VoiceSessionTicket } from './types'
 const INPUT_SAMPLE_RATE = 16_000
 const OUTPUT_SAMPLE_RATE = 24_000
 const TURN_COMPLETE_TIMEOUT_MS = 40_000
+/** How long to wait for the tutor's opening before letting the learner go first anyway. */
+const OPENING_TIMEOUT_MS = 12_000
 const AUTO_STOP_SILENCE_MS = 2_500
 const SPEECH_RMS_THRESHOLD = 0.006
 
@@ -22,6 +24,9 @@ export class LiveVoiceSession {
   private readonly callbacks: LiveVoiceCallbacks
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
+  private readonly openingCue: string
+  /** The tutor's own opening turn: it closes nothing the learner said, so it is not a turn. */
+  private awaitingOpening = false
   private ws: WebSocket | null = null
   private mediaStream: MediaStream | null = null
   private captureContext: AudioContext | null = null
@@ -43,9 +48,10 @@ export class LiveVoiceSession {
   private heardSpeechThisTurn = false
   private lastSpeechAt = 0
 
-  constructor(ticket: VoiceSessionTicket, systemInstruction: string, callbacks: LiveVoiceCallbacks) {
+  constructor(ticket: VoiceSessionTicket, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
-    this.systemInstruction = systemInstruction
+    this.systemInstruction = ticket.systemInstruction
+    this.openingCue = ticket.openingCue
     this.callbacks = callbacks
   }
 
@@ -65,7 +71,39 @@ export class LiveVoiceSession {
     }
 
     await this.openWebSocket()
+    await this.openConversation()
     await this.beginNextTurn()
+  }
+
+  /**
+   * The tutor's opening turn. The provider answers input and never starts a conversation on
+   * its own, so connecting and immediately listening left the learner staring at "Gapiring…"
+   * waiting for a question nobody had asked — and whether the tutor ever spoke came down to
+   * whether the room was noisy enough to trip the provider's own voice detection.
+   *
+   * The cue itself comes from the server with the ticket: it is part of the scenario
+   * contract, not something the browser should be wording.
+   */
+  private async openConversation() {
+    if (this.closed || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return
+    }
+
+    this.callbacks.onStatus('thinking')
+    this.awaitingOpening = true
+    this.ensureTurnPromise()
+
+    this.ws.send(JSON.stringify({
+      clientContent: {
+        turns: [{ role: 'user', parts: [{ text: this.openingCue }] }],
+        turnComplete: true,
+      },
+    }))
+
+    // A tutor that fails to open is not a reason to abandon the lesson: the learner can
+    // still speak first, so this waits and then moves on rather than throwing.
+    await Promise.race([this.turnCompletePromise ?? Promise.resolve(), wait(OPENING_TIMEOUT_MS)])
+    this.awaitingOpening = false
   }
 
   async finishCurrentTurn() {
@@ -383,6 +421,15 @@ export class LiveVoiceSession {
     this.turnCompletePromise = null
     this.resolveTurnComplete = null
     this.rejectTurnComplete = null
+
+    // The opening turn closes nothing: the learner has not spoken yet, so reporting it as a
+    // completed turn would submit an empty answer for scoring.
+    if (this.awaitingOpening) {
+      this.awaitingOpening = false
+      this.callbacks.onStatus('idle')
+      return
+    }
+
     this.callbacks.onTurnComplete()
     this.callbacks.onStatus('idle')
   }

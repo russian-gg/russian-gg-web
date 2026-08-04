@@ -297,12 +297,11 @@ export function MissionPlayer() {
         throw new Error("Voice ticket qaytmadi.")
       }
 
+      // The scenario contract is the server's: versioned, tested, and aware of the step
+      // boundary. Composing a second prompt here is what let the tutor run the whole
+      // mission inside step one, so the ticket is passed through whole.
       const liveSession = new LiveVoiceSession(
         outcome.ticket,
-        // The scenario contract is the server's: versioned, tested, and aware of the step
-        // boundary. Composing a second prompt here is what let the tutor run the whole
-        // mission inside step one.
-        outcome.ticket.systemInstruction,
         {
           onStatus: (status) => {
             setVoiceState(
