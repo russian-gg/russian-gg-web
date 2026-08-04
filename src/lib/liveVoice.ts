@@ -412,6 +412,17 @@ export class LiveVoiceSession {
     }
 
     this.turnSettled = true
+
+    /*
+     * The turn is over however it ended. The provider runs its own end-of-speech detection
+     * and can close a turn while the microphone is still open here — and that path left
+     * `recording` true, so the next `beginNextTurn` returned early without resetting
+     * anything. The learner's second answer was then appended to the first and the two were
+     * scored as one sentence, under a status line that said the session was idle.
+     */
+    this.recording = false
+    this.stopMicrophone()
+
     if (this.playbackDrainTimer !== null) {
       window.clearTimeout(this.playbackDrainTimer)
       this.playbackDrainTimer = null
