@@ -255,6 +255,7 @@ export const uz = {
     micPrompt: 'Mikrofonni bosing va gapiring',
     listening: 'Gapiring… AI sizni eshitmoqda',
     waiting: 'Kutilmoqda…',
+    evaluating: 'Javobingiz baholanmoqda…',
     inConversation: 'Suhbat davom etmoqda',
     turnAccepted: 'Javob qabul qilindi. Yakunlashni bosing.',
     answer: 'Javob berish',

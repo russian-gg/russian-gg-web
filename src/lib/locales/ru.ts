@@ -253,6 +253,7 @@ export const ru: Dictionary = {
     micPrompt: 'Нажмите микрофон и говорите',
     listening: 'Говорите… AI вас слушает',
     waiting: 'Ожидание…',
+    evaluating: 'Оцениваем ваш ответ…',
     inConversation: 'Разговор продолжается',
     turnAccepted: 'Ответ принят. Нажмите «Завершить».',
     answer: 'Ответить',

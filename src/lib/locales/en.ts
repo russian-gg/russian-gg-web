@@ -249,6 +249,7 @@ export const en: Dictionary = {
     micPrompt: 'Press the microphone and speak',
     listening: 'Speak… the AI is listening',
     waiting: 'Waiting…',
+    evaluating: 'Scoring your answer…',
     inConversation: 'Conversation in progress',
     turnAccepted: 'Answer accepted. Press finish.',
     answer: 'Answer',

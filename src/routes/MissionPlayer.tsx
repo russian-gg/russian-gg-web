@@ -466,16 +466,16 @@ export function MissionPlayer() {
     const transcriptValue = transcriptRef.current.trim()
     if (!transcriptValue || submittingTurnRef.current) {
       if (!manualStopRequestedRef.current) {
-        window.setTimeout(() => {
-          void liveSessionRef.current?.beginNextTurn()
-        }, 250)
+        void liveSessionRef.current?.beginNextTurn()
       }
       return
     }
 
     submittingTurnRef.current = true
     try {
-      const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
+      // Scored with the thinking state on: the answer is away and being judged, which is a
+      // second or three of a conversation that otherwise looks like it stalled.
+      const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, true, false)
       if (manualStopRequestedRef.current) return
 
       if (!passed) {
@@ -493,9 +493,9 @@ export function MissionPlayer() {
           return
         }
 
-        window.setTimeout(() => {
-          void liveSessionRef.current?.beginNextTurn()
-        }, 350)
+        // Straight back to listening. The delay that used to sit here was a window in which
+        // the status said the conversation was live while the microphone was not yet on.
+        await liveSessionRef.current?.beginNextTurn()
         return
       }
 
@@ -1087,7 +1087,11 @@ function MicControl({
   }
 
   const status = busy
-    ? t.player.waiting
+    ? // "Waiting" during a live session reads as a stall. What is actually happening is that
+      // the answer has gone off to be scored, which is worth saying.
+      hasLiveSession
+      ? t.player.evaluating
+      : t.player.waiting
     : state === 'listening'
       ? t.player.listening
       : hasLiveSession
