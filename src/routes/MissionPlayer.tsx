@@ -70,7 +70,6 @@ export function MissionPlayer() {
   const [busy, setBusy] = useState(false)
   const [promptAudioState, setPromptAudioState] = useState<'idle' | 'loading' | 'playing'>('idle')
   const [promptAudioTextKey, setPromptAudioTextKey] = useState<string | null>(null)
-  const [voiceComposerOpen, setVoiceComposerOpen] = useState(false)
   const [hasLiveSession, setHasLiveSession] = useState(false)
   // Turns already closed. The live transcript and reply stay in their own state and are
   // folded in here when the step ends, so the thread grows instead of resetting each step.
@@ -375,7 +374,6 @@ export function MissionPlayer() {
       if (!outcome.isAvailable) {
         // An honest degraded state, not a silent failure (PRD §11).
         setDegraded(outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed)
-        setVoiceComposerOpen(true)
         setVoiceState('unavailable')
         return
       }
@@ -405,7 +403,6 @@ export function MissionPlayer() {
             setTranscript(text)
             // Something is coming through after all.
             setMicHint(null)
-            setVoiceComposerOpen(true)
           },
           onOutputTranscript: (text) => {
             setAssistantReply(text)
@@ -417,7 +414,6 @@ export function MissionPlayer() {
             void reconnectVoice()
           },
           onTurnComplete: () => {
-            setVoiceComposerOpen(true)
             if (!manualStopRequestedRef.current) {
               void submitTurnFromLive()
             }
@@ -442,7 +438,6 @@ export function MissionPlayer() {
 
       await liveSession.start()
 
-      setVoiceComposerOpen(true)
       // Recorded server-side so a slow connection is a number somebody can look at, rather
       // than a report that "Gemini feels slow".
       void api
@@ -723,7 +718,6 @@ export function MissionPlayer() {
     setAssistantReply(null)
     setVoiceState('idle')
     setDegraded(null)
-    setVoiceComposerOpen(false)
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
     stepAttemptsRef.current = 0
@@ -858,9 +852,6 @@ export function MissionPlayer() {
             </p>
           )}
 
-          {degraded && (
-            <p className="text-support mt-6 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
-          )}
         </div>
 
         <MicControl
@@ -898,9 +889,20 @@ export function MissionPlayer() {
           onAdvance={isLastStep ? () => void complete() : () => void advance()}
         />
 
-        {/* Text fallback, only when live voice is genuinely unavailable (PRD §11). */}
-        {(degraded !== null || (voiceComposerOpen && !hasLiveSession && voiceState === 'unavailable')) && (
-          <div className="mt-6 max-w-xl">
+        {/*
+          The text fallback, and never without the reason it exists for.
+          
+          The two used to sit apart — the explanation in the part of the page that scrolls,
+          the box pinned at the bottom — so once a conversation was long enough the learner
+          met a text field with nothing to say why a speaking app was asking them to type.
+          
+          The condition is the server's word and nothing else. The old second clause could
+          open the box on local state alone, which is how it appeared during a session that
+          was working perfectly well.
+        */}
+        {degraded !== null && (
+          <div className="mt-6 max-w-xl shrink-0">
+            <p className="text-support mb-3 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink">{t.player.writeAnswer}</span>
               <textarea
