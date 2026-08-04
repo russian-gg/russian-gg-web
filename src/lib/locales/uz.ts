@@ -289,6 +289,7 @@ export const uz = {
     advance: 'Davom etish',
     strength: 'Yaxshi tomoni',
     tryAgainTitle: 'Yana bir urinamiz',
+    stepOffer: "Bu qadam biroz cho'zildi. Xohlasangiz keyingisiga o'tsak bo'ladi.",
     parkedStep:
       "Bu qadamni keyinroq yana ko'ramiz. Xohlasangiz yana urinib ko'ring, " +
       "yoki hozir davom etaylik.",

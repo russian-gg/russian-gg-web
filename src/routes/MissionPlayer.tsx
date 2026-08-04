@@ -88,7 +88,6 @@ export function MissionPlayer() {
   // Answers given on the step in front of the learner, whether or not they passed.
   const stepAttemptsRef = useRef(0)
   const reconnectsRef = useRef(0)
-  const latestFeedbackRef = useRef<TurnFeedback | null>(null)
   // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
   const [stepExhausted, setStepExhausted] = useState(false)
   // Said under the microphone when nothing is being heard. Not an error state.
@@ -546,17 +545,18 @@ export function MissionPlayer() {
 
       if (!passed) {
         /*
-         * Retrying is never shamed, but it has to be possible to stop. The loop reopened the
-         * microphone after every failed turn with no counter and no way out, so a learner who
-         * could not reach the passing score was asked the same question forever — and the
-         * only exit, the stop button, answered with "try again".
+         * Retrying is never shamed, but it has to be possible to stop — so after a few turns
+         * that did not reach the passing score, the way out is offered.
+         *
+         * Offered, not taken. This used to end the session and show the feedback panel, which
+         * was wrong about what it was counting: a step is a conversation, and most turns in it
+         * are not attempts at the answer. "Да, чек нужен." is a fine reply that simply does
+         * not contain the target phrase, so three ordinary exchanges tripped the cap and the
+         * app closed the session on a learner who was in the middle of talking — right after
+         * the tutor had said "now, the last step".
          */
         if (stepAttemptsRef.current >= MAX_STEP_ATTEMPTS) {
-          await teardownVoice(false, 'step_attempts_exhausted')
           setStepExhausted(true)
-          setFeedback(latestFeedbackRef.current)
-          setVoiceState('feedback')
-          return
         }
 
         // Straight back to listening. The delay that used to sit here was a window in which
@@ -605,9 +605,6 @@ export function MissionPlayer() {
       const passed = result.score >= 70
       latestTurnScoreRef.current = result.score
       latestTurnPassedRef.current = passed
-      // Kept even when the panel is hidden, so the step can show the last judgement when the
-      // learner runs out of attempts on it.
-      latestFeedbackRef.current = result
       stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
       setTurnAccepted(passed)
       if (showFeedbackPanel) {
@@ -686,7 +683,6 @@ export function MissionPlayer() {
     setVoiceComposerOpen(false)
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
-    latestFeedbackRef.current = null
     stepAttemptsRef.current = 0
     reconnectsRef.current = 0
     setStepExhausted(false)
@@ -826,6 +822,13 @@ export function MissionPlayer() {
           onInterrupt={
             hasLiveSession && voiceState === 'thinking' && !busy
               ? () => void liveSessionRef.current?.interruptTutor()
+              : null
+          }
+          onMoveOn={
+            // Only while the conversation is live: in the feedback panel the same choice is
+            // already one of the two buttons.
+            stepExhausted && hasLiveSession && !busy
+              ? () => void (isLastStep ? complete() : advance())
               : null
           }
           feedback={feedback}
@@ -1120,6 +1123,7 @@ function MicControl({
   onStart,
   onStop,
   onInterrupt,
+  onMoveOn,
   feedback,
   isLastStep,
   stepExhausted,
@@ -1138,6 +1142,8 @@ function MicControl({
   onStop: () => void
   /** Offered only while the tutor is speaking; null the rest of the time. */
   onInterrupt: (() => void) | null
+  /** Offered once the step has taken a few tries, without stopping the conversation. */
+  onMoveOn: (() => void) | null
   feedback: TurnFeedback | null
   isLastStep: boolean
   /** Out of attempts on this step; moving on is offered without having passed. */
@@ -1238,6 +1244,15 @@ function MicControl({
         >
           {fill(t.player.voiceTimeLeft, { time: formatClock(secondsLeft) })}
         </p>
+      )}
+
+      {onMoveOn && (
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <p className="text-support max-w-sm text-center">{t.player.stepOffer}</p>
+          <Button variant="ghost" size="sm" onClick={onMoveOn}>
+            {isLastStep ? t.player.finish : t.player.advance}
+          </Button>
+        </div>
       )}
 
       {hint && (
