@@ -419,8 +419,17 @@ export class LiveVoiceSession {
           return
         }
 
-        // The provider's own reason is kept for the log, never shown: it arrives in
-        // English, unlocalised, and usually as a status code.
+        /*
+         * The provider's own reason is kept for the log and never shown: it arrives in
+         * English, unlocalised, and usually as a status code. It is logged rather than
+         * swallowed because without it a dropped session is unanswerable — the code and the
+         * reason are the only things that say whether it was the token, the setup or the
+         * network, and they are gone the moment the socket closes.
+         */
+        console.error(
+          `[voice] socket closed: code=${event.code} reason=${event.reason || '(none)'} ` +
+            `connected=${this.connected}`,
+        )
         const closed = new VoiceError('connection_closed', event.reason || `code ${event.code}`)
         rejectOnce(reject, closed)
         this.rejectTurnComplete?.(closed)
