@@ -94,7 +94,7 @@ export function Progress() {
 
       <section>
         <SectionHeading>{t.progress.milestones}</SectionHeading>
-        <MilestoneTimeline milestones={data.milestones} currentDay={data.currentDay} />
+        <MilestoneTimeline milestones={data.milestones} />
       </section>
 
       <p className="text-support border-t border-hairline pt-5">
