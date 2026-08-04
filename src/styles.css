@@ -40,6 +40,15 @@
   --color-on-signal: #ffffff;
 
   /*
+    The solid edge a control sits on. Pressing a button sinks it onto this edge, so it
+    has to read as the same surface in shade rather than as a second colour — deep
+    enough to be an edge at 4px, never a stripe.
+  */
+  --color-signal-depth: #2d76dd;
+  --color-control-depth: #d5dae1;
+  --color-danger-depth: #edb2ab;
+
+  /*
     The same hue when it is *text* rather than a fill — links, trend figures, badge
     labels. Deep enough to read on the ground (4.8:1), because the brand blue is not.
   */
@@ -85,6 +94,11 @@
   --color-signal-strong: #74aef8;
   --color-signal-soft: #16233a;
   --color-on-signal: #ffffff;
+
+  /* Depth is darker than the face in both themes — a lit edge would float, not sink. */
+  --color-signal-depth: #2b63ac;
+  --color-control-depth: #333944;
+  --color-danger-depth: #83352f;
 
   /* Inverted for text: on a dark ground the readable variant is the lighter one. */
   --color-signal-ink: #7db3fa;

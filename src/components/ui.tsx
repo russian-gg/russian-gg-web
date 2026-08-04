@@ -11,14 +11,27 @@ export type ButtonSize = 'sm' | 'md' | 'lg'
  * Controls are pills. Shared geometry lives here so a button, a link styled as a button
  * and a badge can never drift apart.
  *
- * `active:translate-y-px` is the only motion — a press should feel physical without
- * animating layout, and it is disabled automatically under reduced-motion.
+ * Weight is bold rather than semibold, and the body's negative tracking is cancelled: a
+ * button label is a target, not running text.
  */
 const base =
-  'inline-flex select-none items-center justify-center gap-2 rounded-[var(--radius-control)] ' +
-  'font-semibold whitespace-nowrap transition-colors duration-150 ' +
-  'active:translate-y-px ' +
-  'disabled:pointer-events-none disabled:opacity-40'
+  'inline-flex select-none touch-manipulation items-center justify-center gap-2 ' +
+  'rounded-[var(--radius-control)] font-bold tracking-normal whitespace-nowrap ' +
+  'transition-[background-color,border-color,box-shadow,transform] duration-150 ' +
+  'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none'
+
+/**
+ * The press. A control rests on a solid edge of its own colour and, when pushed, sinks
+ * onto it: the button drops by exactly the depth while the edge disappears, so the
+ * bottom stays put and only the face moves.
+ *
+ * Drawn with a shadow rather than a bottom border because the shadow follows the pill
+ * radius exactly — a 4px border on a 999px radius renders as a lopsided crescent — and
+ * because it costs no layout height, so nothing reflows on press.
+ *
+ * Each variant supplies its own `--depth`, which is why this string is shared.
+ */
+const press = 'shadow-[0_4px_0_0_var(--depth)] active:translate-y-1 active:shadow-none'
 
 /**
  * Every variant states its own hover *and* border, so a variant is never distinguished
@@ -26,11 +39,17 @@ const base =
  */
 const variants: Record<ButtonVariant, string> = {
   primary:
-    'border border-transparent bg-signal text-on-signal hover:bg-signal-strong',
+    'border border-transparent bg-signal text-on-signal hover:bg-signal-strong ' +
+    `[--depth:var(--color-signal-depth)] ${press}`,
   secondary:
-    'border border-hairline bg-ground-raised text-ink hover:border-ink-faint hover:bg-ground-sunken',
-  ghost: 'border border-transparent text-ink-muted hover:bg-ground-sunken hover:text-ink',
-  danger: 'border border-danger bg-transparent text-danger hover:bg-danger-soft',
+    'border border-hairline bg-ground-raised text-ink hover:border-ink-faint hover:bg-ground-sunken ' +
+    `[--depth:var(--color-control-depth)] ${press}`,
+  // Flat on purpose: a tertiary action has no face to sink, so it keeps the small nudge.
+  ghost:
+    'border border-transparent text-ink-muted hover:bg-ground-sunken hover:text-ink active:translate-y-px',
+  danger:
+    'border border-danger bg-transparent text-danger hover:bg-danger-soft ' +
+    `[--depth:var(--color-danger-depth)] ${press}`,
 }
 
 const sizes: Record<ButtonSize, string> = {
