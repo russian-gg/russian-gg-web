@@ -465,7 +465,9 @@ export function MissionPlayer() {
       const message =
         caught instanceof Error ? caught.message : "Gemini javobini kutib bo'lmadi."
       setError(message)
-      setVoiceState('idle')
+      // The turn was written off, not the session. Listening resumes so a provider that went
+      // quiet for one turn costs the learner a retry rather than the lesson.
+      await liveSessionRef.current?.beginNextTurn()
     } finally {
       setBusy(false)
     }

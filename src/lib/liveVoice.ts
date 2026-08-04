@@ -156,12 +156,46 @@ export class LiveVoiceSession {
       this.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }))
     }
 
-    await Promise.race([
-      this.turnCompletePromise ?? Promise.resolve(),
-      wait(TURN_COMPLETE_TIMEOUT_MS).then(() => {
-        throw new Error("Gemini javobi kutilyapti, lekin juda cho'zilib ketdi.")
-      }),
-    ])
+    let timer: number | null = null
+    const timeout = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(
+        () => reject(new Error("Gemini javobi kutilyapti, lekin juda cho'zilib ketdi.")),
+        TURN_COMPLETE_TIMEOUT_MS,
+      )
+    })
+
+    try {
+      await Promise.race([this.turnCompletePromise ?? Promise.resolve(), timeout])
+    } catch (error) {
+      /*
+       * The provider never closed the turn. The turn is abandoned rather than left hanging:
+       * the promise used to stay armed, so a reply arriving at forty-five seconds still fired
+       * and submitted an answer the learner had already been told did not go through.
+       */
+      this.abandonTurn()
+      throw error
+    } finally {
+      // Also on success: the timer used to keep running for the full forty seconds after
+      // every turn that completed normally.
+      if (timer !== null) {
+        window.clearTimeout(timer)
+      }
+    }
+  }
+
+  /** Writes off the turn in flight so nothing arriving late can close it. */
+  private abandonTurn() {
+    this.turnSettled = true
+    this.turnCompletePromise = null
+    this.resolveTurnComplete = null
+    this.rejectTurnComplete = null
+
+    if (this.playbackDrainTimer !== null) {
+      window.clearTimeout(this.playbackDrainTimer)
+      this.playbackDrainTimer = null
+    }
+
+    this.stopPlayback()
   }
 
   async beginNextTurn() {
