@@ -198,6 +198,37 @@ function Users({ token }: { token: string }) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
+  const [granting, setGranting] = useState(false)
+  const [granted, setGranted] = useState<string | null>(null)
+
+  /*
+   * Opening Pro for one learner: a beta tester, a support gesture, a demo account. It is the
+   * replacement for the preview flag that used to give Pro to everybody and switch payments
+   * off for everybody while it did — this one has an owner, a reason and an end date.
+   */
+  async function grantPro(userId: string) {
+    const days = Number(prompt('Grant Pro for how many days?', '30'))
+    if (!Number.isFinite(days) || days < 1) return
+
+    const reason = prompt('Why? This goes in the audit log.')?.trim()
+    if (!reason) return
+
+    setGranting(true)
+    setGranted(null)
+    try {
+      const response = await fetch(`/api/admin-portal/users/${userId}/grant-pro`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ days, reason }),
+      })
+
+      setGranted(response.ok ? `Pro granted for ${days} days.` : 'Grant failed.')
+    } catch {
+      setGranted('Grant failed.')
+    } finally {
+      setGranting(false)
+    }
+  }
   const query = useMemo(() => `/api/admin-portal/users?page=${page}&pageSize=20&search=${encodeURIComponent(search)}`, [page, search])
   const { data, error } = useAdminFetch<Paged<UserItem>>(token, query)
   const detail = useAdminFetch<UserDetail>(token, selected ? `/api/admin-portal/users/${selected}` : null)
@@ -236,6 +267,14 @@ function Users({ token }: { token: string }) {
             <div className="kv"><span>Plan</span><strong>{detail.data.plan}</strong></div>
             <div className="kv"><span>Current day</span><strong>{detail.data.currentDay ?? '-'}</strong></div>
             <div className="kv"><span>Recommended start</span><strong>{detail.data.recommendedStartDay ?? '-'}</strong></div>
+            <div className="kv">
+              <span>Access</span>
+              <button type="button" disabled={granting} onClick={() => void grantPro(detail.data!.id)}>
+                {granting ? 'Granting…' : 'Grant Pro'}
+              </button>
+            </div>
+            {granted && <p>{granted}</p>}
+
             <h4>Recent missions</h4>
             <ul className="simple-list">
               {detail.data.recentMissions.map((mission) => <li key={mission.id}><span>{mission.status}</span><strong>{mission.overallScore ?? '-'}</strong></li>)}
