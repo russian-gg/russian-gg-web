@@ -55,7 +55,7 @@ export function CoursePath() {
     <div className="space-y-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.path.title}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.path.title}</h1>
           <p className="text-support mt-1">
             {t.path.subtitle}
           </p>
@@ -126,7 +126,7 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
         aria-modal="true"
         aria-labelledby="locked-day-title"
       >
-        <h2 id="locked-day-title" className="text-lg font-semibold text-ink">
+        <h2 id="locked-day-title" className="text-lg font-extrabold text-ink">
           {isPro ? fill(t.path.lockedProTitle, { day: locked.day }) : t.path.lockedProgressTitle}
         </h2>
 
@@ -241,7 +241,7 @@ function MissionBrief({ mission }: { mission: MissionSummary }) {
   const t = useT()
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4 md:p-5">
+    <div className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 md:p-5">
       <div className="grid gap-6 md:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,17rem)]">
         <dl className="space-y-3">
           <Meta icon={<ClockGlyph />} label={fill(t.common.minutes, { count: mission.estimatedMinutes })} />
@@ -251,7 +251,7 @@ function MissionBrief({ mission }: { mission: MissionSummary }) {
         </dl>
 
         <div>
-          <h3 className="text-base font-semibold text-ink">{t.path.willLearn}</h3>
+          <h3 className="text-base font-extrabold text-ink">{t.path.willLearn}</h3>
           {mission.learningPointsUz.length > 0 ? (
             <ul className="mt-3 space-y-2">
               {mission.learningPointsUz.map((point) => (
@@ -266,7 +266,7 @@ function MissionBrief({ mission }: { mission: MissionSummary }) {
           )}
         </div>
 
-        <div className="rounded-[var(--radius-card)] border border-hairline bg-ground p-4">
+        <div className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground p-4">
           <div className="flex items-start gap-3">
             <TutorAvatar />
             <div className="min-w-0">

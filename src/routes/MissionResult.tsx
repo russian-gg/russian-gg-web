@@ -27,7 +27,7 @@ export function MissionResult() {
     <div className="space-y-8">
       <header>
         <Badge tone="milestone">{t.result.completed}</Badge>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink">
+        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">
           {data.overallScore} <span className="text-lg font-medium text-ink-faint">/ 100</span>
         </h1>
         <UzHint>{data.strengthNoteUz}</UzHint>
@@ -36,7 +36,7 @@ export function MissionResult() {
       {data.unlockedMilestone && (
         <Card>
           <Badge tone="milestone">{fill(t.result.milestoneUnlocked, { day: data.unlockedMilestone.day })}</Badge>
-          <h2 className="mt-3 text-lg font-semibold text-ink">{data.unlockedMilestone.titleUz}</h2>
+          <h2 className="mt-3 text-lg font-extrabold text-ink">{data.unlockedMilestone.titleUz}</h2>
           <UzHint>{data.unlockedMilestone.outcomeUz}</UzHint>
         </Card>
       )}
@@ -131,7 +131,7 @@ export function MissionResult() {
         </LinkButton>
         <Link
           to="/practice"
-          className="inline-flex items-center justify-center rounded-xl border border-hairline px-6 py-4 text-base font-semibold text-ink"
+          className="inline-flex items-center justify-center rounded-xl border-2 border-hairline px-6 py-4 text-base font-semibold text-ink"
         >
           {t.result.practiceMore}
         </Link>

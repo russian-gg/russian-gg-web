@@ -36,7 +36,7 @@ export function Home() {
           {data.tier === 'Free' && <Badge tone="caution">{t.account.plan.free}</Badge>}
         </div>
 
-        <h1 className="mt-4 text-2xl font-semibold leading-snug tracking-tight text-ink">
+        <h1 className="mt-4 text-2xl font-extrabold leading-snug tracking-tight text-ink">
           {data.dayFocusUz || t.home.fallbackTitle}
         </h1>
       </header>

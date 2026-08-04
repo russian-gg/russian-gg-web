@@ -60,7 +60,7 @@ export function Profile() {
           {initials}
         </span>
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight text-ink">{name}</h1>
+          <h1 className="truncate text-2xl font-extrabold tracking-tight text-ink">{name}</h1>
           <p className="text-support truncate">{user?.email}</p>
         </div>
       </header>

@@ -67,7 +67,7 @@ export function AdminContent() {
   return (
     <div className="space-y-9">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Kontent nazorati</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Kontent nazorati</h1>
         <p className="text-support mt-1">
           Har bir mashq nashrdan oldin rus tili muharriri tomonidan tasdiqlanishi shart.
         </p>
@@ -87,7 +87,7 @@ export function AdminContent() {
             className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
               filter === status
                 ? 'bg-signal text-on-signal'
-                : 'border border-hairline text-ink-muted hover:text-ink'
+                : 'border-2 border-hairline text-ink-muted hover:text-ink'
             }`}
           >
             {status ? STATUS_LABEL[status] : 'Barchasi'}
@@ -108,7 +108,7 @@ export function AdminContent() {
               {mission.courseDay && <Badge>{mission.courseDay}-kun</Badge>}
             </div>
 
-            <h3 className="mt-3 text-base font-semibold text-ink">{mission.titleRu}</h3>
+            <h3 className="mt-3 text-base font-extrabold text-ink">{mission.titleRu}</h3>
             <p className="text-support">{mission.slug}</p>
 
             <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">

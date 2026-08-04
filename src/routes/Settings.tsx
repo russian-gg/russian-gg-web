@@ -104,7 +104,7 @@ export function Settings() {
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.settings.title}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.settings.title}</h1>
         <p className="text-support mt-1">{user?.email}</p>
       </header>
 
@@ -130,7 +130,7 @@ export function Settings() {
               <Card key={consent.kind} as="article">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="text-base font-semibold text-ink">{consent.title}</h3>
+                    <h3 className="text-base font-extrabold text-ink">{consent.title}</h3>
                     <UzHint>{consent.body}</UzHint>
                   </div>
 
@@ -201,10 +201,10 @@ export function Settings() {
           onClick={() => setFeedbackOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 shadow-2xl"
+            className="w-full max-w-lg rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-ink">{t.settings.feedbackTitle}</h2>
+            <h2 className="text-lg font-extrabold text-ink">{t.settings.feedbackTitle}</h2>
             <p className="text-support mt-1">
               {t.settings.feedbackBody}
             </p>
@@ -214,7 +214,7 @@ export function Settings() {
                 value={feedbackMessage}
                 onChange={(event) => setFeedbackMessage(event.target.value)}
                 rows={6}
-                className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
+                className="w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
                 placeholder={t.settings.feedbackPlaceholder}
               />
             </label>
@@ -260,7 +260,7 @@ function ThemeChoice() {
               <span
                 aria-hidden="true"
                 className={cx(
-                  'size-4 shrink-0 rounded-full border border-hairline',
+                  'size-4 shrink-0 rounded-full border-2 border-hairline',
                   option.value === 'light' ? 'bg-white' : 'bg-[#101216]',
                 )}
               />

@@ -47,7 +47,7 @@ export function Paywall() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.billing.title}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.billing.title}</h1>
         <p className="text-support mt-1">
           {t.billing.subtitle}
         </p>
@@ -217,7 +217,7 @@ export function BillingReturn() {
     return (
       <Card className="text-center">
         <Badge tone="milestone">{t.billing.returnConfirmed}</Badge>
-        <h1 className="mt-4 text-xl font-semibold text-ink">{t.billing.returnProOpen}</h1>
+        <h1 className="mt-4 text-xl font-extrabold text-ink">{t.billing.returnProOpen}</h1>
         <p className="text-support mt-2">{t.billing.returnProBody}</p>
         <Button className="mt-6" onClick={() => navigate('/home')}>
           {t.common.continue}
@@ -229,7 +229,7 @@ export function BillingReturn() {
   return (
     <Card className="text-center">
       <Badge tone="caution">{t.billing.returnChecking}</Badge>
-      <h1 className="mt-4 text-xl font-semibold text-ink">{t.billing.returnPending}</h1>
+      <h1 className="mt-4 text-xl font-extrabold text-ink">{t.billing.returnPending}</h1>
       <p className="text-support mt-2">
         {t.billing.returnPendingBody}
       </p>

@@ -23,7 +23,7 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
         {mission.isLocked && <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>}
       </div>
 
-      <h3 className="mt-3 text-lg font-semibold leading-snug text-ink">{mission.titleUz}</h3>
+      <h3 className="mt-3 text-lg font-extrabold leading-snug text-ink">{mission.titleUz}</h3>
       <p className="text-support">{mission.objectiveUz}</p>
 
       {/*
@@ -46,9 +46,14 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
     </>
   )
 
+  // A mission card is a thing you push, so it behaves like one: it rests on a solid edge,
+  // rises toward the cursor and sinks onto that edge when tapped.
   const className =
-    'block rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 transition ' +
-    'hover:border-signal focus-visible:border-signal'
+    'block rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5 ' +
+    'shadow-[0_4px_0_0_var(--color-control-depth)] ' +
+    'transition-[border-color,box-shadow,transform] duration-150 ' +
+    'hover:-translate-y-0.5 hover:border-signal hover:shadow-[0_6px_0_0_var(--color-control-depth)] ' +
+    'focus-visible:border-signal active:translate-y-1 active:shadow-none'
 
   if (mission.isLocked) {
     return (

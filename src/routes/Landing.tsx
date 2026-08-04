@@ -16,7 +16,7 @@ export function Landing() {
         russian<span className="text-signal">.gg</span>
       </span>
 
-      <h1 className="mt-12 text-4xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl">
+      <h1 className="mt-12 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl">
         {t.landing.headline}
       </h1>
 

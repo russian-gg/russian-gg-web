@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
+import { cx } from '../lib/cx'
 import { fill, useT, type Dictionary } from '../lib/i18n'
 import {
   LiveVoiceSession,
@@ -755,7 +756,7 @@ export function MissionPlayer() {
         </header>
 
         <div className="mt-8 flex-1">
-          <h1 className="text-3xl leading-[1.15] font-semibold tracking-tight text-ink">
+          <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
             {summary.titleUz}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
@@ -850,7 +851,7 @@ export function MissionPlayer() {
                 value={transcript}
                 onChange={(event) => setTranscript(event.target.value)}
                 rows={3}
-                className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
+                className="w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-3 text-base text-ink placeholder:text-ink-faint"
                 placeholder={promptAudioText}
               />
             </label>
@@ -1014,7 +1015,7 @@ function ConversationThread({
         return (
           <div key={message.key} className="flex gap-3">
             <TutorMark />
-            <div className="max-w-[80%] rounded-2xl rounded-tl-md border border-hairline bg-ground-raised px-4 py-3">
+            <div className="max-w-[80%] rounded-2xl rounded-tl-md border-2 border-hairline bg-ground-raised px-4 py-3">
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-base leading-relaxed text-ink">{message.ru}</p>
@@ -1198,9 +1199,20 @@ function MicControl({
            */
           disabled={busy && !hasLiveSession}
           aria-label={hasLiveSession ? t.player.finish : t.player.answer}
-          className={`flex size-20 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
-            hasLiveSession ? 'bg-signal-strong' : 'bg-signal'
-          } hover:bg-signal-strong`}
+          /*
+           * The screen's one action, and the only control on it that is not a Button — so
+           * the press has to be built here. Same language: it rests on a solid edge, lifts
+           * toward the cursor, and sinks onto that edge when pushed.
+           */
+          className={cx(
+            'flex size-20 shrink-0 items-center justify-center rounded-full',
+            'shadow-[0_5px_0_0_var(--color-signal-depth)]',
+            'transition-[background-color,box-shadow,transform] duration-150',
+            'hover:-translate-y-0.5 hover:shadow-[0_7px_0_0_var(--color-signal-depth)]',
+            'active:translate-y-[5px] active:shadow-none',
+            'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none',
+            hasLiveSession ? 'bg-signal-strong' : 'bg-signal hover:bg-signal-hover',
+          )}
         >
           {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
         </button>
@@ -1276,12 +1288,12 @@ function RailCard({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4">
+    <section className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-signal-ink" aria-hidden="true">
           {icon}
         </span>
-        <h2 className="flex-1 text-sm font-semibold text-ink">{title}</h2>
+        <h2 className="flex-1 text-sm font-extrabold text-ink">{title}</h2>
         {trailing && <span className="text-sm text-ink-faint">{trailing}</span>}
       </div>
       {children}
@@ -1452,7 +1464,7 @@ function InlineListenButton({
       type="button"
       onClick={onClick}
       aria-label={active ? "Eshitishni to'xtatish" : 'Eshitish'}
-      className={`flex shrink-0 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink transition hover:border-signal hover:text-signal-ink ${
+      className={`flex shrink-0 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-ink transition hover:border-signal hover:text-signal-ink ${
         small ? 'size-9' : 'size-12'
       }`}
     >

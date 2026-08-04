@@ -91,7 +91,7 @@ export function MilestoneTimeline({
               )}
             </div>
 
-            <h3 className="mt-1 text-base font-semibold text-ink">{milestone.titleUz}</h3>
+            <h3 className="mt-1 text-base font-extrabold text-ink">{milestone.titleUz}</h3>
             <p className="text-support">{milestone.outcomeUz}</p>
           </li>
         )

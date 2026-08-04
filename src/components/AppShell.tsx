@@ -146,7 +146,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left transition hover:border-signal ${
+        className={`flex items-center gap-3 rounded-2xl border-2 border-hairline bg-ground-raised text-left transition hover:border-signal ${
           compact ? 'max-w-[10.5rem] px-2.5 py-2' : 'w-full px-3 py-2'
         }`}
       >
@@ -269,7 +269,7 @@ function ProfilePopover({
         role="menu"
         aria-label={label}
         style={style ?? { visibility: 'hidden' }}
-        className="fixed z-50 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-2 shadow-2xl"
+        className="fixed z-50 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-2 shadow-2xl"
       >
         {children}
       </div>
@@ -467,7 +467,7 @@ function TabLink({
         <span className="flex h-6 items-center" aria-hidden="true">
           <Icon />
         </span>
-        <span aria-hidden="true" className="text-[11px] leading-none font-medium">
+        <span aria-hidden="true" className="text-[11px] leading-none">
           {short}
         </span>
       </span>
@@ -480,14 +480,14 @@ function TabLink({
       aria-label={description}
       className={({ isActive }) =>
         `flex flex-1 flex-col items-center justify-center gap-1.5 py-2.5 transition-colors ${
-          isActive ? 'text-signal-ink' : 'text-ink-faint'
+          isActive ? 'font-extrabold text-signal-ink' : 'font-bold text-ink-faint'
         }`
       }
     >
       <span className="flex h-6 items-center" aria-hidden="true">
         <Icon />
       </span>
-      <span aria-hidden="true" className="text-[11px] leading-none font-medium">
+      <span aria-hidden="true" className="text-[11px] leading-none">
         {short}
       </span>
     </NavLink>
@@ -564,7 +564,7 @@ function RailLink({
 }) {
   if (!to) {
     return (
-      <span className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-base font-medium text-ink-faint">
+      <span className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-base font-bold text-ink-faint">
         <span>{children}</span>
         {comingSoon && comingSoonLabel && (
           <Badge tone="neutral" size="sm">
@@ -579,8 +579,10 @@ function RailLink({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-base transition-colors ${
-          isActive ? 'font-semibold text-ink' : 'font-medium text-ink-muted hover:text-ink'
+        `-mx-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-base transition-colors ${
+          isActive
+            ? 'bg-signal-soft font-extrabold text-signal-ink'
+            : 'font-bold text-ink-muted hover:bg-ground-sunken hover:text-ink'
         }`
       }
     >

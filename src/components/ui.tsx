@@ -50,7 +50,7 @@ const variants: Record<ButtonVariant, string> = {
   // Stays on the raised surface on hover. Sinking it to `ground-sunken` dimmed the one
   // control on the screen the learner was reaching for.
   secondary:
-    'border border-hairline bg-ground-raised text-ink hover:border-ink-faint ' +
+    'border-2 border-hairline bg-ground-raised text-ink hover:border-ink-faint ' +
     `[--depth:var(--color-control-depth)] ${press}`,
   // Flat on purpose: a tertiary action has no face to sink, so it keeps the small nudge.
   ghost:
@@ -153,7 +153,7 @@ export function Card({
     <Tag
       {...props}
       className={cx(
-        'rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5',
+        'rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5',
         className,
       )}
     >
@@ -165,7 +165,7 @@ export function Card({
 export function SectionHeading({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-4">
-      <h2 className="text-xs font-semibold tracking-[0.14em] text-ink-faint uppercase">
+      <h2 className="text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">
         {children}
       </h2>
       {action}
@@ -207,9 +207,11 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={cx(
-          'h-12 w-full rounded-xl border bg-ground-raised px-4 text-base text-ink',
-          'placeholder:text-ink-faint',
-          error ? 'border-danger' : 'border-hairline',
+          'h-12 w-full rounded-2xl border-2 bg-ground-raised px-4 text-base text-ink',
+          'placeholder:text-ink-faint transition-colors',
+          error
+            ? 'border-danger'
+            : 'border-hairline hover:border-ink-faint focus:border-signal',
           className,
         )}
       />
@@ -244,10 +246,15 @@ export function RadioOption({
   return (
     <label
       className={cx(
-        'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
+        'flex cursor-pointer items-center gap-3 rounded-2xl border-2 px-4 py-3.5',
+        'transition-[background-color,border-color,box-shadow,transform] duration-150',
+        // The same press as a button: an option is a thing you push, and it now behaves like
+        // one. Selected sits down on its edge and stays there.
+        'active:translate-y-0.5 active:shadow-none',
         checked
-          ? 'border-signal bg-signal-soft'
-          : 'border-hairline bg-ground-raised hover:border-ink-faint',
+          ? 'border-signal bg-signal-soft translate-y-0.5 shadow-none'
+          : 'border-hairline bg-ground-raised shadow-[0_3px_0_0_var(--color-control-depth)] ' +
+            'hover:border-ink-faint',
       )}
     >
       <input
@@ -284,12 +291,22 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
       aria-valuemin={0}
       aria-valuemax={max}
       aria-label={label}
-      className="h-1.5 w-full overflow-hidden rounded-full bg-ground-sunken"
+      className="h-3 w-full overflow-hidden rounded-full bg-ground-sunken"
     >
       <div
-        className="h-full rounded-full bg-signal transition-[width] duration-300"
+        className="relative h-full rounded-full bg-signal transition-[width] duration-300"
         style={{ width: `${percent}%` }}
-      />
+      >
+        {/*
+          A highlight along the top of the fill. It is what stops a progress bar reading as a
+          flat rectangle, and it is drawn rather than a second colour token because it is the
+          same colour at a lower opacity whatever the fill happens to be.
+        */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-1 top-[3px] h-[3px] rounded-full bg-white/35"
+        />
+      </div>
     </div>
   )
 }
@@ -318,10 +335,10 @@ export function Badge({
   } as const
 
   const outlined = {
-    neutral: 'border border-hairline text-ink-muted',
-    signal: 'border border-signal text-signal-ink',
-    milestone: 'border border-milestone text-milestone',
-    caution: 'border border-caution text-caution',
+    neutral: 'border-2 border-hairline text-ink-muted',
+    signal: 'border-2 border-signal text-signal-ink',
+    milestone: 'border-2 border-milestone text-milestone',
+    caution: 'border-2 border-caution text-caution',
   } as const
 
   const sizing = {
@@ -332,7 +349,7 @@ export function Badge({
   return (
     <span
       className={cx(
-        'inline-flex items-center rounded-[var(--radius-control)] font-semibold',
+        'inline-flex items-center rounded-[var(--radius-control)] font-extrabold',
         sizing[size],
         outline ? outlined[tone] : filled[tone],
       )}
@@ -351,14 +368,17 @@ export function Switch({ checked }: { checked: boolean }) {
     <span
       aria-hidden="true"
       className={cx(
-        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors',
+        'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors',
         checked ? 'border-signal bg-signal' : 'border-hairline bg-ground-sunken',
       )}
     >
       <span
         className={cx(
-          'absolute size-[1.125rem] rounded-full bg-white shadow transition-transform',
-          checked ? 'translate-x-[1.4375rem]' : 'translate-x-[0.1875rem]',
+          // The knob carries the same solid bottom edge the buttons do, so it reads as a
+          // physical thing sitting in the track rather than a circle floating on it.
+          'absolute size-5 rounded-full bg-white shadow-[0_2px_0_0_rgb(0_0_0/0.12)]',
+          'transition-transform',
+          checked ? 'translate-x-[1.4375rem]' : 'translate-x-[0.125rem]',
         )}
       />
     </span>
@@ -386,7 +406,8 @@ export function CheckCircle({
       aria-label={label}
       className={cx(
         'flex shrink-0 items-center justify-center rounded-full bg-milestone-soft',
-        size === 'sm' ? 'size-6' : 'size-7',
+        'border-2 border-milestone/25',
+        size === 'sm' ? 'size-7' : 'size-8',
       )}
     >
       <svg
@@ -423,7 +444,7 @@ export function EmptyState({
 }) {
   return (
     <Card className="text-center">
-      <h3 className="text-base font-semibold text-ink">{title}</h3>
+      <h3 className="text-base font-extrabold text-ink">{title}</h3>
       <p className="text-support mx-auto mt-2 max-w-sm">{body}</p>
       {action && <div className="mt-5">{action}</div>}
     </Card>

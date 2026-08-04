@@ -66,7 +66,7 @@ export function FeedbacksPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t.feedbackPage.title}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.feedbackPage.title}</h1>
         <p className="text-support mt-1">
           Muammo, taklif yoki eʼtirozingizni shu yerda alohida forma orqali yuboring.
         </p>
@@ -87,7 +87,7 @@ export function FeedbacksPage() {
             <select
               value={issueType}
               onChange={(event) => setIssueType(event.target.value as (typeof ISSUE_TYPES)[number])}
-              className="h-12 w-full rounded-xl border border-hairline bg-ground-raised px-4 text-base text-ink"
+              className="h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 text-base text-ink"
             >
               {ISSUE_TYPES.map((option) => (
                 <option key={option} value={option}>
@@ -102,7 +102,7 @@ export function FeedbacksPage() {
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="h-12 w-full rounded-xl border border-hairline bg-ground-raised px-4 text-base text-ink"
+              className="h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 text-base text-ink"
               placeholder={t.feedbackPage.subjectPlaceholder}
             />
           </label>
@@ -116,7 +116,7 @@ export function FeedbacksPage() {
                 const file = event.target.files?.[0] ?? null
                 setAttachmentFile(file)
               }}
-              className="block w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-sm text-ink"
+              className="block w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink"
             />
             <UzHint>
               Hozircha faylning nomi izoh bilan birga saqlanadi. Kerak bo'lsa keyin to'liq uploadni ham ulaymiz.
@@ -129,7 +129,7 @@ export function FeedbacksPage() {
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               rows={7}
-              className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-3 text-base text-ink"
+              className="w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-3 text-base text-ink"
               placeholder={t.feedbackPage.detailsPlaceholder}
             />
           </label>

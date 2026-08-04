@@ -279,7 +279,7 @@ function AuthLayout({
       <Link to="/" className="text-sm font-medium text-ink-faint">
         ← russian.gg
       </Link>
-      <h1 className="mb-7 mt-6 text-3xl font-semibold tracking-tight text-ink">{title}</h1>
+      <h1 className="mb-7 mt-6 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
       {children}
       <p className="text-support mt-6">{footer}</p>
     </div>
@@ -308,7 +308,7 @@ function PasswordField({
         <input
           {...props}
           id={id}
-          className="h-12 w-full rounded-xl border border-hairline bg-ground-raised px-4 pr-14 text-base text-ink placeholder:text-ink-faint"
+          className="h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 pr-14 text-base text-ink placeholder:text-ink-faint"
         />
         <button
           type="button"
@@ -433,7 +433,7 @@ function GoogleContinueButton({
           ref={buttonRef}
           className={`min-h-[44px] ${busy ? 'pointer-events-none opacity-70' : 'opacity-0'}`}
         />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border border-hairline bg-white px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border-2 border-hairline bg-white px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <img src={googleGIcon} alt="" className="mr-3 size-6 shrink-0" />
           <span>{buttonLabel}</span>
         </div>

@@ -25,7 +25,7 @@ export function Progress() {
           <Badge>{t.labels.phase[data.phase]}</Badge>
           {data.streakDays > 1 && <Badge tone="milestone">{fill(t.home.streak, { count: data.streakDays })}</Badge>}
         </div>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-ink">{t.progress.title}</h1>
+        <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{t.progress.title}</h1>
       </header>
 
       <Card>

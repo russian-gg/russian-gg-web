@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 
 /*
+  Nunito, self-hosted. It is the free web alternative to the rounded typeface this kind of
+  interface is built on, and rounded letterforms are most of why the product reads as
+  encouraging rather than clinical.
+
+  Self-hosted rather than loaded from a font CDN: no third-party request on a page a learner
+  opens every day, and no dependency on a host we do not control. The package declares each
+  subset with its own unicode-range, so a screen with no Cyrillic on it never downloads the
+  Cyrillic file — which matters, because Cyrillic is exactly what the *content* is written in.
+*/
+@import '@fontsource-variable/nunito/wght.css';
+
+/*
   Russian.gg design tokens (PRD §7).
 
   Street-smart, focused, optimistic, adult. Light is the product's default and is not
@@ -70,7 +82,7 @@
   --color-danger-soft: #fdeceb;
 
   --font-sans:
-    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Nunito Variable', 'Nunito', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', 'Noto Sans', 'Noto Sans Cyrillic', sans-serif;
 
   --radius-card: 16px;
@@ -152,8 +164,11 @@
     background-color: var(--color-ground);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    /* Uzbek and Russian both benefit from slightly tighter tracking at display sizes. */
-    letter-spacing: -0.011em;
+    /*
+      Nunito is rounded and fairly narrow, and the negative tracking that suited the previous
+      grotesque closes its counters up. Left at its designed spacing.
+    */
+    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
   }
 

@@ -52,7 +52,7 @@ export function Practice() {
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">
           {t.practice.title}
         </h1>
         <p className="text-support mt-1">

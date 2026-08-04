@@ -312,7 +312,7 @@ export function Onboarding() {
                 onClick={() =>
                   void recordAnswer({ itemCode: item.code, selectedOption: option, skipped: false })
                 }
-                className="w-full rounded-xl border border-hairline bg-ground-raised px-4 py-4 text-left text-base text-ink transition hover:border-signal"
+                className="w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-4 text-left text-base text-ink transition hover:border-signal"
               >
                 {option}
               </button>
@@ -511,7 +511,7 @@ function SpokenItem({
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-hairline bg-ground-raised px-3.5 py-3 text-base text-ink"
+            className="w-full rounded-xl border-2 border-hairline bg-ground-raised px-3.5 py-3 text-base text-ink"
             placeholder={t.onboarding.writePlaceholder}
           />
         </label>
@@ -607,7 +607,7 @@ function Layout({
         <ProgressBar value={progress.value} max={progress.max} label={t.onboarding.progressLabel} />
       </div>
 
-      <h1 className="mb-6 text-2xl font-semibold leading-snug tracking-tight text-ink">{title}</h1>
+      <h1 className="mb-6 text-2xl font-extrabold leading-snug tracking-tight text-ink">{title}</h1>
       {children}
     </div>
   )
