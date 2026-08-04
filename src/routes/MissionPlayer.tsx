@@ -4,7 +4,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
 import { fill, useT, type Dictionary } from '../lib/i18n'
-import { LiveVoiceSession, isPromptAudioPlaying, playPromptAudio, stopPromptAudio } from '../lib/liveVoice'
+import {
+  LiveVoiceSession,
+  isPromptAudioPlaying,
+  playPromptAudio,
+  releaseMicrophone,
+  requestMicrophone,
+  stopPromptAudio,
+} from '../lib/liveVoice'
 import type {
   MissionDetail,
   StartAttemptResponse,
@@ -123,6 +130,10 @@ export function MissionPlayer() {
    */
   useEffect(() => {
     function releaseSession(reason: string) {
+      // Unconditional: the press opens the microphone before the session exists, so leaving
+      // mid-connect would otherwise leave it open with nothing holding it.
+      releaseMicrophone()
+
       const liveSession = liveSessionRef.current
       const sessionId = liveSessionIdRef.current
       if (!liveSession || !sessionId) return
@@ -291,6 +302,13 @@ export function MissionPlayer() {
     // Measured from the press, not from the socket: the learner is waiting for all of it.
     const pressedAt = Date.now()
 
+    /*
+     * Started here, on the press itself, so the permission prompt runs alongside the round
+     * trip that mints the session rather than after it. It is deliberately not awaited — the
+     * session picks up the same request, and a rejection surfaces there.
+     */
+    void requestMicrophone().catch(() => {})
+
     try {
       const outcome = await api.post<VoiceSessionOutcome>('/missions/voice/sessions', {
         attemptId: attempt.attemptId,
@@ -373,6 +391,9 @@ export function MissionPlayer() {
             : t.player.startFailed
       setError(message)
       await teardownVoice(false, 'start_failed')
+      // Starting failed after the press already opened the microphone; without this the
+      // recording indicator stays lit with no session behind it.
+      releaseMicrophone()
       setVoiceState('idle')
     } finally {
       setBusy(false)

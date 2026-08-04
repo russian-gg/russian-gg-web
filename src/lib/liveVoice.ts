@@ -70,7 +70,13 @@ export class LiveVoiceSession {
       await this.playbackContext.resume()
     }
 
-    await this.openWebSocket()
+    /*
+     * Microphone and connection are opened together. They do not depend on each other, and
+     * doing them in order put the permission prompt on top of an already-open socket with
+     * the session clock running — the learner watched "connecting", then got asked for the
+     * microphone, then waited again.
+     */
+    await Promise.all([this.openMicrophone(), this.openWebSocket()])
     await this.openConversation()
     await this.beginNextTurn()
   }
@@ -112,9 +118,9 @@ export class LiveVoiceSession {
     }
 
     if (this.recording) {
+      // Recording stops; the microphone stays open for the next turn.
       this.recording = false
       this.autoStopRequested = true
-      this.stopMicrophone()
       this.callbacks.onStatus('thinking')
       this.turnSettled = false
       this.turnCompletePromise ??= new Promise<void>((resolve, reject) => {
@@ -137,7 +143,9 @@ export class LiveVoiceSession {
       return
     }
 
-    await this.startMicrophone()
+    // The microphone is already open — it belongs to the session, not to the turn. Acquiring
+    // it per turn cost a few hundred milliseconds during which the learner was already
+    // speaking, so the first word of every turn after the first was simply not recorded.
     this.heardSpeechThisTurn = false
     this.autoStopRequested = false
     this.lastSpeechAt = Date.now()
@@ -155,7 +163,7 @@ export class LiveVoiceSession {
     if (this.closed) return
     this.closed = true
     this.recording = false
-    this.stopMicrophone()
+    this.teardownCapture()
     this.resolveTurnComplete?.()
     this.resolveTurnComplete = null
     this.rejectTurnComplete = null
@@ -289,28 +297,16 @@ export class LiveVoiceSession {
     })
   }
 
-  private async startMicrophone() {
-    if (!window.isSecureContext) {
-      throw new Error("Mikrofon uchun HTTPS kerak. Hozir sayt xavfsiz ulanishda ochilmagan.")
+  /**
+   * Opened once for the whole session. Capture keeps running between turns and the frames
+   * are dropped while `recording` is false, which is what makes a turn boundary instant.
+   */
+  private async openMicrophone() {
+    if (this.mediaStream) {
+      return
     }
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Brauzer mikrofon API'ni qo'llamayapti.")
-    }
-
-    try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      })
-    } catch (error) {
-      throw new Error(await describeMicrophoneError(error))
-    }
-
+    this.mediaStream = await requestMicrophone()
     this.captureContext = new AudioContext()
     this.captureSource = this.captureContext.createMediaStreamSource(this.mediaStream)
     this.captureProcessor = this.captureContext.createScriptProcessor(4096, 1, 1)
@@ -351,10 +347,13 @@ export class LiveVoiceSession {
     }
   }
 
-  private stopMicrophone() {
+  /** Ends this session's capture graph and hands the shared stream back. */
+  private teardownCapture() {
     this.captureProcessor?.disconnect()
     this.captureSource?.disconnect()
-    this.mediaStream?.getTracks().forEach((track) => track.stop())
+    // The stream is the module's, not this session's: releasing it there is what turns the
+    // recording indicator off.
+    releaseMicrophone()
     this.captureContext?.close().catch(() => {})
 
     this.captureProcessor = null
@@ -421,7 +420,6 @@ export class LiveVoiceSession {
      * scored as one sentence, under a status line that said the session was idle.
      */
     this.recording = false
-    this.stopMicrophone()
 
     if (this.playbackDrainTimer !== null) {
       window.clearTimeout(this.playbackDrainTimer)
@@ -455,6 +453,67 @@ export class LiveVoiceSession {
       this.resolveTurnComplete = resolve
       this.rejectTurnComplete = reject
     })
+  }
+}
+
+/*
+ * One microphone stream, owned here rather than by whoever asked first.
+ *
+ * The press and the session both want it: the press so the permission prompt overlaps the
+ * round trip that mints the session, the session so it can capture. Two owners means two
+ * getUserMedia calls, and the loser's stream is one nobody ever stops — a recording
+ * indicator that stays lit after the lesson ends.
+ */
+let sharedStream: MediaStream | null = null
+let pendingStream: Promise<MediaStream> | null = null
+
+/**
+ * Asks for the microphone, or hands back the one already open. Call it on the press, so the
+ * permission prompt and the session round trip cost their time together rather than in turn.
+ */
+export function requestMicrophone(): Promise<MediaStream> {
+  if (sharedStream?.active) {
+    return Promise.resolve(sharedStream)
+  }
+
+  pendingStream ??= openMicrophoneStream()
+    .then((stream) => {
+      sharedStream = stream
+      return stream
+    })
+    .finally(() => {
+      pendingStream = null
+    })
+
+  return pendingStream
+}
+
+/** Ends the shared stream and turns the recording indicator off. Safe when nothing is open. */
+export function releaseMicrophone() {
+  sharedStream?.getTracks().forEach((track) => track.stop())
+  sharedStream = null
+}
+
+async function openMicrophoneStream(): Promise<MediaStream> {
+  if (!window.isSecureContext) {
+    throw new Error("Mikrofon uchun HTTPS kerak. Hozir sayt xavfsiz ulanishda ochilmagan.")
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("Brauzer mikrofon API'ni qo'llamayapti.")
+  }
+
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    })
+  } catch (error) {
+    throw new Error(await describeMicrophoneError(error))
   }
 }
 
