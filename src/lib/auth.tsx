@@ -4,10 +4,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { api, tokenStore } from './api'
 import { AuthContext, type AuthState } from './auth-context'
 import { disableGoogleAutoSelect } from './google-auth'
+import { useLocale } from './i18n'
 import type { AuthResponse, UserProfile } from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const { locale, adoptAccountLocale } = useLocale()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [isLoading, setLoading] = useState(true)
   const [isPendingOnboarding, setPendingOnboarding] = useState(tokenStore.hasPending())
@@ -21,7 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      setUser(await api.get<UserProfile>('/auth/me'))
+      const profile = await api.get<UserProfile>('/auth/me')
+      adoptAccountLocale(profile.uiLanguage)
+      setUser(profile)
       setPendingOnboarding(tokenStore.hasPending())
     } catch {
       // An unusable token is the same as no session; the client should not sit in a
@@ -32,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [adoptAccountLocale])
 
   useEffect(() => {
     void loadUser()
@@ -58,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const auth = await api.post<AuthResponse>('/auth/login', { email, password })
         tokenStore.set(auth)
         resetCache()
+        adoptAccountLocale(auth.user.uiLanguage)
         setUser(auth.user)
         setPendingOnboarding(false)
         return auth.user
@@ -68,7 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
           displayName,
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          uiLanguage: 'uz',
+          // The language actually on screen, not an assumption: whoever switched before
+          // registering meant it, and the account should be created that way.
+          uiLanguage: locale,
         })
         tokenStore.setPending(auth)
         resetCache()
@@ -81,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           credential,
           displayName,
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          uiLanguage: 'uz',
+          uiLanguage: locale,
         })
         if (options?.pendingOnboarding && !auth.user.hasCompletedDiagnostic) {
           tokenStore.setPending(auth)
@@ -91,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setPendingOnboarding(false)
         }
         resetCache()
+        adoptAccountLocale(auth.user.uiLanguage)
         setUser(auth.user)
         return auth.user
       },
@@ -119,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       refreshUser: loadUser,
     }),
-    [user, isLoading, isPendingOnboarding, loadUser, resetCache],
+    [user, isLoading, isPendingOnboarding, loadUser, resetCache, locale, adoptAccountLocale],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

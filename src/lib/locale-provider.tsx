@@ -4,7 +4,9 @@ import { api, setRequestLanguage, tokenStore } from './api'
 import {
   DEFAULT_LOCALE,
   LocaleContext,
-  detectLocale,
+  isLocale,
+  readStoredLocale,
+  startingLocale,
   storeLocale,
   type Dictionary,
   type Locale,
@@ -16,12 +18,12 @@ import { uz } from './locales/uz'
 const DICTIONARIES: Record<Locale, Dictionary> = { uz, ru, en }
 
 /**
- * Sits above the router so every screen can read the language. The choice is stored locally
- * for instant startup and mirrored to the account, so it follows the learner to another
- * device instead of living only in one browser.
+ * Sits above the router so every screen can read the language. Uzbek is where every visitor
+ * starts. A switch is stored locally for instant startup and mirrored to the account, so it
+ * follows the learner to another device instead of living only in one browser.
  */
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(detectLocale)
+  const [locale, setLocaleState] = useState<Locale>(startingLocale)
 
   // `lang` matters for hyphenation, spell-check and screen-reader pronunciation. The same
   // value goes onto every request so the server answers its messages in this language too.
@@ -41,9 +43,25 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  /**
+   * Applied on sign-in. It is not written to storage: local storage means "chosen on this
+   * device", and an account preference is not that. A learner who switched language here
+   * keeps it, because that choice is stored and this one yields to it.
+   */
+  const adoptAccountLocale = useCallback((language: string | null | undefined) => {
+    if (readStoredLocale() || !isLocale(language)) return
+    setLocaleState(language)
+    setRequestLanguage(language)
+  }, [])
+
   const value = useMemo(
-    () => ({ locale, t: DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE], setLocale }),
-    [locale, setLocale],
+    () => ({
+      locale,
+      t: DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE],
+      setLocale,
+      adoptAccountLocale,
+    }),
+    [locale, setLocale, adoptAccountLocale],
   )
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>

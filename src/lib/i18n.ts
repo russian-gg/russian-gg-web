@@ -49,27 +49,25 @@ export function storeLocale(locale: Locale) {
 }
 
 /**
- * First visit: follow the browser, since that is the best evidence of what the visitor reads.
- * Anything we do not speak falls back to Uzbek rather than to English.
+ * Uzbek until somebody says otherwise. The browser's language is deliberately ignored: the
+ * product is written for Uzbek speakers, and many of them read the web on a phone shipped
+ * with a Russian or English locale. Sniffing it would greet exactly our audience in the
+ * language they came here to learn.
  */
-export function detectLocale(): Locale {
-  const stored = readStoredLocale()
-  if (stored) return stored
-
-  if (typeof navigator === 'undefined') return DEFAULT_LOCALE
-
-  for (const candidate of navigator.languages ?? [navigator.language]) {
-    const base = candidate?.split('-')[0]?.toLowerCase()
-    if (isLocale(base)) return base
-  }
-
-  return DEFAULT_LOCALE
+export function startingLocale(): Locale {
+  return readStoredLocale() ?? DEFAULT_LOCALE
 }
 
 export interface LocaleState {
   locale: Locale
   t: Dictionary
+  /** An explicit choice by the learner. Remembered on this device and on the account. */
   setLocale: (next: Locale) => void
+  /**
+   * The language stored on the account, applied when signing in. It yields to a choice made
+   * on this device, so switching language here is not undone by the next `/auth/me`.
+   */
+  adoptAccountLocale: (language: string | null | undefined) => void
 }
 
 export const LocaleContext = createContext<LocaleState | null>(null)
