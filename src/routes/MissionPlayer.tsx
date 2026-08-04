@@ -100,6 +100,7 @@ export function MissionPlayer() {
   const [serverCompletedSteps, setServerCompletedSteps] = useState(0)
   // Said under the microphone when nothing is being heard. Not an error state.
   const [micHint, setMicHint] = useState<string | null>(null)
+  const threadRef = useRef<HTMLDivElement>(null)
   // What the server actually granted this session, counted down. Null when nothing is live.
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   // Mirrors latestTurnPassedRef as state: a ref cannot re-render, so the status line
@@ -190,6 +191,18 @@ export function MissionPlayer() {
       releaseSession('left_lesson')
     }
   }, [])
+
+  /*
+   * Follow the conversation. Once the thread scrolls inside itself, a new message lands below
+   * the fold and the learner would have to go looking for the answer they just got.
+   */
+  useEffect(() => {
+    const thread = threadRef.current
+    if (!thread) return
+
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    thread.scrollTo({ top: thread.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }, [history.length, transcript, assistantReply, feedback])
 
   /**
    * The session's own clock. The server caps every session and clamps what it is billed, but
@@ -762,8 +775,18 @@ export function MissionPlayer() {
 
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
-      <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-        <header className="flex items-start justify-between gap-4">
+      {/*
+        A fixed height, not a minimum. The conversation grows without limit, and while this
+        column could grow with it the microphone and the step progress were carried off the
+        bottom of the screen — the two things a learner needs at every moment of a lesson.
+        The thread scrolls inside itself instead.
+
+        The height is what the shell actually leaves: 2rem above and the tab bar below on a
+        phone, 3rem either side from md up. Guessing high here would push the controls back
+        off the bottom; guessing low would waste the room the conversation needs.
+      */}
+      <div className="flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:h-[calc(100dvh-6rem)]">
+        <header className="flex shrink-0 items-start justify-between gap-4">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -781,7 +804,7 @@ export function MissionPlayer() {
           )}
         </header>
 
-        <div className="mt-8 flex-1">
+        <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto">
           <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
             {pickContent(locale, { uz: summary.titleUz, ru: summary.titleRu, en: summary.titleEn })}
           </h1>
@@ -899,7 +922,7 @@ export function MissionPlayer() {
           </div>
         )}
 
-        <footer className="mt-8">
+        <footer className="mt-8 shrink-0">
           <ProgressBar value={completedSteps} max={totalSteps} label={t.player.stepProgress} />
           <div className="mt-3 flex items-center justify-between gap-4 text-sm text-ink-muted">
             <span>
