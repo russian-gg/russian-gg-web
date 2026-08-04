@@ -92,6 +92,12 @@ export function MissionPlayer() {
   const reconnectsRef = useRef(0)
   // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
   const [stepExhausted, setStepExhausted] = useState(false)
+  /*
+   * How far the server thinks the learner has got. Every scored turn comes back with it, and
+   * it is the same number a reload would produce — which is why the checklist used to tick
+   * only after a refresh: it was drawn from the local pass/fail instead.
+   */
+  const [serverCompletedSteps, setServerCompletedSteps] = useState(0)
   // Said under the microphone when nothing is being heard. Not an error state.
   const [micHint, setMicHint] = useState<string | null>(null)
   // What the server actually granted this session, counted down. Null when nothing is live.
@@ -119,6 +125,7 @@ export function MissionPlayer() {
         setAttempt(started)
         // Resuming lands the learner on the step they left, not back at the beginning.
         setStepIndex(Math.max(0, started.currentStepIndex))
+        setServerCompletedSteps(Math.max(0, started.currentStepIndex))
       } catch (caught) {
         setError(caught instanceof RequestError ? caught.message : t.player.openFailed)
       }
@@ -270,7 +277,10 @@ export function MissionPlayer() {
    * learner was *standing on* while the checklist counted the ones they had *finished*, so a
    * half-done last step read as "5 / 5 qadam" next to "4 / 5".
    */
-  const completedSteps = Math.min(stepIndex + (turnAccepted ? 1 : 0), totalSteps)
+  const completedSteps = Math.min(
+    Math.max(stepIndex + (turnAccepted ? 1 : 0), serverCompletedSteps),
+    totalSteps,
+  )
   const promptAudioText =
     safeStep?.kind === 'PhraseIntro'
       ? safePhrases.map((phrase) => phrase.russian).join('. ')
@@ -620,6 +630,9 @@ export function MissionPlayer() {
       })
 
       const passed = result.score >= 70
+      // Recorded whether or not it passed: the server counts the turn either way, and the
+      // checklist has to say the same thing the next reload would.
+      setServerCompletedSteps((current) => Math.max(current, result.nextStepIndex))
       latestTurnScoreRef.current = result.score
       latestTurnPassedRef.current = passed
       stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
