@@ -336,6 +336,18 @@ export const en: Dictionary = {
   },
 
   billing: {
+    periodLabel: {
+      Monthly: 'Monthly',
+      NinetyDay: '90 days',
+    },
+    proBenefits: [
+      'The full 90-day path',
+      'Voice practice every day',
+      'Personal repair lessons',
+      'Full progress and level history',
+      'The task library',
+    ],
+    freeLimitItems: ['The level test', 'The first 7 days', 'A few sample tasks'],
     title: 'The full path with Pro',
     subtitle:
       'The free plan opens the level test and the first 7 days. Pro is needed to carry on ' +

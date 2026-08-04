@@ -316,16 +316,12 @@ export interface PlanOption {
   currency: string
   effectiveMonthlyTiyin: number
   savingsPercent: number
-  labelUz: string
-  labelRu: string
 }
 
 export interface PlansView {
   options: PlanOption[]
   trialDays: number
   trialAvailable: boolean
-  proBenefitsUz: string[]
-  freeLimitsUz: string[]
 }
 
 export interface EntitlementView {

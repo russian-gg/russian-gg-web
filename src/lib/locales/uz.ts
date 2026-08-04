@@ -346,6 +346,18 @@ export const uz = {
   },
 
   billing: {
+    periodLabel: {
+      Monthly: 'Oylik',
+      NinetyDay: '90 kunlik',
+    },
+    proBenefits: [
+      "To'liq 90 kunlik yo'l",
+      'Har kuni ovozli mashqlar',
+      'Shaxsiy tuzatish darslari',
+      "To'liq progress va daraja tarixi",
+      "\"Bugun mashq\" kutubxonasi",
+    ],
+    freeLimitItems: ['Daraja testi', 'Birinchi 7 kun', 'Cheklangan namuna mashqlari'],
     title: "Pro bilan to'liq yo'l",
     subtitle:
       "Bepul rejada daraja testi va birinchi 7 kun ochiq. Keyingi kunlarni davom ettirish uchun " +
@@ -474,7 +486,7 @@ export const uz = {
 
   labels: {
     phase: {
-      Foundation: 'Poydevor',
+      Foundation: "Boshlang'ich",
       Bridge: "Ko'prik",
       Immersion: 'Immersiya',
     },

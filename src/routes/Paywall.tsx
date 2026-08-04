@@ -82,7 +82,7 @@ export function Paywall() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-base font-semibold text-ink">{option.labelUz}</span>
+                  <span className="text-base font-semibold text-ink">{t.billing.periodLabel[option.period]}</span>
                   {option.savingsPercent > 0 && (
                     <Badge tone="milestone">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
                   )}
@@ -118,7 +118,7 @@ export function Paywall() {
       <section>
         <SectionHeading>{t.billing.proUnlocks}</SectionHeading>
         <ul className="space-y-2">
-          {plans.proBenefitsUz.map((benefit) => (
+          {t.billing.proBenefits.map((benefit) => (
             <li key={benefit} className="flex gap-3 text-base text-ink">
               <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-signal" />
               {benefit}
@@ -130,7 +130,7 @@ export function Paywall() {
       <section>
         <SectionHeading>{t.billing.freeLimits}</SectionHeading>
         <ul className="space-y-2">
-          {plans.freeLimitsUz.map((limit) => (
+          {t.billing.freeLimitItems.map((limit) => (
             <li key={limit} className="flex gap-3 text-base text-ink-muted">
               <span
                 aria-hidden="true"
