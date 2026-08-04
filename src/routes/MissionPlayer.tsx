@@ -21,7 +21,7 @@ import type {
   TurnFeedback,
   VoiceSessionOutcome,
 } from '../lib/types'
-import { VoiceBadge, VoiceSignal, type VoiceState } from '../components/VoiceSignal'
+import { VoiceBadge, type VoiceState } from '../components/VoiceSignal'
 import {
   Badge,
   Button,
@@ -1270,7 +1270,25 @@ function MicControl({
      * screen either way.
      */
     <div className="mt-8 min-h-64">
-      <div className="flex items-center justify-center">
+      <div className="relative flex items-center justify-center">
+        {/*
+          Rings leaving the microphone while it is being spoken into. They sit behind the
+          button and are positioned absolutely, so they say "you are being heard" without
+          taking a single pixel of layout — which is what the equaliser under the button used
+          to cost, and it said the same thing twice as the status line above it.
+        */}
+        {state === 'listening' && (
+          <span aria-hidden="true" className="pointer-events-none absolute">
+            {[0, 0.6, 1.2, 1.8].map((delay) => (
+              <span
+                key={delay}
+                className="absolute top-1/2 left-1/2 size-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-signal"
+                style={{ animation: 'var(--animate-ripple)', animationDelay: `${delay}s` }}
+              />
+            ))}
+          </span>
+        )}
+
         <button
           type="button"
           onClick={hasLiveSession ? onStop : onStart}
@@ -1288,7 +1306,7 @@ function MicControl({
            * toward the cursor, and sinks onto that edge when pushed.
            */
           className={cx(
-            'flex size-20 shrink-0 items-center justify-center rounded-full',
+            'relative z-10 flex size-20 shrink-0 items-center justify-center rounded-full',
             'shadow-[0_5px_0_0_var(--color-signal-depth)]',
             'transition-[background-color,box-shadow,transform] duration-150',
             'hover:-translate-y-0.5 hover:shadow-[0_7px_0_0_var(--color-signal-depth)]',
@@ -1322,13 +1340,11 @@ function MicControl({
         each.
       */}
       <div className="flex h-8 items-center justify-center">
-        {state === 'listening' ? (
-          <VoiceSignal state="listening" size="sm" labelled={false} />
-        ) : onInterrupt ? (
+        {onInterrupt && (
           <Button variant="ghost" size="sm" onClick={onInterrupt}>
             {t.player.interrupt}
           </Button>
-        ) : null}
+        )}
       </div>
 
       {/*

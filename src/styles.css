@@ -90,6 +90,11 @@
   --radius-control: 999px;
 
   --animate-signal: signal 1.4s ease-in-out infinite;
+  /*
+    Rings leaving the microphone while it is listening. Slow and wide rather than fast and
+    tight: this says "you are being heard", where a quick pulse says "waiting".
+  */
+  --animate-ripple: ripple 2.4s ease-out infinite;
   --animate-rise: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -140,6 +145,17 @@
   50% {
     transform: scaleY(1);
     opacity: 1;
+  }
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1.75);
+    opacity: 0;
   }
 }
 
