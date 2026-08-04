@@ -411,22 +411,30 @@ function ThemeChoice() {
 function VoiceChoice({ onError }: { onError: (message: string | null) => void }) {
   const t = useT()
   const { user, refreshUser } = useAuth()
-  const [busy, setBusy] = useState(false)
+  /*
+   * The choice moves at once and is reconciled afterwards. Drawing it straight from the
+   * account meant a press did nothing visible until the round trip came back — and nothing
+   * at all if it failed, which is indistinguishable from a dead control.
+   */
+  const [pending, setPending] = useState<{ gender?: VoiceGender; mood?: VoiceMood }>({})
 
-  const gender = user?.voiceGender ?? 'Female'
-  const mood = user?.voiceMood ?? 'Gentle'
+  const gender = pending.gender ?? user?.voiceGender ?? 'Female'
+  const mood = pending.mood ?? user?.voiceMood ?? 'Gentle'
 
   async function save(next: { voiceGender?: VoiceGender; voiceMood?: VoiceMood }) {
-    setBusy(true)
+    setPending({ gender: next.voiceGender ?? gender, mood: next.voiceMood ?? mood })
     onError(null)
     try {
       await api.patch('/auth/me', next)
       await refreshUser()
     } catch (caught) {
+      // Put it back where it was. A control that keeps a change the server refused is lying.
+      setPending({})
       onError(caught instanceof RequestError ? caught.message : t.settings.saveFailed)
-    } finally {
-      setBusy(false)
+      return
     }
+
+    setPending({})
   }
 
   return (
@@ -441,7 +449,7 @@ function VoiceChoice({ onError }: { onError: (message: string | null) => void })
             key={option}
             name="voice-gender"
             checked={gender === option}
-            onChange={() => !busy && void save({ voiceGender: option })}
+            onChange={() => void save({ voiceGender: option })}
             label={<span className="font-bold text-ink">{t.settings.voiceGender[option]}</span>}
           />
         ))}
@@ -453,7 +461,7 @@ function VoiceChoice({ onError }: { onError: (message: string | null) => void })
             key={option}
             name="voice-mood"
             checked={mood === option}
-            onChange={() => !busy && void save({ voiceMood: option })}
+            onChange={() => void save({ voiceMood: option })}
             label={
               <span className="block">
                 <span className="block font-bold text-ink">{t.settings.voiceMood[option]}</span>
