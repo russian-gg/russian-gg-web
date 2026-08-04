@@ -6,8 +6,23 @@ const OUTPUT_SAMPLE_RATE = 24_000
 const TURN_COMPLETE_TIMEOUT_MS = 40_000
 /** How long to wait for the tutor's opening before letting the learner go first anyway. */
 const OPENING_TIMEOUT_MS = 12_000
-const AUTO_STOP_SILENCE_MS = 2_500
-const SPEECH_RMS_THRESHOLD = 0.006
+/**
+ * How long a pause ends the turn. A learner assembling a Russian sentence a word at a time
+ * pauses inside it, and 2.5s cut them off mid-thought — this audience more than most.
+ */
+const AUTO_STOP_SILENCE_MS = 3_500
+
+/**
+ * Speech is judged against the room, not against a number. A fixed threshold failed both
+ * ways: in a cafe the noise floor sat above it, so the turn never ended, and with a distant
+ * microphone a quiet voice never reached it, so the turn never started.
+ */
+const SPEECH_OVER_NOISE = 2.5
+/** Below this it is silence however quiet the room is. Stops a soundproofed room from
+ * making the threshold so low that the microphone's own hiss counts as speech. */
+const MIN_SPEECH_RMS = 0.004
+/** Nothing heard at all for this long: say so rather than listen forever. */
+const NO_SPEECH_TIMEOUT_MS = 20_000
 
 export type LiveVoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'closed'
 
@@ -18,6 +33,8 @@ export interface LiveVoiceCallbacks {
   onError: (message: string) => void
   onTurnComplete: () => void
   onSilenceTimeout: () => void
+  /** Nothing was heard at all this turn — usually a muted or wrong input device. */
+  onNoSpeech: () => void
 }
 
 export class LiveVoiceSession {
@@ -47,6 +64,10 @@ export class LiveVoiceSession {
   private autoStopRequested = false
   private heardSpeechThisTurn = false
   private lastSpeechAt = 0
+  private turnStartedAt = 0
+  private noSpeechReported = false
+  /** The room's own level. Starts high so the running minimum converges on the first frames. */
+  private noiseFloor = Number.POSITIVE_INFINITY
 
   constructor(ticket: VoiceSessionTicket, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
@@ -148,6 +169,8 @@ export class LiveVoiceSession {
     // speaking, so the first word of every turn after the first was simply not recorded.
     this.heardSpeechThisTurn = false
     this.autoStopRequested = false
+    this.noSpeechReported = false
+    this.turnStartedAt = Date.now()
     this.lastSpeechAt = Date.now()
     this.inputTranscript = ''
     this.outputTranscript = ''
@@ -321,7 +344,16 @@ export class LiveVoiceSession {
       const input = event.inputBuffer.getChannelData(0)
       const rms = computeRms(input)
       const now = Date.now()
-      if (rms >= SPEECH_RMS_THRESHOLD) {
+
+      /*
+       * The noise floor tracks the room: it drops to any quieter frame at once and rises
+       * only slowly, so a passing bus does not raise the bar for the rest of the lesson
+       * while a genuinely noisier room still moves it within about twenty seconds.
+       */
+      this.noiseFloor = rms < this.noiseFloor ? rms : this.noiseFloor * 0.995 + rms * 0.005
+      const speaking = rms >= Math.max(MIN_SPEECH_RMS, this.noiseFloor * SPEECH_OVER_NOISE)
+
+      if (speaking) {
         this.heardSpeechThisTurn = true
         this.lastSpeechAt = now
       } else if (
@@ -331,6 +363,15 @@ export class LiveVoiceSession {
       ) {
         this.autoStopRequested = true
         window.setTimeout(() => this.callbacks.onSilenceTimeout(), 0)
+      } else if (
+        !this.heardSpeechThisTurn &&
+        !this.noSpeechReported &&
+        now - this.turnStartedAt >= NO_SPEECH_TIMEOUT_MS
+      ) {
+        // Silence with nothing before it is not the end of a turn — there is nothing to send.
+        // It usually means a muted or wrong microphone, which is worth saying out loud.
+        this.noSpeechReported = true
+        window.setTimeout(() => this.callbacks.onNoSpeech(), 0)
       }
 
       const pcm16 = downsampleToPcm16(input, this.captureContext?.sampleRate ?? INPUT_SAMPLE_RATE)

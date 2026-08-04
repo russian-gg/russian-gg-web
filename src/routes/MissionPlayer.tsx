@@ -81,6 +81,8 @@ export function MissionPlayer() {
   const latestFeedbackRef = useRef<TurnFeedback | null>(null)
   // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
   const [stepExhausted, setStepExhausted] = useState(false)
+  // Said under the microphone when nothing is being heard. Not an error state.
+  const [micHint, setMicHint] = useState<string | null>(null)
   // Mirrors latestTurnPassedRef as state: a ref cannot re-render, so the status line
   // never told the learner their answer had been accepted.
   const [turnAccepted, setTurnAccepted] = useState(false)
@@ -346,6 +348,8 @@ export function MissionPlayer() {
           },
           onInputTranscript: (text) => {
             setTranscript(text)
+            // Something is coming through after all.
+            setMicHint(null)
             setVoiceComposerOpen(true)
           },
           onOutputTranscript: (text) => {
@@ -362,6 +366,11 @@ export function MissionPlayer() {
           },
           onSilenceTimeout: () => {
             void finishLiveTurn()
+          },
+          onNoSpeech: () => {
+            // A hint, not an error: the session is fine and still listening. Nothing has
+            // been said yet, so there is nothing to submit and nothing to recover from.
+            setMicHint(t.player.noSpeechHint)
           },
         },
       )
@@ -750,6 +759,7 @@ export function MissionPlayer() {
           busy={busy}
           hasLiveSession={hasLiveSession}
           latestTurnAccepted={turnAccepted}
+          hint={micHint}
           onStart={() => void startVoice()}
           onStop={() => void stopVoice()}
           feedback={feedback}
@@ -1039,6 +1049,7 @@ function MicControl({
   busy,
   hasLiveSession,
   latestTurnAccepted,
+  hint,
   onStart,
   onStop,
   feedback,
@@ -1051,6 +1062,8 @@ function MicControl({
   busy: boolean
   hasLiveSession: boolean
   latestTurnAccepted: boolean
+  /** Said under the microphone when nothing is coming through. Not an error. */
+  hint: string | null
   onStart: () => void
   onStop: () => void
   feedback: TurnFeedback | null
@@ -1125,6 +1138,10 @@ function MicControl({
       <p className="mt-4 text-center text-sm text-ink-muted" role="status" aria-live="polite">
         {status}
       </p>
+
+      {hint && (
+        <p className="text-support mx-auto mt-3 max-w-sm text-center">{hint}</p>
+      )}
 
       {state === 'listening' && (
         <div className="mt-3 flex justify-center">

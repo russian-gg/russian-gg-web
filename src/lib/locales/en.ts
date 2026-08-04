@@ -250,6 +250,8 @@ export const en: Dictionary = {
     listening: 'Speak… the AI is listening',
     waiting: 'Waiting…',
     evaluating: 'Scoring your answer…',
+    noSpeechHint:
+      'We cannot hear you. Check that the microphone is on and the right device is selected.',
     inConversation: 'Conversation in progress',
     turnAccepted: 'Answer accepted. Press finish.',
     answer: 'Answer',
