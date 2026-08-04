@@ -24,6 +24,13 @@ import {
 } from '../components/ui'
 
 /**
+ * Answers on one step before the learner is offered a way past it. Three is enough to get
+ * it right after a correction and few enough that nobody grinds; the way past is always
+ * offered, never taken automatically.
+ */
+const MAX_STEP_ATTEMPTS = 3
+
+/**
  * The focused mission player (PRD §6). One objective, one Russian prompt with Uzbek
  * support, one high-emphasis action to answer by voice, and step progress at the bottom.
  * Built from hairlines and whitespace rather than stacked cards. Detailed scoring is
@@ -62,6 +69,11 @@ export function MissionPlayer() {
   const latestTurnScoreRef = useRef<number | null>(null)
   const manualStopRequestedRef = useRef(false)
   const totalStepsRef = useRef(1)
+  // Answers given on the step in front of the learner, whether or not they passed.
+  const stepAttemptsRef = useRef(0)
+  const latestFeedbackRef = useRef<TurnFeedback | null>(null)
+  // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
+  const [stepExhausted, setStepExhausted] = useState(false)
   // Mirrors latestTurnPassedRef as state: a ref cannot re-render, so the status line
   // never told the learner their answer had been accepted.
   const [turnAccepted, setTurnAccepted] = useState(false)
@@ -446,6 +458,20 @@ export function MissionPlayer() {
       if (manualStopRequestedRef.current) return
 
       if (!passed) {
+        /*
+         * Retrying is never shamed, but it has to be possible to stop. The loop reopened the
+         * microphone after every failed turn with no counter and no way out, so a learner who
+         * could not reach the passing score was asked the same question forever — and the
+         * only exit, the stop button, answered with "try again".
+         */
+        if (stepAttemptsRef.current >= MAX_STEP_ATTEMPTS) {
+          await teardownVoice(false, 'step_attempts_exhausted')
+          setStepExhausted(true)
+          setFeedback(latestFeedbackRef.current)
+          setVoiceState('feedback')
+          return
+        }
+
         window.setTimeout(() => {
           void liveSessionRef.current?.beginNextTurn()
         }, 350)
@@ -489,9 +515,14 @@ export function MissionPlayer() {
         isRetry,
       })
 
+      const passed = result.score >= 70
       latestTurnScoreRef.current = result.score
-      latestTurnPassedRef.current = result.score >= 70
-      setTurnAccepted(result.score >= 70)
+      latestTurnPassedRef.current = passed
+      // Kept even when the panel is hidden, so the step can show the last judgement when the
+      // learner runs out of attempts on it.
+      latestFeedbackRef.current = result
+      stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
+      setTurnAccepted(passed)
       if (showFeedbackPanel) {
         setFeedback(result)
         setVoiceState('feedback')
@@ -567,6 +598,9 @@ export function MissionPlayer() {
     setVoiceComposerOpen(false)
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
+    latestFeedbackRef.current = null
+    stepAttemptsRef.current = 0
+    setStepExhausted(false)
     setTurnAccepted(false)
     manualStopRequestedRef.current = false
     setStepIndex((current) => Math.min(current + 1, totalSteps - 1))
@@ -699,10 +733,14 @@ export function MissionPlayer() {
           onStop={() => void stopVoice()}
           feedback={feedback}
           isLastStep={isLastStep}
+          stepExhausted={stepExhausted}
           onRetry={() => {
             setVoiceState('idle')
             setFeedback(null)
             setAssistantReply(null)
+            // A fresh go at the step: the cap applies again from here, so the learner is
+            // offered the way out after each further attempt rather than trapped by it.
+            setStepExhausted(false)
           }}
           onAdvance={isLastStep ? () => void complete() : () => void advance()}
         />
@@ -984,6 +1022,7 @@ function MicControl({
   onStop,
   feedback,
   isLastStep,
+  stepExhausted,
   onRetry,
   onAdvance,
 }: {
@@ -995,36 +1034,46 @@ function MicControl({
   onStop: () => void
   feedback: TurnFeedback | null
   isLastStep: boolean
+  /** Out of attempts on this step; moving on is offered without having passed. */
+  stepExhausted: boolean
   onRetry: () => void
   onAdvance: () => void
 }) {
+  const t = useT()
+
   // Once the turn is judged, the decision replaces the microphone: retry, or move on.
   if (state === 'feedback' && feedback) {
     const passed = feedback.score >= 70
 
     return (
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <Button variant="secondary" size="lg" onClick={onRetry} disabled={busy}>
-          Yana bir marta
-        </Button>
-        {passed && (
-          <Button size="lg" onClick={onAdvance} disabled={busy}>
-            {isLastStep ? 'Yakunlash' : 'Davom etish'}
-          </Button>
+      <div className="mt-8 flex flex-col items-center gap-3">
+        {stepExhausted && !passed && (
+          // Named plainly and without blame: the step is parked, not failed.
+          <p className="text-support max-w-sm text-center">{t.player.parkedStep}</p>
         )}
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+          <Button variant="secondary" size="lg" onClick={onRetry} disabled={busy}>
+            {t.player.tryAgain}
+          </Button>
+          {(passed || stepExhausted) && (
+            <Button size="lg" onClick={onAdvance} disabled={busy}>
+              {isLastStep ? t.player.finish : t.player.advance}
+            </Button>
+          )}
+        </div>
       </div>
     )
   }
 
   const status = busy
-    ? 'Kutilmoqda…'
+    ? t.player.waiting
     : state === 'listening'
-      ? 'Gapiring… AI sizni eshitmoqda'
+      ? t.player.listening
       : hasLiveSession
         ? latestTurnAccepted
-          ? 'Javob qabul qilindi. Yakunlashni bosing.'
-          : 'Suhbat davom etmoqda'
-        : 'Mikrofonni bosing va gapiring'
+          ? t.player.turnAccepted
+          : t.player.inConversation
+        : t.player.micPrompt
 
   return (
     <div className="mt-8">
@@ -1039,7 +1088,7 @@ function MicControl({
            * Only starting waits.
            */
           disabled={busy && !hasLiveSession}
-          aria-label={hasLiveSession ? 'Yakunlash' : 'Javob berish'}
+          aria-label={hasLiveSession ? t.player.finish : t.player.answer}
           className={`flex size-20 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
             hasLiveSession ? 'bg-signal-strong' : 'bg-signal'
           } hover:bg-signal-strong`}

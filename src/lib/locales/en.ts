@@ -257,6 +257,7 @@ export const en: Dictionary = {
     advance: 'Continue',
     strength: 'What went well',
     tryAgainTitle: "Let's try again",
+    parkedStep: "We'll come back to this step. Try once more, or carry on now.",
     stepsDone: '{done} / {total} steps done',
     nextStep: 'Next: {step}',
     lastStep: 'Last step',

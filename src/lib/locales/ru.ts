@@ -261,6 +261,8 @@ export const ru: Dictionary = {
     advance: 'Продолжить',
     strength: 'Что получилось',
     tryAgainTitle: 'Попробуем ещё раз',
+    parkedStep:
+      'К этому шагу вернёмся позже. Можно попробовать ещё раз или продолжить сейчас.',
     stepsDone: 'шагов выполнено: {done} / {total}',
     nextStep: 'Далее: {step}',
     lastStep: 'Последний шаг',

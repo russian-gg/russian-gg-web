@@ -263,6 +263,9 @@ export const uz = {
     advance: 'Davom etish',
     strength: 'Yaxshi tomoni',
     tryAgainTitle: 'Yana bir urinamiz',
+    parkedStep:
+      "Bu qadamni keyinroq yana ko'ramiz. Xohlasangiz yana urinib ko'ring, " +
+      "yoki hozir davom etaylik.",
     stepsDone: '{done} / {total} qadam bajarildi',
     nextStep: 'Keyingi: {step}',
     lastStep: 'Oxirgi qadam',
