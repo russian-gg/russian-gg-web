@@ -36,6 +36,13 @@
   --color-signal-strong: #4a8cee;
   --color-signal-soft: #eaf2fe;
 
+  /*
+    Hover lightens. `signal-strong` is the pressed/engaged shade and is darker here but
+    lighter in the dark theme, so using it for hover made the same gesture brighten in one
+    theme and dim in the other — and dimming reads as "disabled", not as "reachable".
+  */
+  --color-signal-hover: #7ab0f8;
+
   /** Label on a signal fill. One knob, so the whole product changes together. */
   --color-on-signal: #ffffff;
 
@@ -93,6 +100,7 @@
   --color-signal: #5b9bf5;
   --color-signal-strong: #74aef8;
   --color-signal-soft: #16233a;
+  --color-signal-hover: #7ab0f8;
   --color-on-signal: #ffffff;
 
   /* Depth is darker than the face in both themes — a lit edge would float, not sink. */

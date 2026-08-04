@@ -11,12 +11,13 @@ export type ButtonSize = 'sm' | 'md' | 'lg'
  * Controls are pills. Shared geometry lives here so a button, a link styled as a button
  * and a badge can never drift apart.
  *
- * Weight is bold rather than semibold, and the body's negative tracking is cancelled: a
- * button label is a target, not running text.
+ * A button label is a target, not running text: heavier than the surrounding type, and the
+ * body's negative tracking is not just cancelled but reversed a little, so short Uzbek and
+ * Russian words read as a solid block rather than a cluster.
  */
 const base =
   'inline-flex select-none touch-manipulation items-center justify-center gap-2 ' +
-  'rounded-[var(--radius-control)] font-bold tracking-normal whitespace-nowrap ' +
+  'rounded-[var(--radius-control)] font-extrabold tracking-[0.01em] whitespace-nowrap ' +
   'transition-[background-color,border-color,box-shadow,transform] duration-150 ' +
   'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none'
 
@@ -31,7 +32,12 @@ const base =
  *
  * Each variant supplies its own `--depth`, which is why this string is shared.
  */
-const press = 'shadow-[0_4px_0_0_var(--depth)] active:translate-y-1 active:shadow-none'
+const press =
+  'shadow-[0_4px_0_0_var(--depth)] ' +
+  // Hover lifts: the button rises and its edge grows, so it reads as coming toward the
+  // cursor. It used to only darken, which is what a disabled control does.
+  'hover:-translate-y-0.5 hover:shadow-[0_6px_0_0_var(--depth)] ' +
+  'active:translate-y-1 active:shadow-none'
 
 /**
  * Every variant states its own hover *and* border, so a variant is never distinguished
@@ -39,10 +45,12 @@ const press = 'shadow-[0_4px_0_0_var(--depth)] active:translate-y-1 active:shado
  */
 const variants: Record<ButtonVariant, string> = {
   primary:
-    'border border-transparent bg-signal text-on-signal hover:bg-signal-strong ' +
+    'border border-transparent bg-signal text-on-signal hover:bg-signal-hover ' +
     `[--depth:var(--color-signal-depth)] ${press}`,
+  // Stays on the raised surface on hover. Sinking it to `ground-sunken` dimmed the one
+  // control on the screen the learner was reaching for.
   secondary:
-    'border border-hairline bg-ground-raised text-ink hover:border-ink-faint hover:bg-ground-sunken ' +
+    'border border-hairline bg-ground-raised text-ink hover:border-ink-faint ' +
     `[--depth:var(--color-control-depth)] ${press}`,
   // Flat on purpose: a tertiary action has no face to sink, so it keeps the small nudge.
   ghost:
