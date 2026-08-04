@@ -415,8 +415,6 @@ export const en: Dictionary = {
     privacy: 'Privacy and permissions',
     privacyNote:
       'Lessons work without any of these. Voice recordings are kept only if you allow it.',
-    on: 'On',
-    off: 'Off',
     account: 'Account',
     deleteAccount: 'Delete account',
     deleteNote:

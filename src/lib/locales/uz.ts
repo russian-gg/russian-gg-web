@@ -425,8 +425,6 @@ export const uz = {
     privacyNote:
       "Ruxsat bermasangiz ham mashqlar ishlaydi. Ovoz yozuvlari faqat siz ruxsat bergan " +
       'taqdirdagina saqlanadi.',
-    on: 'Yoqilgan',
-    off: "O'chiq",
     account: 'Hisob',
     deleteAccount: "Hisobni o'chirish",
     deleteNote:

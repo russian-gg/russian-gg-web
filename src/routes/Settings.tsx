@@ -22,10 +22,10 @@ import {
   Rule,
   SectionHeading,
   Spinner,
+  Switch,
   TabLinks,
   UzHint,
 } from '../components/ui'
-import { cx } from '../lib/cx'
 
 /**
  * Everything about the account, in one place, behind three tabs.
@@ -245,28 +245,24 @@ function GeneralTab() {
                     <UzHint>{consent.body}</UzHint>
                   </div>
 
+                  {/*
+                    No word beside it. The switch says on or off with the knob's position,
+                    which is not a colour-only signal, and the word was a different width in
+                    each state — so a column of switches sat at a different x depending on
+                    what each one happened to be set to.
+
+                    The title names the button instead; "O'chiq" never told anyone what it
+                    was the off state *of*.
+                  */}
                   <button
                     type="button"
-                    aria-pressed={isGranted}
+                    role="switch"
+                    aria-checked={isGranted}
+                    aria-label={consent.title}
                     onClick={() => void toggle(consent.kind, !isGranted)}
-                    className="flex shrink-0 items-center gap-3"
+                    className="shrink-0"
                   >
-                    <span
-                      className={cx(
-                        'relative inline-flex h-7 w-12 rounded-full border-2 transition-colors',
-                        isGranted ? 'border-signal bg-signal' : 'border-hairline bg-ground-sunken',
-                      )}
-                    >
-                      <span
-                        className={cx(
-                          'absolute top-0.5 size-5 rounded-full bg-white shadow-[0_2px_0_0_rgb(0_0_0/0.12)] transition-transform',
-                          isGranted ? 'translate-x-[1.4375rem]' : 'translate-x-0.5',
-                        )}
-                      />
-                    </span>
-                    <span className="text-sm font-bold text-ink-muted">
-                      {isGranted ? t.settings.on : t.settings.off}
-                    </span>
+                    <Switch checked={isGranted} />
                   </button>
                 </div>
               </Card>
