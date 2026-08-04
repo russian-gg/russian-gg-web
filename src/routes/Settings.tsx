@@ -12,6 +12,8 @@ import type {
   EntitlementView,
   ProgressView,
   SubscriptionStatus,
+  VoiceGender,
+  VoiceMood,
 } from '../lib/types'
 import {
   Badge,
@@ -232,6 +234,11 @@ function GeneralTab() {
       </section>
 
       <section>
+        <SectionHeading>{t.settings.voice}</SectionHeading>
+        <VoiceChoice onError={setError} />
+      </section>
+
+      <section>
         <SectionHeading>{t.settings.privacy}</SectionHeading>
         <div className="space-y-3">
           {consents_.map((consent) => {
@@ -386,6 +393,78 @@ function ThemeChoice() {
           }
         />
       ))}
+    </div>
+  )
+}
+
+
+/**
+ * Who the tutor is. Two independent choices: the voice it speaks with, and the manner it
+ * carries itself in.
+ *
+ * The manner is the only thing that moves. The lesson, the corrections and the rule that a
+ * learner is never told their Russian is bad are fixed on the server and are not reachable
+ * from this screen — which is why "blunt" can exist at all: it is a harder scene to rehearse,
+ * not a worse teacher. The note under the options says so, because a learner choosing it
+ * deserves to know what they are and are not agreeing to.
+ */
+function VoiceChoice({ onError }: { onError: (message: string | null) => void }) {
+  const t = useT()
+  const { user, refreshUser } = useAuth()
+  const [busy, setBusy] = useState(false)
+
+  const gender = user?.voiceGender ?? 'Female'
+  const mood = user?.voiceMood ?? 'Gentle'
+
+  async function save(next: { voiceGender?: VoiceGender; voiceMood?: VoiceMood }) {
+    setBusy(true)
+    onError(null)
+    try {
+      await api.patch('/auth/me', next)
+      await refreshUser()
+    } catch (caught) {
+      onError(caught instanceof RequestError ? caught.message : t.settings.saveFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="grid gap-3 sm:grid-cols-2"
+        role="radiogroup"
+        aria-label={t.settings.voice}
+      >
+        {(['Female', 'Male'] as const).map((option) => (
+          <RadioOption
+            key={option}
+            name="voice-gender"
+            checked={gender === option}
+            onChange={() => !busy && void save({ voiceGender: option })}
+            label={<span className="font-bold text-ink">{t.settings.voiceGender[option]}</span>}
+          />
+        ))}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label={t.settings.voice}>
+        {(['Gentle', 'Playful', 'Blunt'] as const).map((option) => (
+          <RadioOption
+            key={option}
+            name="voice-mood"
+            checked={mood === option}
+            onChange={() => !busy && void save({ voiceMood: option })}
+            label={
+              <span className="block">
+                <span className="block font-bold text-ink">{t.settings.voiceMood[option]}</span>
+                <span className="text-support block">{t.settings.voiceMoodHint[option]}</span>
+              </span>
+            }
+          />
+        ))}
+      </div>
+
+      <p className="text-support">{t.settings.voiceNote}</p>
     </div>
   )
 }

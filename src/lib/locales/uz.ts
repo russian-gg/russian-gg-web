@@ -424,6 +424,20 @@ export const uz = {
   },
 
   settings: {
+    voice: 'Ustoz ovozi',
+    voiceGender: { Female: 'Ayol', Male: 'Erkak' },
+    voiceMood: {
+      Gentle: 'Muloyim',
+      Playful: 'Hazilkash',
+      Blunt: "Qo'pol",
+    },
+    voiceMoodHint: {
+      Gentle: 'Sabrli va dalda beradi. Boshlash uchun shu.',
+      Playful: "Hazil aralash, ko'cha tilida gaplashadi.",
+      Blunt: "Shoshayotgan notanish odamdek keskin gapiradi. Mashq uchun — sizni kamsitmaydi.",
+    },
+    voiceNote:
+      "Bu faqat ohangni o'zgartiradi. Dars, tuzatishlar va sizga munosabat har qanday tanlovda bir xil qoladi.",
     title: 'Sozlamalar',
     tabProfile: 'Profil',
     tabGeneral: 'Umumiy',

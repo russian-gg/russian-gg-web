@@ -333,7 +333,9 @@ export class LiveVoiceSession {
                 languageCode: 'ru-RU',
                 voiceConfig: {
                   prebuiltVoiceConfig: {
-                    voiceName: 'Kore',
+                    // The learner's choice, decided on the server. It used to be one name
+                    // written here, which no setting could ever have changed.
+                    voiceName: this.ticket.voiceName,
                   },
                 },
               },

@@ -415,6 +415,20 @@ export const en: Dictionary = {
   },
 
   settings: {
+    voice: "The tutor's voice",
+    voiceGender: { Female: 'Female', Male: 'Male' },
+    voiceMood: {
+      Gentle: 'Gentle',
+      Playful: 'Playful',
+      Blunt: 'Blunt',
+    },
+    voiceMoodHint: {
+      Gentle: 'Patient and encouraging. Start here.',
+      Playful: 'Jokes, and the everyday speech a textbook leaves out.',
+      Blunt: 'Curt, like a stranger in a hurry. Practice — never aimed at you.',
+    },
+    voiceNote:
+      'This changes the manner only. The lesson, the corrections and how you are treated are the same whichever you pick.',
     title: 'Settings',
     tabProfile: 'Profile',
     tabGeneral: 'General',

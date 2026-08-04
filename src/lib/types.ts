@@ -53,6 +53,10 @@ export type ContentReviewStatus =
   | 'Approved'
   | 'Published'
   | 'Archived'
+export type VoiceGender = 'Female' | 'Male'
+/** Manner only: the tutor's register moves, the lesson and the safety rules do not. */
+export type VoiceMood = 'Gentle' | 'Playful' | 'Blunt'
+
 export type ConsentKind =
   | 'AudioRetention'
   | 'AudioHumanReview'
@@ -65,6 +69,8 @@ export interface UserProfile {
   displayName?: string | null
   role: UserRole
   uiLanguage: string
+  voiceGender: VoiceGender
+  voiceMood: VoiceMood
   timeZoneId: string
   hasCompletedDiagnostic: boolean
   tier: PlanTier
@@ -303,6 +309,8 @@ export interface VoiceSessionTicket {
   systemInstruction: string
   /** Sent as soon as the connection is up, to make the tutor speak first. */
   openingCue: string
+  /** The provider voice the learner chose. Decided on the server, opened by the browser. */
+  voiceName: string
 }
 
 export interface VoiceUnavailable {
