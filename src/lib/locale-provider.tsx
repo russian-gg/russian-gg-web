@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, setRequestLanguage, tokenStore } from './api'
 import {
   DEFAULT_LOCALE,
@@ -23,6 +24,7 @@ const DICTIONARIES: Record<Locale, Dictionary> = { uz, ru, en }
  * follows the learner to another device instead of living only in one browser.
  */
 export function LocaleProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [locale, setLocaleState] = useState<Locale>(startingLocale)
 
   // `lang` matters for hyphenation, spell-check and screen-reader pronunciation. The same
@@ -32,16 +34,31 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setRequestLanguage(locale)
   }, [locale])
 
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next)
-    storeLocale(next)
-    setRequestLanguage(next)
+  const setLocale = useCallback(
+    (next: Locale) => {
+      setLocaleState(next)
+      storeLocale(next)
+      setRequestLanguage(next)
 
-    // Best effort: not being signed in, or a failed write, must not block the switch.
-    if (tokenStore.access()) {
-      void api.patch('/auth/me', { uiLanguage: next }).catch(() => {})
-    }
-  }, [])
+      /*
+       * Not every string on the screen comes from the dictionary. Some are written by the
+       * server in the language of the request that fetched them — a mission's lock reason, a
+       * degraded-voice message — and they sit in the query cache in that language until
+       * whatever holds them goes stale. Switching to English left Russian sentences sitting
+       * under English headings.
+       *
+       * Refetching everything is the right cost here: changing language is a deliberate act
+       * that happens rarely, and a page in two languages is worse than a moment of loading.
+       */
+      void queryClient.invalidateQueries()
+
+      // Best effort: not being signed in, or a failed write, must not block the switch.
+      if (tokenStore.access()) {
+        void api.patch('/auth/me', { uiLanguage: next }).catch(() => {})
+      }
+    },
+    [queryClient],
+  )
 
   /**
    * Applied on sign-in. It is not written to storage: local storage means "chosen on this
@@ -52,7 +69,8 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     if (readStoredLocale() || !isLocale(language)) return
     setLocaleState(language)
     setRequestLanguage(language)
-  }, [])
+    void queryClient.invalidateQueries()
+  }, [queryClient])
 
   const value = useMemo(
     () => ({
