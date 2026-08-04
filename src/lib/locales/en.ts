@@ -473,6 +473,18 @@ export const en: Dictionary = {
     failed: 'Could not send the feedback.',
   },
 
+  repairReasons: {
+    'pronunciation-soft-sign': 'Words with a soft sign are not coming out clearly.',
+    'pronunciation-stress': 'The stress is landing on the wrong syllable.',
+    'vocabulary-work': 'Work vocabulary is not solid yet.',
+    'vocabulary-daily': 'Everyday words are worth going over again.',
+    'grammar-case': 'Case endings sometimes go missing.',
+    'grammar-verb-aspect': 'Verb aspect is being chosen wrongly.',
+    'listening-speed': 'Fast speech is still hard to follow.',
+    'fluency-hesitation': 'There are long pauses before answers.',
+    fallback: "We'll firm this up with a short exercise.",
+  },
+
   labels: {
     phase: {
       Foundation: 'Foundation',

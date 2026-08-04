@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
-import { fill, useT } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { MissionSummary } from '../lib/types'
 import { Badge } from './ui'
 
 export function MissionCard({ mission }: { mission: MissionSummary }) {
   const t = useT()
+  const { locale } = useLocale()
   const isProLock =
     mission.isLocked && (mission.lockReason?.toLowerCase().includes('pro') ?? false)
 
@@ -23,7 +25,7 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
         {mission.isLocked && <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>}
       </div>
 
-      <h3 className="mt-3 text-lg font-extrabold leading-snug text-ink">{mission.titleUz}</h3>
+      <h3 className="mt-3 text-lg font-extrabold leading-snug text-ink">{pickContent(locale, mission.titleUz, mission.titleRu)}</h3>
       <p className="text-support">{mission.objectiveUz}</p>
 
       {/*

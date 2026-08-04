@@ -484,6 +484,23 @@ export const uz = {
     failed: "Izohni yuborib bo'lmadi.",
   },
 
+  /**
+   * Why a repair was suggested. Keyed by the gap code the server records, because the reason
+   * is a fixed sentence per code — not something written per learner. It used to be frozen
+   * into the row in whatever language it was created in, so switching language never moved it.
+   */
+  repairReasons: {
+    'pronunciation-soft-sign': "Yumshoq belgili so'zlarda talaffuz aniq emas.",
+    'pronunciation-stress': "Urg'u noto'g'ri joyga tushmoqda.",
+    'vocabulary-work': "Ish bilan bog'liq so'zlar hali mustahkam emas.",
+    'vocabulary-daily': "Kundalik hayot so'zlarini takrorlash kerak.",
+    'grammar-case': "Kelishik qo'shimchalari ba'zan tushib qolmoqda.",
+    'grammar-verb-aspect': "Fe'l ko'rinishini tanlashda xatolik bor.",
+    'listening-speed': "Tez nutqni tushunish qiyin bo'lmoqda.",
+    'fluency-hesitation': "Javob berishda uzoq to'xtalish bor.",
+    fallback: 'Bu mavzuni qisqa mashq bilan mustahkamlaymiz.',
+  },
+
   labels: {
     phase: {
       Foundation: "Boshlang'ich",

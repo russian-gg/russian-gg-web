@@ -1,5 +1,6 @@
 import { formatDelta } from '../lib/format'
-import { fill, useT } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { MilestoneView, SkillArea } from '../lib/types'
 import { Badge } from './ui'
 
@@ -59,6 +60,7 @@ export function SkillRow({
  */
 export function MilestoneTimeline({ milestones }: { milestones: MilestoneView[] }) {
   const t = useT()
+  const { locale } = useLocale()
 
   /*
    * Exactly one milestone is the one being walked toward: the first that is not done. This
@@ -114,7 +116,7 @@ export function MilestoneTimeline({ milestones }: { milestones: MilestoneView[] 
                   )}
                 </div>
 
-                <h3 className="mt-1 text-base font-extrabold text-ink">{milestone.titleUz}</h3>
+                <h3 className="mt-1 text-base font-extrabold text-ink">{pickContent(locale, milestone.titleUz, milestone.titleRu)}</h3>
                 <p className="text-support">{milestone.outcomeUz}</p>
               </div>
             </div>

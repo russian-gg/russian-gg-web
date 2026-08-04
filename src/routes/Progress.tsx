@@ -74,7 +74,7 @@ export function Progress() {
           <div className="space-y-3">
             {data.repairs.map((repair) => (
               <Card key={repair.id} as="article">
-                <p className="text-base text-ink">{repair.reasonUz}</p>
+                <p className="text-base text-ink">{t.repairReasons[repair.gapCode as keyof typeof t.repairReasons] ?? t.repairReasons.fallback}</p>
                 <p className="text-support mt-1">
                   {fill(t.progress.repairEvidence, { count: repair.evidenceCount })}
                 </p>

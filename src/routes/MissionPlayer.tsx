@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
 import { cx } from '../lib/cx'
-import { fill, useT, type Dictionary } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT, type Dictionary } from '../lib/i18n'
 import {
   LiveVoiceSession,
   VoiceError,
@@ -54,6 +55,7 @@ const MAX_RECONNECTS = 2
  */
 export function MissionPlayer() {
   const t = useT()
+  const { locale } = useLocale()
   const { missionId = '' } = useParams()
   const navigate = useNavigate()
 
@@ -753,7 +755,7 @@ export function MissionPlayer() {
 
         <div className="mt-8 flex-1">
           <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
-            {summary.titleUz}
+            {pickContent(locale, summary.titleUz, summary.titleRu)}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
             {summary.objectiveUz}{' '}

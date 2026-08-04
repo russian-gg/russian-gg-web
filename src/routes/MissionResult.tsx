@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
-import { fill, useT } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { MissionResult as MissionResultDto, SkillArea } from '../lib/types'
 import { Badge, Card, LinkButton, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
 export function MissionResult() {
   const t = useT()
+  const { locale } = useLocale()
   const { attemptId = '' } = useParams()
   const [expanded, setExpanded] = useState(false)
 
@@ -36,7 +38,7 @@ export function MissionResult() {
       {data.unlockedMilestone && (
         <Card>
           <Badge tone="milestone">{fill(t.result.milestoneUnlocked, { day: data.unlockedMilestone.day })}</Badge>
-          <h2 className="mt-3 text-lg font-extrabold text-ink">{data.unlockedMilestone.titleUz}</h2>
+          <h2 className="mt-3 text-lg font-extrabold text-ink">{pickContent(locale, data.unlockedMilestone.titleUz, data.unlockedMilestone.titleRu)}</h2>
           <UzHint>{data.unlockedMilestone.outcomeUz}</UzHint>
         </Card>
       )}
@@ -44,7 +46,7 @@ export function MissionResult() {
       <section>
         <SectionHeading>{t.result.mainCorrection}</SectionHeading>
         <Card>
-          <p className="text-base text-ink">{data.headlineFeedbackUz}</p>
+          <p className="text-base text-ink">{pickContent(locale, data.headlineFeedbackUz, data.headlineFeedbackRu)}</p>
           <p className="text-support mt-2">{data.headlineFeedbackRu}</p>
         </Card>
         <p className="text-support mt-2">

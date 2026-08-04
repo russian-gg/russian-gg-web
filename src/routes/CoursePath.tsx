@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { fill, useT } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { Badge, Button, Card, CheckCircle, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
@@ -175,6 +176,7 @@ function DayRow({
   })
 
   const t = useT()
+  const { locale } = useLocale()
   const isDone = day.completedMissionCount >= day.requiredMissionCount
   const isToday = day.day === currentDay
 
@@ -206,7 +208,7 @@ function DayRow({
             isOpen ? 'font-semibold text-ink' : day.isUnlocked ? 'text-ink' : 'text-ink-faint'
           }`}
         >
-          {day.focusUz}
+          {pickContent(locale, day.focusUz, day.focusRu)}
         </span>
 
         {isToday && !isDone && <Badge tone="signal">{t.path.today}</Badge>}

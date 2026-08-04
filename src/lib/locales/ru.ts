@@ -479,6 +479,18 @@ export const ru: Dictionary = {
     failed: 'Не удалось отправить отзыв.',
   },
 
+  repairReasons: {
+    'pronunciation-soft-sign': 'В словах с мягким знаком произношение нечёткое.',
+    'pronunciation-stress': 'Ударение падает не на тот слог.',
+    'vocabulary-work': 'Рабочая лексика пока держится нетвёрдо.',
+    'vocabulary-daily': 'Бытовые слова стоит повторить.',
+    'grammar-case': 'Падежные окончания иногда пропадают.',
+    'grammar-verb-aspect': 'Вид глагола выбирается с ошибками.',
+    'listening-speed': 'Быструю речь понимать пока трудно.',
+    'fluency-hesitation': 'В ответах длинные паузы.',
+    fallback: 'Закрепим эту тему коротким упражнением.',
+  },
+
   labels: {
     phase: {
       Foundation: 'Основа',
