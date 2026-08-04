@@ -1192,7 +1192,14 @@ function MicControl({
         : t.player.micPrompt
 
   return (
-    <div className="mt-8">
+    /*
+     * A fixed height for the whole control. The occasional messages below it — the step
+     * offer, the "we cannot hear you" hint — are rarer than a turn, but this block sits
+     * under a flex-1 content area, so anything that makes it taller lifts the microphone off
+     * the spot the learner last reached for. The reserved space costs nothing: it is empty
+     * screen either way.
+     */
+    <div className="mt-8 min-h-64">
       <div className="flex items-center justify-center">
         <button
           type="button"
@@ -1224,27 +1231,44 @@ function MicControl({
         </button>
       </div>
 
-      <p className="mt-4 text-center text-sm text-ink-muted" role="status" aria-live="polite">
+      {/*
+        Everything under the microphone lives in slots of a fixed height.
+        The status line, the equaliser and the interrupt each used to appear and disappear on
+        their own, and every one of them changed the height of this block — so the microphone
+        moved on every turn of the conversation, which is the one control on the screen that
+        has to stay exactly where the learner last found it.
+      */}
+      <p
+        className="mt-4 flex min-h-10 items-center justify-center text-center text-sm text-ink-muted"
+        role="status"
+        aria-live="polite"
+      >
         {status}
       </p>
 
-      {onInterrupt && (
-        <div className="mt-3 flex justify-center">
+      {/*
+        One slot for the turn's own affordance. Listening and thinking are opposite halves of
+        an exchange and never happen together, so they share the space instead of taking one
+        each.
+      */}
+      <div className="flex h-9 items-center justify-center">
+        {state === 'listening' ? (
+          <VoiceSignal state="listening" size="sm" />
+        ) : onInterrupt ? (
           <Button variant="ghost" size="sm" onClick={onInterrupt}>
             {t.player.interrupt}
           </Button>
-        </div>
-      )}
+        ) : null}
+      </div>
 
-      {secondsLeft !== null && (
-        <p
-          className={`mt-3 text-center text-sm tabular-nums ${
-            secondsLeft <= 60 ? 'text-caution' : 'text-ink-faint'
-          }`}
-        >
-          {fill(t.player.voiceTimeLeft, { time: formatClock(secondsLeft) })}
-        </p>
-      )}
+      {/* Reserved from the moment the session opens, so the clock's arrival moves nothing. */}
+      <p
+        className={`flex h-5 items-center justify-center text-sm tabular-nums ${
+          secondsLeft !== null && secondsLeft <= 60 ? 'text-caution' : 'text-ink-faint'
+        }`}
+      >
+        {secondsLeft !== null && fill(t.player.voiceTimeLeft, { time: formatClock(secondsLeft) })}
+      </p>
 
       {onMoveOn && (
         <div className="mt-4 flex flex-col items-center gap-2">
@@ -1255,15 +1279,7 @@ function MicControl({
         </div>
       )}
 
-      {hint && (
-        <p className="text-support mx-auto mt-3 max-w-sm text-center">{hint}</p>
-      )}
-
-      {state === 'listening' && (
-        <div className="mt-3 flex justify-center">
-          <VoiceSignal state="listening" size="sm" />
-        </div>
-      )}
+      {hint && <p className="text-support mx-auto mt-3 max-w-sm text-center">{hint}</p>}
     </div>
   )
 }
