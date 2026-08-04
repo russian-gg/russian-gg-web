@@ -243,9 +243,12 @@ function ThemeChoice() {
   ]
 
   /*
-   * A real radio carries the selection. The previous cards signalled it only with a tinted
-   * border, while the dark option always drew a solid black swatch — the boldest mark on the
-   * row belonged to the option that was not chosen, which read as "dark is on".
+   * The radio carries the selection, and nothing else on the row is allowed to look like it.
+   * Each option used to also draw a colour swatch — a circle the same size as the radio,
+   * sitting right beside it — so every option appeared to have two radio buttons, and the
+   * dark one's swatch was a solid black dot that read as the selected state.
+   *
+   * The swatch is gone rather than restyled: the words already say which theme this is.
    */
   return (
     <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t.settings.appearance}>
@@ -256,18 +259,9 @@ function ThemeChoice() {
           checked={theme === option.value}
           onChange={() => setTheme(option.value)}
           label={
-            <span className="flex items-center gap-2.5">
-              <span
-                aria-hidden="true"
-                className={cx(
-                  'size-4 shrink-0 rounded-full border-2 border-hairline',
-                  option.value === 'light' ? 'bg-white' : 'bg-[#101216]',
-                )}
-              />
-              <span>
-                <span className="block font-semibold text-ink">{option.label}</span>
-                <span className="text-support block">{option.hint}</span>
-              </span>
+            <span className="block">
+              <span className="block font-bold text-ink">{option.label}</span>
+              <span className="text-support block">{option.hint}</span>
             </span>
           }
         />
