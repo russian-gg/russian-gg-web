@@ -111,6 +111,20 @@ export class LiveVoiceSession {
   /** Set once setup succeeded. A close before this is a failure to connect, not a drop. */
   private connected = false
 
+  /**
+   * iOS suspends audio contexts when the app goes to the background and does not resume them
+   * on the way back, so a learner who checked a message returned to a tutor that was silent
+   * and a microphone that heard nothing, with nothing on screen saying so.
+   */
+  private readonly resumeAudio = () => {
+    if (document.visibilityState !== 'visible' || this.closed) {
+      return
+    }
+
+    void this.captureContext?.resume().catch(() => {})
+    void this.playbackContext?.resume().catch(() => {})
+  }
+
   constructor(ticket: VoiceSessionTicket, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
     this.systemInstruction = ticket.systemInstruction
@@ -128,6 +142,7 @@ export class LiveVoiceSession {
 
   async start() {
     this.callbacks.onStatus('connecting')
+    document.addEventListener('visibilitychange', this.resumeAudio)
     this.playbackContext = new AudioContext()
     if (this.playbackContext.state === 'suspended') {
       await this.playbackContext.resume()
@@ -262,6 +277,7 @@ export class LiveVoiceSession {
     if (this.closed) return
     this.closed = true
     this.recording = false
+    document.removeEventListener('visibilitychange', this.resumeAudio)
     this.teardownCapture()
     this.stopPlayback()
     this.resolveTurnComplete?.()
@@ -434,6 +450,14 @@ export class LiveVoiceSession {
 
     this.mediaStream = await requestMicrophone()
     this.captureContext = new AudioContext()
+    /*
+     * ScriptProcessorNode is deprecated in favour of AudioWorklet, and deliberately kept.
+     * A worklet delivers 128 samples per call against this node's 4096, so the swap is not
+     * a swap: it needs its own buffering layer between the worklet thread and the socket,
+     * inside the one code path where a mistake means the learner's speech is silently
+     * mangled. It works in every browser the product targets; this is a planned change with
+     * its own testing, not a line to slip into a bug-fixing pass.
+     */
     this.captureSource = this.captureContext.createMediaStreamSource(this.mediaStream)
     this.captureProcessor = this.captureContext.createScriptProcessor(4096, 1, 1)
     this.captureSource.connect(this.captureProcessor)
