@@ -174,7 +174,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => go('/profile')}
+            onClick={() => go('/settings')}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-ground-sunken"
           >
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
@@ -189,8 +189,11 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 
           <div className="my-2 border-t border-hairline" />
 
-          <MenuItem label={t.account.billing} icon={<SparkGlyph />} onClick={() => go('/paywall')} />
-          <MenuItem label={t.account.profile} icon={<PersonGlyph />} onClick={() => go('/profile')} />
+          {/*
+            Billing and profile used to sit here as their own destinations. They are tabs of
+            Settings now: three menu rows that led to three pages covering the same account
+            was three places to look for one thing.
+          */}
           <MenuItem label={t.account.settings} icon={<GearGlyph />} onClick={() => go('/settings')} />
           <ThemeToggleItem />
           <LanguageItem />
@@ -370,22 +373,7 @@ function ChevronGlyph({ direction }: { direction: 'up' | 'down' | 'right' }) {
   )
 }
 
-function SparkGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <path d="M12 3.5 13.9 9 19.5 11 13.9 13 12 18.5 10.1 13 4.5 11 10.1 9Z" strokeLinejoin="round" />
-    </svg>
-  )
-}
 
-function PersonGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <circle cx="12" cy="9" r="3.2" />
-      <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 function GearGlyph() {
   return (

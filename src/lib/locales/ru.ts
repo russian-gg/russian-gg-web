@@ -409,6 +409,9 @@ export const ru: Dictionary = {
 
   settings: {
     title: 'Настройки',
+    tabProfile: 'Профиль',
+    tabGeneral: 'Общие',
+    tabBilling: 'Подписка',
     appearance: 'Внешний вид',
     themeLight: 'Светлая',
     themeLightHint: 'Тема по умолчанию',
@@ -420,9 +423,6 @@ export const ru: Dictionary = {
       'Занятия работают и без разрешений. Записи голоса сохраняются только с вашего согласия.',
     on: 'Включено',
     off: 'Выключено',
-    subscription: 'Подписка',
-    manage: 'Управлять подпиской',
-    sendFeedback: 'Оставить отзыв',
     account: 'Аккаунт',
     deleteAccount: 'Удалить аккаунт',
     deleteNote:
@@ -433,13 +433,9 @@ export const ru: Dictionary = {
     deleteConfirmWord: 'УДАЛИТЬ',
     deleteFailed: 'Ошибка при удалении.',
     saveFailed: 'Ошибка при сохранении.',
-    feedbackTitle: 'Оставить отзыв',
     feedbackBody:
       'Напишите здесь своё мнение. Предложения, возражения и замечания дойдут до нас.',
     feedbackLabel: 'Сообщение',
-    feedbackPlaceholder: 'Опишите ситуацию подробнее',
-    feedbackTooShort: 'Напишите сообщение чуть подробнее.',
-    feedbackFailed: 'Не удалось отправить сообщение.',
     consents: {
       audioRetention: 'Хранение записей голоса',
       audioRetentionBody:

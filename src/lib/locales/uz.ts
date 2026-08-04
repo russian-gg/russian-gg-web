@@ -412,6 +412,9 @@ export const uz = {
 
   settings: {
     title: 'Sozlamalar',
+    tabProfile: 'Profil',
+    tabGeneral: 'Umumiy',
+    tabBilling: 'Obuna',
     appearance: "Ko'rinish",
     themeLight: "Yorug'",
     themeLightHint: "Standart ko'rinish",
@@ -424,9 +427,6 @@ export const uz = {
       'taqdirdagina saqlanadi.',
     on: 'Yoqilgan',
     off: "O'chiq",
-    subscription: 'Obuna',
-    manage: 'Obunani boshqarish',
-    sendFeedback: 'Fikr yuborish',
     account: 'Hisob',
     deleteAccount: "Hisobni o'chirish",
     deleteNote:
@@ -437,14 +437,10 @@ export const uz = {
     deleteConfirmWord: "O'CHIRISH",
     deleteFailed: "O'chirishda xatolik.",
     saveFailed: 'Saqlashda xatolik.',
-    feedbackTitle: 'Fikr yuborish',
     feedbackBody:
       "O'zingizning fikringizni shu yerga yozib qoldirsangiz bo'ladi. Taklif, e'tiroz va " +
       'izohlaringiz bizga yetib boradi.',
     feedbackLabel: 'Xabar',
-    feedbackPlaceholder: "Holatingizni to'liq yozing",
-    feedbackTooShort: 'Xabarni biroz batafsilroq yozing.',
-    feedbackFailed: "Xabarni yuborib bo'lmadi.",
     consents: {
       audioRetention: 'Ovoz yozuvlarini saqlash',
       audioRetentionBody:

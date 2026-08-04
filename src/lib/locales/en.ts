@@ -403,6 +403,9 @@ export const en: Dictionary = {
 
   settings: {
     title: 'Settings',
+    tabProfile: 'Profile',
+    tabGeneral: 'General',
+    tabBilling: 'Subscription',
     appearance: 'Appearance',
     themeLight: 'Light',
     themeLightHint: 'The default look',
@@ -414,9 +417,6 @@ export const en: Dictionary = {
       'Lessons work without any of these. Voice recordings are kept only if you allow it.',
     on: 'On',
     off: 'Off',
-    subscription: 'Subscription',
-    manage: 'Manage subscription',
-    sendFeedback: 'Send feedback',
     account: 'Account',
     deleteAccount: 'Delete account',
     deleteNote:
@@ -427,13 +427,9 @@ export const en: Dictionary = {
     deleteConfirmWord: 'DELETE',
     deleteFailed: 'Could not delete the account.',
     saveFailed: 'Could not save.',
-    feedbackTitle: 'Send feedback',
     feedbackBody:
       'Write what you think here. Suggestions, objections and comments all reach us.',
     feedbackLabel: 'Message',
-    feedbackPlaceholder: 'Describe what happened',
-    feedbackTooShort: 'Please write a little more detail.',
-    feedbackFailed: 'Could not send the message.',
     consents: {
       audioRetention: 'Keep voice recordings',
       audioRetentionBody:

@@ -279,6 +279,45 @@ export function RadioOption({
   )
 }
 
+/**
+ * A row of tabs that are real links. Each panel has its own URL, so a tab survives a reload,
+ * can be sent to someone, and answers the back button — which a `useState` tab cannot.
+ *
+ * `role` is deliberately not `tablist`: these navigate rather than toggle, and telling a
+ * screen reader they are tabs would promise keyboard behaviour links do not have.
+ */
+export function TabLinks({
+  tabs,
+  active,
+}: {
+  tabs: Array<{ to: string; label: string }>
+  active: string
+}) {
+  return (
+    <nav className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+      {tabs.map((tab) => {
+        const isActive = tab.to === active
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            aria-current={isActive ? 'page' : undefined}
+            className={cx(
+              'shrink-0 rounded-[var(--radius-control)] px-4 py-2 text-sm font-extrabold',
+              'transition-[background-color,color,box-shadow,transform] duration-150',
+              isActive
+                ? 'bg-signal text-on-signal shadow-[0_3px_0_0_var(--color-signal-depth)]'
+                : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
+            )}
+          >
+            {tab.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
 /* ------------------------------------------------------------------------- feedback */
 
 /** Linear mission progress for a session (PRD §7). */

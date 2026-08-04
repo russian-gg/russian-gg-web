@@ -13,7 +13,6 @@ import { MissionResult } from './routes/MissionResult'
 import { Onboarding } from './routes/Onboarding'
 import { BillingReturn, Paywall } from './routes/Paywall'
 import { Practice } from './routes/Practice'
-import { Profile } from './routes/Profile'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
 import { SignIn, SignUp } from './routes/SignIn'
@@ -43,8 +42,11 @@ export function App() {
         <Route path="/missions/attempts/:attemptId/result" element={<MissionResult />} />
         <Route path="/paywall" element={<Paywall />} />
         <Route path="/billing/return" element={<BillingReturn />} />
-        <Route path="/profile" element={<Profile />} />
+        {/* Profile and billing are tabs of Settings now; the old address still works. */}
+        <Route path="/profile" element={<Navigate to="/settings" replace />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/general" element={<Settings />} />
+        <Route path="/settings/billing" element={<Settings />} />
         <Route path="/admin" element={<RequireStaff><AdminContent /></RequireStaff>} />
       </Route>
 
