@@ -457,11 +457,7 @@ export function MissionPlayer() {
       // A live turn may already be in flight; submitting the same words twice would record
       // two attempts for one answer.
       if (transcriptValue && !latestTurnPassedRef.current && !submittingTurnRef.current) {
-        const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
-        if (!passed) {
-          setError(t.player.notAcceptedYet)
-          return
-        }
+        await submitTurn(false, transcriptValue, assistantReplyRef.current, false, true)
       }
 
       if (latestTurnPassedRef.current) {
@@ -470,6 +466,25 @@ export function MissionPlayer() {
         } else {
           await advance()
         }
+        return
+      }
+
+      /*
+       * Below the passing score, and that is not a locked door.
+       *
+       * This used to answer "the answer has not been fully accepted yet, try once more" and
+       * stop there — with no other way out of the step, and on the last step no way to finish
+       * the mission at all. Since finishing the mission is what advances the course day, a
+       * learner whose final turn kept scoring short could repeat the same exercise six times
+       * and never move: the tutor said "Ajoyib! Hammasi to'g'ri" while the app refused.
+       *
+       * The server was never this strict — it returns CanAdvance on a weak turn precisely so
+       * nobody is trapped by one score. The panel now offers the same choice the live loop
+       * does: try again, or move on.
+       */
+      if (transcriptValue) {
+        setStepExhausted(true)
+        setVoiceState('feedback')
       }
     } catch (caught) {
       setError(describeVoiceFailure(caught, t, t.player.stopFailed))
