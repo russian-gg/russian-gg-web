@@ -83,6 +83,8 @@ export function MissionPlayer() {
   const [stepExhausted, setStepExhausted] = useState(false)
   // Said under the microphone when nothing is being heard. Not an error state.
   const [micHint, setMicHint] = useState<string | null>(null)
+  // What the server actually granted this session, counted down. Null when nothing is live.
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   // Mirrors latestTurnPassedRef as state: a ref cannot re-render, so the status line
   // never told the learner their answer had been accepted.
   const [turnAccepted, setTurnAccepted] = useState(false)
@@ -145,6 +147,7 @@ export function MissionPlayer() {
       // The page can come back from the back/forward cache after pagehide; it must not
       // return showing a live session that was closed while it was away.
       setHasLiveSession(false)
+      setSecondsLeft(null)
       setVoiceState('idle')
 
       api.postOnExit('/missions/voice/sessions/end', {
@@ -169,6 +172,24 @@ export function MissionPlayer() {
       releaseSession('left_lesson')
     }
   }, [])
+
+  /**
+   * The session's own clock. The server caps every session and clamps what it is billed, but
+   * nothing here ever stopped talking — so a session could run past its allowance against the
+   * provider, and the learner had no idea how much was left until it ended underneath them.
+   */
+  useEffect(() => {
+    if (!hasLiveSession || secondsLeft === null) return
+
+    if (secondsLeft <= 0) {
+      void stopVoice()
+      return
+    }
+
+    const timer = window.setTimeout(() => setSecondsLeft((left) => (left ?? 1) - 1), 1000)
+    return () => window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLiveSession, secondsLeft])
 
   useEffect(() => {
     if (!mission || !feedback || !Array.isArray(mission.steps) || mission.steps.length === 0) {
@@ -377,6 +398,9 @@ export function MissionPlayer() {
 
       liveSessionRef.current = liveSession
       liveSessionIdRef.current = outcome.ticket.sessionId
+      // The real grant: the smaller of the mission's length, the per-session cap and what is
+      // left of the day. The screen used to quote the mission's length regardless.
+      setSecondsLeft(outcome.ticket.maxDurationSeconds)
       setHasLiveSession(true)
 
       await liveSession.start()
@@ -582,6 +606,7 @@ export function MissionPlayer() {
     liveSessionRef.current = null
     liveSessionIdRef.current = null
     setHasLiveSession(false)
+    setSecondsLeft(null)
 
     await liveSession.close().catch(() => {})
 
@@ -703,7 +728,8 @@ export function MissionPlayer() {
             {summary.titleUz}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
-            {summary.objectiveUz} {fill(t.player.minutesLeft, { count: currentMission.maxVoiceMinutes })}
+            {summary.objectiveUz}{' '}
+            {fill(t.player.missionLength, { count: currentMission.maxVoiceMinutes })}
           </p>
 
           <TutorIntro />
@@ -762,6 +788,7 @@ export function MissionPlayer() {
           hasLiveSession={hasLiveSession}
           latestTurnAccepted={turnAccepted}
           hint={micHint}
+          secondsLeft={secondsLeft}
           onStart={() => void startVoice()}
           onStop={() => void stopVoice()}
           onInterrupt={
@@ -1057,6 +1084,7 @@ function MicControl({
   hasLiveSession,
   latestTurnAccepted,
   hint,
+  secondsLeft,
   onStart,
   onStop,
   onInterrupt,
@@ -1072,6 +1100,8 @@ function MicControl({
   latestTurnAccepted: boolean
   /** Said under the microphone when nothing is coming through. Not an error. */
   hint: string | null
+  /** Voice time granted to the live session, counting down. Null when nothing is live. */
+  secondsLeft: number | null
   onStart: () => void
   onStop: () => void
   /** Offered only while the tutor is speaking; null the rest of the time. */
@@ -1157,6 +1187,16 @@ function MicControl({
         </div>
       )}
 
+      {secondsLeft !== null && (
+        <p
+          className={`mt-3 text-center text-sm tabular-nums ${
+            secondsLeft <= 60 ? 'text-caution' : 'text-ink-faint'
+          }`}
+        >
+          {fill(t.player.voiceTimeLeft, { time: formatClock(secondsLeft) })}
+        </p>
+      )}
+
       {hint && (
         <p className="text-support mx-auto mt-3 max-w-sm text-center">{hint}</p>
       )}
@@ -1168,6 +1208,15 @@ function MicControl({
       )}
     </div>
   )
+}
+
+/** m:ss. Minutes alone are useless at the end, which is the only time this matters. */
+function formatClock(totalSeconds: number) {
+  const safe = Math.max(0, totalSeconds)
+  const minutes = Math.floor(safe / 60)
+  const seconds = safe % 60
+
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
 /* --------------------------------------------------------------------------- the rail */

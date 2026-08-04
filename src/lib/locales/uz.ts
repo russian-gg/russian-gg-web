@@ -249,7 +249,8 @@ export const uz = {
   },
 
   player: {
-    minutesLeft: 'Sizga {count} daqiqa yetadi.',
+    missionLength: 'Bu mashq taxminan {count} daqiqa.',
+    voiceTimeLeft: 'Ovozli vaqt: {time}',
     tutorName: 'AI repetitor',
     tutorTagline: 'Sizni tinglaydi va darhol izoh beradi',
     micPrompt: 'Mikrofonni bosing va gapiring',

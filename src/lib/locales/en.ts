@@ -243,7 +243,8 @@ export const en: Dictionary = {
   },
 
   player: {
-    minutesLeft: '{count} minutes is enough.',
+    missionLength: 'This exercise takes about {count} minutes.',
+    voiceTimeLeft: 'Voice time: {time}',
     tutorName: 'AI tutor',
     tutorTagline: 'Listens to you and gives feedback straight away',
     micPrompt: 'Press the microphone and speak',

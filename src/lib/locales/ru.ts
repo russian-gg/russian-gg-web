@@ -247,7 +247,8 @@ export const ru: Dictionary = {
   },
 
   player: {
-    minutesLeft: 'Вам хватит {count} мин.',
+    missionLength: 'Занятие занимает около {count} мин.',
+    voiceTimeLeft: 'Голосовое время: {time}',
     tutorName: 'AI-репетитор',
     tutorTagline: 'Слушает вас и сразу даёт разбор',
     micPrompt: 'Нажмите микрофон и говорите',
