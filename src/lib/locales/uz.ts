@@ -248,6 +248,26 @@ export const uz = {
     daysLeft: '{count} kun qoldi',
   },
 
+  voiceErrors: {
+    connect_failed: "Ovozli aloqaga ulanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.",
+    connection_closed: "Ovozli aloqa uzildi. Qayta ulanmoqda…",
+    unreadable_response: "AI javobini o'qib bo'lmadi. Yana bir marta gapiring.",
+    turn_timeout: "AI javobi juda cho'zilib ketdi. Yana bir marta urinib ko'ring.",
+    mic_insecure: "Mikrofon uchun xavfsiz ulanish (HTTPS) kerak.",
+    mic_unsupported: "Bu brauzer mikrofonni qo'llamaydi. Chrome yoki Safari'da oching.",
+    mic_denied:
+      "Mikrofonga ruxsat berilmadi. Brauzer chiqargan oynada Allow ni bosing.",
+    mic_blocked:
+      "Mikrofon brauzer tomonidan bloklangan. Manzil yonidagi qulf ikonkasidan Microphone ni " +
+      "Allow qiling va sahifani yangilang.",
+    mic_not_found: "Mikrofon topilmadi. Qurilmaga mikrofon ulanganini tekshiring.",
+    mic_busy:
+      "Mikrofonni boshqa dastur band qilib turibdi. Zoom, Telegram yoki shunga o'xshash " +
+      "dasturlarni yopib, qayta urinib ko'ring.",
+    mic_security: "Brauzer mikrofonni xavfsizlik sababi bilan blokladi.",
+    mic_failed: "Mikrofonga ulanib bo'lmadi.",
+  },
+
   player: {
     missionLength: 'Bu mashq taxminan {count} daqiqa.',
     voiceTimeLeft: 'Ovozli vaqt: {time}',
@@ -296,6 +316,7 @@ export const uz = {
     openFailed: "Mashqni ochib bo'lmadi.",
     startFailed: "Ovozli seansni boshlab bo'lmadi.",
     stopFailed: "Ovozli seansni tugatib bo'lmadi.",
+    notAcceptedYet: "Javob hali to'liq qabul qilinmadi. Yana bir marta urinib ko'ring.",
     submitFailed: "Javobni yuborib bo'lmadi.",
     completeFailed: "Mashqni yakunlab bo'lmadi.",
     calculating: 'Natija hisoblanmoqda',

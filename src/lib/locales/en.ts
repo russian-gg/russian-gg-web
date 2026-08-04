@@ -242,6 +242,24 @@ export const en: Dictionary = {
     daysLeft: '{count} days left',
   },
 
+  voiceErrors: {
+    connect_failed: 'Could not connect to voice. Check your connection and try again.',
+    connection_closed: 'The voice connection dropped. Reconnecting…',
+    unreadable_response: "The AI's reply could not be read. Say it once more.",
+    turn_timeout: 'The AI is taking too long to answer. Try once more.',
+    mic_insecure: 'The microphone needs a secure connection (HTTPS).',
+    mic_unsupported: 'This browser does not support the microphone. Open it in Chrome or Safari.',
+    mic_denied: 'Microphone access was not granted. Press Allow in the browser prompt.',
+    mic_blocked:
+      'The browser has blocked the microphone. Allow Microphone from the lock icon in the ' +
+      'address bar, then reload the page.',
+    mic_not_found: 'No microphone found. Check that one is connected.',
+    mic_busy:
+      'Another app is holding the microphone. Close Zoom, Telegram or similar and try again.',
+    mic_security: 'The browser blocked the microphone for security reasons.',
+    mic_failed: 'Could not reach the microphone.',
+  },
+
   player: {
     missionLength: 'This exercise takes about {count} minutes.',
     voiceTimeLeft: 'Voice time: {time}',
@@ -287,6 +305,7 @@ export const en: Dictionary = {
     openFailed: 'Could not open the lesson.',
     startFailed: 'Could not start the voice session.',
     stopFailed: 'Could not end the voice session.',
+    notAcceptedYet: 'The answer has not been fully accepted yet. Try once more.',
     submitFailed: 'Could not send your answer.',
     completeFailed: 'Could not finish the lesson.',
     calculating: 'Working out your result',

@@ -26,11 +26,41 @@ const NO_SPEECH_TIMEOUT_MS = 20_000
 
 export type LiveVoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'closed'
 
+/**
+ * What went wrong, as something the interface can translate. This file used to hand back
+ * finished Uzbek sentences, which meant a learner reading the app in Russian met the one
+ * Uzbek text on the screen at the exact moment something had already gone wrong.
+ */
+export type VoiceErrorCode =
+  | 'connect_failed'
+  | 'connection_closed'
+  | 'unreadable_response'
+  | 'turn_timeout'
+  | 'mic_insecure'
+  | 'mic_unsupported'
+  | 'mic_denied'
+  | 'mic_blocked'
+  | 'mic_not_found'
+  | 'mic_busy'
+  | 'mic_security'
+  | 'mic_failed'
+
+/** The message is for logs and for `catch` blocks that have no dictionary; the code is for people. */
+export class VoiceError extends Error {
+  constructor(
+    readonly code: VoiceErrorCode,
+    message: string = code,
+  ) {
+    super(message)
+    this.name = 'VoiceError'
+  }
+}
+
 export interface LiveVoiceCallbacks {
   onStatus: (status: LiveVoiceStatus) => void
   onInputTranscript: (text: string) => void
   onOutputTranscript: (text: string) => void
-  onError: (message: string) => void
+  onError: (code: VoiceErrorCode) => void
   onTurnComplete: () => void
   onSilenceTimeout: () => void
   /** Nothing was heard at all this turn — usually a muted or wrong input device. */
@@ -159,7 +189,7 @@ export class LiveVoiceSession {
     let timer: number | null = null
     const timeout = new Promise<never>((_, reject) => {
       timer = window.setTimeout(
-        () => reject(new Error("Gemini javobi kutilyapti, lekin juda cho'zilib ketdi.")),
+        () => reject(new VoiceError('turn_timeout')),
         TURN_COMPLETE_TIMEOUT_MS,
       )
     })
@@ -348,22 +378,24 @@ export class LiveVoiceSession {
           }
         } catch (error) {
           rejectOnce(reject, error)
-          this.callbacks.onError("Gemini javobini o'qib bo'lmadi.")
+          this.callbacks.onError('unreadable_response')
         }
       }
 
       ws.onerror = () => {
-        rejectOnce(reject, new Error('Gemini Live websocket ulanmadi.'))
-        this.rejectTurnComplete?.(new Error('Gemini Live websocket ulanmadi.'))
-        this.callbacks.onError('Gemini Live websocket ulanmadi.')
+        rejectOnce(reject, new VoiceError('connect_failed'))
+        this.rejectTurnComplete?.(new VoiceError('connect_failed'))
+        this.callbacks.onError('connect_failed')
       }
 
       ws.onclose = (event) => {
         if (!this.closed && event.code !== 1000) {
-          const reason = event.reason || 'Gemini Live session yopildi.'
-          rejectOnce(reject, new Error(reason))
-          this.rejectTurnComplete?.(new Error(reason))
-          this.callbacks.onError(reason)
+          // The provider's own reason is kept for the log, never shown: it arrives in
+          // English, unlocalised, and usually as a status code.
+          const closed = new VoiceError('connection_closed', event.reason || `code ${event.code}`)
+          rejectOnce(reject, closed)
+          this.rejectTurnComplete?.(closed)
+          this.callbacks.onError('connection_closed')
         }
       }
     })
@@ -620,11 +652,11 @@ export function releaseMicrophone() {
 
 async function openMicrophoneStream(): Promise<MediaStream> {
   if (!window.isSecureContext) {
-    throw new Error("Mikrofon uchun HTTPS kerak. Hozir sayt xavfsiz ulanishda ochilmagan.")
+    throw new VoiceError('mic_insecure')
   }
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    throw new Error("Brauzer mikrofon API'ni qo'llamayapti.")
+    throw new VoiceError('mic_unsupported')
   }
 
   try {
@@ -637,7 +669,7 @@ async function openMicrophoneStream(): Promise<MediaStream> {
       },
     })
   } catch (error) {
-    throw new Error(await describeMicrophoneError(error))
+    throw new VoiceError(await classifyMicrophoneError(error))
   }
 }
 
@@ -909,34 +941,34 @@ function tokenizeTranscript(value: string) {
     .filter((part) => part.length > 0)
 }
 
-async function describeMicrophoneError(error: unknown) {
+/**
+ * Which microphone failure this is. The distinction that matters to a learner is between
+ * "the browser asked and you said no" and "the browser has it blocked and will not ask
+ * again" — the second needs a trip to the address bar, and only the permission state can
+ * tell them apart.
+ */
+async function classifyMicrophoneError(error: unknown): Promise<VoiceErrorCode> {
   if (!(error instanceof DOMException)) {
-    return error instanceof Error ? error.message : "Mikrofonga ulanib bo'lmadi."
+    return 'mic_failed'
   }
 
-  const permissionState = await readMicrophonePermission()
-
   if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-    if (permissionState === 'denied') {
-      return "Mikrofon brauzer tomonidan bloklangan. Manzil yonidagi qulf ikonkasini bosing va Microphone uchun Allow ni yoqing, keyin sahifani yangilang."
-    }
-
-    return "Mikrofon ruxsati berilmadi. Brauzer chiqqan oynada Allow ni bosing. Agar popup ko'rinmasa, manzil yonidagi qulf ikonkasidan Microphone ni Allow qiling."
+    return (await readMicrophonePermission()) === 'denied' ? 'mic_blocked' : 'mic_denied'
   }
 
   if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-    return "Mikrofon topilmadi. Qurilmada mikrofon ulanganini tekshiring."
+    return 'mic_not_found'
   }
 
   if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-    return "Mikrofonni boshqa dastur ushlab turgan bo'lishi mumkin. Zoom, Telegram yoki boshqa audio dasturlarni yopib qayta urinib ko'ring."
+    return 'mic_busy'
   }
 
   if (error.name === 'SecurityError') {
-    return "Brauzer mikrofonni xavfsizlik sababi bilan blokladi. Sahifani secure link orqali ochib qayta urinib ko'ring."
+    return 'mic_security'
   }
 
-  return error.message || "Mikrofonga ulanib bo'lmadi."
+  return 'mic_failed'
 }
 
 async function readMicrophonePermission(): Promise<PermissionState | null> {

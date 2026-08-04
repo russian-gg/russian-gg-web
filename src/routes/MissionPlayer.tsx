@@ -6,6 +6,7 @@ import { api, RequestError, track } from '../lib/api'
 import { fill, useT, type Dictionary } from '../lib/i18n'
 import {
   LiveVoiceSession,
+  VoiceError,
   isPromptAudioPlaying,
   playPromptAudio,
   releaseMicrophone,
@@ -340,14 +341,14 @@ export function MissionPlayer() {
 
       if (!outcome.isAvailable) {
         // An honest degraded state, not a silent failure (PRD §11).
-        setDegraded(outcome.unavailable?.messageUz ?? 'Ovozli aloqa hozir mavjud emas.')
+        setDegraded(outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed)
         setVoiceComposerOpen(true)
         setVoiceState('unavailable')
         return
       }
 
       if (!outcome.ticket) {
-        throw new Error("Voice ticket qaytmadi.")
+        throw new VoiceError('connect_failed')
       }
 
       // The scenario contract is the server's: versioned, tested, and aware of the step
@@ -376,8 +377,8 @@ export function MissionPlayer() {
           onOutputTranscript: (text) => {
             setAssistantReply(text)
           },
-          onError: (message) => {
-            setError(message)
+          onError: (code) => {
+            setError(t.voiceErrors[code])
           },
           onTurnComplete: () => {
             setVoiceComposerOpen(true)
@@ -416,13 +417,7 @@ export function MissionPlayer() {
         .catch(() => {})
       track('voice_started', { mission: currentMission.summary.slug })
     } catch (caught) {
-      const message =
-        caught instanceof RequestError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : t.player.startFailed
-      setError(message)
+      setError(describeVoiceFailure(caught, t, t.player.startFailed))
       await teardownVoice(false, 'start_failed')
       // Starting failed after the press already opened the microphone; without this the
       // recording indicator stays lit with no session behind it.
@@ -451,7 +446,7 @@ export function MissionPlayer() {
       if (transcriptValue && !latestTurnPassedRef.current && !submittingTurnRef.current) {
         const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, false, false)
         if (!passed) {
-          setError("Gemini hali javobni to'liq qabul qilmadi. Yana bir marta urinib ko'ring.")
+          setError(t.player.notAcceptedYet)
           return
         }
       }
@@ -464,9 +459,7 @@ export function MissionPlayer() {
         }
       }
     } catch (caught) {
-      const message =
-        caught instanceof Error ? caught.message : t.player.stopFailed
-      setError(message)
+      setError(describeVoiceFailure(caught, t, t.player.stopFailed))
       await teardownVoice(false, 'stop_failed')
       setVoiceState('idle')
     } finally {
@@ -486,9 +479,7 @@ export function MissionPlayer() {
     try {
       await liveSession.finishCurrentTurn()
     } catch (caught) {
-      const message =
-        caught instanceof Error ? caught.message : "Gemini javobini kutib bo'lmadi."
-      setError(message)
+      setError(describeVoiceFailure(caught, t, t.voiceErrors.turn_timeout))
       // The turn was written off, not the session. Listening resumes so a provider that went
       // quiet for one turn costs the learner a retry rather than the lesson.
       await liveSessionRef.current?.beginNextTurn()
@@ -1208,6 +1199,18 @@ function MicControl({
       )}
     </div>
   )
+}
+
+/**
+ * Turns whatever was thrown into something in the learner's language. A VoiceError carries a
+ * code the dictionary knows; a RequestError already carries a server message in the right
+ * language; anything else is ours and gets the caller's fallback rather than a stack message.
+ */
+function describeVoiceFailure(caught: unknown, t: Dictionary, fallback: string) {
+  if (caught instanceof VoiceError) return t.voiceErrors[caught.code]
+  if (caught instanceof RequestError) return caught.message
+
+  return fallback
 }
 
 /** m:ss. Minutes alone are useless at the end, which is the only time this matters. */
