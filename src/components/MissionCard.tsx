@@ -25,7 +25,7 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
         {mission.isLocked && <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>}
       </div>
 
-      <h3 className="mt-3 text-lg font-extrabold leading-snug text-ink">{pickContent(locale, mission.titleUz, mission.titleRu)}</h3>
+      <h3 className="mt-3 text-lg font-extrabold leading-snug text-ink">{pickContent(locale, { uz: mission.titleUz, ru: mission.titleRu, en: mission.titleEn })}</h3>
       <p className="text-support">{mission.objectiveUz}</p>
 
       {/*

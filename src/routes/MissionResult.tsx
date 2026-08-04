@@ -38,15 +38,23 @@ export function MissionResult() {
       {data.unlockedMilestone && (
         <Card>
           <Badge tone="milestone">{fill(t.result.milestoneUnlocked, { day: data.unlockedMilestone.day })}</Badge>
-          <h2 className="mt-3 text-lg font-extrabold text-ink">{pickContent(locale, data.unlockedMilestone.titleUz, data.unlockedMilestone.titleRu)}</h2>
-          <UzHint>{data.unlockedMilestone.outcomeUz}</UzHint>
+          <h2 className="mt-3 text-lg font-extrabold text-ink">{pickContent(locale, {
+            uz: data.unlockedMilestone.titleUz,
+            ru: data.unlockedMilestone.titleRu,
+            en: data.unlockedMilestone.titleEn,
+          })}</h2>
+          <UzHint>{pickContent(locale, {
+              uz: data.unlockedMilestone.outcomeUz,
+              ru: data.unlockedMilestone.outcomeRu,
+              en: data.unlockedMilestone.outcomeEn,
+            })}</UzHint>
         </Card>
       )}
 
       <section>
         <SectionHeading>{t.result.mainCorrection}</SectionHeading>
         <Card>
-          <p className="text-base text-ink">{pickContent(locale, data.headlineFeedbackUz, data.headlineFeedbackRu)}</p>
+          <p className="text-base text-ink">{pickContent(locale, { uz: data.headlineFeedbackUz, ru: data.headlineFeedbackRu })}</p>
           <p className="text-support mt-2">{data.headlineFeedbackRu}</p>
         </Card>
         <p className="text-support mt-2">

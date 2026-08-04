@@ -208,7 +208,7 @@ function DayRow({
             isOpen ? 'font-semibold text-ink' : day.isUnlocked ? 'text-ink' : 'text-ink-faint'
           }`}
         >
-          {pickContent(locale, day.focusUz, day.focusRu)}
+          {pickContent(locale, { uz: day.focusUz, ru: day.focusRu, en: day.focusEn })}
         </span>
 
         {isToday && !isDone && <Badge tone="signal">{t.path.today}</Badge>}

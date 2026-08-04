@@ -127,7 +127,10 @@ export interface MissionSummary {
   slug: string
   titleUz: string
   titleRu: string
+  titleEn?: string | null
   objectiveUz: string
+  objectiveRu?: string | null
+  objectiveEn?: string | null
   category: MissionCategory
   topic: MissionTopic
   phase: CoursePhase
@@ -211,7 +214,10 @@ export interface MilestoneView {
   day: number
   titleUz: string
   titleRu: string
+  titleEn?: string | null
   outcomeUz: string
+  outcomeRu?: string | null
+  outcomeEn?: string | null
   isCompleted: boolean
   completedAt?: string | null
   daysRemaining: number
@@ -262,6 +268,7 @@ export interface CourseDayView {
   phase: CoursePhase
   focusUz: string
   focusRu: string
+  focusEn?: string | null
   requiredMissionCount: number
   completedMissionCount: number
   isUnlocked: boolean

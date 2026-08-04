@@ -770,7 +770,7 @@ export function MissionPlayer() {
 
         <div className="mt-8 flex-1">
           <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
-            {pickContent(locale, summary.titleUz, summary.titleRu)}
+            {pickContent(locale, { uz: summary.titleUz, ru: summary.titleRu, en: summary.titleEn })}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
             {summary.objectiveUz}{' '}

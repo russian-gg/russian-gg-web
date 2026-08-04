@@ -116,8 +116,8 @@ export function MilestoneTimeline({ milestones }: { milestones: MilestoneView[] 
                   )}
                 </div>
 
-                <h3 className="mt-1 text-base font-extrabold text-ink">{pickContent(locale, milestone.titleUz, milestone.titleRu)}</h3>
-                <p className="text-support">{milestone.outcomeUz}</p>
+                <h3 className="mt-1 text-base font-extrabold text-ink">{pickContent(locale, { uz: milestone.titleUz, ru: milestone.titleRu, en: milestone.titleEn })}</h3>
+                <p className="text-support">{pickContent(locale, { uz: milestone.outcomeUz, ru: milestone.outcomeRu, en: milestone.outcomeEn })}</p>
               </div>
             </div>
           </li>
