@@ -173,6 +173,21 @@ export class LiveVoiceSession {
       return
     }
 
+    /*
+     * No cue, no message. A server older than this bundle does not put one in the ticket, and
+     * sending the turn anyway serialises to `parts: [{}]` — which the provider rejects with
+     * 1007 and closes the socket, one message after setup succeeded. The lesson then died on
+     * arrival with "the connection dropped", on a deployment where the only thing wrong was
+     * that the two halves shipped at different times.
+     *
+     * Without a cue the tutor simply does not open first, which is how it worked before the
+     * cue existed. A newer client degrades against an older server; it does not take the
+     * session down with it.
+     */
+    if (!this.openingCue?.trim()) {
+      return
+    }
+
     this.callbacks.onStatus('thinking')
     this.suppressTurnReport = true
     this.ensureTurnPromise()
