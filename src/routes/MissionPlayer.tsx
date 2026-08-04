@@ -1268,9 +1268,9 @@ function MicControl({
         an exchange and never happen together, so they share the space instead of taking one
         each.
       */}
-      <div className="flex h-9 items-center justify-center">
+      <div className="flex h-8 items-center justify-center">
         {state === 'listening' ? (
-          <VoiceSignal state="listening" size="sm" />
+          <VoiceSignal state="listening" size="sm" labelled={false} />
         ) : onInterrupt ? (
           <Button variant="ghost" size="sm" onClick={onInterrupt}>
             {t.player.interrupt}
@@ -1278,18 +1278,20 @@ function MicControl({
         ) : null}
       </div>
 
-      {/* Reserved from the moment the session opens, so the clock's arrival moves nothing. */}
-      <p
-        className={`flex h-5 items-center justify-center text-sm tabular-nums ${
-          secondsLeft !== null && secondsLeft <= 60 ? 'text-caution' : 'text-ink-faint'
-        }`}
-      >
-        {secondsLeft !== null && fill(t.player.voiceTimeLeft, { time: formatClock(secondsLeft) })}
+      {/*
+        Only in the last minute. A clock counting down through the whole session is one more
+        thing to read while trying to speak Russian, and it is not information anybody acts on
+        until it is nearly gone. The space stays reserved so its arrival moves nothing.
+      */}
+      <p className="flex h-5 items-center justify-center text-sm tabular-nums text-caution">
+        {secondsLeft !== null &&
+          secondsLeft <= 60 &&
+          fill(t.player.voiceTimeLeft, { time: formatClock(secondsLeft) })}
       </p>
 
       {onMoveOn && (
-        <div className="mt-4 flex flex-col items-center gap-2">
-          <p className="text-support max-w-sm text-center">{t.player.stepOffer}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <span className="text-support">{t.player.stepOffer}</span>
           <Button variant="ghost" size="sm" onClick={onMoveOn}>
             {isLastStep ? t.player.finish : t.player.advance}
           </Button>

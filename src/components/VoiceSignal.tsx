@@ -15,7 +15,20 @@ const LABEL: Record<VoiceState, string> = {
  * just bars, a circle and a wave (PRD §7). Each state is named in text as well as drawn,
  * so it is never colour- or motion-only.
  */
-export function VoiceSignal({ state, size = 'lg' }: { state: VoiceState; size?: 'sm' | 'lg' }) {
+/**
+ * @param labelled Draw the state's word under the bars. Off where the caller already says it:
+ * the mission player has a status line directly above this, and printing "TINGLANMOQDA"
+ * under "Gapiring… AI sizni eshitmoqda" said the same thing twice in two registers.
+ */
+export function VoiceSignal({
+  state,
+  size = 'lg',
+  labelled = true,
+}: {
+  state: VoiceState
+  size?: 'sm' | 'lg'
+  labelled?: boolean
+}) {
   const tone = {
     idle: 'bg-ink-faint',
     listening: 'bg-signal',
@@ -45,13 +58,17 @@ export function VoiceSignal({ state, size = 'lg' }: { state: VoiceState; size?: 
           />
         ))}
       </div>
-      <p
-        className="text-xs font-semibold tracking-[0.16em] text-ink-faint uppercase"
-        role="status"
-        aria-live="polite"
-      >
-        {LABEL[state]}
-      </p>
+      {labelled ? (
+        <p
+          className="text-xs font-extrabold tracking-[0.16em] text-ink-faint uppercase"
+          role="status"
+          aria-live="polite"
+        >
+          {LABEL[state]}
+        </p>
+      ) : (
+        <span className="sr-only">{LABEL[state]}</span>
+      )}
     </div>
   )
 }
