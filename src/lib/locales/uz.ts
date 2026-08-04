@@ -203,7 +203,7 @@ export const uz = {
     phraseCount: '{count} ta ibora',
     voicePractice: 'AI suhbat mashqi',
     levelLabel: '{level} daraja',
-    tutorTitle: 'AI repetitor bilan suhbat',
+    tutorTitle: 'AI ustoz bilan suhbat',
     tutorBody: "Siz bilan rus tilida suhbatlashadi, talaffuz va iboralarni o'rgatadi.",
     startConversation: 'Suhbatni boshlash',
     lockedFallback: 'Bu mashq hozir yopiq.',
@@ -271,7 +271,7 @@ export const uz = {
   player: {
     missionLength: 'Bu mashq taxminan {count} daqiqa.',
     voiceTimeLeft: 'Ovozli vaqt: {time}',
-    tutorName: 'AI repetitor',
+    tutorName: 'AI ustoz',
     tutorTagline: 'Sizni tinglaydi va darhol izoh beradi',
     micPrompt: 'Mikrofonni bosing va gapiring',
     listening: 'Gapiring… AI sizni eshitmoqda',

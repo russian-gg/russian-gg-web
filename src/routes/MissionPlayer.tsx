@@ -1046,7 +1046,7 @@ const TUTOR_AVATAR_SRC = '/tutor-avatar.jpg'
  * The tutor's mark. Uses the avatar image when one is present and falls back to the abstract
  * signal if it is missing or fails to load, so the lesson never renders a broken image.
  *
- * The label always says "AI repetitor". A human face must not let a learner believe they are
+ * The label always names it as the AI. A human face must not let a learner believe they are
  * talking to a person — the product's own positioning is that this never replaces a teacher.
  */
 function TutorMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
@@ -1077,7 +1077,7 @@ function TutorMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
   return (
     <img
       src={TUTOR_AVATAR_SRC}
-      alt="AI repetitor"
+      alt={t.player.tutorName}
       // Eager: it identifies who the learner is about to speak to, so it must not pop in late.
       onError={() => setFailed(true)}
       className={`shrink-0 rounded-full bg-signal-soft object-cover ${box}`}

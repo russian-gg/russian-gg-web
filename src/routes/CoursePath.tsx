@@ -306,6 +306,7 @@ function Meta({ icon, label }: { icon: ReactNode; label: string }) {
 
 /** Falls back to the abstract mark when no avatar image is present; see public/README.md. */
 function TutorAvatar() {
+  const t = useT()
   const [failed, setFailed] = useState(false)
 
   if (failed) {
@@ -315,7 +316,7 @@ function TutorAvatar() {
   return (
     <img
       src="/tutor-avatar.jpg"
-      alt="AI repetitor"
+      alt={t.player.tutorName}
       onError={() => setFailed(true)}
       className="size-11 shrink-0 rounded-full bg-signal-soft object-cover"
     />
