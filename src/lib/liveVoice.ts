@@ -61,6 +61,11 @@ export interface LiveVoiceCallbacks {
   onInputTranscript: (text: string) => void
   onOutputTranscript: (text: string) => void
   onError: (code: VoiceErrorCode) => void
+  /**
+   * The connection dropped after it had been working. Separate from onError because it is
+   * recoverable: the caller can mint a fresh ticket and continue the same server session.
+   */
+  onDropped: () => void
   onTurnComplete: () => void
   onSilenceTimeout: () => void
   /** Nothing was heard at all this turn — usually a muted or wrong input device. */
@@ -103,6 +108,8 @@ export class LiveVoiceSession {
   private noSpeechReported = false
   /** The room's own level. Starts high so the running minimum converges on the first frames. */
   private noiseFloor = Number.POSITIVE_INFINITY
+  /** Set once setup succeeded. A close before this is a failure to connect, not a drop. */
+  private connected = false
 
   constructor(ticket: VoiceSessionTicket, callbacks: LiveVoiceCallbacks) {
     this.ticket = ticket
@@ -324,6 +331,7 @@ export class LiveVoiceSession {
           const response = (await parseServerMessage(event.data)) as LiveServerMessage
 
           if (response.setupComplete) {
+            this.connected = true
             resolve()
             return
           }
@@ -389,13 +397,27 @@ export class LiveVoiceSession {
       }
 
       ws.onclose = (event) => {
-        if (!this.closed && event.code !== 1000) {
-          // The provider's own reason is kept for the log, never shown: it arrives in
-          // English, unlocalised, and usually as a status code.
-          const closed = new VoiceError('connection_closed', event.reason || `code ${event.code}`)
-          rejectOnce(reject, closed)
-          this.rejectTurnComplete?.(closed)
-          this.callbacks.onError('connection_closed')
+        if (this.closed || event.code === 1000) {
+          return
+        }
+
+        // The provider's own reason is kept for the log, never shown: it arrives in
+        // English, unlocalised, and usually as a status code.
+        const closed = new VoiceError('connection_closed', event.reason || `code ${event.code}`)
+        rejectOnce(reject, closed)
+        this.rejectTurnComplete?.(closed)
+
+        /*
+         * A drop after the session was working is recoverable and is reported as such. A
+         * close before setup completed is a failure to connect, and `start()` is still
+         * waiting on the promise that was just rejected — reporting both would show the
+         * learner an error and then try to reconnect underneath it.
+         */
+        if (this.connected) {
+          this.recording = false
+          this.callbacks.onDropped()
+        } else {
+          this.callbacks.onError('connect_failed')
         }
       }
     })

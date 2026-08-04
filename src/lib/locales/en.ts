@@ -270,6 +270,7 @@ export const en: Dictionary = {
     waiting: 'Waiting…',
     evaluating: 'Scoring your answer…',
     interrupt: 'Let me speak',
+    reconnecting: 'Reconnecting…',
     noSpeechHint:
       'We cannot hear you. Check that the microphone is on and the right device is selected.',
     inConversation: 'Conversation in progress',

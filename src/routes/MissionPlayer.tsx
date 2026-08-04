@@ -39,6 +39,13 @@ import {
 const MAX_STEP_ATTEMPTS = 3
 
 /**
+ * Reconnects allowed on one step before the lesson stops trying. Live connections drop —
+ * a tunnel, a switch from wifi to mobile — and losing the lesson to one of those was worse
+ * than the drop itself. Bounded, because a connection that keeps dropping is not coming back.
+ */
+const MAX_RECONNECTS = 2
+
+/**
  * The focused mission player (PRD §6). One objective, one Russian prompt with Uzbek
  * support, one high-emphasis action to answer by voice, and step progress at the bottom.
  * Built from hairlines and whitespace rather than stacked cards. Detailed scoring is
@@ -79,6 +86,7 @@ export function MissionPlayer() {
   const totalStepsRef = useRef(1)
   // Answers given on the step in front of the learner, whether or not they passed.
   const stepAttemptsRef = useRef(0)
+  const reconnectsRef = useRef(0)
   const latestFeedbackRef = useRef<TurnFeedback | null>(null)
   // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
   const [stepExhausted, setStepExhausted] = useState(false)
@@ -380,6 +388,9 @@ export function MissionPlayer() {
           onError: (code) => {
             setError(t.voiceErrors[code])
           },
+          onDropped: () => {
+            void reconnectVoice()
+          },
           onTurnComplete: () => {
             setVoiceComposerOpen(true)
             if (!manualStopRequestedRef.current) {
@@ -486,6 +497,34 @@ export function MissionPlayer() {
     } finally {
       setBusy(false)
     }
+  }
+
+  /**
+   * Continues after a dropped connection. The server's session row is deliberately left open:
+   * StartAsync continues it rather than opening a parallel one, so reconnecting does not cost
+   * the learner a second slice of their daily allowance.
+   */
+  async function reconnectVoice() {
+    if (manualStopRequestedRef.current) return
+
+    const dropped = liveSessionRef.current
+    liveSessionRef.current = null
+    liveSessionIdRef.current = null
+    await dropped?.close().catch(() => {})
+
+    if (reconnectsRef.current >= MAX_RECONNECTS) {
+      // Out of attempts. Ended honestly, with the microphone back to the learner's control.
+      setHasLiveSession(false)
+      setSecondsLeft(null)
+      setError(t.voiceErrors.connect_failed)
+      setVoiceState('idle')
+      return
+    }
+
+    reconnectsRef.current += 1
+    setMicHint(t.player.reconnecting)
+    await startVoice()
+    setMicHint(null)
   }
 
   async function submitTurnFromLive() {
@@ -648,6 +687,7 @@ export function MissionPlayer() {
     latestTurnScoreRef.current = null
     latestFeedbackRef.current = null
     stepAttemptsRef.current = 0
+    reconnectsRef.current = 0
     setStepExhausted(false)
     setTurnAccepted(false)
     manualStopRequestedRef.current = false

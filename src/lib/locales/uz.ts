@@ -278,6 +278,7 @@ export const uz = {
     waiting: 'Kutilmoqda…',
     evaluating: 'Javobingiz baholanmoqda…',
     interrupt: "Men gapiraman",
+    reconnecting: 'Qayta ulanmoqda…',
     noSpeechHint:
       "Sizni eshitmayapmiz. Mikrofon yoqilganini va to'g'ri qurilma tanlanganini tekshiring.",
     inConversation: 'Suhbat davom etmoqda',
