@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError } from '../lib/api'
+import { cx } from '../lib/cx'
 import { useT } from '../lib/i18n'
 import type {
   ContentReviewStatus,
@@ -36,6 +37,7 @@ const NEXT_STATES: Record<ContentReviewStatus, ContentReviewStatus[]> = {
 export function AdminContent() {
   const t = useT()
 
+  const [tab, setTab] = useState<'review' | 'translations'>('review')
   const [filter, setFilter] = useState<ContentReviewStatus | null>('InReview')
   const [selected, setSelected] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,8 +77,30 @@ export function AdminContent() {
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
-      {operations && <OperationsPanel operations={operations} />}
+      <div className="flex gap-2">
+        {(['review', 'translations'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setTab(option)}
+            aria-pressed={tab === option}
+            className={cx(
+              'rounded-[var(--radius-control)] px-4 py-2 text-sm font-extrabold transition-colors',
+              tab === option
+                ? 'bg-signal text-on-signal shadow-[0_3px_0_0_var(--color-signal-depth)]'
+                : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
+            )}
+          >
+            {option === 'review' ? 'Nashr nazorati' : 'Tarjimalar'}
+          </button>
+        ))}
+      </div>
 
+      {tab === 'translations' && <TranslationsPanel onError={setError} />}
+
+      {tab === 'review' && operations && <OperationsPanel operations={operations} />}
+
+      {tab === 'review' && (
       <div className="flex flex-wrap gap-2">
         {([null, 'Draft', 'InReview', 'Approved', 'Published'] as const).map((status) => (
           <button
@@ -94,9 +118,11 @@ export function AdminContent() {
           </button>
         ))}
       </div>
+      )}
 
-      {isLoading && <Spinner />}
+      {tab === 'review' && isLoading && <Spinner />}
 
+      {tab === 'review' && (
       <div className="space-y-3">
         {missions?.map((mission) => (
           <Card key={mission.id} as="article">
@@ -163,7 +189,148 @@ export function AdminContent() {
           <p className="text-support">Bu holatda mashqlar yo’q.</p>
         )}
       </div>
+      )}
     </div>
+  )
+}
+
+/* -------------------------------------------------------------------- translations */
+
+interface TranslationRow {
+  kind: string
+  key: string
+  field: string
+  label: string
+  uz: string
+  ru?: string | null
+  en?: string | null
+}
+
+const FIELD_LABEL: Record<string, string> = {
+  title: 'Nomi',
+  objective: 'Maqsadi',
+  outcome: 'Natijasi',
+  focus: 'Mavzusi',
+}
+
+const KIND_LABEL: Record<string, string> = {
+  mission: 'Mashqlar',
+  milestone: 'Bosqichlar',
+  courseDay: 'Kunlar',
+}
+
+/**
+ * The translation table. Uzbek is shown but not editable: it is the source every other
+ * language falls back to, and it belongs with the curriculum rather than with a form.
+ *
+ * Edits are held locally and saved together, because translating is done in passes — nobody
+ * writes one Russian sentence and reloads the page.
+ */
+function TranslationsPanel({ onError }: { onError: (message: string | null) => void }) {
+  const queryClient = useQueryClient()
+  const [kind, setKind] = useState('mission')
+  const [drafts, setDrafts] = useState<Record<string, { ru: string; en: string }>>({})
+
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ['admin-translations'],
+    queryFn: () => api.get<TranslationRow[]>('/admin/translations'),
+  })
+
+  const save = useMutation({
+    mutationFn: (edits: Array<{ kind: string; key: string; field: string; ru: string; en: string }>) =>
+      api.put<number>('/admin/translations', { edits }),
+    onSuccess: async () => {
+      onError(null)
+      setDrafts({})
+      await queryClient.invalidateQueries({ queryKey: ['admin-translations'] })
+    },
+    onError: (caught) =>
+      onError(caught instanceof RequestError ? caught.message : 'Tarjimani saqlab bo’lmadi.'),
+  })
+
+  if (isLoading) return <Spinner />
+
+  const shown = rows?.filter((row) => row.kind === kind) ?? []
+  const idOf = (row: TranslationRow) => `${row.kind}:${row.key}:${row.field}`
+  const valueOf = (row: TranslationRow) =>
+    drafts[idOf(row)] ?? { ru: row.ru ?? '', en: row.en ?? '' }
+
+  const pending = Object.entries(drafts).map(([id, value]) => {
+    const [rowKind, key, field] = id.split(':')
+    return { kind: rowKind, key, field, ...value }
+  })
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {Object.entries(KIND_LABEL).map(([option, label]) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={kind === option}
+            onClick={() => setKind(option)}
+            className={cx(
+              'rounded-full px-3.5 py-1.5 text-sm font-bold transition',
+              kind === option
+                ? 'bg-signal-soft text-signal-ink'
+                : 'border-2 border-hairline text-ink-muted hover:text-ink',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+
+        <span className="text-support ml-auto">
+          {pending.length > 0
+            ? `${pending.length} ta o’zgarish saqlanmagan`
+            : 'Hammasi saqlangan'}
+        </span>
+
+        <Button disabled={pending.length === 0 || save.isPending} onClick={() => save.mutate(pending)}>
+          Saqlash
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {shown.map((row) => {
+          const id = idOf(row)
+          const value = valueOf(row)
+
+          return (
+            <Card key={id} as="article">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{FIELD_LABEL[row.field] ?? row.field}</Badge>
+                <span className="text-support">{row.label}</span>
+              </div>
+
+              <p className="mt-2 text-base text-ink">{row.uz}</p>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {(['ru', 'en'] as const).map((language) => (
+                  <label key={language} className="block">
+                    <span className="mb-1 block text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">
+                      {language === 'ru' ? 'Ruscha' : 'Inglizcha'}
+                    </span>
+                    <textarea
+                      rows={2}
+                      value={value[language]}
+                      onChange={(event) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [id]: { ...value, [language]: event.target.value },
+                        }))
+                      }
+                      placeholder={row.uz}
+                      className="w-full rounded-xl border-2 border-hairline bg-ground-raised px-3 py-2 text-sm text-ink placeholder:text-ink-faint"
+                    />
+                  </label>
+                ))}
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
