@@ -17,11 +17,14 @@ export type Dashboard = {
   money: { revenue: number; currency: string; paidTransactions: number }
   transactions: SeriesPoint[]
   plans: KeyValue[]
+  /** Ordered A0→B2 then "Aniqlanmagan". A level scale, so never re-sorted by size. */
+  levels: KeyValue[]
   environment: string
 }
 
 export type Audience = {
   totalUsers: number
+  levels: KeyValue[]
   languages: KeyValue[]
   plans: KeyValue[]
   signupMethods: KeyValue[]
@@ -69,6 +72,9 @@ export type UserItem = {
   lastLoginAt?: string | null
   createdAt: string
   completedMissions: number
+  /** Absent when nobody has measured it — not the A0 an enrollment starts on. */
+  speakingLevel?: string | null
+  currentDay?: number | null
 }
 
 export type UserDetail = UserItem & {
@@ -83,6 +89,8 @@ export type UserDetail = UserItem & {
     createdAt: string
     completedAt?: string | null
   }>
+  speakingLevel?: string | null
+  comprehensionLevel?: string | null
 }
 
 export type Transaction = {

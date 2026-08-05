@@ -80,7 +80,7 @@ function UserList() {
             Columns the product can fill. Every one of these has a value for every learner —
             an always-empty column looks like a broken query, not a fact about the data.
           */}
-          <Table head={['Foydalanuvchi', 'Reja', 'Til', 'Mashqlar', 'Oxirgi kirish', "Ro'yxatdan o'tgan"]}>
+          <Table head={['Foydalanuvchi', 'Daraja', 'Reja', 'Kun', 'Mashqlar', 'Oxirgi kirish', "Ro'yxatdan o'tgan"]}>
             {data.items.map((user) => (
               <Row key={user.id} onClick={() => setSelected(user.id)}>
                 <Cell>
@@ -88,9 +88,17 @@ function UserList() {
                   <span className="block text-xs text-ink-faint">{user.email}</span>
                 </Cell>
                 <Cell>
+                  {/* A dash, not A0: an unmeasured learner has not been placed at the bottom. */}
+                  {user.speakingLevel ? (
+                    <Badge tone="milestone">{user.speakingLevel}</Badge>
+                  ) : (
+                    <span className="text-ink-faint">—</span>
+                  )}
+                </Cell>
+                <Cell>
                   <Badge tone={user.plan === 'Free' ? 'neutral' : 'signal'}>{user.plan.toLowerCase()}</Badge>
                 </Cell>
-                <Cell muted>{user.uiLanguage}</Cell>
+                <Cell muted>{user.currentDay ? `${user.currentDay}-kun` : '—'}</Cell>
                 <Cell muted>{formatNumber(user.completedMissions)}</Cell>
                 <Cell muted>{formatDate(user.lastLoginAt)}</Cell>
                 <Cell muted>{formatDate(user.createdAt)}</Cell>
@@ -98,7 +106,7 @@ function UserList() {
             ))}
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <EmptyNote>Hech kim topilmadi</EmptyNote>
                 </td>
               </tr>
@@ -174,6 +182,8 @@ function UserDrawer({
             </div>
 
             <Card className="space-y-2">
+              <Line label="Gapirish darajasi" value={data.speakingLevel ?? '— (aniqlanmagan)'} />
+              <Line label="Tushunish darajasi" value={data.comprehensionLevel ?? '— (aniqlanmagan)'} />
               <Line label="Reja" value={data.plan} />
               <Line label="Rol" value={data.role} />
               <Line label="Til" value={data.uiLanguage} />
@@ -250,6 +260,11 @@ function AudienceTab() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <Card>
+        <h3 className="mb-4 text-base font-extrabold text-ink">Darajalar</h3>
+        <BarList items={data.levels} labelWidth="w-32" />
+      </Card>
+
       <Card>
         <h3 className="mb-4 text-base font-extrabold text-ink">Interfeys tili</h3>
         <Donut

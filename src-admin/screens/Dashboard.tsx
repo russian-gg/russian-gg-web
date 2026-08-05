@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { formatMoney, formatNumber, formatPercent, useAdminQuery } from '../lib/api'
 import type { Dashboard as DashboardData } from '../lib/types'
 import { Card, ErrorNote, Loading, PageHeader, PeriodToggle, SectionHeading, Stat } from '../components/ui'
-import { ColumnChart, Donut, LineChart, Sparkline } from '../components/charts'
+import { BarList, ColumnChart, Donut, LineChart, Sparkline } from '../components/charts'
 
 export function Dashboard() {
   const [days, setDays] = useState(30)
@@ -58,6 +58,25 @@ export function Dashboard() {
             <p className="mt-3 text-xs text-ink-faint">Oldingi davrda faol bo'lganlarning qaytgan ulushi</p>
           </Card>
         </div>
+      </section>
+
+      <section>
+        <SectionHeading>Darajalar</SectionHeading>
+        <Card>
+          <div className="mb-4 flex items-baseline gap-2">
+            <span className="text-sm text-ink-muted">
+              Diagnostikada aniqlangan gapirish darajasi bo'yicha
+            </span>
+          </div>
+          {/*
+            Rendered in the order the server sends — A0 to B2, then the unmeasured. Sorting a
+            level scale by size would put B1 above A1 and turn a scale into a ranking.
+          */}
+          <BarList items={data.levels} format={formatNumber} labelWidth="w-32" />
+          <p className="mt-4 text-xs text-ink-faint">
+            "Aniqlanmagan" — diagnostikadan o'tmagan va hali baholanmagan hisoblar.
+          </p>
+        </Card>
       </section>
 
       <section>
