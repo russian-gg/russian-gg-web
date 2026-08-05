@@ -809,7 +809,7 @@ export function MissionPlayer() {
         phone, 3rem either side from md up. Guessing high here would push the controls back
         off the bottom; guessing low would waste the room the conversation needs.
       */}
-      <div className="flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:h-[calc(100dvh-6rem)]">
+      <div className="flex min-h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:min-h-[calc(100dvh-6rem)]">
         <header className="flex shrink-0 items-start justify-between gap-4">
           <button
             type="button"
@@ -828,7 +828,7 @@ export function MissionPlayer() {
           )}
         </header>
 
-        <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto">
+        <div ref={threadRef} className="mt-8 min-h-0 overflow-y-auto">
           <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
             {pickContent(locale, { uz: summary.titleUz, ru: summary.titleRu, en: summary.titleEn })}
           </h1>
@@ -1291,7 +1291,7 @@ function MicControl({
      * the spot the learner last reached for. The reserved space costs nothing: it is empty
      * screen either way.
      */
-    <div className="mt-14 min-h-56">
+    <div className="mt-8 min-h-56">
       <div className="relative flex items-center justify-center">
         {/*
           Rings leaving the microphone while it is being spoken into. They sit behind the
