@@ -116,7 +116,7 @@ export function PhoneNumberPrompt() {
           <h2 id="phone-prompt-title" className="mt-3.5 max-w-xs text-lg font-extrabold tracking-tight text-ink sm:text-xl">
             {t.phonePrompt.title}
           </h2>
-          <p className="text-support mt-2 max-w-xs text-sm leading-7 sm:text-base sm:leading-relaxed">
+          <p className="text-support mt-2 max-w-xs text-xs leading-6 sm:text-sm sm:leading-6">
             {t.phonePrompt.body}
             <br />
             {t.phonePrompt.bodyLine2}
