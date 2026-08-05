@@ -412,6 +412,15 @@ export const en: Dictionary = {
     },
   },
 
+  phonePrompt: {
+    title: 'Can we call you?',
+    body: 'We build this platform around what students tell us.',
+    bodyLine2: "Leave your number and we'll reach out for a short chat.",
+    label: 'Phone number',
+    placeholder: '+998',
+    invalid: 'Enter a valid phone number.',
+  },
+
   settings: {
     voice: "The tutor's voice",
     voiceGender: { Female: 'Female', Male: 'Male' },

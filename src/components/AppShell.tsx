@@ -8,6 +8,7 @@ import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { EntitlementView, ProgressView } from '../lib/types'
+import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { Badge, Switch } from './ui'
 
 const NAV = [
@@ -71,6 +72,8 @@ export function AppShell() {
       <main className="mx-auto w-full max-w-5xl px-5 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-12 md:py-12 md:pb-12">
         <Outlet />
       </main>
+
+      <PhoneNumberPrompt />
 
       <nav
         aria-label={t.nav.main}

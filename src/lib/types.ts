@@ -67,6 +67,7 @@ export interface UserProfile {
   id: string
   email: string
   displayName?: string | null
+  phoneNumber?: string | null
   role: UserRole
   uiLanguage: string
   voiceGender: VoiceGender

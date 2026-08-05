@@ -421,6 +421,15 @@ export const uz = {
     },
   },
 
+  phonePrompt: {
+    title: "Sizga qo'ng'iroq qilsak bo'ladimi?",
+    body: "Platformani talabalar aytgan gaplarga qarab yaxshilaymiz.",
+    bodyLine2: "Qisqa suhbat uchun raqamingizni qoldiring.",
+    label: 'Telefon raqami',
+    placeholder: '+998',
+    invalid: "Telefon raqamini to'g'ri kiriting.",
+  },
+
   settings: {
     voice: 'Ustoz ovozi',
     voiceGender: { Female: 'Ayol', Male: 'Erkak' },

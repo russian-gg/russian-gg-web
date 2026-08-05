@@ -86,6 +86,9 @@ function UserList() {
                 <Cell>
                   <span className="block font-bold text-ink">{user.displayName ?? 'Ismsiz'}</span>
                   <span className="block text-xs text-ink-faint">{user.email}</span>
+                  {user.phoneNumber && (
+                    <span className="block text-xs text-ink-faint">{user.phoneNumber}</span>
+                  )}
                 </Cell>
                 <Cell>
                   {/* A dash, not A0: an unmeasured learner has not been placed at the bottom. */}
@@ -187,6 +190,7 @@ function UserDrawer({
               <Line label="Reja" value={data.plan} />
               <Line label="Rol" value={data.role} />
               <Line label="Til" value={data.uiLanguage} />
+              <Line label="Telefon" value={data.phoneNumber ?? '—'} />
               <Line label="Vaqt mintaqasi" value={data.timeZoneId} />
               <Line label="Kurs kuni" value={data.currentDay ? `${data.currentDay}-kun` : '—'} />
               <Line

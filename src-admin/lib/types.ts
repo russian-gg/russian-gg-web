@@ -66,6 +66,7 @@ export type UserItem = {
   id: string
   displayName?: string | null
   email: string
+  phoneNumber?: string | null
   uiLanguage: string
   timeZoneId: string
   plan: string
