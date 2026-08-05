@@ -16,7 +16,7 @@ export function PhoneNumberPrompt() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!user || user.phoneNumber || user.role !== 'Learner') {
+    if (!user || user.phoneNumber) {
       setOpen(false)
       setDismissedPath(null)
       return
@@ -31,7 +31,7 @@ export function PhoneNumberPrompt() {
     setOpen(true)
   }, [dismissedPath, pathname, user])
 
-  if (!open || !user || user.phoneNumber || user.role !== 'Learner') {
+  if (!open || !user || user.phoneNumber) {
     return null
   }
 
