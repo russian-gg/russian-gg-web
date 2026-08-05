@@ -295,9 +295,6 @@ export const uz = {
     parkedStep:
       "Bu qadamni keyinroq yana ko'ramiz. Xohlasangiz yana urinib ko'ring, " +
       "yoki hozir davom etaylik.",
-    stepsDone: '{done} / {total} qadam bajarildi',
-    nextStep: 'Keyingi: {step}',
-    lastStep: 'Oxirgi qadam',
     goalProgress: 'Maqsad progressi',
     goal: 'Bugungi maqsad',
     phrases: 'Bugungi iboralar',

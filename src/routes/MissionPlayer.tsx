@@ -279,7 +279,6 @@ export function MissionPlayer() {
     (item): item is NonNullable<(typeof currentMission.steps)[number]> => Boolean(item),
   )
   const step = safeSteps[stepIndex]
-  const nextStep = safeSteps[stepIndex + 1]
   const totalSteps = safeSteps.length
   const isLastStep = stepIndex >= totalSteps - 1
   const safeStep = step ?? safeSteps[Math.max(0, Math.min(stepIndex, totalSteps - 1))]
@@ -931,22 +930,6 @@ export function MissionPlayer() {
           </div>
         )}
 
-        {/*
-          No bar here. The goal card carries one already, over the same numbers, and two
-          progress bars on one screen make a learner check whether they disagree. The line
-          stays: on a phone the goal card is below the fold, so this is the only place
-          progress is visible while speaking.
-        */}
-        <footer className="mt-8 shrink-0">
-          <div className="flex items-center justify-between gap-4 text-sm text-ink-muted">
-            <span>
-              {fill(t.player.stepsDone, { done: completedSteps, total: totalSteps })}
-            </span>
-            <span className="truncate">
-              {nextStep ? fill(t.player.nextStep, { step: t.labels.step[nextStep.kind] }) : t.player.lastStep}
-            </span>
-          </div>
-        </footer>
       </div>
 
       <aside className="mt-10 space-y-4 lg:mt-0 lg:sticky lg:top-8">

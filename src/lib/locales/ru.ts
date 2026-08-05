@@ -290,9 +290,6 @@ export const ru: Dictionary = {
     lessonReady: 'Все шаги пройдены.',
     parkedStep:
       'К этому шагу вернёмся позже. Можно попробовать ещё раз или продолжить сейчас.',
-    stepsDone: 'шагов выполнено: {done} / {total}',
-    nextStep: 'Далее: {step}',
-    lastStep: 'Последний шаг',
     goalProgress: 'Прогресс цели',
     goal: 'Цель на сегодня',
     phrases: 'Фразы дня',
