@@ -69,8 +69,8 @@ jobs:
             tar -xzf /opt/russian-gg/releases/frontend-release.tgz -C /opt/russian-gg/russian-gg-web
             chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
             if grep -q "admin-web:" /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml; then
-              /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web admin-web caddy
+              bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web admin-web caddy
             else
-              /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web caddy
+              bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web caddy
             fi
             '
