@@ -94,8 +94,10 @@ export function Feedbacks() {
               <span className="block text-xs text-ink-faint">{item.email}</span>
             </Cell>
             <Cell muted>{item.issueType || '—'}</Cell>
-            <Cell strong>{item.title || '—'}</Cell>
-            <Cell>
+            <Cell strong wrap>
+              <span className="block max-w-xs break-words">{item.title || '—'}</span>
+            </Cell>
+            <Cell wrap>
               <span className="block max-w-md whitespace-pre-wrap break-words">{item.message}</span>
             </Cell>
             <Cell>

@@ -72,7 +72,7 @@ export function Dashboard() {
             Rendered in the order the server sends — A0 to B2, then the unmeasured. Sorting a
             level scale by size would put B1 above A1 and turn a scale into a ranking.
           */}
-          <BarList items={data.levels} format={formatNumber} labelWidth="w-32" />
+          <BarList items={data.levels} format={formatNumber} labelWidth="w-24 sm:w-32" />
           <p className="mt-4 text-xs text-ink-faint">
             "Aniqlanmagan" — diagnostikadan o'tmagan va hali baholanmagan hisoblar.
           </p>
@@ -94,10 +94,10 @@ export function Dashboard() {
 
       <section>
         <SectionHeading>Obunalar va tranzaksiyalar</SectionHeading>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">Daromad</span>
-            <div className="mt-1 text-3xl font-extrabold tabular-nums text-ink">
+            <div className="mt-1 text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">
               {formatMoney(data.money.revenue, data.money.currency)}
             </div>
             <div className="text-sm text-ink-muted">
@@ -152,7 +152,8 @@ function Figure({
   return (
     <div>
       <div className="text-xs font-bold uppercase tracking-[0.1em] text-ink-faint">{label}</div>
-      <div className="text-2xl font-extrabold tabular-nums text-ink">
+      {/* Three of these share a card, so on a narrow screen they step down rather than clip. */}
+      <div className="text-xl font-extrabold tabular-nums text-ink sm:text-2xl">
         {percent ? formatPercent(value) : formatNumber(value ?? 0)}
       </div>
       <div className="text-xs text-ink-muted">{note}</div>
