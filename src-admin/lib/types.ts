@@ -98,15 +98,6 @@ export type Transaction = {
   paidAt?: string | null
 }
 
-export type ContentItem = {
-  id: string
-  title: string
-  slug: string
-  reviewStatus: string
-  courseDay?: number | null
-  updatedAt: string
-}
-
 export type FeedbackItem = {
   id: string
   userId: string
@@ -120,5 +111,3 @@ export type FeedbackItem = {
   attachmentUrl?: string | null
   createdAt: string
 }
-
-export type Cms = { systemPrompt: string; outfitPrompt: string; enhancePrompt: string }

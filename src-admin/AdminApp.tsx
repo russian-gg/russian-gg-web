@@ -7,18 +7,9 @@ import { Users } from './screens/Users'
 import { Transactions } from './screens/Transactions'
 import { Clicks } from './screens/Clicks'
 import { AiUsage } from './screens/AiUsage'
-import { CmsEditor, Comments, Content, Feedbacks } from './screens/Library'
+import { Feedbacks } from './screens/Feedbacks'
 
-type Section =
-  | 'dashboard'
-  | 'users'
-  | 'transactions'
-  | 'clicks'
-  | 'ai-usage'
-  | 'content'
-  | 'cms'
-  | 'notes'
-  | 'feedbacks'
+type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'ai-usage' | 'feedbacks'
 
 const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
@@ -26,10 +17,7 @@ const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
-  { id: 'content', label: 'Kontent', group: 'Kontent va murojaat' },
-  { id: 'cms', label: 'CMS promptlari', group: 'Kontent va murojaat' },
-  { id: 'notes', label: 'Izohlar', group: 'Kontent va murojaat' },
-  { id: 'feedbacks', label: 'Murojaatlar', group: 'Kontent va murojaat' },
+  { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
 ]
 
 function readStoredSection(): Section {
@@ -109,9 +97,6 @@ export function AdminApp() {
         {section === 'clicks' && <Clicks />}
         {section === 'transactions' && <Transactions />}
         {section === 'ai-usage' && <AiUsage />}
-        {section === 'content' && <Content />}
-        {section === 'cms' && <CmsEditor />}
-        {section === 'notes' && <Comments />}
         {section === 'feedbacks' && <Feedbacks />}
       </main>
     </div>
