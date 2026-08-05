@@ -44,7 +44,11 @@ export function CoursePath() {
   const completedDays = days.filter(
     (day) => day.completedMissionCount >= day.requiredMissionCount,
   ).length
-  const maxUnlockedDay = entitlement?.maxUnlockedDay ?? 1
+  const maxPreviewDay = days.reduce(
+    (highest, day) => (day.isFreePreview ? Math.max(highest, day.day) : highest),
+    0,
+  )
+  const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
 
   const phases = [
     { phase: 'Foundation' as const, range: '1-30' },
