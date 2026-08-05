@@ -93,7 +93,7 @@ export function PhoneNumberPrompt() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="phone-prompt-title"
-        className="relative w-full max-w-xl border-none px-5 py-5 text-center shadow-2xl sm:px-6 sm:py-6"
+        className="relative w-full max-w-lg border-none px-5 py-5 text-center shadow-2xl sm:px-6 sm:py-6"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -105,24 +105,25 @@ export function PhoneNumberPrompt() {
           <CloseGlyph />
         </button>
 
-        <span
-          aria-hidden="true"
-          className="mx-auto flex size-12 items-center justify-center rounded-full bg-signal-soft text-signal"
-        >
-          <PhoneGlyph />
-        </span>
+        <div className="mx-auto flex max-w-md flex-col items-center">
+          <span
+            aria-hidden="true"
+            className="flex size-12 items-center justify-center rounded-full bg-signal-soft text-signal"
+          >
+            <PhoneGlyph />
+          </span>
 
-        <h2 id="phone-prompt-title" className="mx-auto mt-4 max-w-lg text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
-          {t.phonePrompt.title}
-        </h2>
-        <p className="text-support mx-auto mt-2.5 max-w-lg text-base leading-relaxed">
-          {t.phonePrompt.body}
-          <br />
-          {t.phonePrompt.bodyLine2}
-        </p>
+          <h2 id="phone-prompt-title" className="mt-4 max-w-sm text-xl font-extrabold tracking-tight text-ink">
+            {t.phonePrompt.title}
+          </h2>
+          <p className="text-support mt-2.5 max-w-sm text-base leading-relaxed">
+            {t.phonePrompt.body}
+            <br />
+            {t.phonePrompt.bodyLine2}
+          </p>
 
-        <div className="mx-auto mt-5 grid max-w-lg gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-          <label className="min-w-0 flex-1">
+          <div className="mt-5 grid w-full max-w-sm gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <label className="min-w-0">
             <span className="sr-only">{t.phonePrompt.label}</span>
             <input
               type="tel"
@@ -133,15 +134,16 @@ export function PhoneNumberPrompt() {
               placeholder={t.phonePrompt.placeholder}
               className="h-12 w-full rounded-2xl border-2 border-hairline bg-ground-raised px-4 text-base text-ink placeholder:text-ink-faint focus:border-signal"
             />
-          </label>
-          <Button
-            size="md"
-            className="w-full sm:min-w-32 sm:w-auto"
-            onClick={() => void submit()}
-            disabled={busy}
-          >
-            {busy ? t.common.sending : t.common.send}
-          </Button>
+            </label>
+            <Button
+              size="md"
+              className="w-full sm:min-w-28 sm:w-auto"
+              onClick={() => void submit()}
+              disabled={busy}
+            >
+              {busy ? t.common.sending : t.common.send}
+            </Button>
+          </div>
         </div>
 
         {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
@@ -197,10 +199,10 @@ function normalizePhoneNumber(value: string) {
 
 function PhoneGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6 fill-none stroke-current stroke-[1.9]">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
       <path
-        d="M7.2 19.2c6.1 0 11-4.4 11-9.9 0-5.4-4.9-9.8-11-9.8-6.1 0-11 4.4-11 9.8 0 2 .7 3.9 2 5.4L-2 23l6.4-2.5c.9.4 1.8.7 2.8.7Z"
-        transform="translate(3 1)"
+        d="M6.9 17.4c.9.5 1.9.7 3 .7 4.6 0 8.3-3.4 8.3-7.6s-3.7-7.6-8.3-7.6-8.3 3.4-8.3 7.6c0 1.6.5 3 1.5 4.2L2.3 20l4.6-2.6Z"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
