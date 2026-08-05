@@ -87,6 +87,7 @@ export function MissionPlayer() {
   const latestTurnScoreRef = useRef<number | null>(null)
   const manualStopRequestedRef = useRef(false)
   const totalStepsRef = useRef(1)
+  const finalCompletionTimerRef = useRef<number | null>(null)
   // Answers given on the step in front of the learner, whether or not they passed.
   const stepAttemptsRef = useRef(0)
   const reconnectsRef = useRef(0)
@@ -152,6 +153,21 @@ export function MissionPlayer() {
     assistantReplyRef.current = assistantReply
   }, [assistantReply])
 
+  function clearFinalCompletionTimer() {
+    if (finalCompletionTimerRef.current !== null) {
+      window.clearTimeout(finalCompletionTimerRef.current)
+      finalCompletionTimerRef.current = null
+    }
+  }
+
+  function scheduleFinalCompletion() {
+    clearFinalCompletionTimer()
+    finalCompletionTimerRef.current = window.setTimeout(() => {
+      finalCompletionTimerRef.current = null
+      void complete()
+    }, 1800)
+  }
+
   /**
    * Leaving the lesson has to close the session on the server, not just locally. An open
    * session holds its whole cap against the daily allowance, so a learner who pressed back
@@ -192,6 +208,7 @@ export function MissionPlayer() {
 
     return () => {
       window.removeEventListener('pagehide', onPageHide)
+      clearFinalCompletionTimer()
       stopPromptAudio()
       setPromptAudioState('idle')
       setPromptAudioTextKey(null)
@@ -228,26 +245,6 @@ export function MissionPlayer() {
     return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasLiveSession, secondsLeft])
-
-  useEffect(() => {
-    if (!mission || !feedback || !Array.isArray(mission.steps) || mission.steps.length === 0) {
-      return
-    }
-
-    const onLastStep = stepIndex >= mission.steps.length - 1
-    if (!onLastStep || feedback.score < 70) {
-      return
-    }
-
-    setAssistantReply(
-      "Zo'r aytdingiz. Bo'ldi, bugungi joyini chiroyli yopdik, endi keyingisida yana ko'rishamiz.",
-    )
-    const timer = window.setTimeout(() => {
-      void complete()
-    }, 1800)
-
-    return () => window.clearTimeout(timer)
-  }, [feedback, mission, stepIndex])
 
   if (isLoading) return <Spinner />
 
@@ -475,8 +472,7 @@ export function MissionPlayer() {
     manualStopRequestedRef.current = true
 
     try {
-      await teardownVoice(true, null)
-      setVoiceState('idle')
+      await liveSession.finishCurrentTurn()
 
       const transcriptValue = transcriptRef.current.trim()
       // A live turn may already be in flight; submitting the same words twice would record
@@ -487,7 +483,8 @@ export function MissionPlayer() {
 
       if (latestTurnPassedRef.current) {
         if (isLastStep) {
-          await complete()
+          await teardownVoice(true, null)
+          scheduleFinalCompletion()
         } else {
           await advance()
         }
@@ -580,9 +577,16 @@ export function MissionPlayer() {
 
     submittingTurnRef.current = true
     try {
+      const isFinalStep = currentStepRef.current >= totalStepsRef.current - 1
       // Scored with the thinking state on: the answer is away and being judged, which is a
       // second or three of a conversation that otherwise looks like it stalled.
-      const passed = await submitTurn(false, transcriptValue, assistantReplyRef.current, true, false)
+      const passed = await submitTurn(
+        false,
+        transcriptValue,
+        assistantReplyRef.current,
+        true,
+        isFinalStep,
+      )
       if (manualStopRequestedRef.current) return
 
       if (!passed) {
@@ -612,8 +616,10 @@ export function MissionPlayer() {
        * session simply idled after a passing final turn and the only way out was the stop
        * button, so a learner who had already answered correctly was asked again and again.
        */
-      if (currentStepRef.current >= totalStepsRef.current - 1) {
-        await complete()
+      if (isFinalStep) {
+        await teardownVoice(true, null)
+        setVoiceState('feedback')
+        scheduleFinalCompletion()
       }
     } finally {
       submittingTurnRef.current = false
@@ -697,6 +703,7 @@ export function MissionPlayer() {
   }
 
   async function advance() {
+    clearFinalCompletionTimer()
     await teardownVoice(true, null)
 
     // Fold the turn that just closed into the thread before the live state is cleared.
@@ -737,6 +744,7 @@ export function MissionPlayer() {
 
   async function complete() {
     if (!attempt) return
+    clearFinalCompletionTimer()
     setBusy(true)
     try {
       await teardownVoice(true, null)
