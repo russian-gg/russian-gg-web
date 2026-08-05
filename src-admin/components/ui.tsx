@@ -71,7 +71,7 @@ export function Card({
     <Tag
       {...props}
       className={cx(
-        'rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5',
+        'rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 sm:p-5',
         className,
       )}
     >
@@ -83,7 +83,7 @@ export function Card({
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header>
-      <h1 className="text-2xl font-extrabold tracking-tight text-ink">{title}</h1>
+      <h1 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">{title}</h1>
       <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>
     </header>
   )
@@ -146,7 +146,7 @@ export function Stat({
         <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">{label}</span>
         {badge}
       </div>
-      <div className="text-3xl font-extrabold tabular-nums text-ink">{value}</div>
+      <div className="text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">{value}</div>
       {note && <div className="text-sm text-ink-muted">{note}</div>}
     </Card>
   )
@@ -265,7 +265,7 @@ export function Select({
       aria-label={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-11 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 text-sm font-semibold text-ink focus:border-signal focus:outline-none"
+      className="h-11 max-w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 text-sm font-semibold text-ink focus:border-signal focus:outline-none"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -287,7 +287,7 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
             {head.map((column) => (
               <th
                 key={column}
-                className="border-b-2 border-hairline px-4 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint"
+                className="border-b-2 border-hairline px-3 py-3 text-xs font-extrabold whitespace-nowrap uppercase tracking-[0.12em] text-ink-faint sm:px-4"
               >
                 {column}
               </th>
@@ -324,15 +324,23 @@ export function Cell({
   children,
   strong = false,
   muted = false,
+  wrap = false,
 }: {
   children: ReactNode
   strong?: boolean
   muted?: boolean
+  /**
+   * Let this cell's text wrap. Off by default: a table that has to scroll sideways is only
+   * readable if its columns keep their shape, and a date broken over three lines on a phone
+   * makes every row a different height.
+   */
+  wrap?: boolean
 }) {
   return (
     <td
       className={cx(
-        'px-4 py-3 text-sm align-middle',
+        'px-3 py-3 align-middle text-sm sm:px-4',
+        wrap ? 'whitespace-normal' : 'whitespace-nowrap',
         strong ? 'font-bold text-ink' : muted ? 'text-ink-muted' : 'text-ink',
       )}
     >

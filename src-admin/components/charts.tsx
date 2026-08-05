@@ -65,7 +65,7 @@ const shortDay = (iso: string) =>
  */
 export function LineChart({
   points,
-  height = 220,
+  height: requestedHeight = 220,
   format = (value: number) => value.toLocaleString('ru-RU'),
   label,
 }: {
@@ -80,6 +80,9 @@ export function LineChart({
   if (points.length === 0) {
     return <p className="py-10 text-center text-sm text-ink-muted">Ma'lumot yo'q</p>
   }
+
+  // A plot as tall on a phone as it is on a desktop is most of the first screen.
+  const height = width > 0 && width < 420 ? Math.min(requestedHeight, 150) : requestedHeight
 
   const padding = { top: 16, right: 16, bottom: 24, left: 16 }
   const plotWidth = Math.max(0, width - padding.left - padding.right)
@@ -175,7 +178,7 @@ export function LineChart({
  */
 export function ColumnChart({
   points,
-  height = 180,
+  height: requestedHeight = 180,
   format = (value: number) => value.toLocaleString('ru-RU'),
   label,
 }: {
@@ -190,6 +193,8 @@ export function ColumnChart({
   if (points.length === 0) {
     return <p className="py-10 text-center text-sm text-ink-muted">Ma'lumot yo'q</p>
   }
+
+  const height = width > 0 && width < 420 ? Math.min(requestedHeight, 130) : requestedHeight
 
   const padding = { top: 12, right: 4, bottom: 24, left: 4 }
   const plotWidth = Math.max(0, width - padding.left - padding.right)
@@ -317,7 +322,7 @@ export function Donut({
   let offset = 0
 
   return (
-    <div className="flex flex-wrap items-center gap-6">
+    <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
       <svg width={size} height={size} role="img" aria-label={slices.map((s) => `${s.label}: ${format(s.value)}`).join(', ')}>
         <g transform={`rotate(-90 ${radius} ${radius})`}>
           <circle cx={radius} cy={radius} r={centre} fill="none" stroke="var(--color-ground-sunken)" strokeWidth={thickness} />
@@ -374,10 +379,15 @@ export function Donut({
 export function BarList({
   items,
   format = (value: number) => value.toLocaleString('ru-RU'),
-  labelWidth = 'w-44',
+  labelWidth = 'w-24 sm:w-44',
 }: {
   items: Array<{ label: string; value: number }>
   format?: (value: number) => string
+  /**
+   * Responsive on purpose. A single fixed width wide enough to read an event name on a
+   * desktop leaves nothing for the bar on a 320px screen — the label and the figure together
+   * take the whole row, the bar flexes to zero, and the chart becomes a list.
+   */
   labelWidth?: string
 }) {
   const max = Math.max(1, ...items.map((item) => item.value))
@@ -397,7 +407,7 @@ export function BarList({
               style={{ width: `${Math.max(2, (100 * item.value) / max)}%`, background: SERIES[0] }}
             />
           </span>
-          <span className="w-16 shrink-0 text-right text-sm font-extrabold tabular-nums text-ink">
+          <span className="w-12 shrink-0 text-right text-sm font-extrabold tabular-nums text-ink sm:w-16">
             {format(item.value)}
           </span>
         </li>

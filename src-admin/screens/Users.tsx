@@ -166,7 +166,7 @@ function UserDrawer({
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onClick={onClose}>
       <aside
-        className="h-full w-full max-w-lg overflow-auto bg-ground p-6"
+        className="h-full w-full max-w-lg overflow-auto bg-ground p-4 sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         {error && <ErrorNote>{error}</ErrorNote>}
@@ -266,7 +266,7 @@ function AudienceTab() {
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
         <h3 className="mb-4 text-base font-extrabold text-ink">Darajalar</h3>
-        <BarList items={data.levels} labelWidth="w-32" />
+        <BarList items={data.levels} labelWidth="w-24 sm:w-32" />
       </Card>
 
       <Card>
@@ -286,12 +286,12 @@ function AudienceTab() {
 
       <Card>
         <h3 className="mb-4 text-base font-extrabold text-ink">Ro'yxatdan o'tish usuli</h3>
-        <BarList items={data.signupMethods} labelWidth="w-24" />
+        <BarList items={data.signupMethods} labelWidth="w-20 sm:w-24" />
       </Card>
 
       <Card>
         <h3 className="mb-4 text-base font-extrabold text-ink">Kurs bosqichi</h3>
-        <BarList items={data.coursePhases} labelWidth="w-28" />
+        <BarList items={data.coursePhases} labelWidth="w-24 sm:w-28" />
       </Card>
     </div>
   )

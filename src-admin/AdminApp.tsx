@@ -45,21 +45,38 @@ export function AdminApp() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 bg-ground-sunken lg:grid-cols-[248px_1fr]">
-      <aside className="flex flex-col gap-6 border-b-2 border-hairline bg-ground-raised p-5 lg:border-r-2 lg:border-b-0">
-        <div>
-          <div className="text-xl font-extrabold tracking-tight text-ink">
-            russian<span className="text-signal-ink">.gg</span>
+      {/*
+        One element, two shapes. On a phone it is a compact bar: the brand and the way out on
+        one line, then the sections as a row that scrolls sideways. Stacked vertically — which
+        is what the desktop sidebar does — those six buttons and their three headings pushed
+        every screen a full page down, so the panel opened on its own menu.
+      */}
+      <aside className="flex flex-col gap-3 border-b-2 border-hairline bg-ground-raised px-4 py-3 lg:gap-6 lg:border-r-2 lg:border-b-0 lg:p-5">
+        <div className="flex items-center justify-between gap-4 lg:block">
+          <div>
+            <div className="text-xl font-extrabold tracking-tight text-ink">
+              russian<span className="text-signal-ink">.gg</span>
+            </div>
+            <div className="text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">Admin panel</div>
           </div>
-          <div className="text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">Admin panel</div>
+
+          <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => session.signOut()}>
+            Chiqish
+          </Button>
         </div>
 
-        <nav className="flex flex-col gap-5">
+        {/*
+          `contents` collapses the group wrappers on small screens so their buttons become
+          direct children of this row and scroll as one; from `lg` the wrappers come back and
+          the groups stack with their headings.
+        */}
+        <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:gap-5 lg:overflow-visible lg:px-0">
           {groups.map((group) => (
-            <div key={group}>
-              <div className="mb-1.5 px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">
+            <div key={group} className="contents lg:block">
+              <div className="mb-1.5 hidden px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint lg:block">
                 {group}
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="contents lg:flex lg:flex-col lg:gap-1">
                 {sections
                   .filter((item) => item.group === group)
                   .map((item) => (
@@ -69,7 +86,7 @@ export function AdminApp() {
                       onClick={() => setSection(item.id)}
                       aria-current={section === item.id ? 'page' : undefined}
                       className={cx(
-                        'rounded-[var(--radius-control)] px-3 py-2 text-left text-sm font-bold transition-colors',
+                        'shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm font-bold whitespace-nowrap transition-colors',
                         section === item.id
                           ? 'bg-signal-soft text-signal-ink'
                           : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
@@ -83,7 +100,7 @@ export function AdminApp() {
           ))}
         </nav>
 
-        <div className="mt-auto flex flex-col gap-2 pt-4">
+        <div className="mt-auto hidden flex-col gap-2 pt-4 lg:flex">
           <div className="text-sm text-ink-muted">{name}</div>
           <Button variant="secondary" size="sm" onClick={() => session.signOut()}>
             Chiqish
@@ -91,7 +108,7 @@ export function AdminApp() {
         </div>
       </aside>
 
-      <main className="min-w-0 p-6 lg:p-8">
+      <main className="min-w-0 p-4 sm:p-6 lg:p-8">
         {section === 'dashboard' && <Dashboard />}
         {section === 'users' && <Users />}
         {section === 'clicks' && <Clicks />}
@@ -134,7 +151,7 @@ function LoginScreen() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-ground-sunken p-6">
+    <div className="grid min-h-screen place-items-center bg-ground-sunken p-4 sm:p-6">
       <Card as="div" className="w-full max-w-md">
         <form onSubmit={submit} className="space-y-4">
           <div className="flex items-center justify-between gap-4">
