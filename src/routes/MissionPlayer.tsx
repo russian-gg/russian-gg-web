@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
 import { cx } from '../lib/cx'
 import { pickContent } from '../lib/content'
@@ -58,6 +58,7 @@ export function MissionPlayer() {
   const { locale } = useLocale()
   const { missionId = '' } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [attempt, setAttempt] = useState<StartAttemptResponse | null>(null)
   const [stepIndex, setStepIndex] = useState(0)
@@ -123,8 +124,15 @@ export function MissionPlayer() {
       try {
         const started = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`)
         setAttempt(started)
-        // Resuming lands the learner on the step they left, not back at the beginning.
-        setStepIndex(Math.max(0, started.currentStepIndex))
+        /*
+         * Resuming lands the learner on the step they left, not back at the beginning — but
+         * clamped to a step that exists. A finished last step leaves the server's index one
+         * past the end, and speaking into that is rejected as `invalid_step`, so an attempt
+         * that answered everything and was never closed came back unusable. The checklist
+         * keeps the raw number: it counts what is done, not where the learner stands.
+         */
+        const lastStep = Math.max(0, (Array.isArray(mission.steps) ? mission.steps.length : 1) - 1)
+        setStepIndex(Math.min(Math.max(0, started.currentStepIndex), lastStep))
         setServerCompletedSteps(Math.max(0, started.currentStepIndex))
       } catch (caught) {
         setError(caught instanceof RequestError ? caught.message : t.player.openFailed)
@@ -733,6 +741,21 @@ export function MissionPlayer() {
     try {
       await teardownVoice(true, null)
       await api.post(`/missions/attempts/${attempt.attemptId}/complete`)
+
+      /*
+       * The screens that count this mission are already in the query cache, and everything
+       * cached is fresh for another half-minute. Without this the learner walked back to a
+       * roadmap that had not heard about the day they just finished — the same missing tick,
+       * arriving by a different route — so the caches that hold completion are dropped before
+       * the result screen, not left to expire.
+       */
+      await queryClient.invalidateQueries({
+        predicate: ({ queryKey }) =>
+          ['course-map', 'day-missions', 'progress', 'home', 'practice'].includes(
+            String(queryKey[0]),
+          ),
+      })
+
       navigate(`/missions/attempts/${attempt.attemptId}/result`, { replace: true })
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.player.completeFailed)
@@ -868,9 +891,17 @@ export function MissionPlayer() {
               : null
           }
           onMoveOn={
-            // Only while the conversation is live: in the feedback panel the same choice is
-            // already one of the two buttons.
-            (stepExhausted || completedSteps >= totalSteps) && hasLiveSession && !busy
+            /*
+             * Parking a step is a decision about the conversation in progress, so it is only
+             * offered while one is live — in the feedback panel it is already one of the two
+             * buttons. Finishing is not. A learner who answered every step and then stopped
+             * talking — a last turn that scored short, a closed tab, a session that timed out
+             * — came back to a full checklist with no way to end the lesson, and since the
+             * day only advances on a completed attempt, the roadmap went on calling it
+             * unfinished. That is the state that needs this button most, and it is exactly
+             * the state that used to hide it.
+             */
+            ((stepExhausted && hasLiveSession) || completedSteps >= totalSteps) && !busy
               ? () => void (isLastStep ? complete() : advance())
               : null
           }

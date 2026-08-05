@@ -35,7 +35,15 @@ export function CoursePath() {
 
   if (isLoading || !days) return <Spinner />
 
-  const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
+  /*
+   * Counted from the same field the ticks are, so the header and the rows cannot contradict
+   * each other. Read off the current day it counted days the learner was *placed past* as
+   * days they had done — which is how this screen came to say 8/90 without a single tick on
+   * it.
+   */
+  const completedDays = days.filter(
+    (day) => day.completedMissionCount >= day.requiredMissionCount,
+  ).length
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? 1
 
   const phases = [
