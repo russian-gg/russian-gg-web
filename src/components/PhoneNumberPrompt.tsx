@@ -5,37 +5,55 @@ import { useAuth } from '../lib/auth-context'
 import { useT } from '../lib/i18n'
 import { Button, Card, ErrorNote } from './ui'
 
+const DISMISS_KEY_PREFIX = 'rgg.phone-prompt.dismissed-on'
+
 export function PhoneNumberPrompt() {
   const t = useT()
   const { pathname } = useLocation()
   const { user, refreshUser } = useAuth()
   const [open, setOpen] = useState(false)
-  const [dismissedPath, setDismissedPath] = useState<string | null>(null)
   const [phoneNumber, setPhoneNumber] = useState('+998')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [todayKey, setTodayKey] = useState(getLocalDayKey)
 
   useEffect(() => {
     if (!user || user.phoneNumber) {
       setOpen(false)
-      setDismissedPath(null)
       return
     }
 
-    if (dismissedPath === pathname) {
+    const dismissedOn = readDismissedDay(user.id)
+    if (dismissedOn === todayKey) {
+      setOpen(false)
       return
     }
 
     setPhoneNumber('+998')
     setError(null)
     setOpen(true)
-  }, [dismissedPath, pathname, user])
+  }, [pathname, todayKey, user])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setTodayKey((current) => {
+        const next = getLocalDayKey()
+        return current === next ? current : next
+      })
+    }, 60_000)
+
+    return () => window.clearInterval(interval)
+  }, [])
 
   if (!open || !user || user.phoneNumber) {
     return null
   }
 
   async function submit() {
+    if (!user) {
+      return
+    }
+
     const normalized = normalizePhoneNumber(phoneNumber)
     if (!normalized) {
       setError(t.phonePrompt.invalid)
@@ -46,9 +64,9 @@ export function PhoneNumberPrompt() {
     setError(null)
     try {
       await api.patch('/auth/me', { phoneNumber: normalized })
+      clearDismissedDay(user.id)
       await refreshUser()
       setOpen(false)
-      setDismissedPath(null)
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.settings.saveFailed)
     } finally {
@@ -57,9 +75,13 @@ export function PhoneNumberPrompt() {
   }
 
   function dismiss() {
+    if (!user) {
+      return
+    }
+
+    writeDismissedDay(user.id, todayKey)
     setOpen(false)
     setError(null)
-    setDismissedPath(pathname)
   }
 
   return (
@@ -71,13 +93,13 @@ export function PhoneNumberPrompt() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="phone-prompt-title"
-        className="relative w-full max-w-2xl border-none px-6 py-7 text-center shadow-2xl sm:px-8 sm:py-8"
+        className="relative w-full max-w-xl border-none px-5 py-5 text-center shadow-2xl sm:px-6 sm:py-6"
         onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           aria-label={t.common.close}
-          className="absolute top-4 right-4 text-ink-faint transition hover:text-ink"
+          className="absolute top-3.5 right-3.5 text-ink-faint transition hover:text-ink"
           onClick={dismiss}
         >
           <CloseGlyph />
@@ -85,21 +107,21 @@ export function PhoneNumberPrompt() {
 
         <span
           aria-hidden="true"
-          className="mx-auto flex size-14 items-center justify-center rounded-full bg-signal-soft text-signal"
+          className="mx-auto flex size-12 items-center justify-center rounded-full bg-signal-soft text-signal"
         >
           <PhoneGlyph />
         </span>
 
-        <h2 id="phone-prompt-title" className="mt-5 text-2xl font-extrabold tracking-tight text-ink">
+        <h2 id="phone-prompt-title" className="mx-auto mt-4 max-w-lg text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
           {t.phonePrompt.title}
         </h2>
-        <p className="text-support mx-auto mt-3 max-w-xl text-base leading-relaxed">
+        <p className="text-support mx-auto mt-2.5 max-w-lg text-base leading-relaxed">
           {t.phonePrompt.body}
           <br />
           {t.phonePrompt.bodyLine2}
         </p>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div className="mx-auto mt-5 grid max-w-lg gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
           <label className="min-w-0 flex-1">
             <span className="sr-only">{t.phonePrompt.label}</span>
             <input
@@ -114,7 +136,7 @@ export function PhoneNumberPrompt() {
           </label>
           <Button
             size="md"
-            className="sm:min-w-32"
+            className="w-full sm:min-w-32 sm:w-auto"
             onClick={() => void submit()}
             disabled={busy}
           >
@@ -128,6 +150,42 @@ export function PhoneNumberPrompt() {
   )
 }
 
+function getLocalDayKey() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function dismissedDayStorageKey(userId: string) {
+  return `${DISMISS_KEY_PREFIX}.${userId}`
+}
+
+function readDismissedDay(userId: string) {
+  try {
+    return localStorage.getItem(dismissedDayStorageKey(userId))
+  } catch {
+    return null
+  }
+}
+
+function writeDismissedDay(userId: string, dayKey: string) {
+  try {
+    localStorage.setItem(dismissedDayStorageKey(userId), dayKey)
+  } catch {
+    // Ignore storage failures; the prompt should still behave for the current page.
+  }
+}
+
+function clearDismissedDay(userId: string) {
+  try {
+    localStorage.removeItem(dismissedDayStorageKey(userId))
+  } catch {
+    // Ignore storage failures; saving the number is the real source of truth.
+  }
+}
+
 function normalizePhoneNumber(value: string) {
   const digits = value.replace(/\D/g, '')
   if (digits.length < 9 || digits.length > 15) {
@@ -139,7 +197,7 @@ function normalizePhoneNumber(value: string) {
 
 function PhoneGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-7 fill-none stroke-current stroke-[1.9]">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6 fill-none stroke-current stroke-[1.9]">
       <path
         d="M7.2 19.2c6.1 0 11-4.4 11-9.9 0-5.4-4.9-9.8-11-9.8-6.1 0-11 4.4-11 9.8 0 2 .7 3.9 2 5.4L-2 23l6.4-2.5c.9.4 1.8.7 2.8.7Z"
         transform="translate(3 1)"
