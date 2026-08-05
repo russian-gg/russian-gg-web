@@ -23,5 +23,8 @@
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src"]
+  // The admin panel was outside the type check, so `npm run build:admin` compiled it with
+  // esbuild and never once checked a type in it. It ships to an operator making decisions
+  // about money; it gets the same bar as the learner app.
+  "include": ["src", "src-admin"]
 }

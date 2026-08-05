@@ -1,9 +1,12 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  // The admin panel is built from the learner product's tokens, so it needs the same
+  // Tailwind pipeline rather than a stylesheet of its own.
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src-admin', import.meta.url)) },
   },
