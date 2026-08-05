@@ -1291,7 +1291,7 @@ function MicControl({
      * the spot the learner last reached for. The reserved space costs nothing: it is empty
      * screen either way.
      */
-    <div className="mt-11 min-h-48 md:mt-10">
+    <div className="mt-[51px] min-h-48 md:mt-[47px]">
       <div className="relative flex items-center justify-center">
         {/*
           Rings leaving the microphone while it is being spoken into. They sit behind the
