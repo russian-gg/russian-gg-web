@@ -1,0 +1,67 @@
+name: Deploy Stage Frontend
+
+on:
+  push:
+    branches: ["staging"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package release
+        run: git archive --format=tar.gz --output=frontend-stage-release.tgz HEAD
+
+      - name: Install SSH tools
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Ensure stage directories exist
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p /opt/russian-gg/releases/staging /opt/russian-gg/stage/russian-gg-web"
+
+      - name: Upload stage release bundle
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" scp -O -o StrictHostKeyChecking=no -P "$PORT" \
+            frontend-stage-release.tgz "$DEPLOY_USER@$DEPLOY_HOST:/opt/russian-gg/releases/staging/frontend-stage-release.tgz"
+
+      - name: Deploy stage frontend on server
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" '
+            set -euo pipefail
+            mkdir -p /opt/russian-gg/stage/russian-gg-web
+            find /opt/russian-gg/stage/russian-gg-web -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            tar -xzf /opt/russian-gg/releases/staging/frontend-stage-release.tgz -C /opt/russian-gg/stage/russian-gg-web
+            chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
+            bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web caddy
+          '
