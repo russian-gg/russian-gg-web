@@ -397,6 +397,8 @@ export const uz = {
     promoApplied: 'Promo code qo‘llandi.',
     promoDiscount: 'Chegirma: {amount}',
     promoFinal: "To'lov: {amount}",
+    promoPercent: '{percent}% chegirma',
+    promoCelebrationBody: '{amount} chegirma ishladi.',
   },
 
   profile: {

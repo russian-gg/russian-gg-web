@@ -14,6 +14,23 @@ import type {
 } from '../lib/types'
 import { Badge, Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 
+const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
+  id: index,
+  left: `${4 + ((index * 11) % 92)}%`,
+  delay: `${(index % 6) * 0.12}s`,
+  duration: `${2.4 + (index % 5) * 0.25}s`,
+  size: 8 + (index % 4) * 4,
+  rotate: (index % 2 === 0 ? 1 : -1) * (18 + index * 7),
+  color:
+    index % 4 === 0
+      ? '#f7b500'
+      : index % 4 === 1
+        ? '#60a5fa'
+        : index % 4 === 2
+          ? '#34d399'
+          : '#fb7185',
+}))
+
 export function Paywall() {
   const t = useT()
   const { locale } = useLocale()
@@ -24,6 +41,7 @@ export function Paywall() {
   const [promoBusy, setPromoBusy] = useState(false)
   const [promoFeedback, setPromoFeedback] = useState<string | null>(null)
   const [promoPreview, setPromoPreview] = useState<PromoCodePreview | null>(null)
+  const [showPromoCelebration, setShowPromoCelebration] = useState(false)
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['plans'],
@@ -41,6 +59,13 @@ export function Paywall() {
     setPromoPreview(null)
     setPromoFeedback(null)
   }, [period])
+
+  useEffect(() => {
+    if (!showPromoCelebration) return
+
+    const timer = window.setTimeout(() => setShowPromoCelebration(false), 2600)
+    return () => window.clearTimeout(timer)
+  }, [showPromoCelebration])
 
   async function checkout() {
     setBusy(true)
@@ -72,6 +97,7 @@ export function Paywall() {
 
       setPromoPreview(result)
       setPromoFeedback(result.message ?? (result.isValid ? t.billing.promoApplied : null))
+      setShowPromoCelebration(result.isValid)
     } catch (caught) {
       setPromoFeedback(caught instanceof RequestError ? caught.message : t.billing.checkoutFailed)
     } finally {
@@ -81,9 +107,24 @@ export function Paywall() {
 
   const selected = plans.options.find((option) => option.period === period) ?? plans.options[0]
   const amountToPay = promoPreview?.isValid ? promoPreview.finalAmountTiyin : selected.amountTiyin
+  const promoPercent =
+    promoPreview?.isValid && promoPreview.originalAmountTiyin > 0
+      ? Math.max(1, Math.round((promoPreview.discountAmountTiyin / promoPreview.originalAmountTiyin) * 100))
+      : 0
 
   return (
     <div className="space-y-8">
+      {showPromoCelebration && promoPreview?.isValid && (
+        <PromoCelebration
+          discountAmount={formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale)}
+          title={t.billing.promoApplied}
+          percentLabel={fill(t.billing.promoPercent, { percent: promoPercent })}
+          body={fill(t.billing.promoCelebrationBody, {
+            amount: formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale),
+          })}
+        />
+      )}
+
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.billing.title}</h1>
         <p className="text-support mt-1">
@@ -125,9 +166,21 @@ export function Paywall() {
                     <Badge tone="milestone">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
                   )}
                 </div>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-                  {formatPrice(option.amountTiyin, option.currency, locale)}
-                </p>
+                {promoPreview?.isValid && promoPreview.period === option.period ? (
+                  <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+                    <p className="text-base font-semibold text-ink-muted line-through decoration-2">
+                      {formatPrice(option.amountTiyin, option.currency, locale)}
+                    </p>
+                    <p className="text-2xl font-semibold tracking-tight text-ink">
+                      {formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale)}
+                    </p>
+                    <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
+                    {formatPrice(option.amountTiyin, option.currency, locale)}
+                  </p>
+                )}
                 {option.period === 'NinetyDay' && (
                   <p className="text-support">
                     {fill(t.billing.perMonth, {
@@ -160,7 +213,11 @@ export function Paywall() {
             )}
 
             {promoPreview?.isValid && (
-              <div className="mt-4 space-y-1 text-sm text-ink">
+              <div className="mt-4 rounded-[var(--radius-card)] border border-signal/30 bg-signal-soft/60 p-4 text-sm text-ink">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
+                  <span className="font-semibold text-ink">{promoPreview.code}</span>
+                </div>
                 <div>{fill(t.billing.promoDiscount, { amount: formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale) })}</div>
                 <div className="font-bold">
                   {fill(t.billing.promoFinal, { amount: formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale) })}
@@ -168,6 +225,15 @@ export function Paywall() {
               </div>
             )}
           </Card>
+
+          {promoPreview?.isValid && (
+            <div className="rounded-[var(--radius-card)] border border-signal/30 bg-signal-soft/50 px-4 py-3 text-sm text-ink">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold">{fill(t.billing.promoPercent, { percent: promoPercent })}</span>
+                <span>{fill(t.billing.promoDiscount, { amount: formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale) })}</span>
+              </div>
+            </div>
+          )}
 
           <Button size="lg" block disabled={busy} onClick={() => void checkout()}>
             {busy
@@ -213,6 +279,70 @@ export function Paywall() {
       <p className="text-support border-t border-hairline pt-5">
         {t.billing.cancelNote}
       </p>
+    </div>
+  )
+}
+
+function PromoCelebration({
+  discountAmount,
+  title,
+  percentLabel,
+  body,
+}: {
+  discountAmount: string
+  title: string
+  percentLabel: string
+  body: string
+}) {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.24),transparent_44%),radial-gradient(circle_at_bottom,rgba(247,181,0,0.22),transparent_40%)]" />
+
+      {promoCelebrationPieces.map((piece) => (
+        <span
+          key={piece.id}
+          className="absolute top-[-8%] rounded-full opacity-90"
+          style={{
+            left: piece.left,
+            width: `${piece.size}px`,
+            height: `${piece.size * 1.6}px`,
+            background: piece.color,
+            animationName: 'promo-confetti-fall',
+            animationDuration: piece.duration,
+            animationDelay: piece.delay,
+            animationTimingFunction: 'ease-in',
+            animationFillMode: 'forwards',
+            transform: `rotate(${piece.rotate}deg)`,
+            boxShadow: `0 0 20px ${piece.color}55`,
+          }}
+        />
+      ))}
+
+      <div className="absolute inset-x-4 top-8 mx-auto max-w-xl rounded-[32px] border border-white/15 bg-slate-950/78 px-6 py-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+        <div className="inline-flex items-center gap-2 rounded-full bg-amber-400/15 px-4 py-1 text-sm font-bold text-amber-200">
+          <span>{percentLabel}</span>
+          <span>-</span>
+          <span>{discountAmount}</span>
+        </div>
+        <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-white">{title}</h2>
+        <p className="mt-2 text-base text-slate-200">{body}</p>
+      </div>
+
+      <style>{`
+        @keyframes promo-confetti-fall {
+          0% {
+            transform: translate3d(0, -6vh, 0) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          100% {
+            transform: translate3d(-18px, 108vh, 0) rotate(540deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   )
 }

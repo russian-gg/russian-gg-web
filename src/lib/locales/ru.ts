@@ -393,8 +393,9 @@ export const ru: Dictionary = {
     promoApplied: 'Промокод применён.',
     promoDiscount: 'Скидка: {amount}',
     promoFinal: 'К оплате: {amount}',
+    promoPercent: '{percent}% скидка',
+    promoCelebrationBody: 'Скидка {amount} применена.',
   },
-
   profile: {
     level: 'Ваш уровень',
     levelNote:

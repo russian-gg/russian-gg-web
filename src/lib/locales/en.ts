@@ -387,6 +387,8 @@ export const en: Dictionary = {
     promoApplied: 'Promo code applied.',
     promoDiscount: 'Discount: {amount}',
     promoFinal: 'Payment: {amount}',
+    promoPercent: '{percent}% off',
+    promoCelebrationBody: '{amount} discount applied.',
   },
 
   profile: {
