@@ -53,8 +53,6 @@ export function Paywall() {
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
 
-  if (isLoading || !plans) return <Spinner />
-
   useEffect(() => {
     setPromoPreview(null)
     setPromoFeedback(null)
@@ -66,6 +64,8 @@ export function Paywall() {
     const timer = window.setTimeout(() => setShowPromoCelebration(false), 2600)
     return () => window.clearTimeout(timer)
   }, [showPromoCelebration])
+
+  if (isLoading || !plans) return <Spinner />
 
   async function checkout() {
     setBusy(true)
