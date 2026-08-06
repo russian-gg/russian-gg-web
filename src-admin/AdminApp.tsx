@@ -66,7 +66,7 @@ export function AdminApp() {
   const groups = [...new Set(sections.map((item) => item.group))]
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-ground-sunken lg:grid-cols-[248px_1fr]">
+    <div className="grid min-h-screen grid-cols-1 bg-ground-sunken lg:grid-cols-[264px_1fr]">
       {/*
         One element, two shapes. On a phone it is a compact bar: the brand and the way out on
         one line, then the sections as a row that scrolls sideways. Stacked vertically — which
@@ -112,7 +112,14 @@ export function AdminApp() {
                         aria-current={section === item.id ? 'page' : undefined}
                         className={cx(
                           'flex shrink-0 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2',
-                          'text-left text-sm font-bold whitespace-nowrap transition-colors',
+                          'text-left text-sm font-bold transition-colors',
+                          /*
+                           * Nowrap is for the phone, where these sit in a row that scrolls
+                           * sideways and a wrapped pill would break the line. In the sidebar
+                           * they are stacked, so a long label wraps rather than running out
+                           * past the column — which is what "(CMO)" did.
+                           */
+                          'whitespace-nowrap lg:whitespace-normal lg:leading-snug',
                           section === item.id
                             ? 'bg-signal-soft text-signal-ink'
                             : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
