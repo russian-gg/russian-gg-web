@@ -354,6 +354,7 @@ export const en: Dictionary = {
     processingBody: 'Your payment was received and is being confirmed. Pro opens automatically once it is.',
     savings: 'save {percent}%',
     perMonth: '{amount} per month',
+    perDay: '{amount} per day',
     payWithClick: 'Pay with Click — {amount}',
     opening: 'Opening...',
     freeNote:

@@ -364,6 +364,7 @@ export const uz = {
     processingBody: "To'lovingiz qabul qilindi va tasdiqlanmoqda. Tasdiqlangach Pro avtomatik ochiladi.",
     savings: '{percent}% tejash',
     perMonth: 'Oyiga {amount}',
+    perDay: 'Kuniga {amount}',
     payWithClick: "Click orqali to'lash - {amount}",
     opening: 'Ochilmoqda...',
     freeNote:

@@ -31,6 +31,22 @@ const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
           : '#fb7185',
 }))
 
+function daysForPeriod(period: BillingPeriod) {
+  return period === 'Monthly' ? 30 : 90
+}
+
+function monthsForPeriod(period: BillingPeriod) {
+  return period === 'Monthly' ? 1 : 3
+}
+
+function perDayAmountTiyin(amountTiyin: number, period: BillingPeriod) {
+  return Math.max(1, Math.round(amountTiyin / daysForPeriod(period)))
+}
+
+function perMonthAmountTiyin(amountTiyin: number, period: BillingPeriod) {
+  return Math.max(1, Math.round(amountTiyin / monthsForPeriod(period)))
+}
+
 export function Paywall() {
   const t = useT()
   const { locale } = useLocale()
@@ -149,46 +165,61 @@ export function Paywall() {
         <>
           <div className="space-y-3">
             {plans.options.map((option) => (
-              <button
-                key={option.period}
-                type="button"
-                aria-pressed={period === option.period}
-                onClick={() => setPeriod(option.period)}
-                className={`w-full rounded-[var(--radius-card)] border p-5 text-left transition ${
-                  period === option.period
-                    ? 'border-signal bg-signal-soft'
-                    : 'border-hairline bg-ground-raised'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-base font-semibold text-ink">{t.billing.periodLabel[option.period]}</span>
-                  {option.savingsPercent > 0 && (
-                    <Badge tone="milestone">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
-                  )}
-                </div>
-                {promoPreview?.isValid && promoPreview.period === option.period ? (
-                  <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-                    <p className="text-base font-semibold text-ink-muted line-through decoration-2">
-                      {formatPrice(option.amountTiyin, option.currency, locale)}
-                    </p>
-                    <p className="text-2xl font-semibold tracking-tight text-ink">
-                      {formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale)}
-                    </p>
-                    <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-                    {formatPrice(option.amountTiyin, option.currency, locale)}
-                  </p>
-                )}
-                {option.period === 'NinetyDay' && (
-                  <p className="text-support">
-                    {fill(t.billing.perMonth, {
-                      amount: formatPrice(option.effectiveMonthlyTiyin, option.currency, locale),
-                    })}
-                  </p>
-                )}
-              </button>
+              (() => {
+                const discounted = promoPreview?.isValid && promoPreview.period === option.period
+                const shownAmount = discounted ? promoPreview.finalAmountTiyin : option.amountTiyin
+                const shownCurrency = discounted ? promoPreview.currency : option.currency
+
+                return (
+                  <button
+                    key={option.period}
+                    type="button"
+                    aria-pressed={period === option.period}
+                    onClick={() => setPeriod(option.period)}
+                    className={`w-full rounded-[var(--radius-card)] border p-5 text-left transition ${
+                      period === option.period
+                        ? 'border-signal bg-signal-soft'
+                        : 'border-hairline bg-ground-raised'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-base font-semibold text-ink">{t.billing.periodLabel[option.period]}</span>
+                      {option.savingsPercent > 0 && (
+                        <Badge tone="milestone">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
+                      )}
+                    </div>
+                    {discounted ? (
+                      <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+                        <p className="text-base font-semibold text-ink-muted line-through decoration-2">
+                          {formatPrice(option.amountTiyin, option.currency, locale)}
+                        </p>
+                        <p className="text-2xl font-semibold tracking-tight text-ink">
+                          {formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale)}
+                        </p>
+                        <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
+                        {formatPrice(option.amountTiyin, option.currency, locale)}
+                      </p>
+                    )}
+                    <div className="mt-1 space-y-0.5 text-support">
+                      {option.period === 'NinetyDay' && (
+                        <p>
+                          {fill(t.billing.perMonth, {
+                            amount: formatPrice(perMonthAmountTiyin(shownAmount, option.period), shownCurrency, locale),
+                          })}
+                        </p>
+                      )}
+                      <p>
+                        {fill(t.billing.perDay, {
+                          amount: formatPrice(perDayAmountTiyin(shownAmount, option.period), shownCurrency, locale),
+                        })}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })()
             ))}
           </div>
 

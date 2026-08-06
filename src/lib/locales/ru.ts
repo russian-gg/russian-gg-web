@@ -360,6 +360,7 @@ export const ru: Dictionary = {
     processingBody: 'Платёж принят и подтверждается. После подтверждения Pro откроется автоматически.',
     savings: 'экономия {percent}%',
     perMonth: '{amount} в месяц',
+    perDay: '{amount} в день',
     payWithClick: 'Оплатить через Click — {amount}',
     opening: 'Открываем...',
     freeNote:
