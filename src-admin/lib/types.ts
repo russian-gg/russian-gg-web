@@ -120,3 +120,78 @@ export type FeedbackItem = {
   attachmentUrl?: string | null
   createdAt: string
 }
+
+export type MarketingStatus = 'Proposed' | 'Accepted' | 'Executed' | 'Reviewed' | 'Dismissed'
+export type MarketingCategory =
+  | 'Ugc'
+  | 'Content'
+  | 'Paid'
+  | 'Product'
+  | 'Retention'
+  | 'Pricing'
+  | 'Partnership'
+export type MarketingEffort = 'Low' | 'Medium' | 'High'
+export type MarketingDirection = 'Up' | 'Down' | 'Flat'
+export type MarketingMetric =
+  | 'TotalUsers'
+  | 'NewUsers'
+  | 'Dau'
+  | 'Wau'
+  | 'Mau'
+  | 'DayRetention'
+  | 'WeekRetention'
+  | 'MonthRetention'
+  | 'PaidUsers'
+  | 'RevenueUzs'
+  | 'PaidTransactions'
+  | 'CompletedMissions'
+
+export type MarketingPlanSummary = {
+  id: string
+  weekNumber: number
+  status: MarketingStatus
+  headlineUz: string
+  initiativeCount: number
+  generatedAt: string
+  executedAt?: string | null
+  reviewDueAt?: string | null
+  reviewedAt?: string | null
+}
+
+export type MarketingExpectation = {
+  metric: MarketingMetric
+  baselineValue: number
+  expectedValue: number
+  direction: MarketingDirection
+  confidence: number
+  /** Absent until the week has been measured — never zero for "not yet". */
+  measuredValue?: number | null
+}
+
+export type MarketingInitiative = {
+  id: string
+  category: MarketingCategory
+  priority: number
+  titleUz: string
+  actionUz: string
+  rationaleUz: string
+  launchOn: string
+  effort: MarketingEffort
+  expectations: MarketingExpectation[]
+}
+
+export type MarketingPlan = {
+  id: string
+  weekNumber: number
+  status: MarketingStatus
+  headlineUz: string
+  situationUz: string
+  modelName: string
+  generatedAt: string
+  acceptedAt?: string | null
+  executedAt?: string | null
+  reviewDueAt?: string | null
+  reviewedAt?: string | null
+  reviewUz?: string | null
+  initiatives: MarketingInitiative[]
+}

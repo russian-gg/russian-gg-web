@@ -8,13 +8,15 @@ import { Transactions } from './screens/Transactions'
 import { Clicks } from './screens/Clicks'
 import { AiUsage } from './screens/AiUsage'
 import { Feedbacks } from './screens/Feedbacks'
+import { Marketing } from './screens/Marketing'
 
-type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'ai-usage' | 'feedbacks'
+type Section = 'dashboard' | 'users' | 'clicks' | 'marketing' | 'transactions' | 'ai-usage' | 'feedbacks'
 
 const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
+  { id: 'marketing', label: 'Marketing strategiya', group: 'Sharh' },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
@@ -112,6 +114,7 @@ export function AdminApp() {
         {section === 'dashboard' && <Dashboard />}
         {section === 'users' && <Users />}
         {section === 'clicks' && <Clicks />}
+        {section === 'marketing' && <Marketing />}
         {section === 'transactions' && <Transactions />}
         {section === 'ai-usage' && <AiUsage />}
         {section === 'feedbacks' && <Feedbacks />}
