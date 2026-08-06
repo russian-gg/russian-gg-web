@@ -78,6 +78,7 @@ jobs:
             else
               bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web caddy
             fi
+            docker compose -f /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml restart caddy
           '
 
       - name: Wait for stage admin HTTPS
