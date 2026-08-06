@@ -56,35 +56,9 @@ export type AiUsage = {
   failed: number
   totalTokens: number
   totalCostUsd: number
-  aiCallCostUsd: number
-  liveVoiceCostUsd: number
   costByDay: CostPoint[]
   byProvider: KeyValue[]
   byOperation: KeyValue[]
-  userSummary: {
-    activeUsers: number
-    activeProUsers: number
-    totalLiveVoiceSeconds: number
-    averageCostPerActiveUserDayUsd: number
-    projectedMonthlyCostPerActiveUserUsd: number
-    averageCostPerProUserDayUsd: number
-    projectedMonthlyCostPerProUserUsd: number
-  }
-  userCosts: Array<{
-    userId: string
-    displayName?: string | null
-    email: string
-    plan: string
-    activeDays: number
-    aiCallCount: number
-    totalTokens: number
-    liveVoiceSeconds: number
-    aiCallCostUsd: number
-    liveVoiceCostUsd: number
-    totalEstimatedCostUsd: number
-    averagePerActiveDayUsd: number
-    projectedMonthlyCostUsd: number
-  }>
   items: AiCall[]
 }
 

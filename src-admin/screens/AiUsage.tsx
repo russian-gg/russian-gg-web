@@ -13,7 +13,6 @@ import {
   Pager,
   PeriodToggle,
   Row,
-  SectionHeading,
   Select,
   Stat,
   Table,
@@ -22,7 +21,6 @@ import {
 import { BarList, Donut, LineChart } from '../components/charts'
 
 const PAGE_SIZE = 25
-const formatMinutes = (seconds: number) => `${(seconds / 60).toFixed(1)} min`
 
 export function AiUsage() {
   const [days, setDays] = useState(30)
@@ -67,30 +65,14 @@ export function AiUsage() {
         />
         <Stat label="Jami tokenlar" value={formatNumber(data.totalTokens)} />
         <Stat
-          label="Taxminiy jami narx"
+          label="Umumiy narx"
           value={formatUsd(data.totalCostUsd)}
-          note="AI call + live voice estimate"
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Model call narxi" value={formatUsd(data.aiCallCostUsd)} />
-        <Stat label="Live voice narxi" value={formatUsd(data.liveVoiceCostUsd)} />
-        <Stat
-          label="Faol user / kun"
-          value={formatUsd(data.userSummary.averageCostPerActiveUserDayUsd)}
-          note={`30 kun proyeksiya: ${formatUsd(data.userSummary.projectedMonthlyCostPerActiveUserUsd)}`}
-        />
-        <Stat
-          label="PRO user / kun"
-          value={formatUsd(data.userSummary.averageCostPerProUserDayUsd)}
-          note={`30 kun proyeksiya: ${formatUsd(data.userSummary.projectedMonthlyCostPerProUserUsd)}`}
-          badge={<Badge tone="signal">{formatNumber(data.userSummary.activeProUsers)} pro user</Badge>}
+          note={hasCost ? undefined : "Provayder narxni qaytarmagan"}
         />
       </div>
 
       <Card>
-        <h3 className="mb-3 text-base font-extrabold text-ink">Kunlar bo'yicha taxminiy narx</h3>
+        <h3 className="mb-3 text-base font-extrabold text-ink">Kunlar bo'yicha narx</h3>
         {hasCost ? (
           <LineChart points={data.costByDay} label="Kunlik narx" format={formatUsd} />
         ) : (
@@ -113,51 +95,6 @@ export function AiUsage() {
           <BarList items={data.byOperation} format={formatNumber} labelWidth="w-28 sm:w-40" />
         </Card>
       </div>
-
-      <Card>
-        <SectionHeading action={<Badge tone="neutral">{formatNumber(data.userSummary.activeUsers)} faol user</Badge>}>
-          User tannarxi
-        </SectionHeading>
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-[var(--radius-control)] bg-ground-sunken px-4 py-3 text-sm text-ink-muted">
-            Bu jadval stagingda bitta user kuniga va oyiga taxminan qancha AI xarajat qilayotganini ko'rsatadi.
-          </div>
-          <div className="rounded-[var(--radius-control)] bg-ground-sunken px-4 py-3 text-sm text-ink-muted">
-            Live voice sarfi `ElapsedSeconds` dan, TTS esa audio davomiyligidan estimate qilinadi.
-          </div>
-          <div className="rounded-[var(--radius-control)] bg-ground-sunken px-4 py-3 text-sm text-ink-muted">
-            Kurs narxini qo'yishda `PRO user / kun` va `30 kun proyeksiya` ga qarash xavfsizroq.
-          </div>
-        </div>
-
-        <Table head={['User', 'Plan', 'Faol kun', 'AI call', 'Voice', 'Model cost', 'Voice cost', 'Kuniga', '30 kun']}>
-          {data.userCosts.map((user) => (
-            <Row key={user.userId}>
-              <Cell wrap strong>
-                <div>{user.displayName ?? 'Ism yo‘q'}</div>
-                <div className="text-xs font-normal text-ink-muted">{user.email}</div>
-              </Cell>
-              <Cell>
-                <Badge tone={user.plan === 'Pro' ? 'signal' : 'neutral'}>{user.plan}</Badge>
-              </Cell>
-              <Cell muted>{formatNumber(user.activeDays)}</Cell>
-              <Cell muted>{formatNumber(user.aiCallCount)}</Cell>
-              <Cell muted>{formatMinutes(user.liveVoiceSeconds)}</Cell>
-              <Cell muted>{formatUsd(user.aiCallCostUsd)}</Cell>
-              <Cell muted>{formatUsd(user.liveVoiceCostUsd)}</Cell>
-              <Cell strong>{formatUsd(user.averagePerActiveDayUsd)}</Cell>
-              <Cell strong>{formatUsd(user.projectedMonthlyCostUsd)}</Cell>
-            </Row>
-          ))}
-          {data.userCosts.length === 0 && (
-            <tr>
-              <td colSpan={9}>
-                <EmptyNote>Bu davrda user bo'yicha AI sarfi hali yig'ilmagan</EmptyNote>
-              </td>
-            </tr>
-          )}
-        </Table>
-      </Card>
 
       <div className="flex flex-wrap items-center gap-3">
         <TextField
