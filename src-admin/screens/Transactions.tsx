@@ -32,7 +32,7 @@ export function Transactions() {
     <div className="space-y-6">
       <PageHeader title="Tranzaksiyalar" subtitle={`Jami: ${formatNumber(data.total)}`} />
 
-      <Table head={['Foydalanuvchi', 'Summa', 'Davr', 'Provayder', 'Status', 'Sana']}>
+      <Table head={['Foydalanuvchi', 'Summa', 'Promo', 'Davr', 'Provayder', 'Status', 'Sana']}>
         {data.items.map((item) => {
           const status = item.status as keyof typeof statusTone
 
@@ -42,7 +42,15 @@ export function Transactions() {
                 <span className="block font-bold text-ink">{item.displayName ?? 'Ismsiz'}</span>
                 <span className="block text-xs text-ink-faint">{item.email ?? '—'}</span>
               </Cell>
-              <Cell strong>{formatMoney(item.amount, item.currency)}</Cell>
+              <Cell>
+                <div className="font-bold text-ink">{formatMoney(item.amount, item.currency)}</div>
+                {item.discountAmount > 0 && (
+                  <div className="text-xs text-ink-faint line-through">
+                    {formatMoney(item.originalAmount, item.currency)}
+                  </div>
+                )}
+              </Cell>
+              <Cell muted>{item.promoCode ?? '—'}</Cell>
               <Cell muted>{item.period}</Cell>
               <Cell muted>{item.provider}</Cell>
               <Cell>
@@ -54,11 +62,11 @@ export function Transactions() {
         })}
         {data.items.length === 0 && (
           <tr>
-            <td colSpan={6}>
-              <EmptyNote>Hali to'lov yo'q</EmptyNote>
-            </td>
-          </tr>
-        )}
+                <td colSpan={7}>
+                  <EmptyNote>Hali to'lov yo'q</EmptyNote>
+                </td>
+              </tr>
+            )}
       </Table>
 
       <Pager page={page} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} />

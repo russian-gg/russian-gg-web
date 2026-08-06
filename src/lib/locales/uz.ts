@@ -391,6 +391,12 @@ export const uz = {
       "Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi, bu sahifani " +
       'yopsangiz ham.',
     returnError: "To'lov tizimidan xatolik kodi qaytdi.",
+    promoTitle: 'Promo code bormi?',
+    promoPlaceholder: 'Promo code kiriting',
+    promoApply: "Qo'llash",
+    promoApplied: 'Promo code qo‘llandi.',
+    promoDiscount: 'Chegirma: {amount}',
+    promoFinal: "To'lov: {amount}",
   },
 
   profile: {

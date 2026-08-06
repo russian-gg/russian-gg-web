@@ -381,6 +381,12 @@ export const en: Dictionary = {
       'This can take a few minutes. Pro opens automatically once confirmed, even if you ' +
       'close this page.',
     returnError: 'The payment provider returned an error code.',
+    promoTitle: 'Have a promo code?',
+    promoPlaceholder: 'Enter your promo code',
+    promoApply: 'Apply',
+    promoApplied: 'Promo code applied.',
+    promoDiscount: 'Discount: {amount}',
+    promoFinal: 'Payment: {amount}',
   },
 
   profile: {

@@ -387,6 +387,12 @@ export const ru: Dictionary = {
       'Это может занять несколько минут. После подтверждения Pro откроется автоматически, ' +
       'даже если вы закроете эту страницу.',
     returnError: 'Платёжная система вернула код ошибки.',
+    promoTitle: 'Есть промокод?',
+    promoPlaceholder: 'Введите промокод',
+    promoApply: 'Применить',
+    promoApplied: 'Промокод применён.',
+    promoDiscount: 'Скидка: {amount}',
+    promoFinal: 'К оплате: {amount}',
   },
 
   profile: {

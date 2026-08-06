@@ -94,7 +94,11 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
   }
 
   if (!response.ok) {
-    throw new AdminRequestError("So'rov bajarilmadi.", response.status)
+    const payload = await response
+      .json()
+      .catch<{ message?: string; title?: string }>(() => ({}))
+
+    throw new AdminRequestError(payload.message ?? payload.title ?? "So'rov bajarilmadi.", response.status)
   }
 
   if (response.status === 204) return undefined as T

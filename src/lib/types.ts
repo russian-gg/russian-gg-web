@@ -340,6 +340,17 @@ export interface PlansView {
   trialAvailable: boolean
 }
 
+export interface PromoCodePreview {
+  isValid: boolean
+  message?: string | null
+  code?: string | null
+  period: BillingPeriod
+  originalAmountTiyin: number
+  discountAmountTiyin: number
+  finalAmountTiyin: number
+  currency: string
+}
+
 export interface EntitlementView {
   tier: PlanTier
   status: SubscriptionStatus

@@ -1,6 +1,8 @@
 export type KeyValue = { label: string; value: number }
 export type SeriesPoint = { date: string; value: number }
 export type CostPoint = { date: string; value: number }
+export type BillingPeriod = 'Monthly' | 'NinetyDay'
+export type PromoDiscountType = 'Percentage' | 'FixedAmount'
 
 export type Paged<T> = { items: T[]; total: number }
 
@@ -99,12 +101,29 @@ export type Transaction = {
   displayName?: string | null
   email?: string | null
   amount: number
+  originalAmount: number
+  discountAmount: number
+  promoCode?: string | null
   currency: string
   period: string
   status: string
   provider: string
   createdAt: string
   paidAt?: string | null
+}
+
+export type AdminPromoCode = {
+  id: string
+  code: string
+  period: BillingPeriod
+  discountType: PromoDiscountType
+  percentOff?: number | null
+  amountOffTiyin?: number | null
+  validFrom: string
+  validUntil: string
+  isActive: boolean
+  usageCount: number
+  createdAt: string
 }
 
 export type FeedbackItem = {

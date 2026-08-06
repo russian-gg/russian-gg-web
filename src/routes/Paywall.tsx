@@ -1,10 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, RequestError, track } from '../lib/api'
 import { formatDate, formatPrice } from '../lib/format'
 import { fill, useLocale, useT } from '../lib/i18n'
-import type { BillingPeriod, CheckoutResponse, EntitlementView, PlansView, SubscriptionActionResponse } from '../lib/types'
+import type {
+  BillingPeriod,
+  CheckoutResponse,
+  EntitlementView,
+  PlansView,
+  PromoCodePreview,
+  SubscriptionActionResponse,
+} from '../lib/types'
 import { Badge, Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 export function Paywall() {
@@ -13,6 +20,10 @@ export function Paywall() {
   const [period, setPeriod] = useState<BillingPeriod>('NinetyDay')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoBusy, setPromoBusy] = useState(false)
+  const [promoFeedback, setPromoFeedback] = useState<string | null>(null)
+  const [promoPreview, setPromoPreview] = useState<PromoCodePreview | null>(null)
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['plans'],
@@ -26,6 +37,11 @@ export function Paywall() {
 
   if (isLoading || !plans) return <Spinner />
 
+  useEffect(() => {
+    setPromoPreview(null)
+    setPromoFeedback(null)
+  }, [period])
+
   async function checkout() {
     setBusy(true)
     setError(null)
@@ -33,6 +49,7 @@ export function Paywall() {
       const result = await api.post<CheckoutResponse>('/billing/checkout', {
         period,
         returnUrl: `${window.location.origin}/billing/return`,
+        promoCode: promoPreview?.isValid ? promoPreview.code : undefined,
       })
       track('checkout_started', { period })
       window.location.href = result.checkoutUrl
@@ -42,7 +59,28 @@ export function Paywall() {
     }
   }
 
+  async function applyPromoCode() {
+    setPromoBusy(true)
+    setPromoFeedback(null)
+    setPromoPreview(null)
+
+    try {
+      const result = await api.post<PromoCodePreview>('/billing/promo/preview', {
+        period,
+        code: promoCode,
+      })
+
+      setPromoPreview(result)
+      setPromoFeedback(result.message ?? (result.isValid ? t.billing.promoApplied : null))
+    } catch (caught) {
+      setPromoFeedback(caught instanceof RequestError ? caught.message : t.billing.checkoutFailed)
+    } finally {
+      setPromoBusy(false)
+    }
+  }
+
   const selected = plans.options.find((option) => option.period === period) ?? plans.options[0]
+  const amountToPay = promoPreview?.isValid ? promoPreview.finalAmountTiyin : selected.amountTiyin
 
   return (
     <div className="space-y-8">
@@ -101,11 +139,41 @@ export function Paywall() {
             ))}
           </div>
 
+          <Card>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="flex-1">
+                <span className="mb-1.5 block text-sm font-bold text-ink">{t.billing.promoTitle}</span>
+                <input
+                  value={promoCode}
+                  onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
+                  placeholder={t.billing.promoPlaceholder}
+                  className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+                />
+              </label>
+              <Button variant="secondary" disabled={promoBusy} onClick={() => void applyPromoCode()}>
+                {promoBusy ? t.billing.opening : t.billing.promoApply}
+              </Button>
+            </div>
+
+            {promoFeedback && (
+              <p className={`mt-3 text-sm ${promoPreview?.isValid ? 'text-milestone' : 'text-ink-muted'}`}>{promoFeedback}</p>
+            )}
+
+            {promoPreview?.isValid && (
+              <div className="mt-4 space-y-1 text-sm text-ink">
+                <div>{fill(t.billing.promoDiscount, { amount: formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale) })}</div>
+                <div className="font-bold">
+                  {fill(t.billing.promoFinal, { amount: formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale) })}
+                </div>
+              </div>
+            )}
+          </Card>
+
           <Button size="lg" block disabled={busy} onClick={() => void checkout()}>
             {busy
               ? t.billing.opening
               : fill(t.billing.payWithClick, {
-                  amount: formatPrice(selected.amountTiyin, selected.currency, locale),
+                  amount: formatPrice(amountToPay, selected.currency, locale),
                 })}
           </Button>
 
