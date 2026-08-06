@@ -90,7 +90,12 @@ export function Marketing() {
   if (!data) return null
 
   const done = data.filter((plan) => plan.status !== 'Dismissed').length
-  const open = data.find((plan) => plan.status === 'Proposed' || plan.status === 'Accepted')
+  /*
+   * Only a week that is out and not yet measured stands in the way. Agreeing with a plan is
+   * not doing the work, and blocking on that asked an operator to mark work done that they
+   * had not done just to get a second opinion.
+   */
+  const measuring = data.find((plan) => plan.status === 'Executed')
 
   async function generate() {
     setBusy(true)
@@ -117,7 +122,7 @@ export function Marketing() {
           <span className="text-sm text-ink-muted">
             {done}/{PROGRAMME_WEEKS} hafta
           </span>
-          <Button onClick={generate} disabled={busy || Boolean(open) || done >= PROGRAMME_WEEKS}>
+          <Button onClick={generate} disabled={busy || Boolean(measuring) || done >= PROGRAMME_WEEKS}>
             {busy ? 'Tuzilmoqda…' : 'Yangi hafta tuzish'}
           </Button>
         </div>
@@ -125,15 +130,11 @@ export function Marketing() {
 
       {failure && <ErrorNote>{failure}</ErrorNote>}
 
-      {/*
-        Said where the button is, not after it fails. An open week blocks the next one on
-        purpose: two live weeks forecasting the same metric over the same days leave nothing
-        able to say afterwards which week the movement belonged to.
-      */}
-      {open && (
+      {/* Said where the button is, not after it fails, and it says what to do about it. */}
+      {measuring && (
         <p className="text-sm text-ink-muted">
-          {open.weekNumber}-hafta hali yakunlanmagan. Yangi hafta uni ishga tushirgandan yoki rad
-          etgandan keyin tuziladi.
+          {measuring.weekNumber}-hafta hozir o'lchanmoqda. Uni o'lchab bo'lgach yangi hafta
+          tuziladi — kutish shart emas, "Hozir o'lchash"ni bosing.
         </p>
       )}
 
@@ -158,6 +159,9 @@ export function Marketing() {
                   selected === plan.id
                     ? 'border-signal bg-signal-soft/40'
                     : 'border-hairline bg-ground-raised hover:border-ink-faint',
+                  // Kept, because a plan that was turned down is worth remembering — but the
+                  // live week for that slot is the one being read.
+                  plan.status === 'Dismissed' && 'opacity-60',
                 )}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -192,7 +196,7 @@ function PlanDetail({ planId, onChanged }: { planId: string; onChanged: () => vo
 
   const plan = data
 
-  async function act(action: 'accept' | 'execute' | 'dismiss' | 'review') {
+  async function act(action: 'accept' | 'execute' | 'dismiss' | 'review' | 'regenerate') {
     setBusy(true)
     setFailure('')
     try {
@@ -225,9 +229,15 @@ function PlanDetail({ planId, onChanged }: { planId: string; onChanged: () => vo
 
         <div className="mt-4 flex flex-wrap gap-2">
           {plan.status === 'Proposed' && (
-            <Button size="sm" onClick={() => act('accept')} disabled={busy}>
-              Qabul qilish
-            </Button>
+            <>
+              <Button size="sm" onClick={() => act('accept')} disabled={busy}>
+                Qabul qilish
+              </Button>
+              {/* Another take on the same week — it does not spend one of the twelve. */}
+              <Button size="sm" variant="secondary" onClick={() => act('regenerate')} disabled={busy}>
+                Boshqa variant
+              </Button>
+            </>
           )}
           {(plan.status === 'Proposed' || plan.status === 'Accepted') && (
             <>
