@@ -65,6 +65,17 @@ jobs:
             mkdir -p /opt/russian-gg/stage/russian-gg-web
             find /opt/russian-gg/stage/russian-gg-web -mindepth 1 -maxdepth 1 -exec rm -rf {} +
             tar -xzf /opt/russian-gg/releases/staging/frontend-stage-release.tgz -C /opt/russian-gg/stage/russian-gg-web
+
+            if [ -f /opt/russian-gg/stage/russian-gg-server/deploy/docker-compose.prod.yml ]; then
+              install -m 0644 /opt/russian-gg/stage/russian-gg-server/deploy/Caddyfile /opt/russian-gg/russian-gg-server/deploy/Caddyfile
+              install -m 0644 /opt/russian-gg/stage/russian-gg-server/deploy/docker-compose.prod.yml /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml
+              install -m 0755 /opt/russian-gg/stage/russian-gg-server/deploy/manage-stack.sh /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
+            fi
+
             chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
-            bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web stage-admin-web caddy
+            if grep -q "stage-admin-web:" /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml; then
+              bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web stage-admin-web caddy
+            else
+              bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web caddy
+            fi
           '
