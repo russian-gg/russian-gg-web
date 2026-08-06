@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import type {
   MarketingCategory,
+  MarketingRun,
+  MarketingRunStep,
   MarketingDirection,
   MarketingExpectation,
   MarketingMetric,
@@ -77,8 +79,40 @@ const arrow: Record<MarketingDirection, string> = { Up: '↑', Down: '↓', Flat
 export function Marketing() {
   const { data, error, isLoading, refresh } = useAdminQuery<MarketingPlanSummary[]>('/api/admin-portal/marketing')
   const [selected, setSelected] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [run, setRun] = useState<MarketingRun | null>(null)
   const [failure, setFailure] = useState('')
+
+  const busy = run?.state === 'Running'
+
+  /*
+   * Polled rather than streamed. A second is faster than any stage worth watching changes,
+   * and it survives the panel being reloaded mid-run — the generation is server-side, so a
+   * refreshed page picks the same run back up instead of losing it.
+   */
+  useEffect(() => {
+    if (run?.state !== 'Running') return
+
+    const timer = window.setInterval(() => {
+      void adminFetch<MarketingRun>(`/api/admin-portal/marketing/runs/${run.id}`)
+        .then(setRun)
+        .catch(() => {
+          // The run aged out of the server's memory. Whatever it wrote is in the list.
+          setRun(null)
+          refresh()
+        })
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.id, run?.state])
+
+  useEffect(() => {
+    if (run?.state === 'Completed') {
+      refresh()
+      if (run.planId) setSelected(run.planId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.state, run?.planId])
 
   // The newest week is what an operator came to look at.
   useEffect(() => {
@@ -98,16 +132,11 @@ export function Marketing() {
   const measuring = data.find((plan) => plan.status === 'Executed')
 
   async function generate() {
-    setBusy(true)
     setFailure('')
     try {
-      const plan = await adminFetch<MarketingPlan>('/api/admin-portal/marketing/generate', { method: 'POST' })
-      refresh()
-      setSelected(plan.id)
+      setRun(await adminFetch<MarketingRun>('/api/admin-portal/marketing/generate', { method: 'POST' }))
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : 'Reja tuzilmadi')
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -129,6 +158,8 @@ export function Marketing() {
       </div>
 
       {failure && <ErrorNote>{failure}</ErrorNote>}
+
+      {run && <RunProgress run={run} onDismiss={() => setRun(null)} />}
 
       {/* Said where the button is, not after it fails, and it says what to do about it. */}
       {measuring && (
@@ -176,14 +207,120 @@ export function Marketing() {
             ))}
           </div>
 
-          {selected && <PlanDetail planId={selected} onChanged={refresh} />}
+          {selected && (
+            <PlanDetail
+              planId={selected}
+              onChanged={refresh}
+              onRunStarted={(started) => {
+                setFailure('')
+                setRun(started)
+              }}
+            />
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function PlanDetail({ planId, onChanged }: { planId: string; onChanged: () => void }) {
+/**
+ * The work as it happens. Every line here is a stage the service actually moves through, and
+ * the detail under the model step is written from bytes arriving — nothing on this panel
+ * advances on a timer.
+ */
+function RunProgress({ run, onDismiss }: { run: MarketingRun; onDismiss: () => void }) {
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-base font-extrabold text-ink">
+          {run.state === 'Running'
+            ? 'Reja tuzilmoqda'
+            : run.state === 'Completed'
+              ? 'Reja tayyor'
+              : 'Reja tuzilmadi'}
+        </h3>
+        {run.state !== 'Running' && (
+          <Button variant="ghost" size="sm" onClick={onDismiss}>
+            Yopish
+          </Button>
+        )}
+      </div>
+
+      <ol className="mt-4 space-y-3">
+        {run.steps.map((step) => (
+          <li key={step.key} className="flex items-start gap-3">
+            <StepMark state={step.state} />
+            <div className="min-w-0">
+              <div
+                className={cx(
+                  'text-sm',
+                  step.state === 'Done'
+                    ? 'text-ink-muted'
+                    : step.state === 'Failed'
+                      ? 'text-danger'
+                      : step.state === 'Active'
+                        ? 'font-bold text-ink'
+                        : 'text-ink-faint',
+                )}
+              >
+                {step.titleUz}
+              </div>
+              {step.detail && step.state !== 'Pending' && (
+                <div className="mt-0.5 text-xs text-ink-faint">{step.detail}</div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {run.error && (
+        <div className="mt-4">
+          <ErrorNote>{run.error}</ErrorNote>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function StepMark({ state }: { state: MarketingRunStep['state'] }) {
+  if (state === 'Active') {
+    return (
+      <span
+        aria-hidden="true"
+        className="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-hairline border-t-signal"
+      />
+    )
+  }
+
+  if (state === 'Done') {
+    return (
+      <span
+        aria-hidden="true"
+        className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-milestone"
+      >
+        <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-white stroke-[3.5]">
+          <path d="m5 13 5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    )
+  }
+
+  if (state === 'Failed') {
+    return <span aria-hidden="true" className="mt-0.5 size-4 shrink-0 rounded-full bg-danger" />
+  }
+
+  return <span aria-hidden="true" className="mt-0.5 size-4 shrink-0 rounded-full border-2 border-hairline" />
+}
+
+function PlanDetail({
+  planId,
+  onChanged,
+  onRunStarted,
+}: {
+  planId: string
+  onChanged: () => void
+  onRunStarted: (run: MarketingRun) => void
+}) {
   const { data, error, isLoading, refresh } = useAdminQuery<MarketingPlan>(
     `/api/admin-portal/marketing/${planId}`,
   )
@@ -200,7 +337,19 @@ function PlanDetail({ planId, onChanged }: { planId: string; onChanged: () => vo
     setBusy(true)
     setFailure('')
     try {
-      await adminFetch(`/api/admin-portal/marketing/${planId}/${action}`, { method: 'POST' })
+      const answer = await adminFetch<MarketingPlan | MarketingRun>(
+        `/api/admin-portal/marketing/${planId}/${action}`,
+        { method: 'POST' },
+      )
+
+      // Regenerating writes a new plan, so it comes back as something to watch rather than
+      // as the finished article.
+      if (action === 'regenerate') {
+        onRunStarted(answer as MarketingRun)
+        onChanged()
+        return
+      }
+
       refresh()
       onChanged()
     } catch (caught) {

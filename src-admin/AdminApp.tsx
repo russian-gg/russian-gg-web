@@ -16,7 +16,7 @@ const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
-  { id: 'marketing', label: 'Marketing strategiya', group: 'Sharh' },
+  { id: 'marketing', label: 'Marketing strategiya (CMO)', group: 'Sharh' },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },

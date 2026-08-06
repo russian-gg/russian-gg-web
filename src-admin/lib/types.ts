@@ -195,3 +195,23 @@ export type MarketingPlan = {
   reviewUz?: string | null
   initiatives: MarketingInitiative[]
 }
+
+export type MarketingStepState = 'Pending' | 'Active' | 'Done' | 'Failed'
+export type MarketingRunState = 'Running' | 'Completed' | 'Failed'
+
+export type MarketingRunStep = {
+  key: string
+  titleUz: string
+  state: MarketingStepState
+  /** What the step is doing right now, where it has something true to say. */
+  detail?: string | null
+}
+
+export type MarketingRun = {
+  id: string
+  state: MarketingRunState
+  steps: MarketingRunStep[]
+  planId?: string | null
+  error?: string | null
+  startedAt: string
+}
