@@ -79,3 +79,30 @@ jobs:
               bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web caddy
             fi
           '
+
+      - name: Wait for stage admin HTTPS
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl -fsSI https://stageadmin.russian.gg/ >/dev/null; then
+              echo "stageadmin.russian.gg is up"
+              exit 0
+            fi
+
+            echo "Waiting for stageadmin.russian.gg HTTPS ($attempt/20)..."
+            sleep 15
+          done
+
+          echo "stageadmin.russian.gg did not become healthy in time" >&2
+          exit 1
+
+      - name: Dump Caddy logs on failure
+        if: failure()
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" '
+            set -euo pipefail
+            cd /opt/russian-gg/russian-gg-server/deploy
+            docker compose -f docker-compose.prod.yml logs --tail=200 caddy
+          '
