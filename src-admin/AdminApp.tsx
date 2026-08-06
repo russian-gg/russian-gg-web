@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react'
 import { adminApiPath, adminSectionKey, session, useSession } from './lib/api'
 import { Button, Card, ErrorNote } from './components/ui'
 import { cx } from '../src/lib/cx'
+import {
+  AiGlyph,
+  ClicksGlyph,
+  DashboardGlyph,
+  FeedbackGlyph,
+  MarketingGlyph,
+  TransactionsGlyph,
+  UsersGlyph,
+} from './components/icons'
 import { Dashboard } from './screens/Dashboard'
 import { Users } from './screens/Users'
 import { Transactions } from './screens/Transactions'
@@ -9,18 +18,40 @@ import { Clicks } from './screens/Clicks'
 import { AiUsage } from './screens/AiUsage'
 import { Feedbacks } from './screens/Feedbacks'
 import { PromoCodes } from './screens/PromoCodes'
+import { Marketing } from './screens/Marketing'
 
-type Section = 'dashboard' | 'users' | 'transactions' | 'clicks' | 'ai-usage' | 'promo-codes' | 'feedbacks'
+type Section =
+  | 'dashboard'
+  | 'users'
+  | 'clicks'
+  | 'marketing'
+  | 'transactions'
+  | 'ai-usage'
+  | 'promo-codes'
+  | 'feedbacks'
 
 const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
+  { id: 'marketing', label: 'Marketing strategiya (CMO)', group: 'Sharh' },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
 ]
+
+/** Paired here rather than in the icon module, because the section ids are this file's. */
+const sectionGlyphs: Record<Section, () => React.ReactElement> = {
+  dashboard: DashboardGlyph,
+  users: UsersGlyph,
+  clicks: ClicksGlyph,
+  marketing: MarketingGlyph,
+  transactions: TransactionsGlyph,
+  'ai-usage': AiGlyph,
+  'promo-codes': TransactionsGlyph,
+  feedbacks: FeedbackGlyph,
+}
 
 function readStoredSection(): Section {
   const stored = localStorage.getItem(adminSectionKey)
@@ -46,7 +77,7 @@ export function AdminApp() {
   const groups = [...new Set(sections.map((item) => item.group))]
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-ground-sunken lg:grid-cols-[248px_1fr]">
+    <div className="grid min-h-screen grid-cols-1 bg-ground-sunken lg:grid-cols-[264px_1fr]">
       {/*
         One element, two shapes. On a phone it is a compact bar: the brand and the way out on
         one line, then the sections as a row that scrolls sideways. Stacked vertically — which
@@ -81,22 +112,36 @@ export function AdminApp() {
               <div className="contents lg:flex lg:flex-col lg:gap-1">
                 {sections
                   .filter((item) => item.group === group)
-                  .map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSection(item.id)}
-                      aria-current={section === item.id ? 'page' : undefined}
-                      className={cx(
-                        'shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm font-bold whitespace-nowrap transition-colors',
-                        section === item.id
-                          ? 'bg-signal-soft text-signal-ink'
-                          : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                  .map((item) => {
+                    const Glyph = sectionGlyphs[item.id]
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSection(item.id)}
+                        aria-current={section === item.id ? 'page' : undefined}
+                        className={cx(
+                          'flex shrink-0 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2',
+                          'text-left text-sm font-bold transition-colors',
+                          /*
+                           * Nowrap is for the phone, where these sit in a row that scrolls
+                           * sideways and a wrapped pill would break the line. In the sidebar
+                           * they are stacked, so a long label wraps rather than running out
+                           * past the column — which is what "(CMO)" did.
+                           */
+                          'whitespace-nowrap lg:whitespace-normal lg:leading-snug',
+                          section === item.id
+                            ? 'bg-signal-soft text-signal-ink'
+                            : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
+                        )}
+                      >
+                        {/* Inherits the label's colour, so the active item turns as one thing. */}
+                        <Glyph />
+                        {item.label}
+                      </button>
+                    )
+                  })}
               </div>
             </div>
           ))}
@@ -114,6 +159,7 @@ export function AdminApp() {
         {section === 'dashboard' && <Dashboard />}
         {section === 'users' && <Users />}
         {section === 'clicks' && <Clicks />}
+        {section === 'marketing' && <Marketing />}
         {section === 'transactions' && <Transactions />}
         {section === 'ai-usage' && <AiUsage />}
         {section === 'promo-codes' && <PromoCodes />}
