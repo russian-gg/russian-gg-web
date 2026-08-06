@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { session, useSession } from './lib/api'
+import { adminApiPath, adminSectionKey, session, useSession } from './lib/api'
 import { Button, Card, ErrorNote } from './components/ui'
 import { cx } from '../src/lib/cx'
 import { Dashboard } from './screens/Dashboard'
@@ -21,7 +21,7 @@ const sections: Array<{ id: Section; label: string; group: string }> = [
 ]
 
 function readStoredSection(): Section {
-  const stored = localStorage.getItem('rgg.admin.section')
+  const stored = localStorage.getItem(adminSectionKey)
   return sections.some((item) => item.id === stored) ? (stored as Section) : 'dashboard'
 }
 
@@ -30,7 +30,7 @@ export function AdminApp() {
   const [section, setSection] = useState<Section>(readStoredSection)
 
   useEffect(() => {
-    localStorage.setItem('rgg.admin.section', section)
+    localStorage.setItem(adminSectionKey, section)
   }, [section])
 
   /*
@@ -133,7 +133,7 @@ function LoginScreen() {
     setError('')
 
     try {
-      const response = await fetch('/api/admin-portal/login', {
+      const response = await fetch(adminApiPath('/login'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ username, password }),

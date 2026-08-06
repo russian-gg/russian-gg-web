@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 
-const TOKEN_KEY = 'rgg.admin.token'
-const NAME_KEY = 'rgg.admin.name'
+const STORAGE_PREFIX = import.meta.env.VITE_ADMIN_STORAGE_PREFIX ?? 'rgg.admin'
+const TOKEN_KEY = `${STORAGE_PREFIX}.token`
+const NAME_KEY = `${STORAGE_PREFIX}.name`
+const SECTION_KEY = `${STORAGE_PREFIX}.section`
+const ADMIN_API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? '/api/admin-portal').replace(/\/$/, '')
 
 /**
  * The session, held outside React so a 401 arriving from any request in flight can end it
@@ -30,6 +33,20 @@ export const session = {
       listeners.delete(listener)
     }
   },
+}
+
+export const adminSectionKey = SECTION_KEY
+
+export function adminApiPath(path: string) {
+  if (path.startsWith('/api/admin-portal')) {
+    return `${ADMIN_API_BASE}${path.slice('/api/admin-portal'.length)}`
+  }
+
+  if (path.startsWith('/')) {
+    return `${ADMIN_API_BASE}${path}`
+  }
+
+  return `${ADMIN_API_BASE}/${path}`
 }
 
 export function useSession() {
@@ -62,7 +79,7 @@ export class AdminRequestError extends Error {
  * error box after the token ran out.
  */
 export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(adminApiPath(path), {
     ...init,
     headers: {
       ...(init?.body ? { 'content-type': 'application/json' } : {}),

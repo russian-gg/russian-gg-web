@@ -33,6 +33,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build Stage Admin
+        run: npm run build:admin
+
       - name: Package release
         run: git archive --format=tar.gz --output=frontend-stage-release.tgz HEAD
 
@@ -63,5 +66,5 @@ jobs:
             find /opt/russian-gg/stage/russian-gg-web -mindepth 1 -maxdepth 1 -exec rm -rf {} +
             tar -xzf /opt/russian-gg/releases/staging/frontend-stage-release.tgz -C /opt/russian-gg/stage/russian-gg-web
             chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
-            bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web caddy
+            bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web stage-admin-web caddy
           '
