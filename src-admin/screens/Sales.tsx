@@ -178,6 +178,8 @@ function Inbox() {
               <Badge tone={statusTone[chat.status]}>{statusLabel[chat.status]}</Badge>
               <span className="text-xs text-ink-faint">{formatDateTime(chat.lastInteractionAt)}</span>
             </div>
+
+            <Readiness value={chat.readiness} signal={chat.readinessSignal} />
           </button>
         ))}
       </div>
@@ -298,6 +300,43 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
       </Card>
 
       <UserCard card={user} />
+    </div>
+  )
+}
+
+/**
+ * How close this conversation looks to a purchase.
+ *
+ * A guess, and labelled as one: it is the model's read of what the person has said, floored by
+ * what the product already knows about them. Shown as a bar rather than only a number because
+ * the useful question is "which of these is closest", and bars answer that at a glance where
+ * percentages have to be compared one at a time.
+ */
+function Readiness({ value, signal }: { value?: number | null; signal?: string | null }) {
+  // Nothing has judged it yet, which is not the same as a score of zero and must not look
+  // like one — a new conversation would otherwise sort below somebody who has said no.
+  if (value === null || value === undefined) {
+    return <p className="mt-2 text-xs text-ink-faint">Sotib olishga yaqinlik: hali baholanmagan</p>
+  }
+
+  return (
+    <div className="mt-2" title={signal ?? undefined}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-ink-faint">Sotib olishga yaqinlik</span>
+        <span className="text-xs font-extrabold tabular-nums text-ink">{value}%</span>
+      </div>
+      <span className="mt-1 block h-1.5 overflow-hidden rounded-[var(--radius-control)] bg-ground-sunken">
+        <span
+          className={cx(
+            'block h-full rounded-[var(--radius-control)]',
+            // One hue for the scale, and the milestone colour only at the top: a bar that
+            // changes colour halfway invites reading the colour instead of the length.
+            value >= 80 ? 'bg-milestone' : 'bg-signal',
+          )}
+          style={{ width: `${Math.max(3, value)}%` }}
+        />
+      </span>
+      {signal && <p className="mt-1 truncate text-xs text-ink-faint">{signal}</p>}
     </div>
   )
 }
@@ -533,8 +572,23 @@ function AgentSettings() {
         O'chirilganda bot xabarlarni yozib boradi, lekin javob bermaydi.
       </p>
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-bold text-ink">Agent ko'rsatmasi</span>
+        {/*
+          The stored prompt belongs to the operator, so a better default is worth nothing
+          unless they can see it and choose it. Loaded into the editor rather than saved, so
+          nothing is replaced until they look at it and press save.
+        */}
+        <button
+          type="button"
+          onClick={() => setDraft({ ...draft, systemPrompt: draft.defaultPrompt })}
+          className="text-xs font-bold text-signal-ink"
+        >
+          Standart matnni yuklash
+        </button>
+      </div>
+
       <label className="block">
-        <span className="mb-1.5 block text-sm font-bold text-ink">Agent ko'rsatmasi</span>
         <textarea
           value={draft.systemPrompt}
           onChange={(event) => setDraft({ ...draft, systemPrompt: event.target.value })}

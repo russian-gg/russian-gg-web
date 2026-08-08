@@ -270,6 +270,9 @@ export type SalesChatSummary = {
   lastMessageFromUser: boolean
   lastInteractionAt: string
   messageCount: number
+  /** 0-100, or absent where nothing has judged it yet. Absent is not zero. */
+  readiness?: number | null
+  readinessSignal?: string | null
 }
 
 export type SalesMessage = {
@@ -309,4 +312,6 @@ export type SalesSettings = {
   webhookRegistered: boolean
   webhookLastError?: string | null
   webhookPendingUpdates: number
+  /** What a fresh install starts with, so the panel can offer it back. */
+  defaultPrompt: string
 }

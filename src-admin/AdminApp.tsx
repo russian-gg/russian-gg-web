@@ -63,9 +63,17 @@ function readStoredSection(): Section {
   return sections.some((item) => item.id === stored) ? (stored as Section) : 'dashboard'
 }
 
+const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
+
 export function AdminApp() {
   const { token, name } = useSession()
   const [section, setSection] = useState<Section>(readStoredSection)
+  // Remembered, because a sidebar that reopens on every reload is one nobody bothers closing.
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true')
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSED_KEY, String(collapsed))
+  }, [collapsed])
 
   useEffect(() => {
     localStorage.setItem(adminSectionKey, section)
@@ -82,7 +90,14 @@ export function AdminApp() {
   const groups = [...new Set(sections.map((item) => item.group))]
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-ground-sunken lg:grid-cols-[264px_1fr]">
+    <div
+      className={cx(
+        'grid min-h-screen grid-cols-1 bg-ground-sunken',
+        // Only the wide layout collapses. On a phone the sections are already a scrolling row,
+        // where there is nothing to collapse and no room to put a control for it.
+        collapsed ? 'lg:grid-cols-[76px_1fr]' : 'lg:grid-cols-[264px_1fr]',
+      )}
+    >
       {/*
         One element, two shapes. On a phone it is a compact bar: the brand and the way out on
         one line, then the sections as a row that scrolls sideways. Stacked vertically — which
@@ -91,12 +106,18 @@ export function AdminApp() {
       */}
       <aside className="flex flex-col gap-3 border-b-2 border-hairline bg-ground-raised px-4 py-3 lg:gap-6 lg:border-r-2 lg:border-b-0 lg:p-5">
         <div className="flex items-center justify-between gap-4 lg:block">
-          <div>
+          <div className={cx(collapsed && 'lg:hidden')}>
             <div className="text-xl font-extrabold tracking-tight text-ink">
               russian<span className="text-signal-ink">.gg</span>
             </div>
             <div className="text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">Admin panel</div>
           </div>
+
+          {/* The collapsed rail keeps a mark where the wordmark was, so the column still reads
+              as this product rather than as a strip of icons. */}
+          {collapsed && (
+            <div className="hidden text-xl font-extrabold tracking-tight text-signal-ink lg:block">.gg</div>
+          )}
 
           <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => session.signOut()}>
             Chiqish
@@ -108,10 +129,30 @@ export function AdminApp() {
           direct children of this row and scroll as one; from `lg` the wrappers come back and
           the groups stack with their headings.
         */}
+        <button
+          type="button"
+          onClick={() => setCollapsed((value) => !value)}
+          aria-label={collapsed ? 'Menyuni yoyish' : "Menyuni yig'ish"}
+          className="hidden items-center justify-center rounded-[var(--radius-control)] border-2 border-hairline py-1.5 text-ink-muted transition-colors hover:border-ink-faint hover:text-ink lg:flex"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.8]">
+            <path
+              d={collapsed ? 'm10 6 6 6-6 6' : 'm14 6-6 6 6 6'}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+
         <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:gap-5 lg:overflow-visible lg:px-0">
           {groups.map((group) => (
             <div key={group} className="contents lg:block">
-              <div className="mb-1.5 hidden px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint lg:block">
+              <div
+                className={cx(
+                  'mb-1.5 hidden px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint',
+                  collapsed ? 'lg:hidden' : 'lg:block',
+                )}
+              >
                 {group}
               </div>
               <div className="contents lg:flex lg:flex-col lg:gap-1">
@@ -126,9 +167,13 @@ export function AdminApp() {
                         type="button"
                         onClick={() => setSection(item.id)}
                         aria-current={section === item.id ? 'page' : undefined}
+                        // The label is the tooltip when it is not on screen: an icon rail
+                        // nobody can read is a guessing game.
+                        title={collapsed ? item.label : undefined}
                         className={cx(
                           'flex shrink-0 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2',
                           'text-left text-sm font-bold transition-colors',
+                          collapsed && 'lg:justify-center lg:px-2',
                           /*
                            * Nowrap is for the phone, where these sit in a row that scrolls
                            * sideways and a wrapped pill would break the line. In the sidebar
@@ -143,7 +188,7 @@ export function AdminApp() {
                       >
                         {/* Inherits the label's colour, so the active item turns as one thing. */}
                         <Glyph />
-                        {item.label}
+                        <span className={cx(collapsed && 'lg:hidden')}>{item.label}</span>
                       </button>
                     )
                   })}
@@ -153,9 +198,16 @@ export function AdminApp() {
         </nav>
 
         <div className="mt-auto hidden flex-col gap-2 pt-4 lg:flex">
-          <div className="text-sm text-ink-muted">{name}</div>
-          <Button variant="secondary" size="sm" onClick={() => session.signOut()}>
-            Chiqish
+          <div className={cx('text-sm text-ink-muted', collapsed && 'lg:hidden')}>{name}</div>
+          <Button variant="secondary" size="sm" onClick={() => session.signOut()} title="Chiqish">
+            <span className={cx(collapsed && 'lg:hidden')}>Chiqish</span>
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className={cx('size-4 fill-none stroke-current stroke-[1.8]', !collapsed && 'lg:hidden')}
+            >
+              <path d="M15 17v1.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2V7M10 12h10m0 0-3-3m3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </Button>
         </div>
       </aside>
