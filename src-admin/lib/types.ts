@@ -315,3 +315,24 @@ export type SalesSettings = {
   /** What a fresh install starts with, so the panel can offer it back. */
   defaultPrompt: string
 }
+
+export type SalesDashboard = {
+  days: number
+  totalChats: number
+  newChats: number
+  activeChats: number
+  customerMessages: number
+  agentMessages: number
+  operatorMessages: number
+  handedOverChats: number
+  /** Absent until something has been answered — never zero for "nothing yet". */
+  averageReplySeconds?: number | null
+  linkedChats: number
+  convertedChats: number
+  readinessBands: KeyValue[]
+  statuses: KeyValue[]
+  messagesByDay: KeyValue[]
+  aiCalls: number
+  aiFailures: number
+  aiTokens: number
+}

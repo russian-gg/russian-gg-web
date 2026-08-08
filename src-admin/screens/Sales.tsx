@@ -3,6 +3,7 @@ import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } f
 import type {
   ChatSender,
   SalesChat,
+  SalesDashboard as SalesDashboardData,
   SalesChatSummary,
   SalesSettings,
   SalesUserStatus,
@@ -15,9 +16,12 @@ import {
   ErrorNote,
   Loading,
   PageHeader,
+  PeriodToggle,
   SectionHeading,
+  Stat,
   Tabs,
 } from '../components/ui'
+import { BarList, ColumnChart } from '../components/charts'
 import { cx } from '../../src/lib/cx'
 import { playIncomingChime, soundMuted } from '../lib/notify'
 
@@ -47,7 +51,7 @@ const statusTone = {
 } as const
 
 export function Sales() {
-  const [tab, setTab] = useState<'inbox' | 'settings'>('inbox')
+  const [tab, setTab] = useState<'dashboard' | 'inbox' | 'settings'>('dashboard')
 
   return (
     <div className="space-y-6">
@@ -57,12 +61,140 @@ export function Sales() {
         value={tab}
         onChange={setTab}
         options={[
+          { id: 'dashboard', label: 'Sotuv paneli' },
           { id: 'inbox', label: 'Suhbatlar' },
           { id: 'settings', label: 'Agent sozlamalari' },
         ]}
       />
 
-      {tab === 'inbox' ? <Inbox /> : <AgentSettings />}
+      {tab === 'dashboard' && <SalesDashboardTab />}
+      {tab === 'inbox' && <Inbox />}
+      {tab === 'settings' && <AgentSettings />}
+    </div>
+  )
+}
+
+function SalesDashboardTab() {
+  const [days, setDays] = useState(30)
+  const { data, error, isLoading } = useAdminQuery<SalesDashboardData>(
+    `/api/admin-portal/sales/dashboard?days=${days}`,
+  )
+
+  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (!data && isLoading) return <Loading />
+  if (!data) return null
+
+  const period = `${days} kunlik davr`
+  const answered = data.averageReplySeconds
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <PeriodToggle value={days} onChange={setDays} />
+      </div>
+
+      <section>
+        <SectionHeading>Suhbatlar</SectionHeading>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Jami suhbat"
+            value={formatNumber(data.totalChats)}
+            note={`+${formatNumber(data.newChats)} · ${period}`}
+          />
+          <Stat
+            label="Faol suhbat"
+            value={formatNumber(data.activeChats)}
+            note={`${period} ichida yozganlar`}
+          />
+          <Stat
+            label="Qo'lga olingan"
+            value={formatNumber(data.handedOverChats)}
+            note="AI o'chirilgan suhbatlar"
+          />
+          <Stat
+            label="O'rtacha javob"
+            value={answered === null || answered === undefined ? '—' : `${Math.round(answered)} s`}
+            note={answered === null || answered === undefined ? 'Hali javob berilmagan' : 'Savoldan javobgacha'}
+          />
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading>Xabarlar</SectionHeading>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Stat label="Mijozlardan" value={formatNumber(data.customerMessages)} note={period} />
+          <Stat label="AI javoblari" value={formatNumber(data.agentMessages)} note={period} />
+          <Stat label="Operator javoblari" value={formatNumber(data.operatorMessages)} note={period} />
+        </div>
+
+        <Card className="mt-4">
+          <h3 className="mb-3 text-base font-extrabold text-ink">Kunlik mijoz xabarlari</h3>
+          <ColumnChart
+            points={data.messagesByDay.map((day) => ({ date: day.label, value: day.value }))}
+            label="Mijoz xabarlari"
+            format={formatNumber}
+          />
+        </Card>
+      </section>
+
+      <section>
+        <SectionHeading>Sotuvga yaqinlik</SectionHeading>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <h3 className="mb-4 text-base font-extrabold text-ink">Baholar taqsimoti</h3>
+            {/* In order, low to high. A scale sorted by size stops being a scale. */}
+            <BarList items={data.readinessBands} format={formatNumber} labelWidth="w-28 sm:w-32" />
+          </Card>
+
+          <Card>
+            <h3 className="mb-4 text-base font-extrabold text-ink">Holati bo'yicha</h3>
+            <BarList
+              items={data.statuses.map((item) => ({
+                label: statusLabel[item.label as SalesUserStatus] ?? item.label,
+                value: item.value,
+              }))}
+              format={formatNumber}
+              labelWidth="w-32 sm:w-44"
+            />
+          </Card>
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading>Hisobga bog'lanish va to'lov</SectionHeading>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Stat
+            label="Hisobga bog'langan"
+            value={formatNumber(data.linkedChats)}
+            note={`${formatNumber(data.totalChats - data.linkedChats)} tasi bog'lanmagan`}
+          />
+          <Stat
+            label="Keyin to'laganlar"
+            value={formatNumber(data.convertedChats)}
+            note="Suhbat boshlangandan keyin"
+          />
+          <Card>
+            <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">AI sarfi</span>
+            <div className="mt-1 text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">
+              {formatNumber(data.aiTokens)}
+            </div>
+            <div className="text-sm text-ink-muted">
+              {formatNumber(data.aiCalls)} ta chaqiruv
+              {data.aiFailures > 0 && ` · ${formatNumber(data.aiFailures)} xato`}
+            </div>
+          </Card>
+        </div>
+
+        {/*
+          Said where the number is. A conversation followed by a payment is not a payment the
+          conversation caused — somebody who was going to buy anyway and happened to write
+          first is counted here too, and nothing in this data can separate them.
+        */}
+        <p className="mt-3 text-xs text-ink-faint">
+          "Keyin to'laganlar" — suhbat boshlangandan so'ng to'lov qilgan hisoblar soni. Bu
+          to'lovni aynan suhbat keltirganini isbotlamaydi.
+        </p>
+      </section>
     </div>
   )
 }
