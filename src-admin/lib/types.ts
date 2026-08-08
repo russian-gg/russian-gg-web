@@ -247,3 +247,58 @@ export type MarketingRun = {
   error?: string | null
   startedAt: string
 }
+
+export type ChatSender = 'User' | 'Ai' | 'Admin'
+export type SalesUserStatus =
+  | 'Unregistered'
+  | 'Registered'
+  | 'DroppedAtPaywall'
+  | 'AbandonedCheckout'
+  | 'Trialing'
+  | 'TrialExpired'
+  | 'Paid'
+
+export type SalesChatSummary = {
+  id: string
+  chatId: number
+  displayName: string
+  username?: string | null
+  userId?: string | null
+  status: SalesUserStatus
+  aiAutoReply: boolean
+  lastMessage?: string | null
+  lastMessageFromUser: boolean
+  lastInteractionAt: string
+  messageCount: number
+}
+
+export type SalesMessage = {
+  id: string
+  sender: ChatSender
+  text: string
+  occurredAt: string
+}
+
+export type SalesUserCard = {
+  userId?: string | null
+  email?: string | null
+  status: SalesUserStatus
+  registeredAt?: string | null
+  lastActiveAt?: string | null
+  completedLessons: number
+  currentDay: number
+  speakingLevel?: string | null
+  triggerEvents: KeyValue[]
+}
+
+export type SalesChat = {
+  chat: SalesChatSummary
+  user: SalesUserCard
+  messages: SalesMessage[]
+}
+
+export type SalesSettings = {
+  systemPrompt: string
+  isEnabled: boolean
+  updatedAt: string
+}

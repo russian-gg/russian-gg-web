@@ -8,6 +8,7 @@ import {
   DashboardGlyph,
   FeedbackGlyph,
   MarketingGlyph,
+  SalesGlyph,
   TransactionsGlyph,
   UsersGlyph,
 } from './components/icons'
@@ -19,12 +20,14 @@ import { AiUsage } from './screens/AiUsage'
 import { Feedbacks } from './screens/Feedbacks'
 import { PromoCodes } from './screens/PromoCodes'
 import { Marketing } from './screens/Marketing'
+import { Sales } from './screens/Sales'
 
 type Section =
   | 'dashboard'
   | 'users'
   | 'clicks'
   | 'marketing'
+  | 'sales'
   | 'transactions'
   | 'ai-usage'
   | 'promo-codes'
@@ -35,6 +38,7 @@ const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
   { id: 'marketing', label: 'Marketing strategiya (CMO)', group: 'Sharh' },
+  { id: 'sales', label: 'Sotuv (Telegram)', group: 'Pul va AI' },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
@@ -47,6 +51,7 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   users: UsersGlyph,
   clicks: ClicksGlyph,
   marketing: MarketingGlyph,
+  sales: SalesGlyph,
   transactions: TransactionsGlyph,
   'ai-usage': AiGlyph,
   'promo-codes': TransactionsGlyph,
@@ -160,6 +165,7 @@ export function AdminApp() {
         {section === 'users' && <Users />}
         {section === 'clicks' && <Clicks />}
         {section === 'marketing' && <Marketing />}
+        {section === 'sales' && <Sales />}
         {section === 'transactions' && <Transactions />}
         {section === 'ai-usage' && <AiUsage />}
         {section === 'promo-codes' && <PromoCodes />}

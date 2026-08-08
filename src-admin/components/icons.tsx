@@ -63,6 +63,16 @@ export function MarketingGlyph() {
   )
 }
 
+/** Two bubbles: a conversation, which is what this inbox is. */
+export function SalesGlyph() {
+  return (
+    <svg {...props}>
+      <path d="M15.5 13.5a5.5 5.5 0 0 1-8 4.9L4 19.5l1.1-3.3a5.5 5.5 0 1 1 10.4-2.7Z" />
+      <path d="M9.4 8.2A5.5 5.5 0 0 1 20 9.9a5.4 5.4 0 0 1-.6 2.5l.6 2-2-.6" />
+    </svg>
+  )
+}
+
 /** Two lines going opposite ways: money moving. */
 export function TransactionsGlyph() {
   return (
