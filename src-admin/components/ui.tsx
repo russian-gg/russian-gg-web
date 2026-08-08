@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
 import { cx } from '../../src/lib/cx'
 
@@ -391,6 +392,72 @@ export function Pager({
 }
 
 /* ------------------------------------------------------------------------------- states */
+
+/**
+ * Asked before something that cannot be taken back.
+ *
+ * A dialog rather than window.confirm because the native one cannot say *what* is about to
+ * go — and "are you sure?" over a list of twelve weeks is not a question anybody can answer
+ * correctly. The name of the thing is in the body.
+ *
+ * Escape and the backdrop both cancel; only the button confirms. Cancel is the primary-looking
+ * button on purpose, so the emphasis sits on the reversible choice.
+ */
+export function ConfirmDialog({
+  title,
+  body,
+  confirmLabel,
+  busy = false,
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  body: ReactNode
+  confirmLabel: string
+  busy?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel()
+    }
+
+    window.addEventListener('keydown', onKey)
+
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onCancel}
+    >
+      <Card
+        as="div"
+        className="w-full max-w-md"
+        // The card is inside the backdrop, so a click on it would otherwise close the dialog
+        // the moment somebody reaches for the buttons.
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 className="text-lg font-extrabold text-ink">{title}</h2>
+        <div className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</div>
+
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={onCancel} disabled={busy}>
+            Bekor qilish
+          </Button>
+          <Button variant="danger" size="sm" onClick={onConfirm} disabled={busy}>
+            {busy ? 'Bajarilmoqda…' : confirmLabel}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
 
 export function Loading({ label = 'Yuklanmoqda' }: { label?: string }) {
   return (

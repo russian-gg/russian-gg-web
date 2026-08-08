@@ -15,6 +15,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   EmptyNote,
   ErrorNote,
   Loading,
@@ -116,9 +117,23 @@ export function Marketing() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run?.state, run?.planId])
 
-  // The newest week is what an operator came to look at.
+  /*
+   * The newest week is what an operator came to look at — the last one now that the list
+   * counts up rather than down.
+   *
+   * It also has to notice when the open week stops existing: rejecting one deletes it, and
+   * without this the panel sat on an id the server would answer 404 for.
+   */
   useEffect(() => {
-    if (data && data.length > 0 && selected === null) setSelected(data[0].id)
+    if (!data || data.length === 0) {
+      setSelected(null)
+
+      return
+    }
+
+    if (selected === null || !data.some((plan) => plan.id === selected)) {
+      setSelected(data[data.length - 1].id)
+    }
   }, [data, selected])
 
   if (error) return <ErrorNote>{error}</ErrorNote>
@@ -328,6 +343,7 @@ function PlanDetail({
   )
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   if (error) return <ErrorNote>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
@@ -335,7 +351,27 @@ function PlanDetail({
 
   const plan = data
 
-  async function act(action: 'accept' | 'execute' | 'dismiss' | 'review' | 'regenerate') {
+  /**
+   * Rejecting removes the week rather than marking it refused. Behind a confirmation because
+   * it cannot be undone: the plan, its initiatives and its forecasts all go.
+   */
+  async function remove() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/marketing/${planId}`, { method: 'DELETE' })
+      setConfirmingDelete(false)
+      // The list owns which plan is open, and the one that was open no longer exists.
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+      setConfirmingDelete(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function act(action: 'accept' | 'execute' | 'review' | 'regenerate') {
     setBusy(true)
     setFailure('')
     try {
@@ -395,10 +431,15 @@ function PlanDetail({
               <Button size="sm" variant="secondary" onClick={() => act('execute')} disabled={busy}>
                 Ishga tushirdik
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => act('dismiss')} disabled={busy}>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmingDelete(true)} disabled={busy}>
                 Rad etish
               </Button>
             </>
+          )}
+          {plan.status === 'Dismissed' && (
+            <Button size="sm" variant="ghost" onClick={() => setConfirmingDelete(true)} disabled={busy}>
+              O'chirish
+            </Button>
           )}
           {(plan.status === 'Executed' || plan.status === 'Reviewed') && (
             <Button size="sm" variant="secondary" onClick={() => act('review')} disabled={busy}>
@@ -474,6 +515,26 @@ function PlanDetail({
           )}
         </Card>
       ))}
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          title="Bu haftani rad etasizmi?"
+          body={
+            <>
+              <strong className="font-bold text-ink">
+                {plan.weekNumber}-hafta — {plan.headlineUz}
+              </strong>{' '}
+              va uning {plan.initiatives.length} ta tashabbusi butunlay o'chadi. Buni qaytarib
+              bo'lmaydi. Hafta raqami bo'sh qoladi, ya'ni o'sha hafta uchun yangi reja tuzsa
+              bo'ladi.
+            </>
+          }
+          confirmLabel="Ha, rad etaman"
+          busy={busy}
+          onConfirm={() => void remove()}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }
