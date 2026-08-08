@@ -5,6 +5,7 @@ import type {
   SalesChat,
   SalesDashboard as SalesDashboardData,
   SalesChatSummary,
+  SalesUnread,
   SalesSettings,
   SalesUserStatus,
 } from '../lib/types'
@@ -53,6 +54,19 @@ const statusTone = {
 export function Sales() {
   const [tab, setTab] = useState<'dashboard' | 'inbox' | 'settings'>('dashboard')
 
+  /*
+   * Asked for from here rather than from the inbox, because the badge has to be right on the
+   * two tabs where the inbox is not mounted — that is the entire point of it. Its own endpoint
+   * for the same reason: it is polled from every tab, and the chat list is far heavier.
+   */
+  const { data: unread, refresh } = useAdminQuery<SalesUnread>('/api/admin-portal/sales/unread')
+
+  useEffect(() => {
+    const timer = window.setInterval(refresh, 5000)
+
+    return () => window.clearInterval(timer)
+  }, [refresh])
+
   return (
     <div className="space-y-6">
       <PageHeader title="Sotuv (Telegram)" subtitle="Bot yuritayotgan suhbatlar va sotuv agenti" />
@@ -62,7 +76,8 @@ export function Sales() {
         onChange={setTab}
         options={[
           { id: 'dashboard', label: 'Sotuv paneli' },
-          { id: 'inbox', label: 'Suhbatlar' },
+          // Conversations waiting, not messages: five from one person is one thing to answer.
+          { id: 'inbox', label: 'Suhbatlar', badge: unread?.chats },
           { id: 'settings', label: 'Agent sozlamalari' },
         ]}
       />
@@ -297,11 +312,35 @@ function Inbox() {
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate text-sm font-extrabold text-ink">{chat.displayName}</span>
-              {!chat.aiAutoReply && <Badge>Qo'lda</Badge>}
+              <span
+                className={cx(
+                  'min-w-0 truncate text-sm text-ink',
+                  // Unread is heavier as well as counted, so the row reads as waiting at a
+                  // glance rather than only under the number.
+                  chat.unread > 0 ? 'font-black' : 'font-extrabold',
+                )}
+              >
+                {chat.displayName}
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                {!chat.aiAutoReply && <Badge>Qo'lda</Badge>}
+                {chat.unread > 0 && (
+                  <span
+                    aria-label={`${chat.unread} ta o'qilmagan xabar`}
+                    className="min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[11px] leading-none font-extrabold text-on-danger"
+                  >
+                    {chat.unread > 99 ? '99+' : chat.unread}
+                  </span>
+                )}
+              </span>
             </div>
 
-            <p className="mt-1 truncate text-sm text-ink-muted">
+            <p
+              className={cx(
+                'mt-1 truncate text-sm',
+                chat.unread > 0 ? 'font-bold text-ink' : 'text-ink-muted',
+              )}
+            >
               {chat.lastMessageFromUser ? '' : '↩ '}
               {chat.lastMessage ?? '—'}
             </p>

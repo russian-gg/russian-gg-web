@@ -193,7 +193,7 @@ export function Tabs<T extends string>({
 }: {
   value: T
   onChange: (value: T) => void
-  options: Array<{ id: T; label: string }>
+  options: Array<{ id: T; label: string; badge?: number }>
 }) {
   return (
     <div
@@ -208,11 +208,24 @@ export function Tabs<T extends string>({
           aria-selected={value === option.id}
           onClick={() => onChange(option.id)}
           className={cx(
-            'rounded-[var(--radius-control)] px-4 py-1.5 text-sm font-bold transition-colors',
+            'relative rounded-[var(--radius-control)] px-4 py-1.5 text-sm font-bold transition-colors',
             value === option.id ? 'bg-signal text-on-signal' : 'text-ink-muted hover:text-ink',
           )}
         >
           {option.label}
+          {/*
+            Sits on the corner rather than in the line, so a count that appears and disappears
+            never reflows the row of tabs under the pointer. Ringed in the surface colour so it
+            reads as sitting on top of the tab instead of denting its edge.
+          */}
+          {option.badge !== undefined && option.badge > 0 && (
+            <span
+              aria-label={`${option.badge} ta o'qilmagan`}
+              className="absolute -top-1.5 -right-1 min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[11px] leading-none font-extrabold text-on-danger ring-2 ring-ground-raised"
+            >
+              {option.badge > 99 ? '99+' : option.badge}
+            </span>
+          )}
         </button>
       ))}
     </div>

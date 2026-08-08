@@ -37,8 +37,13 @@ const sections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
-  { id: 'marketing', label: 'Marketing strategiya (CMO)', group: 'Sharh' },
-  { id: 'sales', label: 'Sotuv (Telegram)', group: 'Pul va AI' },
+  /*
+   * The two agents live together. They were split across "Sharh" and "Pul va AI" because one
+   * writes plans and the other writes to customers — but what an operator looks for is "the
+   * thing the AI is doing", and that was in two places.
+   */
+  { id: 'marketing', label: 'Marketing agenti (CMO)', group: 'Agents' },
+  { id: 'sales', label: 'Sotuv agenti (Telegram)', group: 'Agents' },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },

@@ -273,6 +273,14 @@ export type SalesChatSummary = {
   /** 0-100, or absent where nothing has judged it yet. Absent is not zero. */
   readiness?: number | null
   readinessSignal?: string | null
+  /** Customer messages since an operator last had this chat open. */
+  unread: number
+}
+
+export type SalesUnread = {
+  /** Conversations with something waiting — what the tab badge shows. */
+  chats: number
+  messages: number
 }
 
 export type SalesMessage = {
