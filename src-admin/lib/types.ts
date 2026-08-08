@@ -177,6 +177,8 @@ export type MarketingMetric =
   | 'RevenueUzs'
   | 'PaidTransactions'
   | 'CompletedMissions'
+  | 'SalesConversations'
+  | 'SalesConversions'
 
 export type MarketingPlanSummary = {
   id: string

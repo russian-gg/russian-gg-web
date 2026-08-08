@@ -66,6 +66,8 @@ const metricLabel: Record<MarketingMetric, string> = {
   RevenueUzs: 'Daromad (UZS)',
   PaidTransactions: 'To’lovlar soni',
   CompletedMissions: 'Tugatilgan mashqlar',
+  SalesConversations: 'Sotuv suhbatlari',
+  SalesConversions: "Suhbatdan so'ng to'lov",
 }
 
 const isPercent = (metric: MarketingMetric) =>
