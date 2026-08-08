@@ -28,6 +28,9 @@ export type Dashboard = {
   }
   visitorSeries: SeriesPoint[]
   trafficSources: KeyValue[]
+  /** Operating system and browser, by visitor. In-app webviews are named, not folded in. */
+  platforms: KeyValue[]
+  browsers: KeyValue[]
   plans: KeyValue[]
   /** Ordered A0→B2 then "Aniqlanmagan". A level scale, so never re-sorted by size. */
   levels: KeyValue[]

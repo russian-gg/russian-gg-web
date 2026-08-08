@@ -95,6 +95,35 @@ export function Dashboard() {
           </Card>
         </div>
 
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Card>
+            <h3 className="mb-4 text-base font-extrabold text-ink">Platforma</h3>
+            {data.platforms.length === 0 ? (
+              <p className="text-sm text-ink-muted">Hali tashrif yozilmagan</p>
+            ) : (
+              <BarList items={data.platforms} format={formatNumber} labelWidth="w-20 sm:w-28" />
+            )}
+          </Card>
+
+          <Card>
+            <h3 className="mb-4 text-base font-extrabold text-ink">Brauzer</h3>
+            {data.browsers.length === 0 ? (
+              <p className="text-sm text-ink-muted">Hali tashrif yozilmagan</p>
+            ) : (
+              <BarList items={data.browsers} format={formatNumber} labelWidth="w-20 sm:w-28" />
+            )}
+            {/*
+              Named because it changes what the product can do, not because it is trivia: a
+              microphone prompt inside these behaves differently or never appears, and this
+              app's whole proposition is speaking.
+            */}
+            <p className="mt-4 text-xs text-ink-faint">
+              Telegram va Instagram — ilova ichidagi brauzerlar. Ularda mikrofon ruxsati
+              ishonchsiz, ya'ni ovozli mashq umuman ishlamasligi mumkin.
+            </p>
+          </Card>
+        </div>
+
         <Card className="mt-4">
           <h3 className="mb-3 text-base font-extrabold text-ink">Kunlik tashrifchilar</h3>
           <ColumnChart points={data.visitorSeries} label="Tashrifchilar" format={formatNumber} />
