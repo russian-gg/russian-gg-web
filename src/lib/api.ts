@@ -249,3 +249,57 @@ function sessionId(): string {
   }
   return id
 }
+
+/**
+ * A first-party id the browser keeps, so a visitor who comes back twice is not counted twice.
+ *
+ * Not a person and not claimed to be one: clearing storage or opening another browser makes
+ * another visitor. It is stored under our own origin, contains nothing about anybody, and is
+ * never sent anywhere but here — which is the whole reason this is a homegrown counter rather
+ * than a third-party script.
+ */
+function visitorId(): { id: string; isFirst: boolean } {
+  const key = 'rgg.visitor'
+
+  try {
+    const existing = localStorage.getItem(key)
+    if (existing) return { id: existing, isFirst: false }
+
+    const id = crypto.randomUUID()
+    localStorage.setItem(key, id)
+
+    return { id, isFirst: true }
+  } catch {
+    // Private mode, or storage turned off. The visit still counts; it just counts as new.
+    return { id: crypto.randomUUID(), isFirst: true }
+  }
+}
+
+/**
+ * A page opened, whether or not anybody has signed in. This is the only measurement the
+ * product takes of people who have not registered, and every other number on the panel starts
+ * after them.
+ *
+ * Sent once per path per tab: a learner moving back and forth between two screens is one
+ * visit to each, not twenty. Failures are swallowed — a visitor who cannot be counted still
+ * gets the site.
+ */
+const seenPaths = new Set<string>()
+
+export function trackVisit(path: string) {
+  if (seenPaths.has(path)) return
+  seenPaths.add(path)
+
+  const visitor = visitorId()
+
+  void api
+    .post('/analytics/visit', {
+      visitorId: visitor.id,
+      sessionId: sessionId(),
+      path,
+      referrer: document.referrer || null,
+      source: new URLSearchParams(window.location.search).get('utm_source'),
+      isFirstVisit: visitor.isFirst,
+    })
+    .catch(() => {})
+}

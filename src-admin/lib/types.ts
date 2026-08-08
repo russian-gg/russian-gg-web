@@ -18,6 +18,16 @@ export type Dashboard = {
   userGrowth: SeriesPoint[]
   money: { revenue: number; currency: string; paidTransactions: number }
   transactions: SeriesPoint[]
+  /** The half of the funnel that happens before an account exists. */
+  visits: {
+    uniqueVisitors: number
+    visits: number
+    /** Absent until visit counting is older than the window being divided over. */
+    signupRate?: number | null
+    countingSince?: string | null
+  }
+  visitorSeries: SeriesPoint[]
+  trafficSources: KeyValue[]
   plans: KeyValue[]
   /** Ordered A0→B2 then "Aniqlanmagan". A level scale, so never re-sorted by size. */
   levels: KeyValue[]

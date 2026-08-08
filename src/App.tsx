@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { TelegramFloatingButton } from './components/TelegramFloatingButton'
 import { Spinner } from './components/ui'
+import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
 import { AdminContent } from './routes/AdminContent'
 import { CoursePath } from './routes/CoursePath'
@@ -19,6 +21,8 @@ import { Settings } from './routes/Settings'
 import { SignIn, SignUp } from './routes/SignIn'
 
 export function App() {
+  useVisitBeacon()
+
   return (
     <>
       <Routes>
@@ -77,6 +81,21 @@ function RequireAuth({ children }: { children: ReactNode }) {
  * A signed-in learner never sees the marketing or auth pages; they go straight to where
  * they left off, or to placement if they have not been placed.
  */
+/**
+ * Counts the page, signed in or not.
+ *
+ * Everything else this product measures starts at an account, which leaves the largest drop
+ * in the funnel — people who arrived and never registered — invisible. This is the only thing
+ * that sees them.
+ */
+function useVisitBeacon() {
+  const location = useLocation()
+
+  useEffect(() => {
+    trackVisit(location.pathname)
+  }, [location.pathname])
+}
+
 function PublicOnly({ children }: { children: ReactNode }) {
   const { user, isLoading, isPendingOnboarding } = useAuth()
 

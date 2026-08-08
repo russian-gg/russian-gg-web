@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatMoney, formatNumber, formatPercent, useAdminQuery } from '../lib/api'
+import { formatDate, formatMoney, formatNumber, formatPercent, useAdminQuery } from '../lib/api'
 import type { Dashboard as DashboardData } from '../lib/types'
 import { Card, ErrorNote, Loading, PageHeader, PeriodToggle, SectionHeading, Stat } from '../components/ui'
 import { BarList, ColumnChart, Donut, LineChart, Sparkline } from '../components/charts'
@@ -58,6 +58,55 @@ export function Dashboard() {
             <p className="mt-3 text-xs text-ink-faint">Oldingi davrda faol bo'lganlarning qaytgan ulushi</p>
           </Card>
         </div>
+      </section>
+
+      <section>
+        <SectionHeading>Sayt tashriflari</SectionHeading>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat
+            label="Tashrifchilar"
+            value={formatNumber(data.visits.uniqueVisitors)}
+            note={`${formatNumber(data.visits.visits)} ta sahifa ochilishi · ${period}`}
+          />
+          <Stat
+            label="Ro'yxatga aylanish"
+            value={formatPercent(data.visits.signupRate)}
+            note={
+              data.visits.signupRate === null || data.visits.signupRate === undefined
+                ? // Said rather than shown as a number: dividing a month of signups by a week
+                  // of traffic is not a conversion rate, however confident it looks.
+                  data.visits.countingSince
+                  ? `Tashrif hisobi ${formatDate(data.visits.countingSince)} dan boshlangan — bu davrni hali qamramaydi`
+                  : 'Hali tashrif yozilmagan'
+                : `${formatNumber(data.audience.newUsers)} ta yangi hisob`
+            }
+          />
+          <Card>
+            <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">
+              Qayerdan kelgan
+            </span>
+            <div className="mt-3">
+              {data.trafficSources.length === 0 ? (
+                <p className="text-sm text-ink-muted">Hali tashrif yozilmagan</p>
+              ) : (
+                <BarList items={data.trafficSources} format={formatNumber} labelWidth="w-24 sm:w-32" />
+              )}
+            </div>
+          </Card>
+        </div>
+
+        <Card className="mt-4">
+          <h3 className="mb-3 text-base font-extrabold text-ink">Kunlik tashrifchilar</h3>
+          <ColumnChart points={data.visitorSeries} label="Tashrifchilar" format={formatNumber} />
+          {/*
+            Said plainly, because the number invites a stronger claim than it can carry: this
+            counts browsers, and one person with two of them is two.
+          */}
+          <p className="mt-3 text-xs text-ink-faint">
+            Har bir brauzer alohida sanaladi — xotira tozalansa yoki boshqa brauzer ochilsa,
+            yangi tashrifchi bo'lib ko'rinadi.
+          </p>
+        </Card>
       </section>
 
       <section>
