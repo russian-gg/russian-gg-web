@@ -19,6 +19,7 @@ import {
   Tabs,
 } from '../components/ui'
 import { cx } from '../../src/lib/cx'
+import { playIncomingChime, soundMuted } from '../lib/notify'
 
 const statusLabel: Record<SalesUserStatus, string> = {
   Unregistered: "Ro'yxatdan o'tmagan",
@@ -71,6 +72,36 @@ function Inbox() {
     '/api/admin-portal/sales/chats',
   )
   const [selected, setSelected] = useState<string | null>(null)
+  const [muted, setMuted] = useState(soundMuted.get)
+
+  /*
+   * The last thing each chat said, from the previous poll. Held in a ref rather than state so
+   * comparing against it does not itself cause a render — and seeded on the first load, so
+   * opening the panel does not chime once for every conversation already in it.
+   */
+  const heard = useRef<Map<string, string> | null>(null)
+
+  useEffect(() => {
+    if (!data) return
+
+    const current = new Map(data.map((chat) => [chat.id, chat.lastInteractionAt]))
+
+    if (heard.current === null) {
+      heard.current = current
+
+      return
+    }
+
+    // One sound however many chats moved at once: five customers writing together is still
+    // one thing to look up for.
+    const somebodyWrote = data.some(
+      (chat) => chat.lastMessageFromUser && heard.current?.get(chat.id) !== chat.lastInteractionAt,
+    )
+
+    heard.current = current
+
+    if (somebodyWrote) playIncomingChime()
+  }, [data])
 
   // A sales inbox that only updates when you press something is one nobody watches. Five
   // seconds is faster than a customer notices a delay and slower than it costs anything.
@@ -101,7 +132,26 @@ function Inbox() {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
       <div className="space-y-2">
-        <SectionHeading>{formatNumber(data.length)} ta suhbat</SectionHeading>
+        <SectionHeading
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                const next = !muted
+                setMuted(next)
+                soundMuted.set(next)
+                // Played on unmuting, which both confirms the choice and is the user gesture
+                // browsers want before they will let a page make a sound at all.
+                if (!next) playIncomingChime()
+              }}
+              className="text-xs font-bold text-signal-ink"
+            >
+              {muted ? "Ovoz o'chirilgan" : 'Ovoz yoqilgan'}
+            </button>
+          }
+        >
+          {formatNumber(data.length)} ta suhbat
+        </SectionHeading>
         {data.map((chat) => (
           <button
             key={chat.id}
