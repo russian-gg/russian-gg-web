@@ -332,6 +332,9 @@ function Line({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** Where Telegram is told to deliver, when nothing has said otherwise. */
+const DEFAULT_WEBHOOK_URL = 'https://russian.gg/api/telegram/webhook'
+
 function AgentSettings() {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesSettings>('/api/admin-portal/sales/settings')
   const [draft, setDraft] = useState<SalesSettings | null>(null)
@@ -340,12 +343,37 @@ function AgentSettings() {
   const [failure, setFailure] = useState('')
 
   useEffect(() => {
-    if (data) setDraft(data)
+    /*
+     * The default goes into the state, not only into the input's `value`. It used to be shown
+     * as a fallback while the state stayed null, so the field looked filled in and the save
+     * sent nothing — the token was stored, the webhook was never registered, and Telegram sat
+     * holding messages with nowhere to deliver them.
+     */
+    if (data) setDraft({ ...data, webhookUrl: data.webhookUrl ?? DEFAULT_WEBHOOK_URL })
   }, [data])
 
   if (error) return <ErrorNote>{error}</ErrorNote>
   if (!draft && isLoading) return <Loading />
   if (!draft) return null
+
+  /** Retries the registration on its own, so a failure does not mean pasting the token again. */
+  async function connectWebhook() {
+    if (!draft) return
+
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(
+        `/api/admin-portal/sales/webhook?url=${encodeURIComponent(draft.webhookUrl ?? DEFAULT_WEBHOOK_URL)}`,
+        { method: 'POST' },
+      )
+      refresh()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Webhook ulanmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function save() {
     if (!draft) return
@@ -415,15 +443,24 @@ function AgentSettings() {
         <label className="block">
           <span className="mb-1.5 block text-sm font-bold text-ink">Webhook manzili</span>
           <input
-            value={draft.webhookUrl ?? 'https://russian.gg/api/telegram/webhook'}
+            value={draft.webhookUrl ?? DEFAULT_WEBHOOK_URL}
             onChange={(event) => setDraft({ ...draft, webhookUrl: event.target.value })}
             className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
           />
         </label>
 
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" onClick={() => void connectWebhook()} disabled={busy || !draft.botConfigured}>
+            Webhookni ulash
+          </Button>
+          <span className="text-xs text-ink-faint">
+            Token saqlangach webhook o'zi ro'yxatdan o'tadi; bu tugma qayta urinish uchun.
+          </span>
+        </div>
+
         <p className="text-xs text-ink-faint">
-          Token saqlangach, webhook o'zi ro'yxatdan o'tadi va maxfiy kalit avtomatik
-          yaratiladi — uni kiritish shart emas. Token qaytarib ko'rsatilmaydi.
+          Maxfiy kalit avtomatik yaratiladi — uni kiritish shart emas. Token qaytarib
+          ko'rsatilmaydi.
         </p>
       </Card>
 
