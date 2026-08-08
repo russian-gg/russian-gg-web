@@ -301,4 +301,12 @@ export type SalesSettings = {
   systemPrompt: string
   isEnabled: boolean
   updatedAt: string
+  botConfigured: boolean
+  /** Last four characters only — the panel cannot read a token back out. */
+  botTokenHint?: string | null
+  botUsername?: string | null
+  webhookUrl?: string | null
+  webhookRegistered: boolean
+  webhookLastError?: string | null
+  webhookPendingUpdates: number
 }

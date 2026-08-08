@@ -335,6 +335,7 @@ function Line({ label, value }: { label: string; value: string }) {
 function AgentSettings() {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesSettings>('/api/admin-portal/sales/settings')
   const [draft, setDraft] = useState<SalesSettings | null>(null)
+  const [token, setToken] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
 
@@ -354,8 +355,16 @@ function AgentSettings() {
     try {
       await adminFetch('/api/admin-portal/sales/settings', {
         method: 'PUT',
-        body: JSON.stringify({ systemPrompt: draft.systemPrompt, isEnabled: draft.isEnabled }),
+        body: JSON.stringify({
+          systemPrompt: draft.systemPrompt,
+          isEnabled: draft.isEnabled,
+          webhookUrl: draft.webhookUrl,
+          // Empty means "keep the one you have": the field starts empty every time, because
+          // nothing ever sends the stored token back to this screen.
+          botToken: token.trim() || null,
+        }),
       })
+      setToken('')
       refresh()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : 'Saqlanmadi')
@@ -365,6 +374,59 @@ function AgentSettings() {
   }
 
   return (
+    <div className="space-y-4">
+      <Card className="space-y-4">
+        <SectionHeading>Telegram bot</SectionHeading>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={draft.botConfigured ? 'milestone' : 'caution'}>
+            {draft.botConfigured ? `Ulangan ${draft.botTokenHint ?? ''}` : 'Token kiritilmagan'}
+          </Badge>
+          {draft.botUsername && <Badge tone="signal">@{draft.botUsername}</Badge>}
+          <Badge tone={draft.webhookRegistered ? 'milestone' : 'caution'}>
+            {draft.webhookRegistered ? 'Webhook ulangan' : 'Webhook ulanmagan'}
+          </Badge>
+          {draft.webhookPendingUpdates > 0 && (
+            <Badge tone="caution">{draft.webhookPendingUpdates} ta kutayotgan xabar</Badge>
+          )}
+        </div>
+
+        {/*
+          Telegram's own words for why the last delivery failed. Without this the symptom of a
+          wrong secret or a moved URL is silence — messages arriving nowhere, forever.
+        */}
+        {draft.webhookLastError && (
+          <ErrorNote>Telegram: {draft.webhookLastError}</ErrorNote>
+        )}
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-bold text-ink">
+            Bot tokeni {draft.botConfigured && '(o\'zgartirish uchun yangisini kiriting)'}
+          </span>
+          <input
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            placeholder="@BotFather bergan token"
+            autoComplete="off"
+            className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-bold text-ink">Webhook manzili</span>
+          <input
+            value={draft.webhookUrl ?? 'https://russian.gg/api/telegram/webhook'}
+            onChange={(event) => setDraft({ ...draft, webhookUrl: event.target.value })}
+            className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
+          />
+        </label>
+
+        <p className="text-xs text-ink-faint">
+          Token saqlangach, webhook o'zi ro'yxatdan o'tadi va maxfiy kalit avtomatik
+          yaratiladi — uni kiritish shart emas. Token qaytarib ko'rsatilmaydi.
+        </p>
+      </Card>
+
     <Card className="space-y-4">
       <label className="flex items-center gap-2 text-sm font-bold text-ink">
         <input
@@ -407,6 +469,7 @@ function AgentSettings() {
         </Button>
         <span className="text-xs text-ink-faint">Yangilangan: {formatDateTime(data?.updatedAt)}</span>
       </div>
-    </Card>
+      </Card>
+    </div>
   )
 }
