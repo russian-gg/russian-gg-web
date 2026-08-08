@@ -91,6 +91,7 @@ export function MissionPlayer() {
   // Answers given on the step in front of the learner, whether or not they passed.
   const stepAttemptsRef = useRef(0)
   const reconnectsRef = useRef(0)
+  const connectedReportedRef = useRef(false)
   // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
   const [stepExhausted, setStepExhausted] = useState(false)
   /*
@@ -386,11 +387,13 @@ export function MissionPlayer() {
         throw new VoiceError('connect_failed')
       }
 
+      const ticket = outcome.ticket
+
       // The scenario contract is the server's: versioned, tested, and aware of the step
       // boundary. Composing a second prompt here is what let the tutor run the whole
       // mission inside step one, so the ticket is passed through whole.
       const liveSession = new LiveVoiceSession(
-        outcome.ticket,
+        ticket,
         {
           onStatus: (status) => {
             setVoiceState(
@@ -402,6 +405,19 @@ export function MissionPlayer() {
                     ? 'thinking'
                     : 'idle',
             )
+          },
+          onConnected: () => {
+            if (connectedReportedRef.current) {
+              return
+            }
+
+            connectedReportedRef.current = true
+            void api
+              .post('/missions/voice/sessions/connected', {
+                sessionId: ticket.sessionId,
+                connectMilliseconds: Date.now() - pressedAt,
+              })
+              .catch(() => {})
           },
           onInputTranscript: (text) => {
             setTranscript(text)
@@ -434,22 +450,13 @@ export function MissionPlayer() {
       )
 
       liveSessionRef.current = liveSession
-      liveSessionIdRef.current = outcome.ticket.sessionId
+      liveSessionIdRef.current = ticket.sessionId
       // The real grant: the smaller of the mission's length, the per-session cap and what is
       // left of the day. The screen used to quote the mission's length regardless.
-      setSecondsLeft(outcome.ticket.maxDurationSeconds)
+      setSecondsLeft(ticket.maxDurationSeconds)
       setHasLiveSession(true)
 
       await liveSession.start()
-
-      // Recorded server-side so a slow connection is a number somebody can look at, rather
-      // than a report that "Gemini feels slow".
-      void api
-        .post('/missions/voice/sessions/connected', {
-          sessionId: outcome.ticket.sessionId,
-          connectMilliseconds: Date.now() - pressedAt,
-        })
-        .catch(() => {})
       track('voice_started', { mission: currentMission.summary.slug })
     } catch (caught) {
       setError(describeVoiceFailure(caught, t, t.player.startFailed))
@@ -684,6 +691,7 @@ export function MissionPlayer() {
 
     liveSessionRef.current = null
     liveSessionIdRef.current = null
+    connectedReportedRef.current = false
     setHasLiveSession(false)
     setSecondsLeft(null)
 

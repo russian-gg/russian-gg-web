@@ -58,6 +58,8 @@ export class VoiceError extends Error {
 
 export interface LiveVoiceCallbacks {
   onStatus: (status: LiveVoiceStatus) => void
+  /** The provider socket finished setup; from here the session has truly reached voice. */
+  onConnected: () => void
   onInputTranscript: (text: string) => void
   onOutputTranscript: (text: string) => void
   onError: (code: VoiceErrorCode) => void
@@ -365,6 +367,7 @@ export class LiveVoiceSession {
 
           if (response.setupComplete) {
             this.connected = true
+            this.callbacks.onConnected()
             resolve()
             return
           }
@@ -732,6 +735,14 @@ async function openMicrophoneStream(): Promise<MediaStream> {
   }
 
   try {
+    return await requestPreferredMicrophoneStream()
+  } catch (error) {
+    throw new VoiceError(await classifyMicrophoneError(error))
+  }
+}
+
+async function requestPreferredMicrophoneStream() {
+  try {
     return await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
@@ -741,8 +752,30 @@ async function openMicrophoneStream(): Promise<MediaStream> {
       },
     })
   } catch (error) {
-    throw new VoiceError(await classifyMicrophoneError(error))
+    if (!shouldRetryMicrophoneWithPlainAudio(error)) {
+      throw error
+    }
+
+    /*
+     * Cheap Android browsers are the most fragile exactly where this product lives: some of
+     * them reject the richer constraint set even though a plain microphone stream works.
+     * Voice is better with echo cancellation than without it, but better without it than not
+     * at all.
+     */
+    return await navigator.mediaDevices.getUserMedia({ audio: true })
   }
+}
+
+function shouldRetryMicrophoneWithPlainAudio(error: unknown) {
+  if (!(error instanceof DOMException)) {
+    return false
+  }
+
+  return (
+    error.name === 'OverconstrainedError'
+    || error.name === 'ConstraintNotSatisfiedError'
+    || error.name === 'NotReadableError'
+  )
 }
 
 let promptAudio: HTMLAudioElement | null = null
