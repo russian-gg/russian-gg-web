@@ -12,10 +12,18 @@ import { cx } from '../../src/lib/cx'
  * colour vision, every step inside the lightness band and above 3:1 on the surface. Do not
  * add a fourth by eye: fold the rest into "Boshqa" or re-run the validator.
  *
+ * The values live in the theme rather than here, because the dark card needs its own three
+ * steps: lightening these would leave the palette outside the readable band. Both sets are
+ * validated; see styles.css.
+ *
  * Identity is never carried by colour alone — every categorical chart here ships a legend
  * with the value beside it, and the rankings are labelled in text.
  */
-const SERIES = ['#1f6fe0', '#b45309', '#0e9488'] as const
+const SERIES = [
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+] as const
 
 const GRID = 'var(--color-hairline)'
 const INK_FAINT = 'var(--color-ink-faint)'

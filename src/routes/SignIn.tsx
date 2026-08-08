@@ -433,7 +433,7 @@ function GoogleContinueButton({
           ref={buttonRef}
           className={`min-h-[44px] ${busy ? 'pointer-events-none opacity-70' : 'opacity-0'}`}
         />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border-2 border-hairline bg-white px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border-2 border-hairline bg-ground-raised px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <img src={googleGIcon} alt="" className="mr-3 size-6 shrink-0" />
           <span>{buttonLabel}</span>
         </div>

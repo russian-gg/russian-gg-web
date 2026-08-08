@@ -3,10 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Light is the default; the value is updated only if the operator opts into dark. -->
+    <meta name="theme-color" content="#ffffff" />
+    <script>
+      // Applied before first paint, so an operator who chose dark never gets a white flash
+      // on the way in. Same key and same rule as the learner app: no stored choice is light,
+      // whatever the operating system is set to.
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('rgg.theme') === 'dark' ? 'dark' : 'light'
+      } catch (_) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
     <title>Russian.gg Admin</title>
     <script type="module" src="/src-admin/main.tsx"></script>
   </head>
   <body>
     <div id="root"></div>
   </body>
-  </html>
+</html>

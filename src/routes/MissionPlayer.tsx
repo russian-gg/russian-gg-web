@@ -1521,7 +1521,7 @@ function CheckMark({ done, current }: { done: boolean; current: boolean }) {
         aria-label="Bajarildi"
         role="img"
       >
-        <svg viewBox="0 0 12 12" aria-hidden="true" className="size-2.5 fill-none stroke-white stroke-[2.2]">
+        <svg viewBox="0 0 12 12" aria-hidden="true" className="size-2.5 fill-none stroke-on-signal stroke-[2.2]">
           <path d="m2 6.3 2.6 2.6L10 3.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>

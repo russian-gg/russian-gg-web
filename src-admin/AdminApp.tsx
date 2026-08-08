@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminApiPath, adminSectionKey, session, useSession } from './lib/api'
 import { Button, Card, ErrorNote } from './components/ui'
 import { cx } from '../src/lib/cx'
+import { useTheme } from '../src/lib/theme'
 import {
   AiGlyph,
   ClicksGlyph,
@@ -132,9 +133,12 @@ export function AdminApp() {
             <div className="hidden text-xl font-extrabold tracking-tight text-signal-ink lg:block">.gg</div>
           )}
 
-          <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => session.signOut()}>
-            Chiqish
-          </Button>
+          <div className="flex items-center gap-2 lg:hidden">
+            <ThemeToggle />
+            <Button variant="secondary" size="sm" onClick={() => session.signOut()}>
+              Chiqish
+            </Button>
+          </div>
         </div>
 
         {/*
@@ -212,6 +216,7 @@ export function AdminApp() {
 
         <div className="mt-auto hidden flex-col gap-2 pt-4 lg:flex">
           <div className={cx('text-sm text-ink-muted', collapsed && 'lg:hidden')}>{name}</div>
+          <ThemeToggle collapsed={collapsed} />
           <Button variant="secondary" size="sm" onClick={() => session.signOut()} title="Chiqish">
             <span className={cx(collapsed && 'lg:hidden')}>Chiqish</span>
             <svg
@@ -237,6 +242,48 @@ export function AdminApp() {
         {section === 'feedbacks' && <Feedbacks />}
       </main>
     </div>
+  )
+}
+
+/**
+ * Light or dark, for a screen somebody has open all day.
+ *
+ * A button rather than a pair of radios: there are two states, and the label names the one it
+ * would switch to. It re-points the same tokens the learner app uses, so the panel and the
+ * product are never two different products in the dark.
+ */
+function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
+  const { theme, setTheme } = useTheme()
+  const next = theme === 'dark' ? 'light' : 'dark'
+  const label = next === 'dark' ? "Qorong'i rejim" : "Yorug' rejim"
+
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={() => setTheme(next)}
+      title={label}
+      aria-label={label}
+    >
+      <span className={cx('flex items-center justify-center gap-2', collapsed && 'lg:gap-0')}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.8]">
+          {next === 'dark' ? (
+            // A moon means "go dark", a sun means "go light" — the icon is the destination,
+            // which is what the word beside it says too.
+            <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" strokeLinejoin="round" />
+          ) : (
+            <>
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"
+                strokeLinecap="round"
+              />
+            </>
+          )}
+        </svg>
+        <span className={cx(collapsed && 'lg:hidden')}>{label}</span>
+      </span>
+    </Button>
   )
 }
 

@@ -300,7 +300,7 @@ function StepMark({ state }: { state: MarketingRunStep['state'] }) {
         aria-hidden="true"
         className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-milestone"
       >
-        <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-white stroke-[3.5]">
+        <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-on-signal stroke-[3.5]">
           <path d="m5 13 5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>

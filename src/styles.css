@@ -82,6 +82,16 @@
   --color-danger-soft: #fdeceb;
 
   /*
+    Chart series. Tokens rather than literals in the chart module, because the dark theme
+    needs its own steps: these three are chosen for a white card and are far too dark to
+    read on one. Assigned in this fixed order and never cycled — a fourth series folds into
+    "Boshqa" instead. Validated together; see the note in components/charts.tsx.
+  */
+  --color-chart-1: #1f6fe0;
+  --color-chart-2: #b45309;
+  --color-chart-3: #0e9488;
+
+  /*
     Label on a danger fill — counts, alert pills. Its own knob because the fill flips
     lightness between themes: white reads on the deep red here and would disappear on the
     dark theme's light salmon.
@@ -142,6 +152,16 @@
   --color-danger: #f0736a;
   --color-danger-soft: #2a1614;
   --color-on-danger: #2a0f0c;
+
+  /*
+    The same three identities, re-picked for the dark card rather than lightened from the
+    light steps — an automatic flip lands outside the readable band. Validated against
+    #171a1f: every step inside OKLCH L 0.48-0.67, worst pair over ALL pairs ΔE 13.7 under
+    deuteranopia and 16.6 with full colour vision, all three above 3:1 on the surface.
+  */
+  --color-chart-1: #4c8ced;
+  --color-chart-2: #d46d2c;
+  --color-chart-3: #2aa295;
 }
 
 @keyframes signal {
