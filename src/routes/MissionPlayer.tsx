@@ -804,6 +804,9 @@ export function MissionPlayer() {
         ]
       : []),
   ]
+  const threadMessages = [...history, ...liveMessages]
+  const shouldShowPhraseList = safeStep?.kind === 'PhraseIntro'
+  const shouldShowConversation = !shouldShowPhraseList || threadMessages.length > 0
 
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
@@ -863,7 +866,7 @@ export function MissionPlayer() {
           )}
 
           {/* Phrase introduction stays a list: it is material to study, not a conversation. */}
-          {safeStep?.kind === 'PhraseIntro' ? (
+          {shouldShowPhraseList ? (
             <div className="mt-6">
               <PhraseList
                 phrases={safePhrases}
@@ -873,16 +876,18 @@ export function MissionPlayer() {
                 onListenPhrase={handleListen}
               />
             </div>
-          ) : (
+          ) : null}
+
+          {shouldShowConversation ? (
             <ConversationThread
-              messages={[...history, ...liveMessages]}
+              messages={threadMessages}
               voiceState={voiceState}
               promptAudioState={promptAudioState}
               promptAudioTextKey={promptAudioTextKey}
               audioAvailable={!ttsUnavailable}
               onListen={handleListen}
             />
-          )}
+          ) : null}
 
           {ttsUnavailable && (
             <p className="text-support mt-6 rounded-xl bg-ground-sunken px-4 py-3">
