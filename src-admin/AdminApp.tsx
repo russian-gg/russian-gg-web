@@ -104,7 +104,15 @@ export function AdminApp() {
         is what the desktop sidebar does — those six buttons and their three headings pushed
         every screen a full page down, so the panel opened on its own menu.
       */}
-      <aside className="flex flex-col gap-3 border-b-2 border-hairline bg-ground-raised px-4 py-3 lg:gap-6 lg:border-r-2 lg:border-b-0 lg:p-5">
+      {/*
+        Pinned from `lg`, where it is a column beside the content rather than a bar above it.
+        Exactly viewport-tall and scrollable inside itself, so a long section list never pushes
+        the sign-out button off the bottom with no way to reach it.
+
+        Left alone on a phone: there it is a row that scrolls sideways at the top of the page,
+        and pinning that would spend vertical space the content needs more.
+      */}
+      <aside className="flex flex-col gap-3 border-b-2 border-hairline bg-ground-raised px-4 py-3 lg:sticky lg:top-0 lg:h-screen lg:gap-6 lg:self-start lg:overflow-y-auto lg:border-r-2 lg:border-b-0 lg:p-5">
         <div className="flex items-center justify-between gap-4 lg:block">
           <div className={cx(collapsed && 'lg:hidden')}>
             <div className="text-xl font-extrabold tracking-tight text-ink">
