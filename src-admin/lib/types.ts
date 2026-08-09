@@ -93,6 +93,8 @@ export type AiUsage = {
   totalCostUsd: number
   /** Calls the total leaves out, because no rate is configured for their model. */
   unpricedCalls?: number
+  /** Spend per operation, biggest first. Absent on an older API. */
+  costByOperation?: KeyValue[]
   costByDay: CostPoint[]
   byProvider: KeyValue[]
   byOperation: KeyValue[]
