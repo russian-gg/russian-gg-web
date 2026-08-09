@@ -511,6 +511,7 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   const [situation, setSituation] = useState('')
   const [demoOpen, setDemoOpen] = useState(false)
   const [demoSent, setDemoSent] = useState(false)
+  const [offerSent, setOfferSent] = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -573,6 +574,22 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
       refresh()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function sendOffer() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/offer`, { method: 'POST' })
+
+      setOfferSent(true)
+      refresh()
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Yuborilmadi')
     } finally {
       setBusy(false)
     }
@@ -685,13 +702,29 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
               </Button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setDemoOpen(true)}
-              className="text-sm font-bold text-signal-ink"
-            >
-              {demoSent ? 'Yana demo yuborish' : 'Demo yuborish'}
-            </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="text-sm font-bold text-signal-ink"
+              >
+                {demoSent ? 'Yana demo yuborish' : 'Demo yuborish'}
+              </button>
+
+              {/*
+                The agent sends this itself when somebody agrees or says the demo was good.
+                This is for the conversations it reads differently from the person watching
+                them — and it leaves the agent on, because it is a nudge, not a handover.
+              */}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void sendOffer()}
+                className="text-sm font-bold text-signal-ink disabled:opacity-45"
+              >
+                {offerSent ? 'Yana to\'lov havolasi' : "To'lov havolasi"}
+              </button>
+            </div>
           )}
         </div>
 
