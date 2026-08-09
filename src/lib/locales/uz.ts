@@ -297,6 +297,10 @@ export const uz = {
     parkedStep:
       "Bu qadamni keyinroq yana ko'ramiz. Xohlasangiz yana urinib ko'ring, " +
       "yoki hozir davom etaylik.",
+    dailyLimitTitle: 'Bugungi limitingiz tugadi',
+    dailyLimitBody:
+      "Bugungi limitingiz tugadi. Keyingi kunni kuting. Yoki Pro sotib olib, limitingizni oshirishingiz mumkin.",
+    buyAccess: 'Sotib olish',
     goalProgress: 'Maqsad progressi',
     goal: 'Bugungi maqsad',
     phrases: 'Bugungi iboralar',

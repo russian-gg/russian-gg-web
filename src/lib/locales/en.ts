@@ -287,6 +287,10 @@ export const en: Dictionary = {
     stepOffer: 'This step is taking a while.',
     lessonReady: 'Every step is done.',
     parkedStep: "We'll come back to this step. Try once more, or carry on now.",
+    dailyLimitTitle: "Today's limit is used up",
+    dailyLimitBody:
+      "Today's limit is used up. Please wait for the next day, or buy Pro to increase your limit.",
+    buyAccess: 'Buy access',
     goalProgress: 'Goal progress',
     goal: "Today's goal",
     phrases: "Today's phrases",

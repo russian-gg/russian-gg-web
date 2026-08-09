@@ -121,6 +121,7 @@ export function MissionPlayer() {
   const [voiceNoteRecording, setVoiceNoteRecording] = useState(false)
   const [voiceNoteBusy, setVoiceNoteBusy] = useState(false)
   const [completedPreview, setCompletedPreview] = useState(false)
+  const [showDailyLimitModal, setShowDailyLimitModal] = useState(false)
 
   const {
     data: mission,
@@ -571,6 +572,7 @@ export function MissionPlayer() {
         // An honest degraded state, not a silent failure (PRD §11).
         clearConnectFallbackTimer()
         setAsyncVoiceOffered(true)
+        setShowDailyLimitModal(outcome.unavailable?.reason === 'daily_limit')
         setDegraded(outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed)
         setVoiceState('unavailable')
         return
@@ -1284,6 +1286,16 @@ export function MissionPlayer() {
           </RailCard>
         )}
       </aside>
+
+      {showDailyLimitModal && (
+        <DailyLimitDialog
+          onDismiss={() => setShowDailyLimitModal(false)}
+          onBuy={() => {
+            setShowDailyLimitModal(false)
+            navigate('/paywall')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -1757,6 +1769,48 @@ function GoalCard({
         <ProgressBar value={done} max={steps.length} label={t.player.goalProgress} />
       </div>
     </RailCard>
+  )
+}
+
+function DailyLimitDialog({
+  onDismiss,
+  onBuy,
+}: {
+  onDismiss: () => void
+  onBuy: () => void
+}) {
+  const t = useT()
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onDismiss()
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onDismiss])
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4" onClick={onDismiss}>
+      <div
+        className="w-full max-w-md rounded-[var(--radius-card)] bg-ground p-6 shadow-soft"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="daily-limit-title"
+      >
+        <h2 id="daily-limit-title" className="text-lg font-extrabold text-ink">
+          {t.player.dailyLimitTitle}
+        </h2>
+        <p className="text-support mt-2">{t.player.dailyLimitBody}</p>
+        <Button className="mt-5" block onClick={onBuy}>
+          {t.player.buyAccess}
+        </Button>
+        <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
+          {t.common.later}
+        </Button>
+      </div>
+    </div>
   )
 }
 
