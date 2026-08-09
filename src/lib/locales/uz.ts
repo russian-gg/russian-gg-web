@@ -378,6 +378,7 @@ export const uz = {
     processing: "To'lov tekshirilmoqda",
     processingBody: "To'lovingiz qabul qilindi va tasdiqlanmoqda. Tasdiqlangach Pro avtomatik ochiladi.",
     savings: '{percent}% tejash',
+    futurePriceLabel: 'Keyingi narx',
     perMonth: 'Oyiga {amount}',
     perDay: 'Kuniga {amount}',
     payWithClick: "Click orqali to'lash - {amount}",

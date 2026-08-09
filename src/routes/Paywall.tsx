@@ -47,6 +47,11 @@ function perMonthAmountTiyin(amountTiyin: number, period: BillingPeriod) {
   return Math.max(1, Math.round(amountTiyin / monthsForPeriod(period)))
 }
 
+const futureListPriceTiyin: Partial<Record<BillingPeriod, number>> = {
+  Monthly: 11_900_000,
+  NinetyDay: 29_900_000,
+}
+
 export function Paywall() {
   const t = useT()
   const { locale } = useLocale()
@@ -169,6 +174,7 @@ export function Paywall() {
                 const discounted = promoPreview?.isValid && promoPreview.period === option.period
                 const shownAmount = discounted ? promoPreview.finalAmountTiyin : option.amountTiyin
                 const shownCurrency = discounted ? promoPreview.currency : option.currency
+                const futurePrice = futureListPriceTiyin[option.period]
 
                 return (
                   <button
@@ -199,9 +205,19 @@ export function Paywall() {
                         <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
                       </div>
                     ) : (
-                      <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">
-                        {formatPrice(option.amountTiyin, option.currency, locale)}
-                      </p>
+                      <div className="mt-2 space-y-1.5">
+                        {futurePrice ? (
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                            <span className="font-medium text-ink-faint">{t.billing.futurePriceLabel}</span>
+                            <span className="font-semibold text-ink-muted line-through decoration-2">
+                              {formatPrice(futurePrice, option.currency, locale)}
+                            </span>
+                          </div>
+                        ) : null}
+                        <p className="text-2xl font-semibold tracking-tight text-ink">
+                          {formatPrice(option.amountTiyin, option.currency, locale)}
+                        </p>
+                      </div>
                     )}
                     <div className="mt-1 space-y-0.5 text-support">
                       {option.period === 'NinetyDay' && (

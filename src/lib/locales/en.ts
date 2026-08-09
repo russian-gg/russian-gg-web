@@ -368,6 +368,7 @@ export const en: Dictionary = {
     processing: 'Payment is being checked',
     processingBody: 'Your payment was received and is being confirmed. Pro opens automatically once it is.',
     savings: 'save {percent}%',
+    futurePriceLabel: 'Future price',
     perMonth: '{amount} per month',
     perDay: '{amount} per day',
     payWithClick: 'Pay with Click — {amount}',
