@@ -391,3 +391,9 @@ export type SalesDemo = {
   completedAt?: string | null
   elapsedSeconds: number
 }
+
+/** A page of the sales inbox. `total` is every chat there is, so the list knows what remains. */
+export type SalesChatPage = {
+  items: SalesChatSummary[]
+  total: number
+}

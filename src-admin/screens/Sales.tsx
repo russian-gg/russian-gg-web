@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import { useStickyTab } from '../lib/sticky-tab'
 import type {
   ChatSender,
   SalesChat,
   SalesDashboard as SalesDashboardData,
+  SalesChatPage,
   SalesChatSummary,
   SalesDemo,
   SalesUnread,
@@ -54,6 +55,9 @@ const statusTone = {
 } as const
 
 const SALES_TABS = ['dashboard', 'inbox', 'demos', 'settings'] as const
+
+/** How many chats a page of the inbox holds, and how many each press of "more" adds. */
+const PAGE = 20
 
 export function Sales() {
   const [tab, setTab] = useStickyTab('sales', SALES_TABS)
@@ -221,9 +225,27 @@ function SalesDashboardTab() {
 }
 
 function Inbox() {
-  const { data, error, isLoading, refresh } = useAdminQuery<SalesChatSummary[]>(
-    '/api/admin-portal/sales/chats',
+  /*
+   * How many of the most recently active chats to ask for. Growing this rather than paging
+   * means the five-second refresh returns exactly what is already on screen plus anything new,
+   * so nothing an operator has scrolled to disappears under them.
+   */
+  const [take, setTake] = useState(PAGE)
+
+  const { data, error, isLoading, refresh } = useAdminQuery<SalesChatPage | SalesChatSummary[]>(
+    `/api/admin-portal/sales/chats?take=${take}`,
   )
+
+  /*
+   * Both shapes accepted. The panel and the API deploy separately, so for a few minutes on
+   * every release one of them is older than the other — and this exact mismatch took the
+   * admin down once already today.
+   */
+  const chats = useMemo(
+    () => (Array.isArray(data) ? data : (data?.items ?? [])),
+    [data],
+  )
+  const total = Array.isArray(data) ? data.length : (data?.total ?? chats.length)
   const [selected, setSelected] = useState<string | null>(null)
   const [muted, setMuted] = useState(soundMuted.get)
   const { shell, height } = useViewportHeight()
@@ -238,7 +260,8 @@ function Inbox() {
   useEffect(() => {
     if (!data) return
 
-    const current = new Map(data.map((chat) => [chat.id, chat.lastInteractionAt]))
+    const current = new Map(chats.map((chat) => [chat.id, chat.lastInteractionAt]))
+
 
     if (heard.current === null) {
       heard.current = current
@@ -248,14 +271,14 @@ function Inbox() {
 
     // One sound however many chats moved at once: five customers writing together is still
     // one thing to look up for.
-    const somebodyWrote = data.some(
+    const somebodyWrote = chats.some(
       (chat) => chat.lastMessageFromUser && heard.current?.get(chat.id) !== chat.lastInteractionAt,
     )
 
     heard.current = current
 
     if (somebodyWrote) playIncomingChime()
-  }, [data])
+  }, [chats, data])
 
   // A sales inbox that only updates when you press something is one nobody watches. Five
   // seconds is faster than a customer notices a delay and slower than it costs anything.
@@ -266,14 +289,14 @@ function Inbox() {
   }, [refresh])
 
   useEffect(() => {
-    if (data && data.length > 0 && selected === null) setSelected(data[0].id)
-  }, [data, selected])
+    if (chats.length > 0 && selected === null) setSelected(chats[0].id)
+  }, [chats, selected])
 
   if (error) return <ErrorNote>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
-  if (data.length === 0) {
+  if (chats.length === 0) {
     return (
       <Card>
         <EmptyNote>
@@ -313,9 +336,9 @@ function Inbox() {
             </button>
           }
         >
-          {formatNumber(data.length)} ta suhbat
+          {formatNumber(chats.length)} / {formatNumber(total)} ta suhbat
         </SectionHeading>
-        {data.map((chat) => (
+        {chats.map((chat) => (
           <button
             key={chat.id}
             type="button"
@@ -369,6 +392,16 @@ function Inbox() {
             <Readiness value={chat.readiness} signal={chat.readinessSignal} />
           </button>
         ))}
+
+        {chats.length < total && (
+          <button
+            type="button"
+            onClick={() => setTake((current) => current + PAGE)}
+            className="w-full rounded-[var(--radius-card)] border-2 border-hairline py-2.5 text-sm font-bold text-signal-ink transition-colors hover:border-ink-faint"
+          >
+            Yana {formatNumber(Math.min(PAGE, total - chats.length))} ta
+          </button>
+        )}
       </div>
 
       {selected && <Conversation chatId={selected} onChanged={refresh} />}
@@ -386,29 +419,38 @@ function Inbox() {
  * Only from `lg`. On a phone the two panes are stacked and there is no room to pin either.
  */
 function useViewportHeight() {
-  const shell = useRef<HTMLDivElement>(null)
+  /*
+   * A callback ref held in state, not a useRef.
+   *
+   * The inbox renders a spinner until the chats arrive, so on mount there is no element to
+   * measure — and an effect that runs once, with an empty dependency list, measured null and
+   * never ran again. The height was therefore never applied and the pane grew to the length of
+   * the conversation, which is the bug this hook exists to prevent.
+   */
+  const [shell, setShell] = useState<HTMLDivElement | null>(null)
   const [height, setHeight] = useState<number>()
 
   useEffect(() => {
+    if (!shell) return
+
     const measure = () => {
-      const element = shell.current
-      if (!element || !window.matchMedia('(min-width: 1024px)').matches) {
+      if (!window.matchMedia('(min-width: 1024px)').matches) {
         setHeight(undefined)
 
         return
       }
 
       // 24px of air below, so the pane does not sit flush against the window edge.
-      setHeight(Math.max(360, window.innerHeight - element.getBoundingClientRect().top - 24))
+      setHeight(Math.max(360, window.innerHeight - shell.getBoundingClientRect().top - 24))
     }
 
     measure()
     window.addEventListener('resize', measure)
 
     return () => window.removeEventListener('resize', measure)
-  }, [])
+  }, [shell])
 
-  return { shell, height }
+  return { shell: setShell, height }
 }
 
 function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => void }) {
@@ -492,7 +534,7 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   }
 
   return (
-    <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] xl:overflow-hidden">
+    <div className="grid min-h-0 gap-4 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
       <Card className="flex min-h-0 flex-col lg:overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-hairline pb-3">
           <div className="min-w-0">
@@ -558,7 +600,12 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
           )}
         </div>
 
-        <div ref={threadRef} className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto lg:max-h-none">
+        {/* The cap is a floor under the measured height, not a replacement for it: if the
+            measurement ever fails, the panel is still one screen rather than a page. */}
+        <div
+          ref={threadRef}
+          className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto lg:max-h-[calc(100vh-22rem)]"
+        >
           {messages.length === 0 ? (
             <EmptyNote>Xabar yo'q</EmptyNote>
           ) : (
