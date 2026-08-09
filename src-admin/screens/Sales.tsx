@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
+import { useStickyTab } from '../lib/sticky-tab'
 import type {
   ChatSender,
   SalesChat,
@@ -52,8 +53,10 @@ const statusTone = {
   Paid: 'milestone',
 } as const
 
+const SALES_TABS = ['dashboard', 'inbox', 'demos', 'settings'] as const
+
 export function Sales() {
-  const [tab, setTab] = useState<'dashboard' | 'inbox' | 'demos' | 'settings'>('dashboard')
+  const [tab, setTab] = useStickyTab('sales', SALES_TABS)
 
   /*
    * Asked for from here rather than from the inbox, because the badge has to be right on the
