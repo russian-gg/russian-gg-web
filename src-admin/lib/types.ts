@@ -403,3 +403,6 @@ export type SalesChatPage = {
   items: SalesChatSummary[]
   total: number
 }
+
+/** Which shelf of the sales inbox to read. Mirrors SalesChatFolder on the server. */
+export type SalesFolder = 'New' | 'Hot' | 'All' | 'Archived'

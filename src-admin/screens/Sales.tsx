@@ -8,6 +8,7 @@ import type {
   SalesChatPage,
   SalesChatSummary,
   SalesDemo,
+  SalesFolder,
   SalesUnread,
   SalesSettings,
   SalesUserStatus,
@@ -58,6 +59,28 @@ const SALES_TABS = ['dashboard', 'inbox', 'demos', 'settings'] as const
 
 /** How many chats a page of the inbox holds, and how many each press of "more" adds. */
 const PAGE = 20
+
+/*
+ * Four folders, because an operator only ever has four questions about this list: what is
+ * waiting, what is close to money, what else is there, and what is done with. Anything finer
+ * becomes a filter menu nobody opens.
+ */
+const FOLDERS = ['New', 'Hot', 'All', 'Archived'] as const
+
+const FOLDER_TABS: Array<{ id: SalesFolder; label: string }> = [
+  { id: 'New', label: 'Yangilar' },
+  { id: 'Hot', label: 'Issiq' },
+  { id: 'All', label: 'Hammasi' },
+  { id: 'Archived', label: 'Arxiv' },
+]
+
+/** Each folder is empty for its own reason, and saying which one is the whole value. */
+const EMPTY: Record<SalesFolder, string> = {
+  New: "Javob kutayotgan xabar yo'q — hammasi o'qilgan.",
+  Hot: "Hozircha sotib olishga yaqin suhbat yo'q.",
+  All: "Hali suhbat yo'q. Bot sozlangach, unga yozilgan birinchi xabar shu yerda paydo bo'ladi.",
+  Archived: "Arxivda hech narsa yo'q.",
+}
 
 export function Sales() {
   const [tab, setTab] = useStickyTab('sales', SALES_TABS)
@@ -231,10 +254,10 @@ function Inbox() {
    * so nothing an operator has scrolled to disappears under them.
    */
   const [take, setTake] = useState(PAGE)
-  const [archived, setArchived] = useState(false)
+  const [folder, setFolder] = useStickyTab('sales-folder', FOLDERS)
 
   const { data, error, isLoading, refresh } = useAdminQuery<SalesChatPage | SalesChatSummary[]>(
-    `/api/admin-portal/sales/chats?take=${take}&archived=${archived}`,
+    `/api/admin-portal/sales/chats?take=${take}&folder=${folder}`,
   )
 
   /*
@@ -309,13 +332,9 @@ function Inbox() {
   if (chats.length === 0) {
     return (
       <div className="space-y-3">
-        <ShelfSwitch archived={archived} onChange={setArchived} />
+        <Tabs value={folder} onChange={setFolder} options={FOLDER_TABS} />
         <Card>
-          <EmptyNote>
-            {archived
-              ? "Arxivda hech narsa yo'q."
-              : "Hali suhbat yo'q. Bot sozlangach, unga yozilgan birinchi xabar shu yerda paydo bo'ladi."}
-          </EmptyNote>
+          <EmptyNote>{EMPTY[folder]}</EmptyNote>
         </Card>
       </div>
     )
@@ -333,7 +352,7 @@ function Inbox() {
         any messenger behaves, and it is disorienting for the same reason.
       */}
       <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
-        <ShelfSwitch archived={archived} onChange={setArchived} />
+        <Tabs value={folder} onChange={setFolder} options={FOLDER_TABS} />
         <SectionHeading
           action={
             <button
@@ -352,8 +371,7 @@ function Inbox() {
             </button>
           }
         >
-          {formatNumber(chats.length)} / {formatNumber(total)} ta{' '}
-          {archived ? 'arxivlangan' : 'suhbat'}
+          {formatNumber(chats.length)} / {formatNumber(total)} ta suhbat
         </SectionHeading>
         {chats.map((chat) => (
           <button
@@ -468,44 +486,6 @@ function useViewportHeight() {
   }, [shell])
 
   return { shell: setShell, height }
-}
-
-/**
- * Working list or archive.
- *
- * Two shelves rather than a filter menu, because there are exactly two and an operator is
- * always on one of them — and the archive has to be one press away, or nobody would put
- * anything in it.
- */
-function ShelfSwitch({
-  archived,
-  onChange,
-}: {
-  archived: boolean
-  onChange: (value: boolean) => void
-}) {
-  return (
-    <div className="flex gap-1 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1">
-      {[
-        { value: false, label: 'Suhbatlar' },
-        { value: true, label: 'Arxiv' },
-      ].map((shelf) => (
-        <button
-          key={String(shelf.value)}
-          type="button"
-          onClick={() => onChange(shelf.value)}
-          className={cx(
-            'flex-1 rounded-[var(--radius-control)] px-3 py-1.5 text-sm font-bold transition-colors',
-            archived === shelf.value
-              ? 'bg-signal text-on-signal'
-              : 'text-ink-muted hover:text-ink',
-          )}
-        >
-          {shelf.label}
-        </button>
-      ))}
-    </div>
-  )
 }
 
 function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => void }) {
