@@ -291,6 +291,7 @@ export const en: Dictionary = {
     dailyLimitBody:
       "Today's limit is used up. Please wait for the next day, or buy Pro to increase your limit.",
     dailyLimitBodyPro: "Today's limit is used up. Please wait for the next day.",
+    dailyLimitDismissPro: 'OK',
     buyAccess: 'Buy access',
     goalProgress: 'Goal progress',
     goal: "Today's goal",

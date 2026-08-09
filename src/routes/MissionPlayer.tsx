@@ -1819,7 +1819,7 @@ function DailyLimitDialog({
           </Button>
         )}
         <Button variant={isPro ? 'primary' : 'ghost'} block className="mt-2" onClick={onDismiss}>
-          {isPro ? t.common.understood : t.common.later}
+          {isPro ? t.player.dailyLimitDismissPro : t.common.later}
         </Button>
       </div>
     </div>
