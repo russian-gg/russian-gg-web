@@ -610,4 +610,14 @@ export const uz = {
       B2: 'Erkin muloqot',
     },
   },
+  /** Offering to put the app on the phone. */
+  install: {
+    title: "Ilovani telefoningizga o'rnating",
+    body: "Bosh ekrandan bir bosishda ochiladi — brauzer ham, manzil terish ham kerak emas.",
+    action: "O'rnatish",
+    later: 'Keyinroq',
+    iosBody: 'Safari’da pastdagi «Ulashish» tugmasini bosing, so‘ng «Bosh ekranga qo‘shish»ni tanlang.',
+    iosAction: 'Tushunarli',
+    close: 'Yopish',
+  },
 }

@@ -15,6 +15,24 @@
         document.documentElement.dataset.theme = 'light'
       }
     </script>
+    <script>
+      // Chrome decides the app is installable on its own schedule, and that can be before React
+      // has mounted — the event does not wait and does not fire twice. Caught here and held, so
+      // the offer is never lost to a slow first render on a cheap phone.
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault()
+        window.__rggInstall = event
+      })
+    </script>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <!-- iOS ignores the manifest's icons and reads this one. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Russian.gg" />
+    <!-- Matches the page rather than tinting the status bar a colour of its own. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       name="description"
       content="Russian.gg — 90 kunda ish va kundalik hayot uchun amaliy rus tilida gapiring."

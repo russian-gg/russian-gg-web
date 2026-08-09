@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { InstallPrompt } from './components/InstallPrompt'
 import { TelegramFloatingButton } from './components/TelegramFloatingButton'
 import { Spinner } from './components/ui'
 import { trackVisit } from './lib/api'
@@ -60,6 +61,12 @@ export function App() {
       </Routes>
 
       <TelegramFloatingButton />
+      {/*
+        Outside the routes on purpose. Somebody who lands on the marketing page and never signs
+        in is exactly the person worth having the app on their phone, and offering it only
+        after sign-in would ask the wrong half of the audience.
+      */}
+      <InstallPrompt />
     </>
   )
 }

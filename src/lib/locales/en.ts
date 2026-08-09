@@ -594,4 +594,13 @@ export const en: Dictionary = {
       B2: 'Fluent conversation',
     },
   },
+  install: {
+    title: 'Install the app on your phone',
+    body: 'One tap from the home screen — no browser, no typing an address.',
+    action: 'Install',
+    later: 'Not now',
+    iosBody: 'In Safari, tap Share at the bottom, then choose "Add to Home Screen".',
+    iosAction: 'Got it',
+    close: 'Close',
+  },
 }
