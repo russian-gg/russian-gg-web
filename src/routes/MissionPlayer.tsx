@@ -814,13 +814,14 @@ export function MissionPlayer() {
       const isFinalStep = currentStepRef.current >= totalStepsRef.current - 1
       // Scored with the thinking state on: the answer is away and being judged, which is a
       // second or three of a conversation that otherwise looks like it stalled.
-      const passed = await submitTurn(
+      const result = await submitTurn(
         false,
         transcriptValue,
         assistantReplyRef.current,
         true,
-        isFinalStep ? 'always' : 'failed-only',
+        isFinalStep ? 'never' : 'failed-only',
       )
+      const passed = (result?.score ?? 0) >= 70
       if (manualStopRequestedRef.current) return
 
       if (!passed) {
@@ -851,6 +852,9 @@ export function MissionPlayer() {
        * button, so a learner who had already answered correctly was asked again and again.
        */
       if (isFinalStep) {
+        if (result) {
+          setFeedback(result)
+        }
         await teardownVoice(true, null)
         setVoiceState('feedback')
         scheduleFinalCompletion()
@@ -870,7 +874,7 @@ export function MissionPlayer() {
     showThinking = true,
     feedbackMode: 'always' | 'failed-only' | 'never' = 'always',
   ) {
-    if (!attempt || !transcriptValue.trim()) return
+    if (!attempt || !transcriptValue.trim()) return null
 
     setBusy(true)
     if (showThinking) {
@@ -904,11 +908,11 @@ export function MissionPlayer() {
         setFeedback(null)
         setVoiceState('idle')
       }
-      return result.score >= 70
+      return result
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.player.submitFailed)
       setVoiceState('idle')
-      return false
+      return null
     } finally {
       setBusy(false)
     }
