@@ -67,10 +67,23 @@ jobs:
             mkdir -p /opt/russian-gg/russian-gg-web
             find /opt/russian-gg/russian-gg-web -mindepth 1 -maxdepth 1 -exec rm -rf {} +
             tar -xzf /opt/russian-gg/releases/frontend-release.tgz -C /opt/russian-gg/russian-gg-web
-            chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
-            if grep -q "admin-web:" /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml; then
-              bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web admin-web caddy
+
+            # The stack is defined in the *backend* checkout, which a backend deploy replaces
+            # while this may be running. Read once, tolerantly: a chmod that fails because the
+            # file is being swapped used to abort the whole frontend release under `set -e`,
+            # and `bash script.sh` never needed the executable bit anyway.
+            COMPOSE=/opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml
+            STACK=/opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
+
+            for attempt in 1 2 3 4 5 6; do
+              [ -f "$STACK" ] && [ -f "$COMPOSE" ] && break
+              echo "Waiting for the backend checkout to settle ($attempt)"
+              sleep 10
+            done
+
+            if grep -q "admin-web:" "$COMPOSE"; then
+              bash "$STACK" up -d --build web admin-web caddy
             else
-              bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build web caddy
+              bash "$STACK" up -d --build web caddy
             fi
             '
