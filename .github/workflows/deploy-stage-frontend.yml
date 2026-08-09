@@ -5,6 +5,10 @@ on:
     branches: ["staging"]
   workflow_dispatch:
 
+concurrency:
+  group: staging-frontend-deploy
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -73,6 +77,8 @@ jobs:
             fi
 
             chmod +x /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
+            docker rm -f deploy-stage-web-1 deploy-stage-admin-web-1 2>/dev/null || true
+            docker ps -aq --filter name=_deploy-stage-web-1 --filter name=_deploy-stage-admin-web-1 | xargs -r docker rm -f
             if grep -q "stage-admin-web:" /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml; then
               bash /opt/russian-gg/russian-gg-server/deploy/manage-stack.sh up -d --build stage-web stage-admin-web caddy
             else
