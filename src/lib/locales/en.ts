@@ -597,10 +597,13 @@ export const en: Dictionary = {
   install: {
     title: 'Install the app on your phone',
     body: 'One tap from the home screen — no browser, no typing an address.',
-    action: 'Install',
+    action: 'Download',
     later: 'Not now',
-    iosBody: 'In Safari, tap Share at the bottom, then choose "Add to Home Screen".',
-    iosAction: 'Got it',
     close: 'Close',
+    howTitle: 'How to install',
+    iosStep1: 'Tap Share at the bottom of the screen',
+    iosStep2: 'Choose "Add to Home Screen"',
+    androidStep1: 'Open the browser menu (⋮)',
+    androidStep2: 'Choose "Install app" or "Add to Home screen"',
   },
 }

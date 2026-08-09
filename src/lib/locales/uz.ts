@@ -610,14 +610,16 @@ export const uz = {
       B2: 'Erkin muloqot',
     },
   },
-  /** Offering to put the app on the phone. */
   install: {
     title: "Ilovani telefoningizga o'rnating",
     body: "Bosh ekrandan bir bosishda ochiladi — brauzer ham, manzil terish ham kerak emas.",
-    action: "O'rnatish",
+    action: 'Yuklab olish',
     later: 'Keyinroq',
-    iosBody: 'Safari’da pastdagi «Ulashish» tugmasini bosing, so‘ng «Bosh ekranga qo‘shish»ni tanlang.',
-    iosAction: 'Tushunarli',
     close: 'Yopish',
+    howTitle: "Qanday o'rnatiladi",
+    iosStep1: 'Pastdagi «Ulashish» tugmasini bosing',
+    iosStep2: "Ro'yxatdan «Bosh ekranga qo'shish»ni tanlang",
+    androidStep1: 'Brauzer menyusini oching (⋮)',
+    androidStep2: "«Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang",
   },
 }

@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * Installing Russian.gg onto a phone.
  *
- * Two different things wear one name here. On Android and desktop Chrome the browser decides
- * the app is installable and hands us an event we can fire later — so the button really does
- * install it. On iOS there is no such event and never has been: Safari only installs from its
- * own Share menu, so the honest thing is to say where that menu is rather than to show a
- * button that cannot work.
+ * Two paths wear one name. Chrome on Android hands us an event we can fire, so the button
+ * really does install it. Everywhere else — every browser on iOS, and Firefox and Samsung
+ * Internet on Android — installing is a item in the browser's own menu that no page can
+ * reach, so the button opens instructions instead. Either way pressing it does something,
+ * which is the part that matters: a button that appears to do nothing reads as broken.
  */
 
 /** Chrome's install event. Not in the DOM types, because it is not in any specification. */
@@ -16,24 +16,34 @@ type InstallEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-const DISMISSED_KEY = 'rgg.install.dismissedAt'
+/** Set once the app has been installed, which is the only thing that stops the offer for good. */
+const INSTALLED_KEY = 'rgg.install.done'
 
-/** Where the pre-mount listener in index.html leaves the event it caught. */
-type WindowWithStash = Window & { __rggInstall?: InstallEvent }
+/** Set the first time the offer is closed, which is what makes the next visit a returning one. */
+const SEEN_KEY = 'rgg.install.seen'
 
-/**
- * How long a "not now" is respected. Long enough not to nag somebody who meant it, short
- * enough that a learner who comes back for a second month is asked again.
- */
-const QUIET_DAYS = 30
+/** A first-time visitor gets the product to themselves for this long. */
+const FIRST_DELAY_MS = 10_000
 
-/** How long after arriving the offer appears. The first screen belongs to the product. */
-const DELAY_MS = 12_000
+/** After that, and on every later visit, it comes back on this cadence. */
+const REPEAT_MS = 60_000
+
+export type InstallHow = 'prompt' | 'ios' | 'android'
+
+export type InstallState = {
+  offered: boolean
+  /** How this browser installs: by our button, or by a menu we can only describe. */
+  how: InstallHow
+  /** Fires the browser's own dialog. Resolves false where there is nothing to fire. */
+  install: () => Promise<boolean>
+  dismiss: () => void
+}
 
 function isStandalone() {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    // Safari's own flag, which is what iOS sets on an installed app.
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    // Safari's own flag, and the only one iOS sets.
     (window.navigator as { standalone?: boolean }).standalone === true
   )
 }
@@ -47,92 +57,98 @@ function isIos() {
 }
 
 /**
- * iOS installs only from Safari's Share menu. Chrome, Firefox and every in-app browser on iOS
- * are the same engine wearing a different toolbar, and none of them has that menu item — so
- * telling their users to look for it sends them hunting for something that is not there.
+ * Phones and tablets only.
+ *
+ * A desktop browser that can install shows its own icon in the address bar, and a sheet over
+ * the corner of a large screen is in the way of a thing somebody can already do.
  */
-function isIosSafari() {
-  return isIos() && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios|opios/i.test(navigator.userAgent)
-}
-
-function recentlyDismissed() {
-  const at = Number(localStorage.getItem(DISMISSED_KEY) ?? 0)
-
-  return at > 0 && Date.now() - at < QUIET_DAYS * 24 * 60 * 60 * 1000
-}
-
-export type InstallState = {
-  /** Whether to show the offer at all. */
-  offered: boolean
-  /** True where we can only point at the Share menu rather than install it ourselves. */
-  manual: boolean
-  install: () => Promise<void>
-  dismiss: () => void
+function isMobile() {
+  return isIos() || /android|mobile/i.test(navigator.userAgent)
 }
 
 export function useInstallOffer(): InstallState {
   const [event, setEvent] = useState<InstallEvent | null>(null)
-  const [manual, setManual] = useState(false)
-  const [ready, setReady] = useState(false)
-  const [hidden, setHidden] = useState(false)
+  const [offered, setOffered] = useState(false)
+  const [done, setDone] = useState(false)
+
+  /*
+   * One timer, rescheduled rather than a repeating interval: the gap has to start when the
+   * sheet is closed, not on a fixed grid that could bring it back a second later.
+   */
+  const timer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed()) return
+    if (isStandalone() || !isMobile() || localStorage.getItem(INSTALLED_KEY) === 'true') return
+
+    const show = () => setOffered(true)
+
+    // Ten seconds on a first visit, and a minute on every visit after one that was closed.
+    // Closing it should quiet it for a while, not end the conversation.
+    const first = localStorage.getItem(SEEN_KEY) === 'true' ? REPEAT_MS : FIRST_DELAY_MS
+    timer.current = window.setTimeout(show, first)
 
     const onAvailable = (incoming: Event) => {
-      // Chrome shows its own bar unless this is called, and two offers for one thing is worse
-      // than either of them alone.
+      // Chrome shows a bar of its own unless this is called, and two offers for one thing is
+      // worse than either alone.
       incoming.preventDefault()
       setEvent(incoming as InstallEvent)
     }
 
     const onInstalled = () => {
-      setHidden(true)
-      // Never ask again: it is on the phone.
-      localStorage.setItem(DISMISSED_KEY, String(Date.now()))
+      localStorage.setItem(INSTALLED_KEY, 'true')
+      setDone(true)
+      setOffered(false)
     }
 
-    // Whatever fired before this component existed.
-    const stashed = (window as WindowWithStash).__rggInstall
+    // Whatever Chrome fired before this component existed; see the listener in index.html.
+    const stashed = (window as Window & { __rggInstall?: InstallEvent }).__rggInstall
     if (stashed) setEvent(stashed)
 
     window.addEventListener('beforeinstallprompt', onAvailable)
     window.addEventListener('appinstalled', onInstalled)
 
-    // iOS never fires the event, so the offer there is on a timer alone.
-    if (isIosSafari()) setManual(true)
-
-    const timer = window.setTimeout(() => setReady(true), DELAY_MS)
-
     return () => {
       window.removeEventListener('beforeinstallprompt', onAvailable)
       window.removeEventListener('appinstalled', onInstalled)
-      window.clearTimeout(timer)
+      window.clearTimeout(timer.current)
     }
   }, [])
 
+  const dismiss = useCallback(() => {
+    localStorage.setItem(SEEN_KEY, 'true')
+    setOffered(false)
+
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setOffered(true), REPEAT_MS)
+  }, [])
+
   const install = useCallback(async () => {
-    if (!event) return
+    if (!event) return false
 
     await event.prompt()
     const { outcome } = await event.userChoice
 
-    // Chrome allows one prompt per event, so it goes either way — including the copy the
-    // page caught before React started.
-    delete (window as WindowWithStash).__rggInstall
+    // Chrome allows one prompt per event, spent either way — including the copy the page
+    // caught before React started.
+    delete (window as Window & { __rggInstall?: InstallEvent }).__rggInstall
     setEvent(null)
-    if (outcome === 'dismissed') localStorage.setItem(DISMISSED_KEY, String(Date.now()))
-    setHidden(true)
-  }, [event])
 
-  const dismiss = useCallback(() => {
-    localStorage.setItem(DISMISSED_KEY, String(Date.now()))
-    setHidden(true)
-  }, [])
+    if (outcome === 'accepted') {
+      localStorage.setItem(INSTALLED_KEY, 'true')
+      setDone(true)
+      setOffered(false)
+
+      return true
+    }
+
+    dismiss()
+
+    return false
+  }, [event, dismiss])
 
   return {
-    offered: ready && !hidden && (manual || event !== null),
-    manual,
+    offered: offered && !done,
+    how: event ? 'prompt' : isIos() ? 'ios' : 'android',
     install,
     dismiss,
   }
