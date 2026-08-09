@@ -88,6 +88,22 @@ export function AiUsage() {
         />
       </div>
 
+      {/*
+        Spend, not call count. By call count a month of sales replies and a month of live voice
+        look comparable and the cheap one usually looks worse — which invites exactly the wrong
+        economy: trimming the model that answers customers to save cents while the minutes run.
+      */}
+      {data.costByOperation && data.costByOperation.length > 0 && (
+        <Card>
+          <h3 className="mb-4 text-base font-extrabold text-ink">Nimaga pul ketyapti</h3>
+          <BarList items={data.costByOperation} format={formatUsd} labelWidth="w-32 sm:w-40" />
+          <p className="mt-4 text-xs text-ink-faint">
+            Ovozli suhbat daqiqa bo'yicha, matn esa token bo'yicha hisoblanadi — shuning uchun
+            chaqiruvlar soni emas, aynan shu ro'yxat qaysi qism qimmatga tushayotganini aytadi.
+          </p>
+        </Card>
+      )}
+
       <Card>
         <h3 className="mb-3 text-base font-extrabold text-ink">Kunlar bo'yicha narx</h3>
         {hasCost ? (

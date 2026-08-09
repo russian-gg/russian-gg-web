@@ -93,6 +93,8 @@ export type AiUsage = {
   totalCostUsd: number
   /** Calls the total leaves out, because no rate is configured for their model. */
   unpricedCalls?: number
+  /** Spend per operation, biggest first. Absent on an older API. */
+  costByOperation?: KeyValue[]
   costByDay: CostPoint[]
   byProvider: KeyValue[]
   byOperation: KeyValue[]
@@ -301,6 +303,8 @@ export type SalesChatSummary = {
   readinessSignal?: string | null
   /** Customer messages since an operator last had this chat open. */
   unread: number
+  /** Put away by an operator. Still counted everywhere, just not in the working list. */
+  isArchived?: boolean
 }
 
 export type SalesUnread = {
