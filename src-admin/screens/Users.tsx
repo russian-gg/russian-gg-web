@@ -79,11 +79,19 @@ function UserList() {
 
       {data && (
         <>
-          {/*
-            Columns the product can fill. Every one of these has a value for every learner —
-            an always-empty column looks like a broken query, not a fact about the data.
-          */}
-          <Table head={['Foydalanuvchi', 'Qurilma', 'Daraja', 'Reja', 'Kun', 'Mashqlar', 'Oxirgi kirish', "Ro'yxatdan o'tgan"]}>
+          {/* Columns the product can fill. Empty columns look like a broken query, not a fact. */}
+          <Table
+            head={[
+              'Foydalanuvchi',
+              'Qurilma',
+              'Daraja',
+              'Reja',
+              'Kun',
+              'Mashqlar',
+              'Oxirgi kirish',
+              "Ro'yxatdan o'tgan",
+            ]}
+          >
             {data.items.map((user) => (
               <Row key={user.id} onClick={() => setSelected(user.id)}>
                 <Cell>
@@ -95,17 +103,16 @@ function UserList() {
                 </Cell>
                 <Cell muted>{user.device}</Cell>
                 <Cell>
-                  {/* A dash, not A0: an unmeasured learner has not been placed at the bottom. */}
                   {user.speakingLevel ? (
                     <Badge tone="milestone">{user.speakingLevel}</Badge>
                   ) : (
-                    <span className="text-ink-faint">—</span>
+                    <span className="text-ink-faint">-</span>
                   )}
                 </Cell>
                 <Cell>
                   <Badge tone={user.plan === 'Free' ? 'neutral' : 'signal'}>{user.plan.toLowerCase()}</Badge>
                 </Cell>
-                <Cell muted>{user.currentDay ? `${user.currentDay}-kun` : '—'}</Cell>
+                <Cell muted>{user.currentDay ? `${user.currentDay}-kun` : '-'}</Cell>
                 <Cell muted>{formatNumber(user.completedMissions)}</Cell>
                 <Cell muted>{formatDate(user.lastLoginAt)}</Cell>
                 <Cell muted>{formatDate(user.createdAt)}</Cell>
@@ -167,6 +174,22 @@ function UserDrawer({
     }
   }
 
+  async function restoreFree() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/users/${id}/revoke-pro`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Admin panel: restore free access' }),
+      })
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onClick={onClose}>
       <aside
@@ -189,18 +212,18 @@ function UserDrawer({
             </div>
 
             <Card className="space-y-2">
-              <Line label="Gapirish darajasi" value={data.speakingLevel ?? '— (aniqlanmagan)'} />
-              <Line label="Tushunish darajasi" value={data.comprehensionLevel ?? '— (aniqlanmagan)'} />
+              <Line label="Gapirish darajasi" value={data.speakingLevel ?? '- (aniqlanmagan)'} />
+              <Line label="Tushunish darajasi" value={data.comprehensionLevel ?? '- (aniqlanmagan)'} />
               <Line label="Reja" value={data.plan} />
               <Line label="Rol" value={data.role} />
               <Line label="Til" value={data.uiLanguage} />
-              <Line label="Telefon" value={data.phoneNumber ?? '—'} />
+              <Line label="Telefon" value={data.phoneNumber ?? '-'} />
               <Line label="Qurilma" value={data.device} />
               <Line label="Vaqt mintaqasi" value={data.timeZoneId} />
-              <Line label="Kurs kuni" value={data.currentDay ? `${data.currentDay}-kun` : '—'} />
+              <Line label="Kurs kuni" value={data.currentDay ? `${data.currentDay}-kun` : '-'} />
               <Line
                 label="Tavsiya etilgan boshlanish"
-                value={data.recommendedStartDay ? `${data.recommendedStartDay}-kun` : '—'}
+                value={data.recommendedStartDay ? `${data.recommendedStartDay}-kun` : '-'}
               />
               <Line label="Oxirgi kirish" value={formatDateTime(data.lastLoginAt)} />
               <Line label="Ro'yxatdan o'tgan" value={formatDateTime(data.createdAt)} />
@@ -223,7 +246,7 @@ function UserDrawer({
                           {attempt.status}
                         </Badge>
                         <span className="w-8 text-right text-sm tabular-nums text-ink-muted">
-                          {attempt.overallScore ?? '—'}
+                          {attempt.overallScore ?? '-'}
                         </span>
                       </span>
                     </li>
@@ -234,9 +257,14 @@ function UserDrawer({
 
             {failure && <ErrorNote>{failure}</ErrorNote>}
 
-            <Button onClick={grantPro} disabled={busy} block>
-              {busy ? 'Berilmoqda…' : "30 kunlik PRO berish"}
-            </Button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button onClick={grantPro} disabled={busy} block>
+                {busy ? 'Berilmoqda...' : '30 kunlik PRO berish'}
+              </Button>
+              <Button variant="secondary" onClick={restoreFree} disabled={busy} block>
+                {busy ? 'Qaytarilmoqda...' : '7 kunlik FREE holatiga qaytarish'}
+              </Button>
+            </div>
           </div>
         )}
       </aside>
@@ -253,11 +281,6 @@ function Line({ label, value }: { label: string; value: string }) {
   )
 }
 
-/**
- * The breakdowns Russian.gg can actually answer. The panel this follows splits its audience
- * by gender and region — neither of which this product asks for, and a column that can only
- * render a dash is worse than the honest question next to it.
- */
 function AudienceTab() {
   const { data, error, isLoading } = useAdminQuery<Audience>('/api/admin-portal/audience')
 
