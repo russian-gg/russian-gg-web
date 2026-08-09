@@ -512,6 +512,7 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   const [demoOpen, setDemoOpen] = useState(false)
   const [demoSent, setDemoSent] = useState(false)
   const [offerSent, setOfferSent] = useState(false)
+  const [discountSent, setDiscountSent] = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -574,6 +575,22 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
       refresh()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function sendDiscount() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/discount`, { method: 'POST' })
+
+      setDiscountSent(true)
+      refresh()
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Yuborilmadi')
     } finally {
       setBusy(false)
     }
@@ -723,6 +740,20 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
                 className="text-sm font-bold text-signal-ink disabled:opacity-45"
               >
                 {offerSent ? 'Yana to\'lov havolasi' : "To'lov havolasi"}
+              </button>
+
+              {/*
+                Once per person, so the button says whether it has been spent. The server
+                refuses a second one anyway; saying so here saves the operator finding out
+                through an error message.
+              */}
+              <button
+                type="button"
+                disabled={busy || discountSent}
+                onClick={() => void sendDiscount()}
+                className="text-sm font-bold text-signal-ink disabled:opacity-45"
+              >
+                {discountSent ? 'Chegirma taklif qilingan' : 'Chegirma qutilari'}
               </button>
             </div>
           )}
