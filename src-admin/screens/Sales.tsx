@@ -1084,6 +1084,15 @@ function AgentSettings() {
           <Badge tone={draft.webhookRegistered ? 'milestone' : 'caution'}>
             {draft.webhookRegistered ? 'Webhook ulangan' : 'Webhook ulanmagan'}
           </Badge>
+          {/*
+            What Telegram will actually deliver, not what the code last asked for. A
+            registration made before callback_query was added keeps the old list, and the
+            symptom is a button that does nothing with no error anywhere — the request never
+            happens. Shown so that is a thing somebody can see rather than deduce.
+          */}
+          {draft.webhookRegistered && !draft.webhookAllowedUpdates?.includes('callback_query') && (
+            <Badge tone="caution">Tugmalar yetib kelmaydi — webhookni qayta ulang</Badge>
+          )}
           {draft.webhookPendingUpdates > 0 && (
             <Badge tone="caution">{draft.webhookPendingUpdates} ta kutayotgan xabar</Badge>
           )}

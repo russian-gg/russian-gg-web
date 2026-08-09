@@ -357,6 +357,8 @@ export type SalesSettings = {
   webhookRegistered: boolean
   webhookLastError?: string | null
   webhookPendingUpdates: number
+  /** What Telegram will actually deliver. Absent on an older API. */
+  webhookAllowedUpdates?: string[]
   /** What a fresh install starts with, so the panel can offer it back. */
   defaultPrompt: string
 }
