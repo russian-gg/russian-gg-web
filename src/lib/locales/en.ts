@@ -602,9 +602,9 @@ export const en: Dictionary = {
     later: 'Not now',
     close: 'Close',
     howTitle: 'How to install',
-    iosStep1: 'Tap Share at the bottom of the screen',
+    iosStep1: "Tap the browser's Share button — a square with an arrow pointing up",
     iosStep2: 'Choose "Add to Home Screen"',
-    androidStep1: 'Open the browser menu (⋮)',
+    androidStep1: 'Open the browser menu — three dots or three lines',
     androidStep2: 'Choose "Install app" or "Add to Home screen"',
   },
 }

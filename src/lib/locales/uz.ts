@@ -618,9 +618,9 @@ export const uz = {
     later: 'Keyinroq',
     close: 'Yopish',
     howTitle: "Qanday o'rnatiladi",
-    iosStep1: 'Pastdagi «Ulashish» tugmasini bosing',
+    iosStep1: "Brauzerdagi «Ulashish» tugmasini bosing — yuqoriga qaragan strelkali kvadrat",
     iosStep2: "Ro'yxatdan «Bosh ekranga qo'shish»ni tanlang",
-    androidStep1: 'Brauzer menyusini oching (⋮)',
+    androidStep1: 'Brauzer menyusini oching — uchta nuqta yoki uchta chiziq',
     androidStep2: "«Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang",
   },
 }

@@ -17,9 +17,8 @@ const BUSY = ['/missions/', '/onboarding']
 /**
  * The offer to put Russian.gg on the phone's home screen.
  *
- * A sheet at the bottom: a thumb away, and directly above the Share button that half the
- * phones in the world install from. It shows on the landing page as readily as inside the
- * app — somebody who has not signed up yet is exactly the person worth having it installed.
+ * A sheet at the bottom, where a thumb is. It shows on the landing page as readily as inside
+ * the app — somebody who has not signed up yet is exactly the person worth having it installed.
  *
  * Pressing the button always does something. Where the browser gives us its install dialog we
  * open it; where it does not — every browser on iOS, and several on Android — the same button
@@ -137,8 +136,24 @@ export function InstallPrompt() {
                   {index + 1}
                 </span>
                 <span className="flex-1">{step}</span>
-                {/* The mark they are looking for, beside the words telling them to look. */}
-                {index === 0 && (how === 'ios' ? <ShareGlyph /> : <MenuGlyph />)}
+                {/*
+                  The button is named by what it looks like, never by where it is. Safari can
+                  put its bar at the top or the bottom, Chrome and Firefox each put theirs
+                  somewhere else again, and every Android browser disagrees about the menu —
+                  so the drawing is the instruction and the words describe the same shape.
+                */}
+                {index === 0 && (
+                  <span className="flex shrink-0 items-center gap-1 rounded-lg bg-signal-soft px-1.5 py-1">
+                    {how === 'ios' ? (
+                      <ShareGlyph />
+                    ) : (
+                      <>
+                        <DotsGlyph />
+                        <LinesGlyph />
+                      </>
+                    )}
+                  </span>
+                )}
               </li>
             ))}
           </ol>
@@ -197,27 +212,32 @@ export function InstallPrompt() {
   )
 }
 
-/** iOS's own share mark, so the instruction points at something recognisable. */
+/** iOS's share mark: the shape is the instruction, so it is drawn rather than described. */
 function ShareGlyph() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="mt-0.5 size-4 shrink-0 fill-none stroke-signal-ink stroke-[1.8]"
-    >
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-signal-ink stroke-[1.8]">
       <path d="M12 15V3m0 0L8.5 6.5M12 3l3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M6 12H5a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1" strokeLinecap="round" />
     </svg>
   )
 }
 
-/** The three dots every Android browser puts its menu behind. */
-function MenuGlyph() {
+/** Chrome and Firefox on Android. */
+function DotsGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 size-4 shrink-0 fill-signal-ink">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-signal-ink">
       <circle cx="12" cy="5" r="1.8" />
       <circle cx="12" cy="12" r="1.8" />
       <circle cx="12" cy="19" r="1.8" />
+    </svg>
+  )
+}
+
+/** Samsung Internet, which is most of the other half of Uzbekistan's Android phones. */
+function LinesGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-signal-ink stroke-[2]">
+      <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
     </svg>
   )
 }
