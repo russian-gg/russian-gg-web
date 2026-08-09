@@ -1051,7 +1051,7 @@ export function MissionPlayer() {
         phone, 3rem either side from md up. Guessing high here would push the controls back
         off the bottom; guessing low would waste the room the conversation needs.
       */}
-      <div className="flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:h-[calc(100dvh-6rem)]">
+      <div className="relative flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:h-[calc(100dvh-6rem)]">
         <header className="flex shrink-0 items-start justify-between gap-4">
           <button
             type="button"
@@ -1070,7 +1070,7 @@ export function MissionPlayer() {
           )}
         </header>
 
-        <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto">
+        <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto pb-56 md:pb-52">
           <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
             {pickContent(locale, { uz: summary.titleUz, ru: summary.titleRu, en: summary.titleEn })}
           </h1>
@@ -1126,57 +1126,61 @@ export function MissionPlayer() {
 
         </div>
 
-        <MicControl
-          state={voiceState}
-          busy={busy}
-          hasLiveSession={hasLiveSession}
-          latestTurnAccepted={turnAccepted}
-          hint={micHint}
-          secondsLeft={secondsLeft}
-          onStart={() => void startVoice()}
-          completedPreview={completedPreview}
-          onStop={() => void stopVoice()}
-          onRestart={() => void resetCompletedPreview()}
-          onInterrupt={
-            hasLiveSession && voiceState === 'thinking' && !busy
-              ? () => void liveSessionRef.current?.interruptTutor()
-              : null
-          }
-          onMoveOn={
-            /*
-             * Parking a step is a decision about the conversation in progress, so it is only
-             * offered while one is live — in the feedback panel it is already one of the two
-             * buttons. Finishing is not. A learner who answered every step and then stopped
-             * talking — a last turn that scored short, a closed tab, a session that timed out
-             * — came back to a full checklist with no way to end the lesson, and since the
-             * day only advances on a completed attempt, the roadmap went on calling it
-             * unfinished. That is the state that needs this button most, and it is exactly
-             * the state that used to hide it.
-             */
-            ((stepExhausted && hasLiveSession) || completedSteps >= totalSteps) && !busy
-              ? () => void (isLastStep ? complete() : advance())
-              : null
-          }
-          /*
-           * The checklist ticks off a step as soon as the server counts the turn, whatever it
-           * scored. Finishing still waited for a passing one, so a learner could work through
-           * every step, watch all three goals tick, and be left with a lesson the roadmap
-           * still called unfinished. When the work is done, finishing is the main action.
-           */
-          allStepsDone={completedSteps >= totalSteps}
-          feedback={feedback}
-          isLastStep={isLastStep}
-          stepExhausted={stepExhausted}
-          onRetry={() => {
-            setVoiceState('idle')
-            setFeedback(null)
-            setAssistantReply(null)
-            // A fresh go at the step: the cap applies again from here, so the learner is
-            // offered the way out after each further attempt rather than trapped by it.
-            setStepExhausted(false)
-          }}
-          onAdvance={isLastStep ? () => void complete() : () => void advance()}
-        />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+          <div className="pointer-events-auto">
+            <MicControl
+              state={voiceState}
+              busy={busy}
+              hasLiveSession={hasLiveSession}
+              latestTurnAccepted={turnAccepted}
+              hint={micHint}
+              secondsLeft={secondsLeft}
+              onStart={() => void startVoice()}
+              completedPreview={completedPreview}
+              onStop={() => void stopVoice()}
+              onRestart={() => void resetCompletedPreview()}
+              onInterrupt={
+                hasLiveSession && voiceState === 'thinking' && !busy
+                  ? () => void liveSessionRef.current?.interruptTutor()
+                  : null
+              }
+              onMoveOn={
+                /*
+                 * Parking a step is a decision about the conversation in progress, so it is only
+                 * offered while one is live — in the feedback panel it is already one of the two
+                 * buttons. Finishing is not. A learner who answered every step and then stopped
+                 * talking — a last turn that scored short, a closed tab, a session that timed out
+                 * — came back to a full checklist with no way to end the lesson, and since the
+                 * day only advances on a completed attempt, the roadmap went on calling it
+                 * unfinished. That is the state that needs this button most, and it is exactly
+                 * the state that used to hide it.
+                 */
+                ((stepExhausted && hasLiveSession) || completedSteps >= totalSteps) && !busy
+                  ? () => void (isLastStep ? complete() : advance())
+                  : null
+              }
+              /*
+               * The checklist ticks off a step as soon as the server counts the turn, whatever it
+               * scored. Finishing still waited for a passing one, so a learner could work through
+               * every step, watch all three goals tick, and be left with a lesson the roadmap
+               * still called unfinished. When the work is done, finishing is the main action.
+               */
+              allStepsDone={completedSteps >= totalSteps}
+              feedback={feedback}
+              isLastStep={isLastStep}
+              stepExhausted={stepExhausted}
+              onRetry={() => {
+                setVoiceState('idle')
+                setFeedback(null)
+                setAssistantReply(null)
+                // A fresh go at the step: the cap applies again from here, so the learner is
+                // offered the way out after each further attempt rather than trapped by it.
+                setStepExhausted(false)
+              }}
+              onAdvance={isLastStep ? () => void complete() : () => void advance()}
+            />
+          </div>
+        </div>
 
         {/*
           The text fallback, and never without the reason it exists for.
