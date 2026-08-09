@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
+import { SUPPORT_TELEGRAM_URL } from '../lib/support'
 import type { VoiceErrorCode } from '../lib/liveVoice'
 import type { VoiceSessionOutcome } from '../lib/types'
 import { Button, Spinner } from '../components/ui'
@@ -18,8 +19,6 @@ type DemoView = {
   status: string
   maxSeconds: number
 }
-
-const TELEGRAM_URL = 'https://t.me/russian_gg'
 
 const MIC_MESSAGE: Partial<Record<VoiceErrorCode, string>> = {
   mic_denied: "Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.",
@@ -153,8 +152,14 @@ export function Demo() {
         setPhase('live')
         setSecondsLeft(outcome.ticket!.maxDurationSeconds)
       },
-      onInputTranscript: (text) => setSaid((current) => current + text),
-      onOutputTranscript: (text) => setHeard((current) => current + text),
+      /*
+       * Replaced, never appended. The session accumulates the transcript itself and hands over
+       * the whole thing each time, so adding to it printed the sentence again on every chunk —
+       * "Assalomu alaykum! BizningAssalomu alaykum! Bizning restoranimizga…" — which is what a
+       * learner saw for the entire minute. The mission player has always done it this way.
+       */
+      onInputTranscript: setSaid,
+      onOutputTranscript: setHeard,
       onError: (code) => {
         setFailure(MIC_MESSAGE[code] ?? "Ovoz ulanmadi. Birozdan keyin urinib ko'ring.")
         void stop()
@@ -311,7 +316,7 @@ export function Demo() {
             </Link>
 
             <a
-              href={TELEGRAM_URL}
+              href={SUPPORT_TELEGRAM_URL}
               target="_blank"
               rel="noreferrer"
               className="mt-3 block text-center text-sm font-bold text-signal-ink"
@@ -341,7 +346,7 @@ function Closed({ message }: { message: string }) {
       </div>
       <p className="mt-4 text-ink">{message}</p>
       <p className="text-support mt-2">Telegramda yozing — yangisini yuboramiz.</p>
-      <a href={TELEGRAM_URL} target="_blank" rel="noreferrer" className="mt-6 block">
+      <a href={SUPPORT_TELEGRAM_URL} target="_blank" rel="noreferrer" className="mt-6 block">
         <Button block>Telegramda yozish</Button>
       </a>
     </div>

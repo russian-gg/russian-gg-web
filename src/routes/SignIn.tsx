@@ -20,15 +20,27 @@ const DEFAULT_GOOGLE_CLIENT_ID =
  * Where to land after authenticating. A placement run taken while signed out outranks
  * everything: those answers are only held for this hop and must be spent immediately.
  */
-function destinationAfterAuth(hasCompletedDiagnostic: boolean) {
+function destinationAfterAuth(hasCompletedDiagnostic: boolean, from?: string) {
   if (onboardingDraft.exists()) return '/onboarding'
-  return hasCompletedDiagnostic ? '/home' : '/onboarding'
+  if (!hasCompletedDiagnostic) return '/onboarding'
+
+  /*
+   * Back to the page that sent them here, but only once they have been placed. Somebody who
+   * followed a checkout link and had to sign in on the way should land on the checkout — and
+   * an unplaced learner still goes to placement first, because the rest of the product means
+   * nothing without it.
+   */
+  return from ?? '/home'
 }
 
 export function SignIn() {
   const t = useT()
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Set by RequireAuth when it turned somebody away from a page they asked for.
+  const returnTo = typeof location.state?.from === 'string' ? location.state.from : undefined
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -43,7 +55,7 @@ export function SignIn() {
 
     try {
       const user = await signIn(email, password)
-      navigate(destinationAfterAuth(user.hasCompletedDiagnostic), { replace: true })
+      navigate(destinationAfterAuth(user.hasCompletedDiagnostic, returnTo), { replace: true })
     } catch (caught) {
       setError(
         caught instanceof RequestError ? caught.message : t.auth.signInFailed,
@@ -64,7 +76,7 @@ export function SignIn() {
 
     try {
       const user = await signInWithGoogle(response.credential)
-      navigate(destinationAfterAuth(user.hasCompletedDiagnostic), { replace: true })
+      navigate(destinationAfterAuth(user.hasCompletedDiagnostic, returnTo), { replace: true })
     } catch (caught) {
       setError(
         caught instanceof RequestError

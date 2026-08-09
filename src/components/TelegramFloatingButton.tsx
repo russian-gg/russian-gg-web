@@ -1,9 +1,9 @@
-const TELEGRAM_URL = 'https://t.me/russian_gg'
+import { SUPPORT_TELEGRAM_URL } from '../lib/support'
 
 export function TelegramFloatingButton() {
   return (
     <a
-      href={TELEGRAM_URL}
+      href={SUPPORT_TELEGRAM_URL}
       target="_blank"
       rel="noreferrer"
       aria-label="Telegram orqali bog'lanish"

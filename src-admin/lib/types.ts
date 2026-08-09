@@ -91,6 +91,8 @@ export type AiUsage = {
   failed: number
   totalTokens: number
   totalCostUsd: number
+  /** Calls the total leaves out, because no rate is configured for their model. */
+  unpricedCalls?: number
   costByDay: CostPoint[]
   byProvider: KeyValue[]
   byOperation: KeyValue[]
@@ -341,8 +343,13 @@ export type SalesSettings = {
   botTokenHint?: string | null
   botUsername?: string | null
   webhookUrl?: string | null
-  /** Where demo links point. The site, not the API — on this deployment they differ. */
-  siteBaseUrl: string
+  /**
+   * Where demo links point. The site, not the API — on this deployment they differ.
+   *
+   * Optional because the panel and the API deploy separately: for a few minutes on every
+   * release one of them is older, and a required field turns that window into a crash.
+   */
+  siteBaseUrl?: string | null
   webhookRegistered: boolean
   webhookLastError?: string | null
   webhookPendingUpdates: number
@@ -385,4 +392,10 @@ export type SalesDemo = {
   openedAt?: string | null
   completedAt?: string | null
   elapsedSeconds: number
+}
+
+/** A page of the sales inbox. `total` is every chat there is, so the list knows what remains. */
+export type SalesChatPage = {
+  items: SalesChatSummary[]
+  total: number
 }

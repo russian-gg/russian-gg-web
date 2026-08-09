@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useStickyTab } from '../lib/sticky-tab'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import type { Audience, Paged, UserDetail, UserItem } from '../lib/types'
 import {
@@ -21,8 +22,10 @@ import { BarList, Donut } from '../components/charts'
 
 const PAGE_SIZE = 20
 
+const USER_TABS = ['list', 'audience'] as const
+
 export function Users() {
-  const [tab, setTab] = useState<'list' | 'audience'>('list')
+  const [tab, setTab] = useStickyTab('users', USER_TABS)
 
   return (
     <div className="space-y-6">

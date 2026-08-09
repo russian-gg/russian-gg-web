@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
+import { useStickyTab } from '../lib/sticky-tab'
 import type {
   ChatSender,
   SalesChat,
   SalesDashboard as SalesDashboardData,
+  SalesChatPage,
   SalesChatSummary,
   SalesDemo,
   SalesUnread,
@@ -52,8 +54,13 @@ const statusTone = {
   Paid: 'milestone',
 } as const
 
+const SALES_TABS = ['dashboard', 'inbox', 'demos', 'settings'] as const
+
+/** How many chats a page of the inbox holds, and how many each press of "more" adds. */
+const PAGE = 20
+
 export function Sales() {
-  const [tab, setTab] = useState<'dashboard' | 'inbox' | 'demos' | 'settings'>('dashboard')
+  const [tab, setTab] = useStickyTab('sales', SALES_TABS)
 
   /*
    * Asked for from here rather than from the inbox, because the badge has to be right on the
@@ -218,11 +225,30 @@ function SalesDashboardTab() {
 }
 
 function Inbox() {
-  const { data, error, isLoading, refresh } = useAdminQuery<SalesChatSummary[]>(
-    '/api/admin-portal/sales/chats',
+  /*
+   * How many of the most recently active chats to ask for. Growing this rather than paging
+   * means the five-second refresh returns exactly what is already on screen plus anything new,
+   * so nothing an operator has scrolled to disappears under them.
+   */
+  const [take, setTake] = useState(PAGE)
+
+  const { data, error, isLoading, refresh } = useAdminQuery<SalesChatPage | SalesChatSummary[]>(
+    `/api/admin-portal/sales/chats?take=${take}`,
   )
+
+  /*
+   * Both shapes accepted. The panel and the API deploy separately, so for a few minutes on
+   * every release one of them is older than the other — and this exact mismatch took the
+   * admin down once already today.
+   */
+  const chats = useMemo(
+    () => (Array.isArray(data) ? data : (data?.items ?? [])),
+    [data],
+  )
+  const total = Array.isArray(data) ? data.length : (data?.total ?? chats.length)
   const [selected, setSelected] = useState<string | null>(null)
   const [muted, setMuted] = useState(soundMuted.get)
+  const { shell, height } = useViewportHeight()
 
   /*
    * The last thing each chat said, from the previous poll. Held in a ref rather than state so
@@ -234,7 +260,8 @@ function Inbox() {
   useEffect(() => {
     if (!data) return
 
-    const current = new Map(data.map((chat) => [chat.id, chat.lastInteractionAt]))
+    const current = new Map(chats.map((chat) => [chat.id, chat.lastInteractionAt]))
+
 
     if (heard.current === null) {
       heard.current = current
@@ -244,14 +271,14 @@ function Inbox() {
 
     // One sound however many chats moved at once: five customers writing together is still
     // one thing to look up for.
-    const somebodyWrote = data.some(
+    const somebodyWrote = chats.some(
       (chat) => chat.lastMessageFromUser && heard.current?.get(chat.id) !== chat.lastInteractionAt,
     )
 
     heard.current = current
 
     if (somebodyWrote) playIncomingChime()
-  }, [data])
+  }, [chats, data])
 
   // A sales inbox that only updates when you press something is one nobody watches. Five
   // seconds is faster than a customer notices a delay and slower than it costs anything.
@@ -262,14 +289,14 @@ function Inbox() {
   }, [refresh])
 
   useEffect(() => {
-    if (data && data.length > 0 && selected === null) setSelected(data[0].id)
-  }, [data, selected])
+    if (chats.length > 0 && selected === null) setSelected(chats[0].id)
+  }, [chats, selected])
 
   if (error) return <ErrorNote>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
-  if (data.length === 0) {
+  if (chats.length === 0) {
     return (
       <Card>
         <EmptyNote>
@@ -280,8 +307,17 @@ function Inbox() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-      <div className="space-y-2">
+    <div
+      ref={shell}
+      style={height ? { height } : undefined}
+      className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
+    >
+      {/*
+        Its own scroll, so reading down the list leaves the open conversation exactly where it
+        was. Before this the whole page moved and the thread went with it — which is not how
+        any messenger behaves, and it is disorienting for the same reason.
+      */}
+      <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
         <SectionHeading
           action={
             <button
@@ -300,9 +336,9 @@ function Inbox() {
             </button>
           }
         >
-          {formatNumber(data.length)} ta suhbat
+          {formatNumber(chats.length)} / {formatNumber(total)} ta suhbat
         </SectionHeading>
-        {data.map((chat) => (
+        {chats.map((chat) => (
           <button
             key={chat.id}
             type="button"
@@ -356,11 +392,65 @@ function Inbox() {
             <Readiness value={chat.readiness} signal={chat.readinessSignal} />
           </button>
         ))}
+
+        {chats.length < total && (
+          <button
+            type="button"
+            onClick={() => setTake((current) => current + PAGE)}
+            className="w-full rounded-[var(--radius-card)] border-2 border-hairline py-2.5 text-sm font-bold text-signal-ink transition-colors hover:border-ink-faint"
+          >
+            Yana {formatNumber(Math.min(PAGE, total - chats.length))} ta
+          </button>
+        )}
       </div>
 
       {selected && <Conversation chatId={selected} onChanged={refresh} />}
     </div>
   )
+}
+
+/**
+ * How tall the inbox should be so that it ends at the bottom of the window.
+ *
+ * Measured rather than guessed at with a calc(): the header above it is a different height in
+ * every language and wraps at some widths, and a constant that is wrong by twenty pixels is
+ * either a scrollbar nobody wants or a composer cut off the bottom of the screen.
+ *
+ * Only from `lg`. On a phone the two panes are stacked and there is no room to pin either.
+ */
+function useViewportHeight() {
+  /*
+   * A callback ref held in state, not a useRef.
+   *
+   * The inbox renders a spinner until the chats arrive, so on mount there is no element to
+   * measure — and an effect that runs once, with an empty dependency list, measured null and
+   * never ran again. The height was therefore never applied and the pane grew to the length of
+   * the conversation, which is the bug this hook exists to prevent.
+   */
+  const [shell, setShell] = useState<HTMLDivElement | null>(null)
+  const [height, setHeight] = useState<number>()
+
+  useEffect(() => {
+    if (!shell) return
+
+    const measure = () => {
+      if (!window.matchMedia('(min-width: 1024px)').matches) {
+        setHeight(undefined)
+
+        return
+      }
+
+      // 24px of air below, so the pane does not sit flush against the window edge.
+      setHeight(Math.max(360, window.innerHeight - shell.getBoundingClientRect().top - 24))
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    return () => window.removeEventListener('resize', measure)
+  }, [shell])
+
+  return { shell: setShell, height }
 }
 
 function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => void }) {
@@ -370,6 +460,9 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
+  const [situation, setSituation] = useState('')
+  const [demoOpen, setDemoOpen] = useState(false)
+  const [demoSent, setDemoSent] = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -415,15 +508,53 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
     await act('/messages', { text })
   }
 
+  /**
+   * Builds the minute and sends the link, right now rather than through the queue: somebody
+   * who pressed a button is owed an answer about whether it worked.
+   */
+  async function sendDemo() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/demo`, {
+        method: 'POST',
+        body: JSON.stringify({ situation: situation.trim() }),
+      })
+
+      setSituation('')
+      setDemoOpen(false)
+      setDemoSent(true)
+      refresh()
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Demo yuborilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
-      <Card className="flex min-h-0 flex-col">
+    <div
+      className={cx(
+        'grid min-h-0 gap-4 overflow-hidden',
+        // The card is a column of facts about an account. With no account there are no facts,
+        // and a panel that exists only to say so is width the conversation should have had —
+        // which is most of them, because people write to the bot before they sign up.
+        user.userId && 'xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]',
+      )}
+    >
+      <Card className="flex min-h-0 flex-col lg:overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-hairline pb-3">
           <div className="min-w-0">
             <h2 className="truncate text-base font-extrabold text-ink">{chat.displayName}</h2>
-            <p className="text-xs text-ink-faint">
-              {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
-            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              <p className="text-xs text-ink-faint">
+                {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
+              </p>
+              {/* Kept when the card is not shown, because "have they signed up" is the one
+                  thing about them that changes how this conversation should go. */}
+              <Badge tone={statusTone[user.status]}>{statusLabel[user.status]}</Badge>
+            </div>
           </div>
 
           {/*
@@ -443,7 +574,51 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
           </label>
         </div>
 
-        <div ref={threadRef} className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto">
+        {/*
+          The agent offers a demo when somebody names a place clearly enough for it to notice.
+          This is for every time it does not — the operator is reading the conversation and can
+          see what the model missed.
+        */}
+        <div className="mt-3">
+          {demoOpen ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={situation}
+                onChange={(event) => setSituation(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void sendDemo()
+                  }
+                }}
+                autoFocus
+                placeholder="Qayerda qiynalyapti — masalan: sport zalda murabbiy bilan"
+                className="h-10 min-w-0 flex-1 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+              />
+              <Button size="sm" onClick={() => void sendDemo()} disabled={busy || !situation.trim()}>
+                {busy ? 'Tayyorlanmoqda…' : 'Demo yuborish'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setDemoOpen(false)} disabled={busy}>
+                Bekor
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              className="text-sm font-bold text-signal-ink"
+            >
+              {demoSent ? 'Yana demo yuborish' : 'Demo yuborish'}
+            </button>
+          )}
+        </div>
+
+        {/* The cap is a floor under the measured height, not a replacement for it: if the
+            measurement ever fails, the panel is still one screen rather than a page. */}
+        <div
+          ref={threadRef}
+          className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto lg:max-h-[calc(100vh-22rem)]"
+        >
           {messages.length === 0 ? (
             <EmptyNote>Xabar yo'q</EmptyNote>
           ) : (
@@ -473,7 +648,11 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
         </div>
       </Card>
 
-      <UserCard card={user} />
+      {user.userId && (
+        <div className="min-h-0 xl:overflow-y-auto">
+          <UserCard card={user} />
+        </div>
+      )}
     </div>
   )
 }
@@ -552,20 +731,14 @@ function UserCard({ card }: { card: SalesChat['user'] }) {
 
       <Badge tone={statusTone[card.status]}>{statusLabel[card.status]}</Badge>
 
-      {card.userId ? (
-        <dl className="space-y-2 text-sm">
-          <Line label="Email" value={card.email ?? '—'} />
-          <Line label="Ro'yxatdan o'tgan" value={formatDate(card.registeredAt)} />
-          <Line label="Oxirgi faollik" value={formatDate(card.lastActiveAt)} />
-          <Line label="Tugatilgan mashqlar" value={formatNumber(card.completedLessons)} />
-          <Line label="Kurs kuni" value={card.currentDay > 0 ? `${card.currentDay}-kun` : '—'} />
-          <Line label="Daraja" value={card.speakingLevel ?? '—'} />
-        </dl>
-      ) : (
-        <p className="text-sm text-ink-muted">
-          Bu suhbat hech qanday hisobga bog'lanmagan — platformada ro'yxatdan o'tmagan.
-        </p>
-      )}
+      <dl className="space-y-2 text-sm">
+        <Line label="Email" value={card.email ?? '—'} />
+        <Line label="Ro'yxatdan o'tgan" value={formatDate(card.registeredAt)} />
+        <Line label="Oxirgi faollik" value={formatDate(card.lastActiveAt)} />
+        <Line label="Tugatilgan mashqlar" value={formatNumber(card.completedLessons)} />
+        <Line label="Kurs kuni" value={card.currentDay > 0 ? `${card.currentDay}-kun` : '—'} />
+        <Line label="Daraja" value={card.speakingLevel ?? '—'} />
+      </dl>
 
       {card.triggerEvents.length > 0 && (
         <div>
@@ -803,7 +976,7 @@ function AgentSettings() {
         <label className="block">
           <span className="mb-1.5 block text-sm font-bold text-ink">Sayt manzili</span>
           <input
-            value={draft.siteBaseUrl}
+            value={draft.siteBaseUrl ?? ''}
             onChange={(event) => setDraft({ ...draft, siteBaseUrl: event.target.value })}
             className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
           />
@@ -863,6 +1036,21 @@ function AgentSettings() {
           Standart matnni yuklash
         </button>
       </div>
+
+      {/*
+        The stored prompt is the one that runs, and it is the operator's. That is the right
+        rule and it has a cost nobody could see: a shipped improvement to the script — the
+        agent learning to offer a demo, or to propose a topic when somebody cannot name one —
+        sat in the code doing nothing, because production was still running the text saved
+        months earlier and no screen said so. Now one does.
+      */}
+      {data && data.systemPrompt !== data.defaultPrompt && (
+        <p className="rounded-[var(--radius-card)] border-2 border-caution/40 bg-caution-soft px-4 py-3 text-sm text-caution">
+          Saqlangan ko'rsatma yangilangan standart matndan farq qiladi. Agentga qo'shilgan
+          yangi qobiliyatlar ishlashi uchun «Standart matnni yuklash» ni bosib, saqlang —
+          o'zingiz kiritgan o'zgarishlar bo'lsa, avval nusxasini olib qo'ying.
+        </p>
+      )}
 
       <label className="block">
         <textarea
