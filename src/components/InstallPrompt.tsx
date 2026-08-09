@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { cx } from '../lib/cx'
 import { useT } from '../lib/i18n'
 import { useInstallOffer } from '../lib/pwa'
 
@@ -28,7 +29,7 @@ const BUSY = ['/missions/', '/onboarding']
 export function InstallPrompt() {
   const t = useT()
   const { pathname } = useLocation()
-  const { offered: ready, how, install, dismiss } = useInstallOffer()
+  const { offered: ready, how, install, dismiss, never, setNever } = useInstallOffer()
   const [showingSteps, setShowingSteps] = useState(false)
 
   const offered = ready && !BUSY.some((path) => pathname.startsWith(path))
@@ -143,7 +144,39 @@ export function InstallPrompt() {
           </ol>
         )}
 
-        <div className="mt-3 flex items-center gap-2">
+        {/*
+          The way out of being asked at all. Every minute is a reasonable cadence for somebody
+          who has not decided; for somebody who has decided no, it is nagging, and an offer
+          with no off switch is the kind people close the tab over.
+
+          Ticking it is the answer on its own — nothing else has to be pressed.
+        */}
+        <label className="mt-3 flex cursor-pointer items-center gap-2.5 py-1 select-none">
+          <input
+            type="checkbox"
+            checked={never}
+            onChange={(event) => setNever(event.target.checked)}
+            className="peer sr-only"
+          />
+          <span
+            aria-hidden="true"
+            className={cx(
+              'flex size-5 shrink-0 items-center justify-center rounded-[7px] border-2 transition-colors',
+              // The real input is off-screen, so the box has to wear its focus ring.
+              'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-signal',
+              never ? 'border-signal bg-signal' : 'border-hairline bg-ground-raised',
+            )}
+          >
+            {never && (
+              <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-on-signal stroke-[3.5]">
+                <path d="m5 13 5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </span>
+          <span className="text-sm text-ink-muted">{t.install.neverShow}</span>
+        </label>
+
+        <div className="mt-2 flex items-center gap-2">
           <button
             type="button"
             onClick={() => void download()}

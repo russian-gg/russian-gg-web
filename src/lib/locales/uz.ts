@@ -611,6 +611,7 @@ export const uz = {
     },
   },
   install: {
+    neverShow: "Boshqa ko'rsatilmasin",
     title: "Ilovani telefoningizga o'rnating",
     body: "Bosh ekrandan bir bosishda ochiladi — brauzer ham, manzil terish ham kerak emas.",
     action: 'Yuklab olish',

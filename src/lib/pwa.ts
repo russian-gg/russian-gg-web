@@ -22,6 +22,9 @@ const INSTALLED_KEY = 'rgg.install.done'
 /** Set the first time the offer is closed, which is what makes the next visit a returning one. */
 const SEEN_KEY = 'rgg.install.seen'
 
+/** Set when the learner asks not to be offered it again. Outranks everything below. */
+const NEVER_KEY = 'rgg.install.never'
+
 /** A first-time visitor gets the product to themselves for this long. */
 const FIRST_DELAY_MS = 10_000
 
@@ -37,6 +40,9 @@ export type InstallState = {
   /** Fires the browser's own dialog. Resolves false where there is nothing to fire. */
   install: () => Promise<boolean>
   dismiss: () => void
+  /** The learner has asked not to be offered this again. */
+  never: boolean
+  setNever: (value: boolean) => void
 }
 
 function isStandalone() {
@@ -70,6 +76,7 @@ export function useInstallOffer(): InstallState {
   const [event, setEvent] = useState<InstallEvent | null>(null)
   const [offered, setOffered] = useState(false)
   const [done, setDone] = useState(false)
+  const [never, setNeverState] = useState(() => localStorage.getItem(NEVER_KEY) === 'true')
 
   /*
    * One timer, rescheduled rather than a repeating interval: the gap has to start when the
@@ -78,7 +85,14 @@ export function useInstallOffer(): InstallState {
   const timer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    if (isStandalone() || !isMobile() || localStorage.getItem(INSTALLED_KEY) === 'true') return
+    if (
+      isStandalone() ||
+      !isMobile() ||
+      localStorage.getItem(INSTALLED_KEY) === 'true' ||
+      localStorage.getItem(NEVER_KEY) === 'true'
+    ) {
+      return
+    }
 
     const show = () => setOffered(true)
 
@@ -114,11 +128,29 @@ export function useInstallOffer(): InstallState {
     }
   }, [])
 
+  /*
+   * Written the moment the box is ticked rather than when the sheet is closed. Somebody who
+   * ticks it and then wanders off to another page has already said what they want, and losing
+   * that because they did not also press a button would be answering a plain "no" with the
+   * same offer a minute later.
+   *
+   * The sheet stays up: ticking is a preference, not a close, and pulling the panel out from
+   * under a finger is its own small rudeness. Untick puts it back.
+   */
+  const setNever = useCallback((value: boolean) => {
+    localStorage.setItem(NEVER_KEY, String(value))
+    setNeverState(value)
+  }, [])
+
   const dismiss = useCallback(() => {
     localStorage.setItem(SEEN_KEY, 'true')
     setOffered(false)
 
     window.clearTimeout(timer.current)
+
+    // Nothing is scheduled once they have asked to be left alone.
+    if (localStorage.getItem(NEVER_KEY) === 'true') return
+
     timer.current = window.setTimeout(() => setOffered(true), REPEAT_MS)
   }, [])
 
@@ -151,6 +183,8 @@ export function useInstallOffer(): InstallState {
     how: event ? 'prompt' : isIos() ? 'ios' : 'android',
     install,
     dismiss,
+    never,
+    setNever,
   }
 }
 

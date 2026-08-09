@@ -595,6 +595,7 @@ export const en: Dictionary = {
     },
   },
   install: {
+    neverShow: "Don't show this again",
     title: 'Install the app on your phone',
     body: 'One tap from the home screen — no browser, no typing an address.',
     action: 'Download',
