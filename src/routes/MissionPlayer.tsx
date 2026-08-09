@@ -19,6 +19,7 @@ import type {
   MissionDetail,
   StartAttemptResponse,
   TurnFeedback,
+  VoiceNoteTurnFeedback,
   VoiceSessionOutcome,
 } from '../lib/types'
 import { VoiceBadge, type VoiceState } from '../components/VoiceSignal'
@@ -46,6 +47,7 @@ const MAX_STEP_ATTEMPTS = 3
  * than the drop itself. Bounded, because a connection that keeps dropping is not coming back.
  */
 const MAX_RECONNECTS = 2
+const ASYNC_VOICE_FALLBACK_MS = 7_000
 
 /**
  * The focused mission player (PRD §6). One objective, one Russian prompt with Uzbek
@@ -92,6 +94,10 @@ export function MissionPlayer() {
   const stepAttemptsRef = useRef(0)
   const reconnectsRef = useRef(0)
   const connectedReportedRef = useRef(false)
+  const voiceStartRunRef = useRef(0)
+  const connectFallbackTimerRef = useRef<number | null>(null)
+  const voiceNoteRecorderRef = useRef<MediaRecorder | null>(null)
+  const voiceNoteChunksRef = useRef<Blob[]>([])
   // Reached the attempt cap on this step: the choice is now retry or move on, not the mic.
   const [stepExhausted, setStepExhausted] = useState(false)
   /*
@@ -108,6 +114,12 @@ export function MissionPlayer() {
   // Mirrors latestTurnPassedRef as state: a ref cannot re-render, so the status line
   // never told the learner their answer had been accepted.
   const [turnAccepted, setTurnAccepted] = useState(false)
+  const [asyncVoiceOffered, setAsyncVoiceOffered] = useState(false)
+  const [usingAsyncVoice, setUsingAsyncVoice] = useState(false)
+  const [voiceNoteBlob, setVoiceNoteBlob] = useState<Blob | null>(null)
+  const [voiceNoteMimeType, setVoiceNoteMimeType] = useState('audio/webm')
+  const [voiceNoteRecording, setVoiceNoteRecording] = useState(false)
+  const [voiceNoteBusy, setVoiceNoteBusy] = useState(false)
 
   const {
     data: mission,
@@ -345,20 +357,152 @@ export function MissionPlayer() {
     summary.formality === 'Slang' ||
     summary.workplaceUse !== 'Safe'
 
+  function clearConnectFallbackTimer() {
+    if (connectFallbackTimerRef.current !== null) {
+      window.clearTimeout(connectFallbackTimerRef.current)
+      connectFallbackTimerRef.current = null
+    }
+  }
+
+  function scheduleAsyncVoiceFallback(runId: number) {
+    clearConnectFallbackTimer()
+    connectFallbackTimerRef.current = window.setTimeout(() => {
+      if (voiceStartRunRef.current !== runId || connectedReportedRef.current) {
+        return
+      }
+
+      setAsyncVoiceOffered(true)
+    }, ASYNC_VOICE_FALLBACK_MS)
+  }
+
+  function applyFeedbackResult(result: TurnFeedback, transcriptValue: string) {
+    const passed = result.score >= 70
+    setTranscript(transcriptValue)
+    setAssistantReply(null)
+    setFeedback(result)
+    setVoiceState('feedback')
+    setServerCompletedSteps((current) => Math.max(current, result.nextStepIndex))
+    latestTurnScoreRef.current = result.score
+    latestTurnPassedRef.current = passed
+    stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
+    setTurnAccepted(passed)
+
+    if (!passed && stepAttemptsRef.current >= MAX_STEP_ATTEMPTS) {
+      setStepExhausted(true)
+    }
+  }
+
+  async function switchToAsyncVoice() {
+    setUsingAsyncVoice(true)
+    setAsyncVoiceOffered(true)
+    voiceStartRunRef.current += 1
+    clearConnectFallbackTimer()
+    manualStopRequestedRef.current = true
+
+    if (liveSessionRef.current && liveSessionIdRef.current) {
+      await teardownVoice(false, 'switched_to_voice_note')
+    } else {
+      releaseMicrophone()
+      liveSessionRef.current = null
+      liveSessionIdRef.current = null
+      connectedReportedRef.current = false
+      setHasLiveSession(false)
+      setSecondsLeft(null)
+    }
+
+    setBusy(false)
+    setVoiceState('idle')
+  }
+
+  async function startVoiceNoteRecording() {
+    try {
+      await switchToAsyncVoice()
+      setError(null)
+      const stream = await requestMicrophone()
+      const mimeType = preferredVoiceNoteMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      voiceNoteRecorderRef.current = recorder
+      voiceNoteChunksRef.current = []
+      setVoiceNoteBlob(null)
+      setVoiceNoteMimeType(recorder.mimeType || mimeType || 'audio/webm')
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          voiceNoteChunksRef.current.push(event.data)
+        }
+      }
+
+      recorder.onstop = () => {
+        const nextMimeType = recorder.mimeType || mimeType || 'audio/webm'
+        const blob = new Blob(voiceNoteChunksRef.current, { type: nextMimeType })
+        setVoiceNoteBlob(blob.size > 0 ? blob : null)
+        setVoiceNoteMimeType(nextMimeType)
+        setVoiceNoteRecording(false)
+        releaseMicrophone()
+      }
+
+      recorder.start()
+      setVoiceNoteRecording(true)
+    } catch (caught) {
+      releaseMicrophone()
+      setVoiceNoteRecording(false)
+      setError(describeVoiceFailure(caught, t, t.player.startFailed))
+    }
+  }
+
+  function stopVoiceNoteRecording() {
+    if (!voiceNoteRecording) {
+      return
+    }
+
+    voiceNoteRecorderRef.current?.stop()
+    voiceNoteRecorderRef.current = null
+  }
+
+  async function submitVoiceNote() {
+    if (!attempt || !voiceNoteBlob) return
+
+    setVoiceNoteBusy(true)
+    setError(null)
+
+    try {
+      const form = new FormData()
+      form.set('attemptId', attempt.attemptId)
+      form.set('stepIndex', String(stepIndex))
+      form.set('isRetry', 'false')
+      form.set('audio', voiceNoteBlob, `voice-note${extensionForVoiceNote(voiceNoteMimeType)}`)
+
+      const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
+      applyFeedbackResult(result.feedback, result.transcript)
+      setVoiceNoteBlob(null)
+    } catch (caught) {
+      setError(caught instanceof RequestError ? caught.message : t.player.submitFailed)
+    } finally {
+      setVoiceNoteBusy(false)
+    }
+  }
+
   async function startVoice() {
     if (!attempt) return
 
+    const runId = voiceStartRunRef.current + 1
+    voiceStartRunRef.current = runId
     setBusy(true)
     setError(null)
     setDegraded(null)
     setAssistantReply(null)
     setTranscript('')
     setFeedback(null)
+    setAsyncVoiceOffered(false)
+    setUsingAsyncVoice(false)
+    setVoiceNoteBlob(null)
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
     setTurnAccepted(false)
     manualStopRequestedRef.current = false
+    connectedReportedRef.current = false
     setVoiceState('thinking')
+    scheduleAsyncVoiceFallback(runId)
 
     // Measured from the press, not from the socket: the learner is waiting for all of it.
     const pressedAt = Date.now()
@@ -376,8 +520,14 @@ export function MissionPlayer() {
         stepIndex,
       })
 
+      if (voiceStartRunRef.current !== runId) {
+        return
+      }
+
       if (!outcome.isAvailable) {
         // An honest degraded state, not a silent failure (PRD §11).
+        clearConnectFallbackTimer()
+        setAsyncVoiceOffered(true)
         setDegraded(outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed)
         setVoiceState('unavailable')
         return
@@ -407,11 +557,17 @@ export function MissionPlayer() {
             )
           },
           onConnected: () => {
+            if (voiceStartRunRef.current !== runId) {
+              return
+            }
+
             if (connectedReportedRef.current) {
               return
             }
 
             connectedReportedRef.current = true
+            clearConnectFallbackTimer()
+            setAsyncVoiceOffered(false)
             void api
               .post('/missions/voice/sessions/connected', {
                 sessionId: ticket.sessionId,
@@ -457,8 +613,16 @@ export function MissionPlayer() {
       setHasLiveSession(true)
 
       await liveSession.start()
+      if (voiceStartRunRef.current !== runId) {
+        await teardownVoice(false, 'switched_to_voice_note')
+        return
+      }
+
+      clearConnectFallbackTimer()
       track('voice_started', { mission: currentMission.summary.slug })
     } catch (caught) {
+      clearConnectFallbackTimer()
+      setAsyncVoiceOffered(true)
       setError(describeVoiceFailure(caught, t, t.player.startFailed))
       await teardownVoice(false, 'start_failed')
       // Starting failed after the press already opened the microphone; without this the
@@ -692,6 +856,7 @@ export function MissionPlayer() {
     liveSessionRef.current = null
     liveSessionIdRef.current = null
     connectedReportedRef.current = false
+    clearConnectFallbackTimer()
     setHasLiveSession(false)
     setSecondsLeft(null)
 
@@ -953,9 +1118,46 @@ export function MissionPlayer() {
           open the box on local state alone, which is how it appeared during a session that
           was working perfectly well.
         */}
-        {degraded !== null && (
+        {(degraded !== null || asyncVoiceOffered || usingAsyncVoice || voiceNoteBlob !== null) && (
           <div className="mt-6 max-w-xl shrink-0">
-            <p className="text-support mb-3 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
+            {degraded !== null && (
+              <p className="text-support mb-3 rounded-xl bg-caution-soft px-4 py-3">{degraded}</p>
+            )}
+            {(asyncVoiceOffered || usingAsyncVoice || voiceNoteBlob !== null) && (
+              <div className="mb-4 rounded-xl bg-ground-sunken px-4 py-4">
+                <p className="text-sm font-semibold text-ink">{t.player.asyncVoiceOffer}</p>
+                <p className="text-support mt-1">
+                  {voiceNoteRecording ? t.player.releaseToSend : t.player.asyncVoiceBody}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onPointerDown={() => void startVoiceNoteRecording()}
+                    onPointerUp={stopVoiceNoteRecording}
+                    onPointerCancel={stopVoiceNoteRecording}
+                    onPointerLeave={(event) => {
+                      if (voiceNoteRecording && event.buttons === 1) {
+                        stopVoiceNoteRecording()
+                      }
+                    }}
+                    className={cx(
+                      'rounded-full px-5 py-3 text-sm font-bold text-on-signal transition',
+                      voiceNoteRecording ? 'bg-signal-strong' : 'bg-signal hover:bg-signal-hover',
+                    )}
+                  >
+                    {voiceNoteRecording ? t.player.releaseToSend : t.player.holdToRecord}
+                  </button>
+                  {voiceNoteBlob && (
+                    <>
+                      <span className="text-support text-sm">{t.player.voiceNoteReady}</span>
+                      <Button size="lg" disabled={voiceNoteBusy} onClick={() => void submitVoiceNote()}>
+                        {voiceNoteBusy ? t.player.transcribingVoiceNote : t.player.sendVoiceNote}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink">{t.player.writeAnswer}</span>
               <textarea
@@ -1683,4 +1885,22 @@ function PhraseList({
       ))}
     </ul>
   )
+}
+
+function preferredVoiceNoteMimeType() {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+    return ''
+  }
+
+  return (
+    ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((mime) =>
+      MediaRecorder.isTypeSupported(mime),
+    ) ?? ''
+  )
+}
+
+function extensionForVoiceNote(mimeType: string) {
+  if (mimeType.includes('ogg')) return '.ogg'
+  if (mimeType.includes('mp4')) return '.mp4'
+  return '.webm'
 }

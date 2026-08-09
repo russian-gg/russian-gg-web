@@ -204,6 +204,11 @@ export interface TurnFeedback {
   nextStepIndex: number
 }
 
+export interface VoiceNoteTurnFeedback {
+  transcript: string
+  feedback: TurnFeedback
+}
+
 export interface TurnDetail {
   stepIndex: number
   turnIndex: number

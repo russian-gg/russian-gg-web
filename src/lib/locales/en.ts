@@ -298,6 +298,13 @@ export const en: Dictionary = {
       'Pronunciation playback is not working right now. The rest of the lesson works — you ' +
       'can read the phrases and answer with your voice.',
     ttsFailed: 'Could not play the pronunciation. Please try again shortly.',
+    asyncVoiceOffer: 'The live connection is taking too long. You can carry on with a voice message.',
+    asyncVoiceBody: 'Hold the button like Telegram, speak, then let go to send.',
+    holdToRecord: 'Hold to record',
+    releaseToSend: 'Release to stop',
+    voiceNoteReady: 'Voice message ready. Send it and we will turn it into text automatically.',
+    sendVoiceNote: 'Send voice message',
+    transcribingVoiceNote: 'Processing the voice message…',
     writeAnswer: 'Write what you said',
     submitAnswer: 'Send answer',
     notFound: 'Lesson not found.',

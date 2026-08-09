@@ -308,6 +308,13 @@ export const uz = {
       "Talaffuzni eshittirish hozir ishlamayapti. Mashqning qolgan qismi ishlaydi - " +
       "iboralarni o'qib, ovoz bilan javob berishingiz mumkin.",
     ttsFailed: "Talaffuzni eshittirib bo'lmadi. Biroz keyinroq urinib ko'ring.",
+    asyncVoiceOffer: "Real vaqtli ulanish cho'zildi. Ovozli xabar yuborib davom etsangiz bo'ladi.",
+    asyncVoiceBody: "Telegramdagidek tugmani bosib turing, gapirib bo'lgach qo'yib yuboring.",
+    holdToRecord: 'Bosib turib yozing',
+    releaseToSend: "To'xtatish uchun qo'yib yuboring",
+    voiceNoteReady: "Ovozli xabar tayyor. Uni yuborib, avtomatik matnga aylantiramiz.",
+    sendVoiceNote: "Ovozli xabarni yuborish",
+    transcribingVoiceNote: "Ovozli xabar qayta ishlanmoqda…",
     writeAnswer: 'Aytganingizni yozing',
     submitAnswer: 'Javobni yuborish',
     notFound: 'Mashq topilmadi.',
