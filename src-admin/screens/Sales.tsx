@@ -226,6 +226,7 @@ function Inbox() {
   )
   const [selected, setSelected] = useState<string | null>(null)
   const [muted, setMuted] = useState(soundMuted.get)
+  const { shell, height } = useViewportHeight()
 
   /*
    * The last thing each chat said, from the previous poll. Held in a ref rather than state so
@@ -283,8 +284,17 @@ function Inbox() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-      <div className="space-y-2">
+    <div
+      ref={shell}
+      style={height ? { height } : undefined}
+      className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
+    >
+      {/*
+        Its own scroll, so reading down the list leaves the open conversation exactly where it
+        was. Before this the whole page moved and the thread went with it — which is not how
+        any messenger behaves, and it is disorienting for the same reason.
+      */}
+      <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
         <SectionHeading
           action={
             <button
@@ -366,6 +376,41 @@ function Inbox() {
   )
 }
 
+/**
+ * How tall the inbox should be so that it ends at the bottom of the window.
+ *
+ * Measured rather than guessed at with a calc(): the header above it is a different height in
+ * every language and wraps at some widths, and a constant that is wrong by twenty pixels is
+ * either a scrollbar nobody wants or a composer cut off the bottom of the screen.
+ *
+ * Only from `lg`. On a phone the two panes are stacked and there is no room to pin either.
+ */
+function useViewportHeight() {
+  const shell = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState<number>()
+
+  useEffect(() => {
+    const measure = () => {
+      const element = shell.current
+      if (!element || !window.matchMedia('(min-width: 1024px)').matches) {
+        setHeight(undefined)
+
+        return
+      }
+
+      // 24px of air below, so the pane does not sit flush against the window edge.
+      setHeight(Math.max(360, window.innerHeight - element.getBoundingClientRect().top - 24))
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  return { shell, height }
+}
+
 function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => void }) {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesChat>(
     `/api/admin-portal/sales/chats/${chatId}`,
@@ -373,6 +418,9 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
+  const [situation, setSituation] = useState('')
+  const [demoOpen, setDemoOpen] = useState(false)
+  const [demoSent, setDemoSent] = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -418,9 +466,34 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
     await act('/messages', { text })
   }
 
+  /**
+   * Builds the minute and sends the link, right now rather than through the queue: somebody
+   * who pressed a button is owed an answer about whether it worked.
+   */
+  async function sendDemo() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/demo`, {
+        method: 'POST',
+        body: JSON.stringify({ situation: situation.trim() }),
+      })
+
+      setSituation('')
+      setDemoOpen(false)
+      setDemoSent(true)
+      refresh()
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Demo yuborilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
-      <Card className="flex min-h-0 flex-col">
+    <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] xl:overflow-hidden">
+      <Card className="flex min-h-0 flex-col lg:overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-hairline pb-3">
           <div className="min-w-0">
             <h2 className="truncate text-base font-extrabold text-ink">{chat.displayName}</h2>
@@ -446,7 +519,46 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
           </label>
         </div>
 
-        <div ref={threadRef} className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto">
+        {/*
+          The agent offers a demo when somebody names a place clearly enough for it to notice.
+          This is for every time it does not — the operator is reading the conversation and can
+          see what the model missed.
+        */}
+        <div className="mt-3">
+          {demoOpen ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={situation}
+                onChange={(event) => setSituation(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void sendDemo()
+                  }
+                }}
+                autoFocus
+                placeholder="Qayerda qiynalyapti — masalan: sport zalda murabbiy bilan"
+                className="h-10 min-w-0 flex-1 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+              />
+              <Button size="sm" onClick={() => void sendDemo()} disabled={busy || !situation.trim()}>
+                {busy ? 'Tayyorlanmoqda…' : 'Demo yuborish'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setDemoOpen(false)} disabled={busy}>
+                Bekor
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              className="text-sm font-bold text-signal-ink"
+            >
+              {demoSent ? 'Yana demo yuborish' : 'Demo yuborish'}
+            </button>
+          )}
+        </div>
+
+        <div ref={threadRef} className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto lg:max-h-none">
           {messages.length === 0 ? (
             <EmptyNote>Xabar yo'q</EmptyNote>
           ) : (
@@ -476,7 +588,9 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
         </div>
       </Card>
 
-      <UserCard card={user} />
+      <div className="min-h-0 xl:overflow-y-auto">
+        <UserCard card={user} />
+      </div>
     </div>
   )
 }
