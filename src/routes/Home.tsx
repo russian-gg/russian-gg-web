@@ -14,6 +14,10 @@ export function Home() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeView>('/course/home'),
+    // This card is the learner's next action. After finishing a lesson it must always reflect
+    // the server's newest "today mission", not a still-fresh cache entry from the route they
+    // just left.
+    refetchOnMount: 'always',
   })
 
   if (isLoading) return <Spinner />

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
 import type { MissionResult as MissionResultDto, SkillArea } from '../lib/types'
-import { Badge, Card, LinkButton, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Card, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
 export function MissionResult() {
@@ -13,6 +13,8 @@ export function MissionResult() {
   const { locale } = useLocale()
   const { attemptId = '' } = useParams()
   const [expanded, setExpanded] = useState(false)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ['attempt-result', attemptId],
@@ -24,6 +26,14 @@ export function MissionResult() {
   if (isLoading || !data) return <Spinner label={t.result.preparing} />
 
   const skills = Object.entries(data.skillScores) as Array<[SkillArea, number]>
+
+  async function goHome() {
+    await queryClient.invalidateQueries({
+      predicate: ({ queryKey }) =>
+        ['course-map', 'day-missions', 'progress', 'home'].includes(String(queryKey[0])),
+    })
+    navigate('/home')
+  }
 
   return (
     <div className="space-y-8">
@@ -136,9 +146,13 @@ export function MissionResult() {
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <LinkButton to="/home" block>
+        <button
+          type="button"
+          onClick={() => void goHome()}
+          className="inline-flex items-center justify-center rounded-xl bg-signal px-6 py-4 text-base font-semibold text-on-signal shadow-soft transition hover:-translate-y-px hover:bg-signal-ink focus:outline-none focus:ring-4 focus:ring-signal-soft disabled:cursor-not-allowed disabled:opacity-60 w-full"
+        >
           {t.result.backHome}
-        </LinkButton>
+        </button>
         <Link
           to="/practice"
           className="inline-flex items-center justify-center rounded-xl border-2 border-hairline px-6 py-4 text-base font-semibold text-ink"
