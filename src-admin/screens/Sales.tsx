@@ -74,6 +74,10 @@ const FOLDER_TABS: Array<{ id: SalesFolder; label: string }> = [
   { id: 'Archived', label: 'Arxiv' },
 ]
 
+/** The count rides on Yangilar, which is the folder it describes. */
+const foldersWithBadge = (waiting: number) =>
+  FOLDER_TABS.map((tab) => (tab.id === 'New' ? { ...tab, badge: waiting } : tab))
+
 /** Each folder is empty for its own reason, and saying which one is the whole value. */
 const EMPTY: Record<SalesFolder, string> = {
   New: "Javob kutayotgan xabar yo'q — hammasi o'qilgan.",
@@ -115,7 +119,7 @@ export function Sales() {
       />
 
       {tab === 'dashboard' && <SalesDashboardTab />}
-      {tab === 'inbox' && <Inbox />}
+      {tab === 'inbox' && <Inbox waiting={unread?.chats ?? 0} />}
       {tab === 'demos' && <Demos />}
       {tab === 'settings' && <AgentSettings />}
     </div>
@@ -247,7 +251,13 @@ function SalesDashboardTab() {
   )
 }
 
-function Inbox() {
+/**
+ * @param waiting Conversations with something unread, for the badge on the folder.
+ *
+ * It matters more than it looks: the panel no longer jumps to a new arrival, so this is how an
+ * operator finds out one happened while they were reading something else.
+ */
+function Inbox({ waiting }: { waiting: number }) {
   /*
    * How many of the most recently active chats to ask for. Growing this rather than paging
    * means the five-second refresh returns exactly what is already on screen plus anything new,
@@ -312,17 +322,20 @@ function Inbox() {
     return () => window.clearInterval(timer)
   }, [refresh])
 
+  /*
+   * Opens the newest conversation on arrival, and then never moves on its own again.
+   *
+   * It used to re-select whenever the open chat left the visible list, which sounded careful
+   * and was the opposite. The default folder is Yangilar, and opening a conversation is what
+   * marks it read — so five seconds later it left that folder, this fired, and the panel
+   * jumped to somebody else while the operator was still reading. A new arrival taking the top
+   * of the list did the same thing.
+   *
+   * The conversation pane loads by id and does not need the chat to be in the list, so there
+   * is nothing to fix when it leaves one. Only a person clicking a row changes what is open.
+   */
   useEffect(() => {
-    if (chats.length === 0) {
-      setSelected(null)
-
-      return
-    }
-
-    // Also when the shelf changes under it: the open conversation may not be on this one.
-    if (selected === null || !chats.some((chat) => chat.id === selected)) {
-      setSelected(chats[0].id)
-    }
+    if (selected === null && chats.length > 0) setSelected(chats[0].id)
   }, [chats, selected])
 
   if (error) return <ErrorNote>{error}</ErrorNote>
@@ -332,7 +345,7 @@ function Inbox() {
   if (chats.length === 0) {
     return (
       <div className="space-y-3">
-        <Tabs value={folder} onChange={setFolder} options={FOLDER_TABS} />
+        <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
         <Card>
           <EmptyNote>{EMPTY[folder]}</EmptyNote>
         </Card>
@@ -352,7 +365,7 @@ function Inbox() {
         any messenger behaves, and it is disorienting for the same reason.
       */}
       <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
-        <Tabs value={folder} onChange={setFolder} options={FOLDER_TABS} />
+        <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
         <SectionHeading
           action={
             <button
