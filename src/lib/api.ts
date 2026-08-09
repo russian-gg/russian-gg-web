@@ -286,6 +286,23 @@ function visitorId(): { id: string; isFirst: boolean } {
  */
 const seenPaths = new Set<string>()
 
+/**
+ * Whether this page is running from the home screen rather than in a browser tab.
+ *
+ * The only signal that works everywhere. iOS has no install event at all, so an iPhone that
+ * installs the app is invisible until somebody opens it — at which point this is true and it
+ * counts like any other.
+ */
+function isInstalledApp(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    // Safari's own flag, and the only one iOS sets.
+    (window.navigator as { standalone?: boolean }).standalone === true
+  )
+}
+
 export function trackVisit(path: string) {
   if (seenPaths.has(path)) return
   seenPaths.add(path)
@@ -300,6 +317,7 @@ export function trackVisit(path: string) {
       referrer: document.referrer || null,
       source: new URLSearchParams(window.location.search).get('utm_source'),
       isFirstVisit: visitor.isFirst,
+      isInstalledApp: isInstalledApp(),
     })
     .catch(() => {})
 }

@@ -2,12 +2,14 @@ import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { InstallPrompt } from './components/InstallPrompt'
 import { TelegramFloatingButton } from './components/TelegramFloatingButton'
 import { Spinner } from './components/ui'
 import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
 import { AdminContent } from './routes/AdminContent'
 import { CoursePath } from './routes/CoursePath'
+import { Demo } from './routes/Demo'
 import { FeedbacksPage } from './routes/FeedbacksPage'
 import { Home } from './routes/Home'
 import { Landing } from './routes/Landing'
@@ -38,6 +40,13 @@ export function App() {
         */}
         <Route path="/onboarding" element={<Onboarding />} />
 
+        {/*
+          The one-minute demo, opened from a link by somebody with no account. Public by
+          design and deliberately outside every wrapper: no shell, no nav, no sign-in — the
+          page is one screen and the screen is a microphone.
+        */}
+        <Route path="/demo/:token" element={<Demo />} />
+
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route path="/home" element={<Home />} />
           <Route path="/path" element={<CoursePath />} />
@@ -60,6 +69,12 @@ export function App() {
       </Routes>
 
       <TelegramFloatingButton />
+      {/*
+        Outside the routes on purpose. Somebody who lands on the marketing page and never signs
+        in is exactly the person worth having the app on their phone, and offering it only
+        after sign-in would ask the wrong half of the audience.
+      */}
+      <InstallPrompt />
     </>
   )
 }

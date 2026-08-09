@@ -616,4 +616,17 @@ export const uz = {
       B2: 'Erkin muloqot',
     },
   },
+  install: {
+    neverShow: "Boshqa ko'rsatilmasin",
+    title: "Ilovani telefoningizga o'rnating",
+    body: "Bosh ekrandan bir bosishda ochiladi — brauzer ham, manzil terish ham kerak emas.",
+    action: 'Yuklab olish',
+    later: 'Keyinroq',
+    close: 'Yopish',
+    howTitle: "Qanday o'rnatiladi",
+    iosStep1: "Brauzerdagi «Ulashish» tugmasini bosing — yuqoriga qaragan strelkali kvadrat",
+    iosStep2: "Ro'yxatdan «Bosh ekranga qo'shish»ni tanlang",
+    androidStep1: 'Brauzer menyusini oching — uchta nuqta yoki uchta chiziq',
+    androidStep2: "«Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang",
+  },
 }

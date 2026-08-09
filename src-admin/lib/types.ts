@@ -31,6 +31,26 @@ export type Dashboard = {
   /** Operating system and browser, by visitor. In-app webviews are named, not folded in. */
   platforms: KeyValue[]
   browsers: KeyValue[]
+  /**
+   * The app on people's home screens. Counted by it being opened rather than by the browser's
+   * install event, which iOS does not send at all.
+   */
+  /**
+   * Absent on a server that does not count installs yet. Optional rather than assumed: the
+   * panel and the API deploy separately, so for a few minutes on every release one of them is
+   * always older than the other.
+   */
+  installs?: {
+    /** Devices that have ever opened it installed. All time, not the window. */
+    devices: number
+    /** Of those, the ones first seen installed inside the window. */
+    newDevices: number
+    launches: number
+    /** Absent where nobody visited — a rate over nobody is not zero. */
+    shareOfVisitors?: number | null
+  } | null
+  installSeries?: SeriesPoint[]
+  installPlatforms?: KeyValue[]
   plans: KeyValue[]
   /** Ordered A0→B2 then "Aniqlanmagan". A level scale, so never re-sorted by size. */
   levels: KeyValue[]
@@ -321,6 +341,8 @@ export type SalesSettings = {
   botTokenHint?: string | null
   botUsername?: string | null
   webhookUrl?: string | null
+  /** Where demo links point. The site, not the API — on this deployment they differ. */
+  siteBaseUrl: string
   webhookRegistered: boolean
   webhookLastError?: string | null
   webhookPendingUpdates: number
@@ -347,4 +369,20 @@ export type SalesDashboard = {
   aiCalls: number
   aiFailures: number
   aiTokens: number
+}
+
+/** One of the agent's one-minute demos, as the panel lists it. */
+export type SalesDemo = {
+  id: string
+  chatId: string
+  displayName: string
+  titleUz: string
+  situationUz: string
+  url: string
+  /** "ready", "spent" or "expired". */
+  status: string
+  createdAt: string
+  openedAt?: string | null
+  completedAt?: string | null
+  elapsedSeconds: number
 }

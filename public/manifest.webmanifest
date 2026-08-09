@@ -1,0 +1,41 @@
+{
+  "id": "/",
+  "name": "Russian.gg — rus tilida gapirish",
+  "short_name": "Russian.gg",
+  "description": "90 kunda ish va kundalik hayot uchun amaliy rus tilida gapiring.",
+  "lang": "uz",
+  "dir": "ltr",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Bugungi mashq",
+      "short_name": "Mashq",
+      "url": "/home"
+    },
+    {
+      "name": "90 kunlik yo'l",
+      "short_name": "Yo'l",
+      "url": "/path"
+    }
+  ]
+}

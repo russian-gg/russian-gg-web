@@ -600,4 +600,17 @@ export const en: Dictionary = {
       B2: 'Fluent conversation',
     },
   },
+  install: {
+    neverShow: "Don't show this again",
+    title: 'Install the app on your phone',
+    body: 'One tap from the home screen — no browser, no typing an address.',
+    action: 'Download',
+    later: 'Not now',
+    close: 'Close',
+    howTitle: 'How to install',
+    iosStep1: "Tap the browser's Share button — a square with an arrow pointing up",
+    iosStep2: 'Choose "Add to Home Screen"',
+    androidStep1: 'Open the browser menu — three dots or three lines',
+    androidStep2: 'Choose "Install app" or "Add to Home screen"',
+  },
 }

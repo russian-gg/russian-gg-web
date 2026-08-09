@@ -15,6 +15,33 @@
         document.documentElement.dataset.theme = 'light'
       }
     </script>
+    <script>
+      // Chrome decides the app is installable on its own schedule, and that can be before React
+      // has mounted — the event does not wait and does not fire twice. Caught here and held, so
+      // the offer is never lost to a slow first render on a cheap phone.
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault()
+        window.__rggInstall = event
+      })
+    </script>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!--
+      Google reads the favicon for a search result from here, and it wants a square whose side
+      is a multiple of 48. A 32px icon is the size a browser tab wants and the size Google
+      passes over, so both are offered and the .ico carries 16/32/48 in one file for the
+      crawlers and older browsers that ask for /favicon.ico by name.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <!-- iOS ignores the manifest's icons and reads this one. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Russian.gg" />
+    <!-- Matches the page rather than tinting the status bar a colour of its own. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       name="description"
       content="Russian.gg — 90 kunda ish va kundalik hayot uchun amaliy rus tilida gapiring."

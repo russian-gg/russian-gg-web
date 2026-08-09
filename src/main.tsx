@@ -6,6 +6,7 @@ import { App } from './App'
 import { AuthProvider } from './lib/auth'
 import { LocaleProvider } from './lib/locale-provider'
 import { RequestError } from './lib/api'
+import { registerServiceWorker } from './lib/pwa'
 import './styles.css'
 
 const queryClient = new QueryClient({
@@ -23,6 +24,10 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Makes the app installable and lets an opened app survive a dropped connection. Registered
+// after the first paint; see the note in lib/pwa.ts.
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
