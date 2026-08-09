@@ -1070,7 +1070,7 @@ export function MissionPlayer() {
           )}
         </header>
 
-        <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto pb-56 md:pb-52">
+        <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto pb-64 md:pb-60">
           <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
             {pickContent(locale, { uz: summary.titleUz, ru: summary.titleRu, en: summary.titleEn })}
           </h1>
@@ -1126,8 +1126,8 @@ export function MissionPlayer() {
 
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-          <div className="pointer-events-auto">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4">
+          <div className="pointer-events-auto w-full max-w-md">
             <MicControl
               state={voiceState}
               busy={busy}
