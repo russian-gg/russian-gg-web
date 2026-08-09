@@ -9,6 +9,7 @@ import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
 import { AdminContent } from './routes/AdminContent'
 import { CoursePath } from './routes/CoursePath'
+import { Demo } from './routes/Demo'
 import { FeedbacksPage } from './routes/FeedbacksPage'
 import { Home } from './routes/Home'
 import { Landing } from './routes/Landing'
@@ -38,6 +39,13 @@ export function App() {
           given while signed out are held in the session and placed straight after sign-up.
         */}
         <Route path="/onboarding" element={<Onboarding />} />
+
+        {/*
+          The one-minute demo, opened from a link by somebody with no account. Public by
+          design and deliberately outside every wrapper: no shell, no nav, no sign-in — the
+          page is one screen and the screen is a microphone.
+        */}
+        <Route path="/demo/:token" element={<Demo />} />
 
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route path="/home" element={<Home />} />

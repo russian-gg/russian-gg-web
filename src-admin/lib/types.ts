@@ -336,6 +336,8 @@ export type SalesSettings = {
   botTokenHint?: string | null
   botUsername?: string | null
   webhookUrl?: string | null
+  /** Where demo links point. The site, not the API — on this deployment they differ. */
+  siteBaseUrl: string
   webhookRegistered: boolean
   webhookLastError?: string | null
   webhookPendingUpdates: number
@@ -362,4 +364,20 @@ export type SalesDashboard = {
   aiCalls: number
   aiFailures: number
   aiTokens: number
+}
+
+/** One of the agent's one-minute demos, as the panel lists it. */
+export type SalesDemo = {
+  id: string
+  chatId: string
+  displayName: string
+  titleUz: string
+  situationUz: string
+  url: string
+  /** "ready", "spent" or "expired". */
+  status: string
+  createdAt: string
+  openedAt?: string | null
+  completedAt?: string | null
+  elapsedSeconds: number
 }

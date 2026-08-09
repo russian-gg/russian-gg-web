@@ -7,12 +7,13 @@ import { useInstallOffer } from '../lib/pwa'
 /**
  * Screens the offer stays off.
  *
- * A mission is a live voice conversation and onboarding is the placement test; both are the
- * one thing the learner is doing, and a sheet sliding up over either of them interrupts
- * something that cannot simply be resumed. The clock keeps running — the offer appears on the
- * next ordinary screen instead of being lost.
+ * A mission is a live voice conversation, onboarding is the placement test, and the demo is
+ * sixty seconds somebody was handed to decide with. Each is the one thing the person is doing,
+ * and a sheet sliding up over any of them interrupts something that cannot simply be resumed.
+ * The clock keeps running — the offer appears on the next ordinary screen instead of being
+ * lost.
  */
-const BUSY = ['/missions/', '/onboarding']
+const BUSY = ['/missions/', '/onboarding', '/demo/']
 
 /**
  * The offer to put Russian.gg on the phone's home screen.

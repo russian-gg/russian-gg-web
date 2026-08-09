@@ -5,6 +5,7 @@ import type {
   SalesChat,
   SalesDashboard as SalesDashboardData,
   SalesChatSummary,
+  SalesDemo,
   SalesUnread,
   SalesSettings,
   SalesUserStatus,
@@ -52,7 +53,7 @@ const statusTone = {
 } as const
 
 export function Sales() {
-  const [tab, setTab] = useState<'dashboard' | 'inbox' | 'settings'>('dashboard')
+  const [tab, setTab] = useState<'dashboard' | 'inbox' | 'demos' | 'settings'>('dashboard')
 
   /*
    * Asked for from here rather than from the inbox, because the badge has to be right on the
@@ -78,12 +79,14 @@ export function Sales() {
           { id: 'dashboard', label: 'Sotuv paneli' },
           // Conversations waiting, not messages: five from one person is one thing to answer.
           { id: 'inbox', label: 'Suhbatlar', badge: unread?.chats },
+          { id: 'demos', label: 'Demolar' },
           { id: 'settings', label: 'Agent sozlamalari' },
         ]}
       />
 
       {tab === 'dashboard' && <SalesDashboardTab />}
       {tab === 'inbox' && <Inbox />}
+      {tab === 'demos' && <Demos />}
       {tab === 'settings' && <AgentSettings />}
     </div>
   )
@@ -595,6 +598,93 @@ function Line({ label, value }: { label: string; value: string }) {
 /** Where Telegram is told to deliver, when nothing has said otherwise. */
 const DEFAULT_WEBHOOK_URL = 'https://russian.gg/api/telegram/webhook'
 
+/**
+ * The one-minute demos the agent has built.
+ *
+ * Each row carries its link, so an operator can open exactly what the customer was sent —
+ * which is the only way to answer "what did the bot actually give them?" without guessing.
+ */
+function Demos() {
+  const { data, error, isLoading } = useAdminQuery<SalesDemo[]>('/api/admin-portal/sales/demos')
+
+  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (!data && isLoading) return <Loading />
+  if (!data) return null
+
+  if (data.length === 0) {
+    return (
+      <Card>
+        <EmptyNote>
+          Hali demo tuzilmagan. Mijoz aynan qayerda qiynalayotganini aytganda, agent o'sha holat
+          uchun 1 daqiqalik mashq tayyorlab, havolasini yuboradi.
+        </EmptyNote>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <SectionHeading>{formatNumber(data.length)} ta demo</SectionHeading>
+      {data.map((demo) => (
+        <Card key={demo.id}>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-extrabold text-ink">{demo.titleUz}</p>
+              <p className="mt-0.5 text-sm text-ink-muted">
+                {demo.displayName} · {demo.situationUz}
+              </p>
+            </div>
+            <Badge tone={demoTone[demo.status] ?? 'neutral'}>{demoLabel[demo.status] ?? demo.status}</Badge>
+          </div>
+
+          {/*
+            The three moments worth knowing, and each says something different: sent but never
+            opened is a message that did not land, opened but never spoken is a page that did
+            not convince, and spoken is the only one that was the point.
+          */}
+          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-faint">
+            <div>
+              <dt className="inline font-bold">Yuborilgan: </dt>
+              <dd className="inline">{formatDateTime(demo.createdAt)}</dd>
+            </div>
+            <div>
+              <dt className="inline font-bold">Ochilgan: </dt>
+              <dd className="inline">{demo.openedAt ? formatDateTime(demo.openedAt) : '—'}</dd>
+            </div>
+            <div>
+              <dt className="inline font-bold">Gaplashgan: </dt>
+              <dd className="inline">
+                {demo.completedAt ? `${formatNumber(demo.elapsedSeconds)} soniya` : '—'}
+              </dd>
+            </div>
+          </dl>
+
+          <a
+            href={demo.url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 block truncate font-mono text-xs text-signal-ink"
+          >
+            {demo.url}
+          </a>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+const demoLabel: Record<string, string> = {
+  ready: 'Kutilmoqda',
+  spent: 'Ishlatilgan',
+  expired: 'Muddati tugagan',
+}
+
+const demoTone: Record<string, 'signal' | 'milestone' | 'neutral'> = {
+  ready: 'signal',
+  spent: 'milestone',
+  expired: 'neutral',
+}
+
 function AgentSettings() {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesSettings>('/api/admin-portal/sales/settings')
   const [draft, setDraft] = useState<SalesSettings | null>(null)
@@ -647,6 +737,7 @@ function AgentSettings() {
           systemPrompt: draft.systemPrompt,
           isEnabled: draft.isEnabled,
           webhookUrl: draft.webhookUrl,
+          siteBaseUrl: draft.siteBaseUrl,
           // Empty means "keep the one you have": the field starts empty every time, because
           // nothing ever sends the stored token back to this screen.
           botToken: token.trim() || null,
@@ -707,6 +798,20 @@ function AgentSettings() {
             onChange={(event) => setDraft({ ...draft, webhookUrl: event.target.value })}
             className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
           />
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-bold text-ink">Sayt manzili</span>
+          <input
+            value={draft.siteBaseUrl}
+            onChange={(event) => setDraft({ ...draft, siteBaseUrl: event.target.value })}
+            className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
+          />
+          {/* Not the webhook. That one is the API; these two are different hosts here, and a
+              demo link built from the wrong one is a dead link sent to somebody interested. */}
+          <span className="mt-1.5 block text-xs text-ink-faint">
+            Demo havolalari shu manzildan yasaladi — API emas, foydalanuvchi ochadigan sayt.
+          </span>
         </label>
 
         <div className="flex flex-wrap items-center gap-3">
