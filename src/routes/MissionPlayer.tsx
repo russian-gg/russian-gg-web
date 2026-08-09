@@ -313,6 +313,24 @@ export function MissionPlayer() {
     totalSteps,
   )
   const goalCompletedSteps = completedPreview ? totalSteps : completedSteps
+
+  function resetCompletedPreview() {
+    setCompletedPreview(false)
+    setStepIndex(0)
+    setServerCompletedSteps(0)
+    setTurnAccepted(false)
+    setFeedback(null)
+    setTranscript('')
+    setAssistantReply(null)
+    setDegraded(null)
+    setError(null)
+    latestTurnPassedRef.current = false
+    latestTurnScoreRef.current = null
+    stepAttemptsRef.current = 0
+    reconnectsRef.current = 0
+    setStepExhausted(false)
+    setHistory([])
+  }
   const promptAudioText =
     safeStep?.kind === 'PhraseIntro'
       ? safePhrases.map((phrase) => phrase.russian).join('. ')
@@ -489,21 +507,7 @@ export function MissionPlayer() {
     if (!attempt) return
 
     if (completedPreview) {
-      setCompletedPreview(false)
-      setStepIndex(0)
-      setServerCompletedSteps(0)
-      setTurnAccepted(false)
-      setFeedback(null)
-      setTranscript('')
-      setAssistantReply(null)
-      setDegraded(null)
-      setError(null)
-      latestTurnPassedRef.current = false
-      latestTurnScoreRef.current = null
-      stepAttemptsRef.current = 0
-      reconnectsRef.current = 0
-      setStepExhausted(false)
-      setHistory([])
+      return
     }
 
     const runId = voiceStartRunRef.current + 1
@@ -1086,7 +1090,9 @@ export function MissionPlayer() {
           hint={micHint}
           secondsLeft={secondsLeft}
           onStart={() => void startVoice()}
+          completedPreview={completedPreview}
           onStop={() => void stopVoice()}
+          onRestart={resetCompletedPreview}
           onInterrupt={
             hasLiveSession && voiceState === 'thinking' && !busy
               ? () => void liveSessionRef.current?.interruptTutor()
@@ -1441,7 +1447,9 @@ function MicControl({
   hint,
   secondsLeft,
   onStart,
+  completedPreview,
   onStop,
+  onRestart,
   onInterrupt,
   onMoveOn,
   feedback,
@@ -1460,7 +1468,9 @@ function MicControl({
   /** Voice time granted to the live session, counting down. Null when nothing is live. */
   secondsLeft: number | null
   onStart: () => void
+  completedPreview: boolean
   onStop: () => void
+  onRestart: () => void
   /** Offered only while the tutor is speaking; null the rest of the time. */
   onInterrupt: (() => void) | null
   /** Offered once the step has taken a few tries, without stopping the conversation. */
@@ -1512,7 +1522,9 @@ function MicControl({
         ? latestTurnAccepted
           ? t.player.turnAccepted
           : t.player.inConversation
-        : t.player.micPrompt
+        : completedPreview
+          ? t.player.completedGoalState
+          : t.player.micPrompt
 
   return (
     /*
@@ -1571,6 +1583,14 @@ function MicControl({
           {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
         </button>
       </div>
+
+      {completedPreview && !hasLiveSession && (
+        <div className="mt-4 flex justify-center">
+          <Button variant="secondary" size="lg" onClick={onRestart}>
+            {t.player.restartLesson}
+          </Button>
+        </div>
+      )}
 
       {/*
         Everything under the microphone lives in slots of a fixed height.
