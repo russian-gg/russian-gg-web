@@ -16,6 +16,7 @@ import {
   stopPromptAudio,
 } from '../lib/liveVoice'
 import type {
+  EntitlementView,
   MissionDetail,
   StartAttemptResponse,
   TurnFeedback,
@@ -131,6 +132,10 @@ export function MissionPlayer() {
     queryKey: ['mission', missionId],
     queryFn: () => api.get<MissionDetail>(`/missions/${missionId}`),
     retry: false,
+  })
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
 
   useEffect(() => {
@@ -1289,6 +1294,7 @@ export function MissionPlayer() {
 
       {showDailyLimitModal && (
         <DailyLimitDialog
+          isPro={Boolean(entitlement?.hasProAccess)}
           onDismiss={() => setShowDailyLimitModal(false)}
           onBuy={() => {
             setShowDailyLimitModal(false)
@@ -1773,9 +1779,11 @@ function GoalCard({
 }
 
 function DailyLimitDialog({
+  isPro,
   onDismiss,
   onBuy,
 }: {
+  isPro: boolean
   onDismiss: () => void
   onBuy: () => void
 }) {
@@ -1802,11 +1810,15 @@ function DailyLimitDialog({
         <h2 id="daily-limit-title" className="text-lg font-extrabold text-ink">
           {t.player.dailyLimitTitle}
         </h2>
-        <p className="text-support mt-2">{t.player.dailyLimitBody}</p>
-        <Button className="mt-5" block onClick={onBuy}>
-          {t.player.buyAccess}
-        </Button>
-        <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
+        <p className="text-support mt-2">
+          {isPro ? t.player.dailyLimitBodyPro : t.player.dailyLimitBody}
+        </p>
+        {!isPro && (
+          <Button className="mt-5" block onClick={onBuy}>
+            {t.player.buyAccess}
+          </Button>
+        )}
+        <Button variant={isPro ? 'primary' : 'ghost'} block className="mt-2" onClick={onDismiss}>
           {t.common.later}
         </Button>
       </div>

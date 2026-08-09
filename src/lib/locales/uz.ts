@@ -300,6 +300,7 @@ export const uz = {
     dailyLimitTitle: 'Bugungi limitingiz tugadi',
     dailyLimitBody:
       "Bugungi limitingiz tugadi. Keyingi kunni kuting. Yoki Pro sotib olib, limitingizni oshirishingiz mumkin.",
+    dailyLimitBodyPro: 'Bugungi limitingiz tugadi. Keyingi kunni kuting.',
     buyAccess: 'Sotib olish',
     goalProgress: 'Maqsad progressi',
     goal: 'Bugungi maqsad',
