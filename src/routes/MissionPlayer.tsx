@@ -120,6 +120,7 @@ export function MissionPlayer() {
   const [voiceNoteMimeType, setVoiceNoteMimeType] = useState('audio/webm')
   const [voiceNoteRecording, setVoiceNoteRecording] = useState(false)
   const [voiceNoteBusy, setVoiceNoteBusy] = useState(false)
+  const [completedPreview, setCompletedPreview] = useState(false)
 
   const {
     data: mission,
@@ -148,6 +149,7 @@ export function MissionPlayer() {
         const lastStep = Math.max(0, (Array.isArray(mission.steps) ? mission.steps.length : 1) - 1)
         setStepIndex(Math.min(Math.max(0, started.currentStepIndex), lastStep))
         setServerCompletedSteps(Math.max(0, started.currentStepIndex))
+        setCompletedPreview(mission.summary.isCompleted && !started.isResumed && started.currentStepIndex === 0)
       } catch (caught) {
         setError(caught instanceof RequestError ? caught.message : t.player.openFailed)
       }
@@ -310,6 +312,7 @@ export function MissionPlayer() {
     Math.max(stepIndex + (turnAccepted ? 1 : 0), serverCompletedSteps),
     totalSteps,
   )
+  const goalCompletedSteps = completedPreview ? totalSteps : completedSteps
   const promptAudioText =
     safeStep?.kind === 'PhraseIntro'
       ? safePhrases.map((phrase) => phrase.russian).join('. ')
@@ -484,6 +487,24 @@ export function MissionPlayer() {
 
   async function startVoice() {
     if (!attempt) return
+
+    if (completedPreview) {
+      setCompletedPreview(false)
+      setStepIndex(0)
+      setServerCompletedSteps(0)
+      setTurnAccepted(false)
+      setFeedback(null)
+      setTranscript('')
+      setAssistantReply(null)
+      setDegraded(null)
+      setError(null)
+      latestTurnPassedRef.current = false
+      latestTurnScoreRef.current = null
+      stepAttemptsRef.current = 0
+      reconnectsRef.current = 0
+      setStepExhausted(false)
+      setHistory([])
+    }
 
     const runId = voiceStartRunRef.current + 1
     voiceStartRunRef.current = runId
@@ -1182,7 +1203,7 @@ export function MissionPlayer() {
       </div>
 
       <aside className="mt-10 space-y-4 lg:mt-0 lg:sticky lg:top-8">
-        <GoalCard steps={safeSteps} stepIndex={stepIndex} completed={completedSteps} t={t} />
+        <GoalCard steps={safeSteps} stepIndex={stepIndex} completed={goalCompletedSteps} t={t} />
 
         {/*
           No "Maslahat" card here: on a phrase step it repeated the phrase list verbatim, and
