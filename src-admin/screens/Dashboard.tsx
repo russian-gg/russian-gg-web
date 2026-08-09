@@ -144,6 +144,12 @@ export function Dashboard() {
         and they want it on the phone. That is the demand for a mobile app, measurable without
         having built one.
       */}
+      {/*
+        Only when the API sends it. The panel and the API deploy separately, so one of them is
+        older than the other on every release — and a whole dashboard that white-screens
+        because one block is missing costs more than the block ever gave.
+      */}
+      {data.installs && (
       <section>
         <SectionHeading>Telefonga o'rnatganlar</SectionHeading>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -171,16 +177,16 @@ export function Dashboard() {
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <Card>
             <h3 className="mb-4 text-base font-extrabold text-ink">Qaysi telefonlarda</h3>
-            {data.installPlatforms.length === 0 ? (
+            {(data.installPlatforms ?? []).length === 0 ? (
               <p className="text-sm text-ink-muted">Hali hech kim o'rnatmagan</p>
             ) : (
-              <BarList items={data.installPlatforms} format={formatNumber} labelWidth="w-20 sm:w-28" />
+              <BarList items={data.installPlatforms ?? []} format={formatNumber} labelWidth="w-20 sm:w-28" />
             )}
           </Card>
 
           <Card>
             <h3 className="mb-3 text-base font-extrabold text-ink">Kunlik yangi o'rnatishlar</h3>
-            <ColumnChart points={data.installSeries} label="Qurilmalar" format={formatNumber} />
+            <ColumnChart points={data.installSeries ?? []} label="Qurilmalar" format={formatNumber} />
           </Card>
         </div>
 
@@ -194,6 +200,7 @@ export function Dashboard() {
           qurilma bu yerda ko'rinmaydi — iOS o'rnatish haqida hech qanday signal yubormaydi.
         </p>
       </section>
+      )}
 
       <section>
         <SectionHeading>Darajalar</SectionHeading>

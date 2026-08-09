@@ -35,7 +35,12 @@ export type Dashboard = {
    * The app on people's home screens. Counted by it being opened rather than by the browser's
    * install event, which iOS does not send at all.
    */
-  installs: {
+  /**
+   * Absent on a server that does not count installs yet. Optional rather than assumed: the
+   * panel and the API deploy separately, so for a few minutes on every release one of them is
+   * always older than the other.
+   */
+  installs?: {
     /** Devices that have ever opened it installed. All time, not the window. */
     devices: number
     /** Of those, the ones first seen installed inside the window. */
@@ -43,9 +48,9 @@ export type Dashboard = {
     launches: number
     /** Absent where nobody visited — a rate over nobody is not zero. */
     shareOfVisitors?: number | null
-  }
-  installSeries: SeriesPoint[]
-  installPlatforms: KeyValue[]
+  } | null
+  installSeries?: SeriesPoint[]
+  installPlatforms?: KeyValue[]
   plans: KeyValue[]
   /** Ordered A0→B2 then "Aniqlanmagan". A level scale, so never re-sorted by size. */
   levels: KeyValue[]
