@@ -981,6 +981,21 @@ function AgentSettings() {
         </button>
       </div>
 
+      {/*
+        The stored prompt is the one that runs, and it is the operator's. That is the right
+        rule and it has a cost nobody could see: a shipped improvement to the script — the
+        agent learning to offer a demo, or to propose a topic when somebody cannot name one —
+        sat in the code doing nothing, because production was still running the text saved
+        months earlier and no screen said so. Now one does.
+      */}
+      {data && data.systemPrompt !== data.defaultPrompt && (
+        <p className="rounded-[var(--radius-card)] border-2 border-caution/40 bg-caution-soft px-4 py-3 text-sm text-caution">
+          Saqlangan ko'rsatma yangilangan standart matndan farq qiladi. Agentga qo'shilgan
+          yangi qobiliyatlar ishlashi uchun «Standart matnni yuklash» ni bosib, saqlang —
+          o'zingiz kiritgan o'zgarishlar bo'lsa, avval nusxasini olib qo'ying.
+        </p>
+      )}
+
       <label className="block">
         <textarea
           value={draft.systemPrompt}
