@@ -83,7 +83,6 @@ function UserList() {
           <Table head={['Foydalanuvchi', 'Qurilma', 'Daraja', 'Reja', 'Kun', 'Mashqlar', 'Oxirgi kirish', "Ro'yxatdan o'tgan"]}>
             {data.items.map((user) => (
               <Row key={user.id} onClick={() => setSelected(user.id)}>
-                <Cell muted>{user.device}</Cell>
                 <Cell>
                   <span className="block font-bold text-ink">{user.displayName ?? 'Ismsiz'}</span>
                   <span className="block text-xs text-ink-faint">{user.email}</span>
@@ -91,6 +90,7 @@ function UserList() {
                     <span className="block text-xs text-ink-faint">{user.phoneNumber}</span>
                   )}
                 </Cell>
+                <Cell muted>{user.device}</Cell>
                 <Cell>
                   {/* A dash, not A0: an unmeasured learner has not been placed at the bottom. */}
                   {user.speakingLevel ? (
