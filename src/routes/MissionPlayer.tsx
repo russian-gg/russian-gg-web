@@ -123,6 +123,7 @@ export function MissionPlayer() {
   const [voiceNoteBusy, setVoiceNoteBusy] = useState(false)
   const [completedPreview, setCompletedPreview] = useState(false)
   const [showDailyLimitModal, setShowDailyLimitModal] = useState(false)
+  const [autoContinueNextStep, setAutoContinueNextStep] = useState(false)
 
   const {
     data: mission,
@@ -181,6 +182,17 @@ export function MissionPlayer() {
   useEffect(() => {
     assistantReplyRef.current = assistantReply
   }, [assistantReply])
+
+  useEffect(() => {
+    if (!autoContinueNextStep || busy || hasLiveSession || completedPreview || feedback) {
+      return
+    }
+
+    setAutoContinueNextStep(false)
+    void startVoice()
+    // `startVoice` reads the current step from state after `advance` has moved it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoContinueNextStep, busy, hasLiveSession, completedPreview, feedback, stepIndex])
 
   function clearFinalCompletionTimer() {
     if (finalCompletionTimerRef.current !== null) {
@@ -700,7 +712,7 @@ export function MissionPlayer() {
       // A live turn may already be in flight; submitting the same words twice would record
       // two attempts for one answer.
       if (transcriptValue && !latestTurnPassedRef.current && !submittingTurnRef.current) {
-        await submitTurn(false, transcriptValue, assistantReplyRef.current, false, true)
+        await submitTurn(false, transcriptValue, assistantReplyRef.current, false, 'always')
       }
 
       if (latestTurnPassedRef.current) {
@@ -807,7 +819,7 @@ export function MissionPlayer() {
         transcriptValue,
         assistantReplyRef.current,
         true,
-        isFinalStep,
+        isFinalStep ? 'always' : 'failed-only',
       )
       if (manualStopRequestedRef.current) return
 
@@ -842,7 +854,10 @@ export function MissionPlayer() {
         await teardownVoice(true, null)
         setVoiceState('feedback')
         scheduleFinalCompletion()
+        return
       }
+
+      await advance(true)
     } finally {
       submittingTurnRef.current = false
     }
@@ -853,7 +868,7 @@ export function MissionPlayer() {
     transcriptValue = transcript,
     tutorReply = assistantReply,
     showThinking = true,
-    showFeedbackPanel = true,
+    feedbackMode: 'always' | 'failed-only' | 'never' = 'always',
   ) {
     if (!attempt || !transcriptValue.trim()) return
 
@@ -880,6 +895,8 @@ export function MissionPlayer() {
       latestTurnPassedRef.current = passed
       stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
       setTurnAccepted(passed)
+      const showFeedbackPanel =
+        feedbackMode === 'always' || (feedbackMode === 'failed-only' && !passed)
       if (showFeedbackPanel) {
         setFeedback(result)
         setVoiceState('feedback')
@@ -926,7 +943,7 @@ export function MissionPlayer() {
     }
   }
 
-  async function advance() {
+  async function advance(autoContinue = false) {
     clearFinalCompletionTimer()
     await teardownVoice(true, null)
 
@@ -964,6 +981,7 @@ export function MissionPlayer() {
     setTurnAccepted(false)
     manualStopRequestedRef.current = false
     setStepIndex((current) => Math.min(current + 1, totalSteps - 1))
+    setAutoContinueNextStep(autoContinue)
   }
 
   async function complete() {
