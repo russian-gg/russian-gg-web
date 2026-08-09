@@ -303,6 +303,8 @@ export type SalesChatSummary = {
   readinessSignal?: string | null
   /** Customer messages since an operator last had this chat open. */
   unread: number
+  /** Put away by an operator. Still counted everywhere, just not in the working list. */
+  isArchived?: boolean
 }
 
 export type SalesUnread = {

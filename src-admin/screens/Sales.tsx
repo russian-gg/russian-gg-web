@@ -231,9 +231,10 @@ function Inbox() {
    * so nothing an operator has scrolled to disappears under them.
    */
   const [take, setTake] = useState(PAGE)
+  const [archived, setArchived] = useState(false)
 
   const { data, error, isLoading, refresh } = useAdminQuery<SalesChatPage | SalesChatSummary[]>(
-    `/api/admin-portal/sales/chats?take=${take}`,
+    `/api/admin-portal/sales/chats?take=${take}&archived=${archived}`,
   )
 
   /*
@@ -289,7 +290,16 @@ function Inbox() {
   }, [refresh])
 
   useEffect(() => {
-    if (chats.length > 0 && selected === null) setSelected(chats[0].id)
+    if (chats.length === 0) {
+      setSelected(null)
+
+      return
+    }
+
+    // Also when the shelf changes under it: the open conversation may not be on this one.
+    if (selected === null || !chats.some((chat) => chat.id === selected)) {
+      setSelected(chats[0].id)
+    }
   }, [chats, selected])
 
   if (error) return <ErrorNote>{error}</ErrorNote>
@@ -298,11 +308,16 @@ function Inbox() {
 
   if (chats.length === 0) {
     return (
-      <Card>
-        <EmptyNote>
-          Hali suhbat yo'q. Bot sozlangach, unga yozilgan birinchi xabar shu yerda paydo bo'ladi.
-        </EmptyNote>
-      </Card>
+      <div className="space-y-3">
+        <ShelfSwitch archived={archived} onChange={setArchived} />
+        <Card>
+          <EmptyNote>
+            {archived
+              ? "Arxivda hech narsa yo'q."
+              : "Hali suhbat yo'q. Bot sozlangach, unga yozilgan birinchi xabar shu yerda paydo bo'ladi."}
+          </EmptyNote>
+        </Card>
+      </div>
     )
   }
 
@@ -318,6 +333,7 @@ function Inbox() {
         any messenger behaves, and it is disorienting for the same reason.
       */}
       <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
+        <ShelfSwitch archived={archived} onChange={setArchived} />
         <SectionHeading
           action={
             <button
@@ -336,7 +352,8 @@ function Inbox() {
             </button>
           }
         >
-          {formatNumber(chats.length)} / {formatNumber(total)} ta suhbat
+          {formatNumber(chats.length)} / {formatNumber(total)} ta{' '}
+          {archived ? 'arxivlangan' : 'suhbat'}
         </SectionHeading>
         {chats.map((chat) => (
           <button
@@ -453,6 +470,44 @@ function useViewportHeight() {
   return { shell: setShell, height }
 }
 
+/**
+ * Working list or archive.
+ *
+ * Two shelves rather than a filter menu, because there are exactly two and an operator is
+ * always on one of them — and the archive has to be one press away, or nobody would put
+ * anything in it.
+ */
+function ShelfSwitch({
+  archived,
+  onChange,
+}: {
+  archived: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <div className="flex gap-1 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1">
+      {[
+        { value: false, label: 'Suhbatlar' },
+        { value: true, label: 'Arxiv' },
+      ].map((shelf) => (
+        <button
+          key={String(shelf.value)}
+          type="button"
+          onClick={() => onChange(shelf.value)}
+          className={cx(
+            'flex-1 rounded-[var(--radius-control)] px-3 py-1.5 text-sm font-bold transition-colors',
+            archived === shelf.value
+              ? 'bg-signal text-on-signal'
+              : 'text-ink-muted hover:text-ink',
+          )}
+        >
+          {shelf.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => void }) {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesChat>(
     `/api/admin-portal/sales/chats/${chatId}`,
@@ -512,6 +567,24 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
    * Builds the minute and sends the link, right now rather than through the queue: somebody
    * who pressed a button is owed an answer about whether it worked.
    */
+  async function archive(next: boolean) {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/archive?archived=${next}`, {
+        method: 'POST',
+      })
+
+      // The list owns which chats are on which shelf, and this one just moved.
+      onChanged()
+      refresh()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function sendDemo() {
     setBusy(true)
     setFailure('')
@@ -562,16 +635,32 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
             is deliberate — nothing turns it on by itself, because the operator who took the
             chat is the only one who knows whether they are finished with it.
           */}
-          <label className="flex items-center gap-2 text-sm font-bold text-ink">
-            <input
-              type="checkbox"
-              checked={chat.aiAutoReply}
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm font-bold text-ink">
+              <input
+                type="checkbox"
+                checked={chat.aiAutoReply}
+                disabled={busy}
+                onChange={(event) => void act(`/auto-reply?enabled=${event.target.checked}`)}
+                className="size-4 accent-[var(--color-signal)]"
+              />
+              AI javob beradi
+            </label>
+
+            {/*
+              Archive, not delete. Somebody who blocked the bot leaves a thread that will never
+              move again — but what they said before that is why they did not buy, and the
+              weekly plan reads it. It comes back on its own if they write again.
+            */}
+            <button
+              type="button"
               disabled={busy}
-              onChange={(event) => void act(`/auto-reply?enabled=${event.target.checked}`)}
-              className="size-4 accent-[var(--color-signal)]"
-            />
-            AI javob beradi
-          </label>
+              onClick={() => void archive(!chat.isArchived)}
+              className="text-sm font-bold text-ink-muted transition-colors hover:text-ink disabled:opacity-45"
+            >
+              {chat.isArchived ? 'Arxivdan chiqarish' : 'Arxivlash'}
+            </button>
+          </div>
         </div>
 
         {/*
