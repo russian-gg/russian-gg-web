@@ -803,7 +803,7 @@ function AgentSettings() {
         <label className="block">
           <span className="mb-1.5 block text-sm font-bold text-ink">Sayt manzili</span>
           <input
-            value={draft.siteBaseUrl}
+            value={draft.siteBaseUrl ?? ''}
             onChange={(event) => setDraft({ ...draft, siteBaseUrl: event.target.value })}
             className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
           />

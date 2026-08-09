@@ -341,8 +341,13 @@ export type SalesSettings = {
   botTokenHint?: string | null
   botUsername?: string | null
   webhookUrl?: string | null
-  /** Where demo links point. The site, not the API — on this deployment they differ. */
-  siteBaseUrl: string
+  /**
+   * Where demo links point. The site, not the API — on this deployment they differ.
+   *
+   * Optional because the panel and the API deploy separately: for a few minutes on every
+   * release one of them is older, and a required field turns that window into a crash.
+   */
+  siteBaseUrl?: string | null
   webhookRegistered: boolean
   webhookLastError?: string | null
   webhookPendingUpdates: number
