@@ -91,6 +91,7 @@ export type UserItem = {
   /** Absent when nobody has measured it — not the A0 an enrollment starts on. */
   speakingLevel?: string | null
   currentDay?: number | null
+  device: string
 }
 
 export type UserDetail = UserItem & {
@@ -107,6 +108,7 @@ export type UserDetail = UserItem & {
   }>
   speakingLevel?: string | null
   comprehensionLevel?: string | null
+  device: string
 }
 
 export type Transaction = {

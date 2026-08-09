@@ -80,9 +80,10 @@ function UserList() {
             Columns the product can fill. Every one of these has a value for every learner —
             an always-empty column looks like a broken query, not a fact about the data.
           */}
-          <Table head={['Foydalanuvchi', 'Daraja', 'Reja', 'Kun', 'Mashqlar', 'Oxirgi kirish', "Ro'yxatdan o'tgan"]}>
+          <Table head={['Foydalanuvchi', 'Qurilma', 'Daraja', 'Reja', 'Kun', 'Mashqlar', 'Oxirgi kirish', "Ro'yxatdan o'tgan"]}>
             {data.items.map((user) => (
               <Row key={user.id} onClick={() => setSelected(user.id)}>
+                <Cell muted>{user.device}</Cell>
                 <Cell>
                   <span className="block font-bold text-ink">{user.displayName ?? 'Ismsiz'}</span>
                   <span className="block text-xs text-ink-faint">{user.email}</span>
@@ -109,7 +110,7 @@ function UserList() {
             ))}
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <EmptyNote>Hech kim topilmadi</EmptyNote>
                 </td>
               </tr>
@@ -191,6 +192,7 @@ function UserDrawer({
               <Line label="Rol" value={data.role} />
               <Line label="Til" value={data.uiLanguage} />
               <Line label="Telefon" value={data.phoneNumber ?? '—'} />
+              <Line label="Qurilma" value={data.device} />
               <Line label="Vaqt mintaqasi" value={data.timeZoneId} />
               <Line label="Kurs kuni" value={data.currentDay ? `${data.currentDay}-kun` : '—'} />
               <Line
