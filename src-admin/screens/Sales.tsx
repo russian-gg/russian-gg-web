@@ -534,14 +534,27 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   }
 
   return (
-    <div className="grid min-h-0 gap-4 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
+    <div
+      className={cx(
+        'grid min-h-0 gap-4 overflow-hidden',
+        // The card is a column of facts about an account. With no account there are no facts,
+        // and a panel that exists only to say so is width the conversation should have had —
+        // which is most of them, because people write to the bot before they sign up.
+        user.userId && 'xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]',
+      )}
+    >
       <Card className="flex min-h-0 flex-col lg:overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-hairline pb-3">
           <div className="min-w-0">
             <h2 className="truncate text-base font-extrabold text-ink">{chat.displayName}</h2>
-            <p className="text-xs text-ink-faint">
-              {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
-            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              <p className="text-xs text-ink-faint">
+                {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
+              </p>
+              {/* Kept when the card is not shown, because "have they signed up" is the one
+                  thing about them that changes how this conversation should go. */}
+              <Badge tone={statusTone[user.status]}>{statusLabel[user.status]}</Badge>
+            </div>
           </div>
 
           {/*
@@ -635,9 +648,11 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
         </div>
       </Card>
 
-      <div className="min-h-0 xl:overflow-y-auto">
-        <UserCard card={user} />
-      </div>
+      {user.userId && (
+        <div className="min-h-0 xl:overflow-y-auto">
+          <UserCard card={user} />
+        </div>
+      )}
     </div>
   )
 }
@@ -716,20 +731,14 @@ function UserCard({ card }: { card: SalesChat['user'] }) {
 
       <Badge tone={statusTone[card.status]}>{statusLabel[card.status]}</Badge>
 
-      {card.userId ? (
-        <dl className="space-y-2 text-sm">
-          <Line label="Email" value={card.email ?? '—'} />
-          <Line label="Ro'yxatdan o'tgan" value={formatDate(card.registeredAt)} />
-          <Line label="Oxirgi faollik" value={formatDate(card.lastActiveAt)} />
-          <Line label="Tugatilgan mashqlar" value={formatNumber(card.completedLessons)} />
-          <Line label="Kurs kuni" value={card.currentDay > 0 ? `${card.currentDay}-kun` : '—'} />
-          <Line label="Daraja" value={card.speakingLevel ?? '—'} />
-        </dl>
-      ) : (
-        <p className="text-sm text-ink-muted">
-          Bu suhbat hech qanday hisobga bog'lanmagan — platformada ro'yxatdan o'tmagan.
-        </p>
-      )}
+      <dl className="space-y-2 text-sm">
+        <Line label="Email" value={card.email ?? '—'} />
+        <Line label="Ro'yxatdan o'tgan" value={formatDate(card.registeredAt)} />
+        <Line label="Oxirgi faollik" value={formatDate(card.lastActiveAt)} />
+        <Line label="Tugatilgan mashqlar" value={formatNumber(card.completedLessons)} />
+        <Line label="Kurs kuni" value={card.currentDay > 0 ? `${card.currentDay}-kun` : '—'} />
+        <Line label="Daraja" value={card.speakingLevel ?? '—'} />
+      </dl>
 
       {card.triggerEvents.length > 0 && (
         <div>
