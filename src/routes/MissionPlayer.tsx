@@ -79,7 +79,7 @@ export function MissionPlayer() {
   // folded in here when the step ends, so the thread grows instead of resetting each step.
   const [history, setHistory] = useState<ChatMessage[]>([])
   // Latched once the provider answers 503: the lesson keeps working without audio.
-  const [ttsUnavailable, setTtsUnavailable] = useState(false)
+  const [ttsUnavailable] = useState(false)
   const liveSessionRef = useRef<LiveVoiceSession | null>(null)
   const liveSessionIdRef = useRef<string | null>(null)
   const currentStepRef = useRef(0)
@@ -385,10 +385,11 @@ export function MissionPlayer() {
       /*
        * A trace id is not an answer. The provider being unavailable is a state the lesson
        * carries on through — reading and speaking still work — so it is said once, in Uzbek,
-       * and the play controls stop offering something that cannot happen.
+       * but the play controls stay put: a vanished button reads like the UI broke rather than
+       * the audio endpoint failing for this request.
        */
       if (caught instanceof RequestError && (caught.status === 503 || caught.status >= 500)) {
-        setTtsUnavailable(true)
+        setError(t.player.ttsUnavailable)
         return
       }
 
