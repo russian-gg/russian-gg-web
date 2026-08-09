@@ -1626,21 +1626,16 @@ function MicControl({
            * toward the cursor, and sinks onto that edge when pushed.
            */
           className={cx(
-            'telegram-fab relative z-10 rounded-full',
-            'transition-[transform,opacity] duration-150',
-            'active:translate-y-[3px]',
-            'disabled:pointer-events-none disabled:opacity-40',
+            'relative z-10 flex size-20 shrink-0 items-center justify-center rounded-full',
+            'shadow-[0_5px_0_0_var(--color-signal-depth)]',
+            'transition-[background-color,box-shadow,transform] duration-150',
+            'hover:-translate-y-0.5 hover:shadow-[0_7px_0_0_var(--color-signal-depth)]',
+            'active:translate-y-[5px] active:shadow-none',
+            'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none',
+            hasLiveSession ? 'bg-signal-strong' : 'bg-signal hover:bg-signal-hover',
           )}
         >
-          <span className="telegram-fab__glow" aria-hidden="true" />
-          <span
-            className={cx(
-              'telegram-fab__surface size-20',
-              hasLiveSession && 'brightness-[0.94] saturate-[1.08]',
-            )}
-          >
-            {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
-          </span>
+          {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
         </button>
       </div>
 
