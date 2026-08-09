@@ -175,6 +175,15 @@ export function Paywall() {
                 const shownAmount = discounted ? promoPreview.finalAmountTiyin : option.amountTiyin
                 const shownCurrency = discounted ? promoPreview.currency : option.currency
                 const futurePrice = futureListPriceTiyin[option.period]
+                const perDayPrice = formatPrice(
+                  perDayAmountTiyin(shownAmount, option.period),
+                  shownCurrency,
+                  locale,
+                )
+                const currentPrice = formatPrice(option.amountTiyin, option.currency, locale)
+                const futurePriceText = futurePrice
+                  ? formatPrice(futurePrice, option.currency, locale)
+                  : null
 
                 return (
                   <button
@@ -205,18 +214,30 @@ export function Paywall() {
                         <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
                       </div>
                     ) : (
-                      <div className="mt-2 space-y-1.5">
-                        {futurePrice ? (
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                            <span className="font-medium text-ink-faint">{t.billing.futurePriceLabel}</span>
-                            <span className="font-semibold text-ink-muted line-through decoration-2">
-                              {formatPrice(futurePrice, option.currency, locale)}
+                      <div className="mt-2">
+                        <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+                          {futurePriceText ? (
+                            <span className="text-base font-semibold text-ink-muted line-through decoration-2">
+                              {futurePriceText}
                             </span>
+                          ) : null}
+                          <span className="text-2xl font-semibold tracking-tight text-ink">{currentPrice}</span>
+                        </div>
+                        <div className="mt-4 border-t border-hairline pt-4">
+                          <div className="flex flex-wrap items-end gap-x-1 gap-y-1">
+                            <span className="text-3xl font-extrabold tracking-tight text-ink">{perDayPrice}</span>
+                            <span className="pb-1 text-lg font-semibold text-ink-muted">/kun</span>
                           </div>
-                        ) : null}
-                        <p className="text-2xl font-semibold tracking-tight text-ink">
-                          {formatPrice(option.amountTiyin, option.currency, locale)}
-                        </p>
+                          {futurePrice !== undefined ? (
+                            <div className="mt-1 text-base font-semibold text-ink-faint line-through decoration-2">
+                              {formatPrice(
+                                perDayAmountTiyin(futurePrice, option.period),
+                                option.currency,
+                                locale,
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     )}
                     <div className="mt-1 space-y-0.5 text-support">
