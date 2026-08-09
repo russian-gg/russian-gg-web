@@ -138,6 +138,14 @@ export function MissionPlayer() {
     void (async () => {
       try {
         const started = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`)
+        if (started.requiresExplicitRestart) {
+          setAttempt(null)
+          setCompletedPreview(true)
+          setStepIndex(0)
+          setServerCompletedSteps(0)
+          return
+        }
+
         setAttempt(started)
         /*
          * Resuming lands the learner on the step they left, not back at the beginning — but
@@ -149,7 +157,7 @@ export function MissionPlayer() {
         const lastStep = Math.max(0, (Array.isArray(mission.steps) ? mission.steps.length : 1) - 1)
         setStepIndex(Math.min(Math.max(0, started.currentStepIndex), lastStep))
         setServerCompletedSteps(Math.max(0, started.currentStepIndex))
-        setCompletedPreview(mission.summary.isCompleted && !started.isResumed && started.currentStepIndex === 0)
+        setCompletedPreview(false)
       } catch (caught) {
         setError(caught instanceof RequestError ? caught.message : t.player.openFailed)
       }
@@ -314,22 +322,32 @@ export function MissionPlayer() {
   )
   const goalCompletedSteps = completedPreview ? totalSteps : completedSteps
 
-  function resetCompletedPreview() {
-    setCompletedPreview(false)
-    setStepIndex(0)
-    setServerCompletedSteps(0)
-    setTurnAccepted(false)
-    setFeedback(null)
-    setTranscript('')
-    setAssistantReply(null)
-    setDegraded(null)
+  async function resetCompletedPreview() {
+    setBusy(true)
     setError(null)
-    latestTurnPassedRef.current = false
-    latestTurnScoreRef.current = null
-    stepAttemptsRef.current = 0
-    reconnectsRef.current = 0
-    setStepExhausted(false)
-    setHistory([])
+
+    try {
+      const started = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts?restart=true`)
+      setAttempt(started)
+      setCompletedPreview(false)
+      setStepIndex(0)
+      setServerCompletedSteps(0)
+      setTurnAccepted(false)
+      setFeedback(null)
+      setTranscript('')
+      setAssistantReply(null)
+      setDegraded(null)
+      latestTurnPassedRef.current = false
+      latestTurnScoreRef.current = null
+      stepAttemptsRef.current = 0
+      reconnectsRef.current = 0
+      setStepExhausted(false)
+      setHistory([])
+    } catch (caught) {
+      setError(caught instanceof RequestError ? caught.message : t.player.openFailed)
+    } finally {
+      setBusy(false)
+    }
   }
   const promptAudioText =
     safeStep?.kind === 'PhraseIntro'
@@ -1092,7 +1110,7 @@ export function MissionPlayer() {
           onStart={() => void startVoice()}
           completedPreview={completedPreview}
           onStop={() => void stopVoice()}
-          onRestart={resetCompletedPreview}
+          onRestart={() => void resetCompletedPreview()}
           onInterrupt={
             hasLiveSession && voiceState === 'thinking' && !busy
               ? () => void liveSessionRef.current?.interruptTutor()

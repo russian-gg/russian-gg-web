@@ -193,6 +193,7 @@ export interface StartAttemptResponse {
   currentStepIndex: number
   totalSteps: number
   isResumed: boolean
+  requiresExplicitRestart: boolean
 }
 
 export interface TurnFeedback {
