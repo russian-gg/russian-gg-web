@@ -91,6 +91,8 @@ export type AiUsage = {
   failed: number
   totalTokens: number
   totalCostUsd: number
+  /** Calls the total leaves out, because no rate is configured for their model. */
+  unpricedCalls?: number
   costByDay: CostPoint[]
   byProvider: KeyValue[]
   byOperation: KeyValue[]

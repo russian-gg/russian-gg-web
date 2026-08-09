@@ -64,10 +64,27 @@ export function AiUsage() {
           badge={data.failed > 0 ? <Badge tone="danger">xato</Badge> : undefined}
         />
         <Stat label="Jami tokenlar" value={formatNumber(data.totalTokens)} />
+        {/*
+          The note is the point, not decoration. This total once read under a dollar against
+          fifty dollars of real billing, because the rate table was written for a model the
+          product had moved off — and calls with no rate were summed as nothing. A total that
+          silently leaves calls out is worse than no total, so it now says how many.
+        */}
         <Stat
           label="Umumiy narx"
           value={formatUsd(data.totalCostUsd)}
-          note={hasCost ? undefined : "Provayder narxni qaytarmagan"}
+          badge={
+            data.unpricedCalls && data.unpricedCalls > 0 ? (
+              <Badge tone="caution">to'liq emas</Badge>
+            ) : undefined
+          }
+          note={
+            data.unpricedCalls && data.unpricedCalls > 0
+              ? `${formatNumber(data.unpricedCalls)} ta chaqiruv narxsiz — modeli uchun tarif kiritilmagan`
+              : hasCost
+                ? undefined
+                : 'Provayder narxni qaytarmagan'
+          }
         />
       </div>
 
