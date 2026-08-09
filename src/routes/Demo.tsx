@@ -153,8 +153,14 @@ export function Demo() {
         setPhase('live')
         setSecondsLeft(outcome.ticket!.maxDurationSeconds)
       },
-      onInputTranscript: (text) => setSaid((current) => current + text),
-      onOutputTranscript: (text) => setHeard((current) => current + text),
+      /*
+       * Replaced, never appended. The session accumulates the transcript itself and hands over
+       * the whole thing each time, so adding to it printed the sentence again on every chunk —
+       * "Assalomu alaykum! BizningAssalomu alaykum! Bizning restoranimizga…" — which is what a
+       * learner saw for the entire minute. The mission player has always done it this way.
+       */
+      onInputTranscript: setSaid,
+      onOutputTranscript: setHeard,
       onError: (code) => {
         setFailure(MIC_MESSAGE[code] ?? "Ovoz ulanmadi. Birozdan keyin urinib ko'ring.")
         void stop()
