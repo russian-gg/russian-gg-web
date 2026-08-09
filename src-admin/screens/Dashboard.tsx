@@ -138,6 +138,63 @@ export function Dashboard() {
         </Card>
       </section>
 
+      {/*
+        Kept apart from site traffic rather than folded into it. Somebody who puts a web page
+        on their home screen has said something a page view cannot: they intend to come back,
+        and they want it on the phone. That is the demand for a mobile app, measurable without
+        having built one.
+      */}
+      <section>
+        <SectionHeading>Telefonga o'rnatganlar</SectionHeading>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat
+            label="O'rnatilgan qurilmalar"
+            value={formatNumber(data.installs.devices)}
+            note="Jami — bu davr emas"
+          />
+          <Stat
+            label="Yangi o'rnatganlar"
+            value={formatNumber(data.installs.newDevices)}
+            note={
+              data.installs.shareOfVisitors === null || data.installs.shareOfVisitors === undefined
+                ? `Hali tashrif yozilmagan · ${period}`
+                : `Tashrifchilarning ${formatPercent(data.installs.shareOfVisitors)} qismi · ${period}`
+            }
+          />
+          <Stat
+            label="Ilovadan ochilishlar"
+            value={formatNumber(data.installs.launches)}
+            note={`Bosh ekrandan ochilgan · ${period}`}
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Card>
+            <h3 className="mb-4 text-base font-extrabold text-ink">Qaysi telefonlarda</h3>
+            {data.installPlatforms.length === 0 ? (
+              <p className="text-sm text-ink-muted">Hali hech kim o'rnatmagan</p>
+            ) : (
+              <BarList items={data.installPlatforms} format={formatNumber} labelWidth="w-20 sm:w-28" />
+            )}
+          </Card>
+
+          <Card>
+            <h3 className="mb-3 text-base font-extrabold text-ink">Kunlik yangi o'rnatishlar</h3>
+            <ColumnChart points={data.installSeries} label="Qurilmalar" format={formatNumber} />
+          </Card>
+        </div>
+
+        {/*
+          Said because the number is easy to read as more than it is: it counts devices that
+          have *opened* the app, not every install. An iPhone in particular is invisible until
+          somebody opens it, because iOS sends no install event at all.
+        */}
+        <p className="mt-3 text-xs text-ink-faint">
+          Bosh ekrandan kamida bir marta ochilgan qurilmalar sanaladi. O'rnatib, hech ochmagan
+          qurilma bu yerda ko'rinmaydi — iOS o'rnatish haqida hech qanday signal yubormaydi.
+        </p>
+      </section>
+
       <section>
         <SectionHeading>Darajalar</SectionHeading>
         <Card>
