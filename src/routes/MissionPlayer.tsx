@@ -48,7 +48,7 @@ const MAX_STEP_ATTEMPTS = 3
  * than the drop itself. Bounded, because a connection that keeps dropping is not coming back.
  */
 const MAX_RECONNECTS = 2
-const ASYNC_VOICE_FALLBACK_MS = 7_000
+const ASYNC_VOICE_FALLBACK_MS = 15_000
 
 /**
  * The focused mission player (PRD §6). One objective, one Russian prompt with Uzbek
@@ -588,10 +588,16 @@ export function MissionPlayer() {
 
       if (!outcome.isAvailable) {
         // An honest degraded state, not a silent failure (PRD §11).
+        const isDailyLimit = outcome.unavailable?.reason === 'daily_limit'
         clearConnectFallbackTimer()
-        setAsyncVoiceOffered(true)
-        setShowDailyLimitModal(outcome.unavailable?.reason === 'daily_limit')
-        setDegraded(outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed)
+        setShowDailyLimitModal(isDailyLimit)
+        // The limit modal already gives free and Pro learners the right next action. Showing
+        // the provider message as a yellow warning duplicated it and exposed an async route
+        // around the daily allowance.
+        setAsyncVoiceOffered(!isDailyLimit)
+        setDegraded(
+          isDailyLimit ? null : outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed,
+        )
         setVoiceState('unavailable')
         return
       }
