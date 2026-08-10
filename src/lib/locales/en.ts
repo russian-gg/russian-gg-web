@@ -274,6 +274,20 @@ export const en: Dictionary = {
     reconnecting: 'Reconnecting…',
     noSpeechHint:
       'We cannot hear you. Check that the microphone is on and the right device is selected.',
+    micPermissionTitle: 'Allow microphone access',
+    micPermissionBody:
+      'Allow russian.gg to use your microphone for voice answers. We will check permission automatically when you return from Settings.',
+    micPermissionAndroid:
+      'Android: Settings → Apps → Chrome (or russian.gg) → Permissions → Microphone → Allow while using the app. If needed, also open Chrome → Settings → Site settings → Microphone → russian.gg → Allow.',
+    micPermissionIos:
+      'iPhone/iPad: Settings → Apps → Safari or Chrome → Microphone → Allow. Then return to this page.',
+    micPermissionBrowser:
+      'Open the lock or site controls in the address bar → Microphone → Allow, then return to this page.',
+    micPermissionRemembered:
+      'After you allow it, the browser remembers the permission on this device and will not ask again.',
+    micPermissionGrant: 'Allow microphone',
+    micPermissionChecking: 'Checking permission…',
+    micPermissionUnderstood: 'Got it',
     inConversation: 'Conversation in progress',
     turnAccepted: 'Answer accepted. Press finish.',
     completedGoalState: 'Today\'s goal is complete. Press restart to go from the beginning again.',

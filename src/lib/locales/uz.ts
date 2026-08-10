@@ -282,6 +282,20 @@ export const uz = {
     reconnecting: 'Qayta ulanmoqda…',
     noSpeechHint:
       "Sizni eshitmayapmiz. Mikrofon yoqilganini va to'g'ri qurilma tanlanganini tekshiring.",
+    micPermissionTitle: 'Mikrofonga ruxsat bering',
+    micPermissionBody:
+      "Ovozli javob berish uchun russian.gg mikrofoningizdan foydalanishiga ruxsat bering. Sozlamadan qaytgach ruxsat avtomatik tekshiriladi.",
+    micPermissionAndroid:
+      "Android: Settings → Apps → Chrome (yoki russian.gg) → Permissions → Microphone → Allow while using the app. Kerak bo'lsa Chrome → Settings → Site settings → Microphone → russian.gg → Allow ni ham tanlang.",
+    micPermissionIos:
+      'iPhone/iPad: Settings → Apps → Safari yoki Chrome → Microphone → Allow. Keyin shu sahifaga qayting.',
+    micPermissionBrowser:
+      "Brauzer manzil qatoridagi qulf yoki sayt sozlamasini oching → Microphone → Allow ni tanlang, so'ng sahifaga qayting.",
+    micPermissionRemembered:
+      "Ruxsat berilgach brauzer uni shu qurilmada eslab qoladi va qayta so'ramaydi.",
+    micPermissionGrant: 'Ruxsat berish',
+    micPermissionChecking: 'Ruxsat tekshirilmoqda…',
+    micPermissionUnderstood: 'Tushunarli',
     inConversation: 'Suhbat davom etmoqda',
     turnAccepted: 'Javob qabul qilindi. Yakunlashni bosing.',
     completedGoalState: 'Bugungi maqsad yakunlangan. Qayta boshlashni bossangiz boshidan o\'tasiz.',

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ import {
   releaseMicrophone,
   requestMicrophone,
   stopPromptAudio,
+  type VoiceErrorCode,
 } from '../lib/liveVoice'
 import type {
   EntitlementView,
@@ -50,6 +51,12 @@ const PASSING_TURN_SCORE = 80
  */
 const MAX_RECONNECTS = 2
 const ASYNC_VOICE_FALLBACK_MS = 15_000
+
+type MicrophoneRetryAction = 'live' | 'voice-note'
+type MicrophonePermissionCode = Extract<
+  VoiceErrorCode,
+  'mic_denied' | 'mic_blocked' | 'mic_security'
+>
 
 /**
  * The focused mission player (PRD §6). One objective, one Russian prompt with Uzbek
@@ -125,6 +132,11 @@ export function MissionPlayer() {
   const [completedPreview, setCompletedPreview] = useState(false)
   const [showDailyLimitModal, setShowDailyLimitModal] = useState(false)
   const [autoContinueNextStep, setAutoContinueNextStep] = useState(false)
+  const [microphonePermissionCode, setMicrophonePermissionCode] =
+    useState<MicrophonePermissionCode | null>(null)
+  const [microphonePermissionBusy, setMicrophonePermissionBusy] = useState(false)
+  const microphoneRetryActionRef = useRef<MicrophoneRetryAction | null>(null)
+  const microphonePermissionRetryingRef = useRef(false)
 
   const {
     data: mission,
@@ -194,6 +206,25 @@ export function MissionPlayer() {
     // `startVoice` reads the current step from state after `advance` has moved it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoContinueNextStep, busy, hasLiveSession, completedPreview, feedback, stepIndex])
+
+  const retryMicrophonePermissionOnReturn = useEffectEvent(() => {
+    void retryMicrophonePermission()
+  })
+
+  useEffect(() => {
+    if (!microphonePermissionCode) return
+
+    function checkPermissionOnReturn() {
+      if (document.visibilityState === 'visible') {
+        retryMicrophonePermissionOnReturn()
+      }
+    }
+
+    document.addEventListener('visibilitychange', checkPermissionOnReturn)
+    return () => document.removeEventListener('visibilitychange', checkPermissionOnReturn)
+    // Effect Events intentionally stay out of dependency arrays; they always read fresh state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [microphonePermissionCode])
 
   function clearFinalCompletionTimer() {
     if (finalCompletionTimerRef.current !== null) {
@@ -453,6 +484,57 @@ export function MissionPlayer() {
     }
   }
 
+  function showMicrophonePermission(caught: unknown, action: MicrophoneRetryAction) {
+    const code = microphonePermissionFailureCode(caught)
+    if (!code) return false
+
+    microphoneRetryActionRef.current = action
+    setMicrophonePermissionCode(code)
+    setMicrophonePermissionBusy(false)
+    setAsyncVoiceOffered(false)
+    setError(null)
+    return true
+  }
+
+  function dismissMicrophonePermission() {
+    microphoneRetryActionRef.current = null
+    setMicrophonePermissionCode(null)
+    setMicrophonePermissionBusy(false)
+  }
+
+  async function retryMicrophonePermission() {
+    if (microphonePermissionRetryingRef.current) return
+
+    microphonePermissionRetryingRef.current = true
+    setMicrophonePermissionBusy(true)
+
+    try {
+      await requestMicrophone()
+      const action = microphoneRetryActionRef.current
+      microphoneRetryActionRef.current = null
+      setMicrophonePermissionCode(null)
+      setError(null)
+
+      if (action === 'voice-note') {
+        void startVoiceNoteRecording()
+      } else if (action === 'live') {
+        void startVoice()
+      }
+    } catch (caught) {
+      const code = microphonePermissionFailureCode(caught)
+      if (code) {
+        setMicrophonePermissionCode(code)
+      } else {
+        microphoneRetryActionRef.current = null
+        setMicrophonePermissionCode(null)
+        setError(describeVoiceFailure(caught, t, t.player.startFailed))
+      }
+    } finally {
+      microphonePermissionRetryingRef.current = false
+      setMicrophonePermissionBusy(false)
+    }
+  }
+
   async function switchToAsyncVoice() {
     setUsingAsyncVoice(true)
     setAsyncVoiceOffered(true)
@@ -507,7 +589,9 @@ export function MissionPlayer() {
     } catch (caught) {
       releaseMicrophone()
       setVoiceNoteRecording(false)
-      setError(describeVoiceFailure(caught, t, t.player.startFailed))
+      if (!showMicrophonePermission(caught, 'voice-note')) {
+        setError(describeVoiceFailure(caught, t, t.player.startFailed))
+      }
     }
   }
 
@@ -550,10 +634,24 @@ export function MissionPlayer() {
       return
     }
 
-    const runId = voiceStartRunRef.current + 1
-    voiceStartRunRef.current = runId
     setBusy(true)
     setError(null)
+
+    try {
+      // Keep getUserMedia inside the learner's tap. This is more reliable on Android and
+      // avoids creating a billed server session before the browser has granted microphone use.
+      await requestMicrophone()
+    } catch (caught) {
+      setBusy(false)
+      setVoiceState('idle')
+      if (!showMicrophonePermission(caught, 'live')) {
+        setError(describeVoiceFailure(caught, t, t.player.startFailed))
+      }
+      return
+    }
+
+    const runId = voiceStartRunRef.current + 1
+    voiceStartRunRef.current = runId
     setDegraded(null)
     setAssistantReply(null)
     setTranscript('')
@@ -571,13 +669,6 @@ export function MissionPlayer() {
 
     // Measured from the press, not from the socket: the learner is waiting for all of it.
     const pressedAt = Date.now()
-
-    /*
-     * Started here, on the press itself, so the permission prompt runs alongside the round
-     * trip that mints the session rather than after it. It is deliberately not awaited — the
-     * session picks up the same request, and a rejection surfaces there.
-     */
-    void requestMicrophone().catch(() => {})
 
     try {
       const outcome = await api.post<VoiceSessionOutcome>('/missions/voice/sessions', {
@@ -602,6 +693,7 @@ export function MissionPlayer() {
           isDailyLimit ? null : outcome.unavailable?.messageUz ?? t.voiceErrors.connect_failed,
         )
         setVoiceState('unavailable')
+        releaseMicrophone()
         return
       }
 
@@ -656,6 +748,15 @@ export function MissionPlayer() {
             setAssistantReply(text)
           },
           onError: (code) => {
+            if (isMicrophonePermissionCode(code)) {
+              showMicrophonePermission(new VoiceError(code), 'live')
+              void teardownVoice(false, 'microphone_permission').finally(() => {
+                releaseMicrophone()
+                setVoiceState('idle')
+              })
+              return
+            }
+
             setError(t.voiceErrors[code])
           },
           onDropped: () => {
@@ -694,8 +795,11 @@ export function MissionPlayer() {
       track('voice_started', { mission: currentMission.summary.slug })
     } catch (caught) {
       clearConnectFallbackTimer()
-      setAsyncVoiceOffered(true)
-      setError(describeVoiceFailure(caught, t, t.player.startFailed))
+      const permissionFailure = showMicrophonePermission(caught, 'live')
+      setAsyncVoiceOffered(!permissionFailure)
+      if (!permissionFailure) {
+        setError(describeVoiceFailure(caught, t, t.player.startFailed))
+      }
       await teardownVoice(false, 'start_failed')
       // Starting failed after the press already opened the microphone; without this the
       // recording indicator stays lit with no session behind it.
@@ -1340,6 +1444,14 @@ export function MissionPlayer() {
           }}
         />
       )}
+
+      {microphonePermissionCode && (
+        <MicrophonePermissionDialog
+          busy={microphonePermissionBusy}
+          onRetry={() => void retryMicrophonePermission()}
+          onDismiss={dismissMicrophonePermission}
+        />
+      )}
     </div>
   )
 }
@@ -1737,6 +1849,15 @@ function describeVoiceFailure(caught: unknown, t: Dictionary, fallback: string) 
   return fallback
 }
 
+function isMicrophonePermissionCode(code: VoiceErrorCode): code is MicrophonePermissionCode {
+  return code === 'mic_denied' || code === 'mic_blocked' || code === 'mic_security'
+}
+
+function microphonePermissionFailureCode(caught: unknown): MicrophonePermissionCode | null {
+  if (!(caught instanceof VoiceError) || !isMicrophonePermissionCode(caught.code)) return null
+  return caught.code
+}
+
 /** m:ss. Minutes alone are useless at the end, which is the only time this matters. */
 function formatClock(totalSeconds: number) {
   const safe = Math.max(0, totalSeconds)
@@ -1862,6 +1983,69 @@ function DailyLimitDialog({
       </div>
     </div>
   )
+}
+
+function MicrophonePermissionDialog({
+  busy,
+  onRetry,
+  onDismiss,
+}: {
+  busy: boolean
+  onRetry: () => void
+  onDismiss: () => void
+}) {
+  const t = useT()
+  const platform = microphonePermissionPlatform()
+  const instructions =
+    platform === 'android'
+      ? t.player.micPermissionAndroid
+      : platform === 'ios'
+        ? t.player.micPermissionIos
+        : t.player.micPermissionBrowser
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+      <div
+        className="w-full max-w-md rounded-[var(--radius-card)] bg-ground p-5 shadow-soft sm:p-6"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="microphone-permission-title"
+        aria-describedby="microphone-permission-description"
+      >
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-signal-soft text-signal-ink">
+          <MicGlyph />
+        </div>
+        <h2
+          id="microphone-permission-title"
+          className="mt-4 text-center text-lg font-extrabold text-ink"
+        >
+          {t.player.micPermissionTitle}
+        </h2>
+        <p id="microphone-permission-description" className="text-support mt-2 text-center">
+          {t.player.micPermissionBody}
+        </p>
+        <div className="mt-4 rounded-xl bg-ground-sunken px-4 py-3 text-sm leading-relaxed text-ink">
+          {instructions}
+        </div>
+        <p className="mt-3 text-center text-xs leading-relaxed text-ink-faint">
+          {t.player.micPermissionRemembered}
+        </p>
+        <Button block className="mt-5" disabled={busy} onClick={onRetry}>
+          {busy ? t.player.micPermissionChecking : t.player.micPermissionGrant}
+        </Button>
+        <Button variant="ghost" block className="mt-2" disabled={busy} onClick={onDismiss}>
+          {t.player.micPermissionUnderstood}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function microphonePermissionPlatform(): 'android' | 'ios' | 'browser' {
+  if (typeof navigator === 'undefined') return 'browser'
+  if (/Android/i.test(navigator.userAgent)) return 'android'
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return 'ios'
+  return 'browser'
 }
 
 /**
