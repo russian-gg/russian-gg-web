@@ -177,21 +177,31 @@ export function UserDrawer({
 
             {canGrant &&
               (entitlement ? (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      onClick={() => change('grant-pro', { days: 30, reason: 'Admin panel' })}
+                      disabled={busy}
+                      block
+                    >
+                      {busy ? 'Berilmoqda...' : '30 kunlik PRO berish'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => change('revoke-pro', { reason: 'Admin panel: restore free access' })}
+                      disabled={busy}
+                      block
+                    >
+                      {busy ? 'Qaytarilmoqda...' : 'FREE holatiga qaytarish'}
+                    </Button>
+                  </div>
+
                   <Button
-                    onClick={() => change('grant-pro', { days: 30, reason: 'Admin panel' })}
+                    onClick={() => change('grant-pro', { days: 90, reason: 'Admin panel' })}
                     disabled={busy}
                     block
                   >
-                    {busy ? 'Berilmoqda...' : '30 kunlik PRO berish'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => change('revoke-pro', { reason: 'Admin panel: restore free access' })}
-                    disabled={busy}
-                    block
-                  >
-                    {busy ? 'Qaytarilmoqda...' : 'FREE holatiga qaytarish'}
+                    {busy ? 'Berilmoqda...' : '90 kunlik PRO berish'}
                   </Button>
                 </div>
               ) : (
