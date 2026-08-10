@@ -41,6 +41,7 @@ import {
  * offered, never taken automatically.
  */
 const MAX_STEP_ATTEMPTS = 3
+const PASSING_TURN_SCORE = 80
 
 /**
  * Reconnects allowed on one step before the lesson stops trying. Live connections drop —
@@ -434,7 +435,7 @@ export function MissionPlayer() {
   }
 
   function applyFeedbackResult(result: TurnFeedback, transcriptValue: string) {
-    const passed = result.score >= 70
+    const passed = result.score >= PASSING_TURN_SCORE
     setTranscript(transcriptValue)
     setAssistantReply(null)
     setFeedback(result)
@@ -829,7 +830,7 @@ export function MissionPlayer() {
         true,
         isFinalStep ? 'never' : 'failed-only',
       )
-      const passed = (result?.score ?? 0) >= 70
+      const passed = (result?.score ?? 0) >= PASSING_TURN_SCORE
       if (manualStopRequestedRef.current) return
 
       if (!passed) {
@@ -899,7 +900,7 @@ export function MissionPlayer() {
         isRetry,
       })
 
-      const passed = result.score >= 70
+      const passed = result.score >= PASSING_TURN_SCORE
       // A tutor reply is not completion. The goal is checked only after the learner's answer
       // reaches the passing score, matching the persisted mission progress.
       if (passed) {
@@ -976,7 +977,7 @@ export function MissionPlayer() {
               role: 'feedback' as const,
               strength: feedback.strengthNote,
               correction: feedback.headlineCorrection,
-              passed: feedback.score >= 70,
+              passed: feedback.score >= PASSING_TURN_SCORE,
             },
           ]
         : []),
@@ -1047,7 +1048,7 @@ export function MissionPlayer() {
             role: 'feedback' as const,
             strength: feedback.strengthNote,
             correction: feedback.headlineCorrection,
-            passed: feedback.score >= 70,
+            passed: feedback.score >= PASSING_TURN_SCORE,
           },
         ]
       : []),
@@ -1561,7 +1562,7 @@ function MicControl({
 
   // Once the turn is judged, the decision replaces the microphone: retry, or move on.
   if (state === 'feedback' && feedback) {
-    const passed = feedback.score >= 70
+    const passed = feedback.score >= PASSING_TURN_SCORE
 
     return (
       <div className="mt-8 flex flex-col items-center gap-3">
