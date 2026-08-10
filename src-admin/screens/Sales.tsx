@@ -365,7 +365,14 @@ function Inbox({ waiting }: { waiting: number }) {
         any messenger behaves, and it is disorienting for the same reason.
       */}
       <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
-        <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
+        {/*
+          Pinned to the top of the column, not scrolled with it. The folders are how you change
+          what the list is showing, and having to scroll back up to reach them is the one thing
+          a folder switch must never ask for. The background is the page's own, so rows pass
+          underneath rather than through.
+        */}
+        <div className="sticky top-0 z-10 -mt-1 space-y-2 bg-ground-sunken pt-1 pb-1">
+          <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
         {/* A line rather than a section heading: it is a count and a toggle, and on a short
             window every row it costs is a conversation not on screen. */}
         <div className="flex items-center justify-between gap-2 px-1 text-xs">
@@ -386,6 +393,7 @@ function Inbox({ waiting }: { waiting: number }) {
           >
             {muted ? "Ovoz o'chirilgan" : 'Ovoz yoqilgan'}
           </button>
+          </div>
         </div>
         {chats.map((chat) => (
           <button
