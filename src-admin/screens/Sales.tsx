@@ -366,33 +366,34 @@ function Inbox({ waiting }: { waiting: number }) {
       */}
       <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
         <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
-        <SectionHeading
-          action={
-            <button
-              type="button"
-              onClick={() => {
-                const next = !muted
-                setMuted(next)
-                soundMuted.set(next)
-                // Played on unmuting, which both confirms the choice and is the user gesture
-                // browsers want before they will let a page make a sound at all.
-                if (!next) playIncomingChime()
-              }}
-              className="text-xs font-bold text-signal-ink"
-            >
-              {muted ? "Ovoz o'chirilgan" : 'Ovoz yoqilgan'}
-            </button>
-          }
-        >
-          {formatNumber(chats.length)} / {formatNumber(total)} ta suhbat
-        </SectionHeading>
+        {/* A line rather than a section heading: it is a count and a toggle, and on a short
+            window every row it costs is a conversation not on screen. */}
+        <div className="flex items-center justify-between gap-2 px-1 text-xs">
+          <span className="font-bold text-ink-faint">
+            {formatNumber(chats.length)} / {formatNumber(total)}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !muted
+              setMuted(next)
+              soundMuted.set(next)
+              // Played on unmuting, which both confirms the choice and is the user gesture
+              // browsers want before they will let a page make a sound at all.
+              if (!next) playIncomingChime()
+            }}
+            className="font-bold text-signal-ink"
+          >
+            {muted ? "Ovoz o'chirilgan" : 'Ovoz yoqilgan'}
+          </button>
+        </div>
         {chats.map((chat) => (
           <button
             key={chat.id}
             type="button"
             onClick={() => setSelected(chat.id)}
             className={cx(
-              'block w-full rounded-[var(--radius-card)] border-2 p-4 text-left transition-colors',
+              'block w-full rounded-[var(--radius-card)] border-2 px-3.5 py-2.5 text-left transition-colors',
               selected === chat.id
                 ? 'border-signal bg-signal-soft/40'
                 : 'border-hairline bg-ground-raised hover:border-ink-faint',
@@ -432,12 +433,19 @@ function Inbox({ waiting }: { waiting: number }) {
               {chat.lastMessage ?? '—'}
             </p>
 
-            <div className="mt-2 flex items-center justify-between gap-2">
+            {/*
+              One line instead of four. The label and the signal moved into the tooltip and the
+              bar shrank to a rule under the row: on a laptop running Windows the list was
+              showing three conversations, and a caption repeating "sotib olishga yaqinlik"
+              against every one of them was most of what it was spending the height on.
+            */}
+            <div className="mt-1.5 flex items-center gap-2">
               <Badge tone={statusTone[chat.status]}>{statusLabel[chat.status]}</Badge>
-              <span className="text-xs text-ink-faint">{formatDateTime(chat.lastInteractionAt)}</span>
+              <Readiness value={chat.readiness} signal={chat.readinessSignal} />
+              <span className="ml-auto shrink-0 text-xs text-ink-faint">
+                {formatDate(chat.lastInteractionAt)}
+              </span>
             </div>
-
-            <Readiness value={chat.readiness} signal={chat.readinessSignal} />
           </button>
         ))}
 
@@ -785,16 +793,18 @@ function Readiness({ value, signal }: { value?: number | null; signal?: string |
   // Nothing has judged it yet, which is not the same as a score of zero and must not look
   // like one — a new conversation would otherwise sort below somebody who has said no.
   if (value === null || value === undefined) {
-    return <p className="mt-2 text-xs text-ink-faint">Sotib olishga yaqinlik: hali baholanmagan</p>
+    return <span className="truncate text-xs text-ink-faint">baholanmagan</span>
   }
 
   return (
-    <div className="mt-2" title={signal ?? undefined}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-ink-faint">Sotib olishga yaqinlik</span>
-        <span className="text-xs font-extrabold tabular-nums text-ink">{value}%</span>
-      </div>
-      <span className="mt-1 block h-1.5 overflow-hidden rounded-[var(--radius-control)] bg-ground-sunken">
+    <span
+      // The signal is why the number is what it is. In the list it lives here rather than on
+      // its own line: an operator scanning twenty rows is comparing numbers, and reads the
+      // reason only for the one they stop at.
+      title={signal ?? undefined}
+      className="flex min-w-0 flex-1 items-center gap-1.5"
+    >
+      <span className="h-1 min-w-8 flex-1 overflow-hidden rounded-[var(--radius-control)] bg-ground-sunken">
         <span
           className={cx(
             'block h-full rounded-[var(--radius-control)]',
@@ -805,8 +815,8 @@ function Readiness({ value, signal }: { value?: number | null; signal?: string |
           style={{ width: `${Math.max(3, value)}%` }}
         />
       </span>
-      {signal && <p className="mt-1 truncate text-xs text-ink-faint">{signal}</p>}
-    </div>
+      <span className="shrink-0 text-xs font-extrabold tabular-nums text-ink">{value}%</span>
+    </span>
   )
 }
 
