@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 const STORAGE_PREFIX = import.meta.env.VITE_ADMIN_STORAGE_PREFIX ?? 'rgg.admin'
 const TOKEN_KEY = `${STORAGE_PREFIX}.token`
 const NAME_KEY = `${STORAGE_PREFIX}.name`
+const ROLE_KEY = `${STORAGE_PREFIX}.role`
 const SECTION_KEY = `${STORAGE_PREFIX}.section`
 const ADMIN_API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? '/api/admin-portal').replace(/\/$/, '')
 
@@ -17,13 +18,21 @@ const listeners = new Set<() => void>()
 export const session = {
   token: () => localStorage.getItem(TOKEN_KEY) ?? '',
   name: () => localStorage.getItem(NAME_KEY) ?? 'Russian.gg Admin',
-  signIn(token: string, name: string) {
+  /*
+   * Remembered only so the panel can hide what a sales account cannot open. It is not the
+   * check — the server decides on every request, and a role edited in devtools buys a
+   * sidebar full of screens that answer 403.
+   */
+  role: (): PortalRole => (localStorage.getItem(ROLE_KEY) === 'Sales' ? 'Sales' : 'Admin'),
+  signIn(token: string, name: string, role: string) {
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(NAME_KEY, name)
+    localStorage.setItem(ROLE_KEY, role === 'Sales' ? 'Sales' : 'Admin')
     listeners.forEach((notify) => notify())
   },
   signOut() {
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(ROLE_KEY)
     listeners.forEach((notify) => notify())
   },
   subscribe(listener: () => void) {
@@ -34,6 +43,8 @@ export const session = {
     }
   },
 }
+
+export type PortalRole = 'Admin' | 'Sales'
 
 export const adminSectionKey = SECTION_KEY
 
@@ -52,15 +63,17 @@ export function adminApiPath(path: string) {
 export function useSession() {
   const [token, setToken] = useState(session.token)
   const [name, setName] = useState(session.name)
+  const [role, setRole] = useState(session.role)
 
   useEffect(() =>
     session.subscribe(() => {
       setToken(session.token())
       setName(session.name())
+      setRole(session.role())
     }),
   [])
 
-  return { token, name }
+  return { token, name, role }
 }
 
 export class AdminRequestError extends Error {

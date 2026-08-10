@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminApiPath, adminSectionKey, session, useSession } from './lib/api'
+import type { PortalRole } from './lib/types'
 import { Button, Card, ErrorNote } from './components/ui'
 import { cx } from '../src/lib/cx'
 import { useTheme } from '../src/lib/theme'
@@ -22,6 +23,7 @@ import { Feedbacks } from './screens/Feedbacks'
 import { PromoCodes } from './screens/PromoCodes'
 import { Marketing } from './screens/Marketing'
 import { Sales } from './screens/Sales'
+import { PortalUsers } from './screens/PortalUsers'
 
 type Section =
   | 'dashboard'
@@ -33,8 +35,13 @@ type Section =
   | 'ai-usage'
   | 'promo-codes'
   | 'feedbacks'
+  | 'portal-users'
 
-const sections: Array<{ id: Section; label: string; group: string }> = [
+/**
+ * `sales` marks the sections a sotuv account may open. It mirrors what the server allows —
+ * the roles on the controllers are the rule, this is only what gets drawn.
+ */
+const sections: Array<{ id: Section; label: string; group: string; sales?: true }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
@@ -44,11 +51,12 @@ const sections: Array<{ id: Section; label: string; group: string }> = [
    * thing the AI is doing", and that was in two places.
    */
   { id: 'marketing', label: 'Marketing agenti (CMO)', group: 'Agents' },
-  { id: 'sales', label: 'Sotuv agenti (Telegram)', group: 'Agents' },
+  { id: 'sales', label: 'Sotuv agenti (Telegram)', group: 'Agents', sales: true },
   { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
+  { id: 'portal-users', label: 'Xodimlar', group: 'Tizim' },
 ]
 
 /** Paired here rather than in the icon module, because the section ids are this file's. */
@@ -62,18 +70,27 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   'ai-usage': AiGlyph,
   'promo-codes': TransactionsGlyph,
   feedbacks: FeedbackGlyph,
+  'portal-users': UsersGlyph,
 }
 
-function readStoredSection(): Section {
+function visibleSections(role: PortalRole) {
+  return role === 'Sales' ? sections.filter((item) => item.sales) : sections
+}
+
+function readStoredSection(role: PortalRole): Section {
+  const allowed = visibleSections(role)
   const stored = localStorage.getItem(adminSectionKey)
-  return sections.some((item) => item.id === stored) ? (stored as Section) : 'dashboard'
+
+  if (allowed.some((item) => item.id === stored)) return stored as Section
+
+  return allowed[0]?.id ?? 'sales'
 }
 
 const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
 
 export function AdminApp() {
-  const { token, name } = useSession()
-  const [section, setSection] = useState<Section>(readStoredSection)
+  const { token, name, role } = useSession()
+  const [section, setSection] = useState<Section>(() => readStoredSection(session.role()))
   // Remembered, because a sidebar that reopens on every reload is one nobody bothers closing.
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true')
 
@@ -93,7 +110,14 @@ export function AdminApp() {
    */
   if (!token) return <LoginScreen />
 
-  const groups = [...new Set(sections.map((item) => item.group))]
+  const allowed = visibleSections(role)
+  const groups = [...new Set(allowed.map((item) => item.group))]
+  /*
+   * Signing out and back in as somebody else does not remount this component, so the section
+   * chosen by the previous account is still in state. Derived rather than corrected in an
+   * effect: a sales account must never get one render of the money screen.
+   */
+  const active = allowed.some((item) => item.id === section) ? section : (allowed[0]?.id ?? 'sales')
 
   return (
     <div
@@ -124,7 +148,9 @@ export function AdminApp() {
             <div className="text-xl font-extrabold tracking-tight text-ink">
               russian<span className="text-signal-ink">.gg</span>
             </div>
-            <div className="text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">Admin panel</div>
+            <div className="text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
+              {role === 'Sales' ? 'Sotuv paneli' : 'Admin panel'}
+            </div>
           </div>
 
           {/* The collapsed rail keeps a mark where the wordmark was, so the column still reads
@@ -173,7 +199,7 @@ export function AdminApp() {
                 {group}
               </div>
               <div className="contents lg:flex lg:flex-col lg:gap-1">
-                {sections
+                {allowed
                   .filter((item) => item.group === group)
                   .map((item) => {
                     const Glyph = sectionGlyphs[item.id]
@@ -183,7 +209,7 @@ export function AdminApp() {
                         key={item.id}
                         type="button"
                         onClick={() => setSection(item.id)}
-                        aria-current={section === item.id ? 'page' : undefined}
+                        aria-current={active === item.id ? 'page' : undefined}
                         // The label is the tooltip when it is not on screen: an icon rail
                         // nobody can read is a guessing game.
                         title={collapsed ? item.label : undefined}
@@ -198,7 +224,7 @@ export function AdminApp() {
                            * past the column — which is what "(CMO)" did.
                            */
                           'whitespace-nowrap lg:whitespace-normal lg:leading-snug',
-                          section === item.id
+                          active === item.id
                             ? 'bg-signal-soft text-signal-ink'
                             : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
                         )}
@@ -231,15 +257,16 @@ export function AdminApp() {
       </aside>
 
       <main className="min-w-0 p-4 sm:p-6 lg:p-8">
-        {section === 'dashboard' && <Dashboard />}
-        {section === 'users' && <Users />}
-        {section === 'clicks' && <Clicks />}
-        {section === 'marketing' && <Marketing />}
-        {section === 'sales' && <Sales />}
-        {section === 'transactions' && <Transactions />}
-        {section === 'ai-usage' && <AiUsage />}
-        {section === 'promo-codes' && <PromoCodes />}
-        {section === 'feedbacks' && <Feedbacks />}
+        {active === 'dashboard' && <Dashboard />}
+        {active === 'users' && <Users />}
+        {active === 'clicks' && <Clicks />}
+        {active === 'marketing' && <Marketing />}
+        {active === 'sales' && <Sales />}
+        {active === 'transactions' && <Transactions />}
+        {active === 'ai-usage' && <AiUsage />}
+        {active === 'promo-codes' && <PromoCodes />}
+        {active === 'feedbacks' && <Feedbacks />}
+        {active === 'portal-users' && <PortalUsers />}
       </main>
     </div>
   )
@@ -309,7 +336,7 @@ function LoginScreen() {
       if (!response.ok) throw new Error('Login failed')
 
       const data = await response.json()
-      session.signIn(data.token, data.name)
+      session.signIn(data.token, data.name, data.role)
     } catch {
       setError("Login yoki parol noto'g'ri. Qayta urinib ko'ring.")
     } finally {

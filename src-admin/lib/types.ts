@@ -408,3 +408,16 @@ export type SalesChatPage = {
 
 /** Which shelf of the sales inbox to read. Mirrors SalesChatFolder on the server. */
 export type SalesFolder = 'New' | 'Hot' | 'All' | 'Archived'
+
+export type PortalRole = 'Admin' | 'Sales'
+
+export type AdminPortalUser = {
+  id: string
+  username: string
+  displayName: string
+  role: PortalRole
+  isActive: boolean
+  createdAt: string
+  lastLoginAt: string | null
+  createdBy: string | null
+}
