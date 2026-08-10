@@ -137,6 +137,8 @@ export type UserDetail = UserItem & {
 
 export type Transaction = {
   id: string
+  /** Who paid. The row opens their card, so this is the whole reason the row is clickable. */
+  userId: string
   displayName?: string | null
   email?: string | null
   amount: number

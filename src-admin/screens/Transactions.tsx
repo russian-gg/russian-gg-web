@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatDate, formatMoney, formatNumber, useAdminQuery } from '../lib/api'
 import type { Paged, Transaction } from '../lib/types'
 import { Badge, Cell, EmptyNote, ErrorNote, Loading, PageHeader, Pager, Row, Table } from '../components/ui'
+import { UserDrawer } from '../components/UserDrawer'
 
 const PAGE_SIZE = 20
 
@@ -20,6 +21,7 @@ const statusLabel = {
 
 export function Transactions() {
   const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState<string | null>(null)
   const { data, error, isLoading } = useAdminQuery<Paged<Transaction>>(
     `/api/admin-portal/transactions?page=${page}&pageSize=${PAGE_SIZE}`,
   )
@@ -30,14 +32,17 @@ export function Transactions() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Tranzaksiyalar" subtitle={`Jami: ${formatNumber(data.total)}`} />
+      <PageHeader
+        title="Tranzaksiyalar"
+        subtitle={`Jami: ${formatNumber(data.total)} — to'lovni bosing, kim to'laganini ko'rasiz`}
+      />
 
       <Table head={['Foydalanuvchi', 'Summa', 'Promo', 'Davr', 'Provayder', 'Status', 'Sana']}>
         {data.items.map((item) => {
           const status = item.status as keyof typeof statusTone
 
           return (
-            <Row key={item.id}>
+            <Row key={item.id} onClick={() => setSelected(item.userId)}>
               <Cell>
                 <span className="block font-bold text-ink">{item.displayName ?? 'Ismsiz'}</span>
                 <span className="block text-xs text-ink-faint">{item.email ?? '—'}</span>
@@ -70,6 +75,8 @@ export function Transactions() {
       </Table>
 
       <Pager page={page} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} />
+
+      {selected && <UserDrawer userId={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }

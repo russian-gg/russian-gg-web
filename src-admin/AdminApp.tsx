@@ -43,7 +43,7 @@ type Section =
  */
 const sections: Array<{ id: Section; label: string; group: string; sales?: true }> = [
   { id: 'dashboard', label: 'Boshqaruv paneli', group: 'Sharh' },
-  { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh' },
+  { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh', sales: true },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
   /*
    * The two agents live together. They were split across "Sharh" and "Pul va AI" because one
@@ -52,7 +52,7 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
    */
   { id: 'marketing', label: 'Marketing agenti (CMO)', group: 'Agents' },
   { id: 'sales', label: 'Sotuv agenti (Telegram)', group: 'Agents', sales: true },
-  { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI' },
+  { id: 'transactions', label: 'Tranzaksiyalar', group: 'Pul va AI', sales: true },
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
@@ -77,13 +77,17 @@ function visibleSections(role: PortalRole) {
   return role === 'Sales' ? sections.filter((item) => item.sales) : sections
 }
 
+/** Where each role opens: the inbox is a sales account's job, not the first row of the menu. */
+function defaultSection(role: PortalRole): Section {
+  return role === 'Sales' ? 'sales' : 'dashboard'
+}
+
 function readStoredSection(role: PortalRole): Section {
-  const allowed = visibleSections(role)
   const stored = localStorage.getItem(adminSectionKey)
 
-  if (allowed.some((item) => item.id === stored)) return stored as Section
-
-  return allowed[0]?.id ?? 'sales'
+  return visibleSections(role).some((item) => item.id === stored)
+    ? (stored as Section)
+    : defaultSection(role)
 }
 
 const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
@@ -117,7 +121,7 @@ export function AdminApp() {
    * chosen by the previous account is still in state. Derived rather than corrected in an
    * effect: a sales account must never get one render of the money screen.
    */
-  const active = allowed.some((item) => item.id === section) ? section : (allowed[0]?.id ?? 'sales')
+  const active = allowed.some((item) => item.id === section) ? section : defaultSection(role)
 
   return (
     <div
