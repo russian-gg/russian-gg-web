@@ -28,6 +28,7 @@ import {
 } from '../components/ui'
 import { BarList, ColumnChart } from '../components/charts'
 import { cx } from '../../src/lib/cx'
+import { DashboardGlyph, DemoGlyph, InboxGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
 import { playIncomingChime, soundMuted } from '../lib/notify'
 
 const statusLabel: Record<SalesUserStatus, string> = {
@@ -102,21 +103,71 @@ export function Sales() {
     return () => window.clearInterval(timer)
   }, [refresh])
 
+  const sections: Array<{
+    id: (typeof SALES_TABS)[number]
+    label: string
+    Glyph: () => React.ReactElement
+    badge?: number
+  }> = [
+    { id: 'dashboard', label: 'Sotuv paneli', Glyph: DashboardGlyph },
+    // Conversations waiting, not messages: five from one person is one thing to answer.
+    { id: 'inbox', label: 'Suhbatlar', Glyph: InboxGlyph, badge: unread?.chats },
+    { id: 'demos', label: 'Demolar', Glyph: DemoGlyph },
+    { id: 'settings', label: 'Agent sozlamalari', Glyph: SlidersGlyph },
+  ]
+
   return (
-    <div className="space-y-6">
+    /*
+      Padded on the right from `lg` to leave the rail its column. The rail floats over the
+      page, so without this the conversation would run underneath it.
+    */
+    <div className="space-y-4 lg:pr-16">
       <PageHeader title="Sotuv (Telegram)" subtitle="Bot yuritayotgan suhbatlar va sotuv agenti" />
 
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        options={[
-          { id: 'dashboard', label: 'Sotuv paneli' },
-          // Conversations waiting, not messages: five from one person is one thing to answer.
-          { id: 'inbox', label: 'Suhbatlar', badge: unread?.chats },
-          { id: 'demos', label: 'Demolar' },
-          { id: 'settings', label: 'Agent sozlamalari' },
-        ]}
-      />
+      {/*
+        A row on a phone, a rail on the right from `lg`.
+
+        These four were a strip across the top, and on a laptop they cost the inbox a row it
+        could not spare — the list was down to three conversations. Height is what this screen
+        is short of and width is what it has, so the switch moved to the side.
+      */}
+      <div className="lg:hidden">
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          options={sections.map(({ id, label, badge }) => ({ id, label, badge }))}
+        />
+      </div>
+
+      <nav
+        aria-label="Sotuv bo'limlari"
+        className="fixed top-1/2 right-3 z-30 hidden -translate-y-1/2 flex-col gap-1 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-1.5 shadow-lg lg:flex"
+      >
+        {sections.map(({ id, label, Glyph, badge }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            title={label}
+            aria-label={label}
+            aria-current={tab === id ? 'page' : undefined}
+            className={cx(
+              'relative grid size-10 place-items-center rounded-[var(--radius-control)] transition-colors',
+              tab === id
+                ? 'bg-signal text-on-signal'
+                : 'text-ink-muted hover:bg-ground-sunken hover:text-ink',
+            )}
+          >
+            <Glyph />
+            {/* The badge follows the inbox onto the rail: it is the reason to look at all. */}
+            {badge ? (
+              <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-danger px-1 py-px text-center text-[10px] leading-tight font-extrabold text-on-danger">
+                {badge > 99 ? '99+' : badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </nav>
 
       {tab === 'dashboard' && <SalesDashboardTab />}
       {tab === 'inbox' && <Inbox waiting={unread?.chats ?? 0} />}
@@ -285,6 +336,18 @@ function Inbox({ waiting }: { waiting: number }) {
   const { shell, height } = useViewportHeight()
 
   /*
+   * Refreshed rather than patched locally: the pin decides the order, and the order is the
+   * server's. Reordering here from a guess and then being corrected by the next poll is a
+   * list that jumps twice.
+   */
+  async function pin(chatId: string, pinned: boolean) {
+    await adminFetch(`/api/admin-portal/sales/chats/${chatId}/pin?pinned=${pinned}`, {
+      method: 'POST',
+    })
+    refresh()
+  }
+
+  /*
    * The last thing each chat said, from the previous poll. Held in a ref rather than state so
    * comparing against it does not itself cause a render — and seeded on the first load, so
    * opening the panel does not chime once for every conversation already in it.
@@ -379,6 +442,10 @@ function Inbox({ waiting }: { waiting: number }) {
           <span className="font-bold text-ink-faint">
             {formatNumber(chats.length)} / {formatNumber(total)}
           </span>
+          {/*
+            The icon is the state. It replaced the words "Ovoz yoqilgan", which said the same
+            thing across half a column the list needs for names.
+          */}
           <button
             type="button"
             onClick={() => {
@@ -389,19 +456,36 @@ function Inbox({ waiting }: { waiting: number }) {
               // browsers want before they will let a page make a sound at all.
               if (!next) playIncomingChime()
             }}
-            className="font-bold text-signal-ink"
+            title={muted ? "Ovoz o'chirilgan — yoqish" : "Ovoz yoqilgan — o'chirish"}
+            aria-label={muted ? "Ovozni yoqish" : "Ovozni o'chirish"}
+            aria-pressed={!muted}
+            className={cx(
+              'grid size-6 place-items-center rounded-[var(--radius-control)] transition-colors',
+              muted ? 'text-ink-faint hover:text-ink' : 'text-signal-ink hover:bg-ground-raised',
+            )}
           >
-            {muted ? "Ovoz o'chirilgan" : 'Ovoz yoqilgan'}
+            <SoundGlyph on={!muted} />
           </button>
           </div>
         </div>
         {chats.map((chat) => (
-          <button
+          /*
+            A div rather than a button, because the pin inside it is a button and one cannot
+            live inside the other. The role and the key handler put back what was lost.
+          */
+          <div
             key={chat.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => setSelected(chat.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                setSelected(chat.id)
+              }
+            }}
             className={cx(
-              'block w-full rounded-[var(--radius-card)] border-2 px-3.5 py-2.5 text-left transition-colors',
+              'group block w-full cursor-pointer rounded-[var(--radius-card)] border-2 px-3.5 py-2.5 text-left transition-colors',
               selected === chat.id
                 ? 'border-signal bg-signal-soft/40'
                 : 'border-hairline bg-ground-raised hover:border-ink-faint',
@@ -428,6 +512,29 @@ function Inbox({ waiting }: { waiting: number }) {
                     {chat.unread > 99 ? '99+' : chat.unread}
                   </span>
                 )}
+                {/*
+                  Always in the layout, visible only when it is pinned or under the pointer.
+                  Appearing on hover alone would move the name every time the mouse crossed a
+                  row, and a list that shifts under the cursor is a list you misclick.
+                */}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    pin(chat.id, !chat.isPinned)
+                  }}
+                  title={chat.isPinned ? 'Tepadan olib tashlash' : 'Tepada ushlab turish'}
+                  aria-label={chat.isPinned ? 'Tepadan olib tashlash' : 'Tepada ushlab turish'}
+                  aria-pressed={chat.isPinned ?? false}
+                  className={cx(
+                    'grid size-5 place-items-center rounded transition-opacity',
+                    chat.isPinned
+                      ? 'text-signal-ink opacity-100'
+                      : 'text-ink-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+                  )}
+                >
+                  <PinGlyph filled={chat.isPinned ?? false} />
+                </button>
               </span>
             </div>
 
@@ -454,7 +561,7 @@ function Inbox({ waiting }: { waiting: number }) {
                 {formatDate(chat.lastInteractionAt)}
               </span>
             </div>
-          </button>
+          </div>
         ))}
 
         {chats.length < total && (

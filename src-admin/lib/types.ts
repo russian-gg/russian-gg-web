@@ -307,6 +307,8 @@ export type SalesChatSummary = {
   unread: number
   /** Put away by an operator. Still counted everywhere, just not in the working list. */
   isArchived?: boolean
+  /** Held at the top of every folder by an operator who is working it. */
+  isPinned?: boolean
 }
 
 export type SalesUnread = {
