@@ -439,7 +439,9 @@ export function MissionPlayer() {
     setAssistantReply(null)
     setFeedback(result)
     setVoiceState('feedback')
-    setServerCompletedSteps((current) => Math.max(current, result.nextStepIndex))
+    if (passed) {
+      setServerCompletedSteps((current) => Math.max(current, result.nextStepIndex))
+    }
     latestTurnScoreRef.current = result.score
     latestTurnPassedRef.current = passed
     stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
@@ -898,9 +900,11 @@ export function MissionPlayer() {
       })
 
       const passed = result.score >= 70
-      // Recorded whether or not it passed: the server counts the turn either way, and the
-      // checklist has to say the same thing the next reload would.
-      setServerCompletedSteps((current) => Math.max(current, result.nextStepIndex))
+      // A tutor reply is not completion. The goal is checked only after the learner's answer
+      // reaches the passing score, matching the persisted mission progress.
+      if (passed) {
+        setServerCompletedSteps((current) => Math.max(current, result.nextStepIndex))
+      }
       latestTurnScoreRef.current = result.score
       latestTurnPassedRef.current = passed
       stepAttemptsRef.current = passed ? 0 : stepAttemptsRef.current + 1
