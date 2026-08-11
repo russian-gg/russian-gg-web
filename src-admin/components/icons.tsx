@@ -154,16 +154,6 @@ export function InboxGlyph() {
   )
 }
 
-/** A play mark inside a circle: the one-minute demo, which is a thing you press and it speaks. */
-export function DemoGlyph() {
-  return (
-    <svg {...props}>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M10.5 9.5l4 2.5-4 2.5v-5Z" />
-    </svg>
-  )
-}
-
 /** Sliders: the agent's settings are values somebody moves, not switches somebody flips. */
 export function SlidersGlyph() {
   return (

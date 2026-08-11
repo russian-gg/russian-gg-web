@@ -388,21 +388,6 @@ export type SalesDashboard = {
   aiTokens: number
 }
 
-/** One of the agent's one-minute demos, as the panel lists it. */
-export type SalesDemo = {
-  id: string
-  chatId: string
-  displayName: string
-  titleUz: string
-  situationUz: string
-  url: string
-  /** "ready", "spent" or "expired". */
-  status: string
-  createdAt: string
-  openedAt?: string | null
-  completedAt?: string | null
-  elapsedSeconds: number
-}
 
 /** A page of the sales inbox. `total` is every chat there is, so the list knows what remains. */
 export type SalesChatPage = {

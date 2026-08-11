@@ -1015,6 +1015,8 @@ function longestOverlap(left: string, right: string) {
 
 function sanitizeTranscript(value: string) {
   return value
+    // Control characters are exactly what this strips — the rule is about accidents.
+    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
