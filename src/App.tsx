@@ -32,12 +32,23 @@ export function App() {
         <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
 
         {/*
-          Onboarding sits outside the shell: nothing should compete with placement. It is also
-          deliberately public - the placement check is the product's first taste, and putting
-          sign-up in front of it charges the highest price before showing any value. Answers
-          given while signed out are held in the session and placed straight after sign-up.
+          Outside the shell, because nothing should compete with the forty seconds — but no
+          longer public.
+
+          It used to be: the placement was ten questions anybody could answer, and putting
+          sign-up in front of them charged the highest price before showing any value. It is
+          now a live voice session, which costs us money every time it opens, and that is the
+          same reason the demo went away. An account makes it attributable and rate-limitable;
+          without one the microphone answered 401 and the page sat there.
         */}
-        <Route path="/onboarding" element={<Onboarding />} />
+        <Route
+          path="/onboarding"
+          element={
+            <RequireAuth>
+              <Onboarding />
+            </RequireAuth>
+          }
+        />
 
 
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
