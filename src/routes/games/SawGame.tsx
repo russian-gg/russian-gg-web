@@ -18,6 +18,9 @@ import { cx } from '../../lib/cx'
 const ROUND_SECONDS = 60
 
 /** How far the blade travels, in percent of the track, per second of each state. */
+/** Loud enough to be a voice rather than a room. */
+const VOICE = 6
+
 const ADVANCE_IDLE = 7
 const ADVANCE_STALLED = 12
 const RETREAT_MAX = 16
@@ -63,7 +66,12 @@ export function SawGame() {
    * silence and rolled straight over somebody who was talking the whole time. Loudness has no
    * language.
    */
-  const level = useRef({ loud: 0, stream: null as MediaStream | null, ctx: null as AudioContext | null })
+  const level = useRef({
+    loud: 0,
+    at: 0,
+    stream: null as MediaStream | null,
+    ctx: null as AudioContext | null,
+  })
   const question = QUESTIONS[round % QUESTIONS.length]
 
   const listenForVoice = useCallback(async () => {
@@ -77,7 +85,7 @@ export function SawGame() {
       ctx.createMediaStreamSource(stream).connect(analyser)
 
       const samples = new Uint8Array(analyser.frequencyBinCount)
-      level.current = { loud: 0, stream, ctx }
+      level.current = { loud: 0, at: Date.now(), stream, ctx }
 
       const read = () => {
         if (!level.current.ctx) return
@@ -87,6 +95,7 @@ export function SawGame() {
         let sum = 0
         for (const sample of samples) sum += Math.abs(sample - 128)
         level.current.loud = sum / samples.length
+        if (level.current.loud > VOICE) level.current.at = Date.now()
 
         requestAnimationFrame(read)
       }
@@ -100,7 +109,7 @@ export function SawGame() {
   const releaseVoice = useCallback(() => {
     level.current.stream?.getTracks().forEach((track) => track.stop())
     void level.current.ctx?.close()
-    level.current = { loud: 0, stream: null, ctx: null }
+    level.current = { loud: 0, at: 0, stream: null, ctx: null }
   }, [])
 
   const start = useCallback(() => {
@@ -131,7 +140,14 @@ export function SawGame() {
     const words = text.split(/\s+/).filter(Boolean)
     const russian = words.filter((word) => /[Ѐ-ӿ]/.test(word)).length
 
-    heard.current = { text, at: Date.now(), words: words.length, russian }
+    // Only Russian moves this clock. It is what the blade retreats from, and a transcript
+    // that grew without any Russian in it is somebody still speaking Uzbek.
+    heard.current = {
+      text,
+      at: russian > heard.current.russian ? Date.now() : heard.current.at,
+      words: words.length,
+      russian,
+    }
   }, [speech.transcript, phase])
 
   // The blade, and the clock it is racing.
@@ -139,24 +155,29 @@ export function SawGame() {
     if (phase !== 'playing') return
 
     const tick = window.setInterval(() => {
-      // A voice in the room counts as speaking, whatever language it is in.
-      if (level.current.loud > 6) heard.current.at = Date.now()
-
-      const since = (Date.now() - heard.current.at) / 1000
+      const now = Date.now()
+      const sinceRussian = (now - heard.current.at) / 1000
+      const sinceVoice = (now - level.current.at) / 1000
       const { words, russian } = heard.current
 
       setBlade((position) => {
         /*
-         * Three states, and the middle one is the point of the game: a sentence in progress
-         * pushes the blade away, a pause lets it drift in, and a long silence brings it on
-         * fast. Nothing here punishes a wrong word — only stopping.
+         * Three states, and the middle one is the whole lesson.
+         *
+         * Russian pushes the blade away. Talking in Uzbek holds it exactly where it is —
+         * everybody here can speak Uzbek all day, so rewarding it would make the game
+         * winnable without ever attempting the language it is for. Silence lets it come on.
+         *
+         * Nothing punishes a wrong Russian word. Only stopping, and only staying in Uzbek.
          */
         const step =
-          since < 1.5
+          sinceRussian < 1.5
             ? -Math.min(RETREAT_MAX, 4 + russian * 3 + Math.min(words, 12) * 0.5)
-            : since < 3
-              ? ADVANCE_IDLE
-              : ADVANCE_STALLED
+            : sinceVoice < 1.5
+              ? 0
+              : sinceVoice < 3
+                ? ADVANCE_IDLE
+                : ADVANCE_STALLED
 
         const next = position + step / 10
 
