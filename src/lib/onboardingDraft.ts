@@ -1,44 +1,42 @@
-import type { DiagnosticAnswer, LearningGoal } from './types'
-
-const KEY = 'rgg.onboarding.draft'
+const KEY = 'rgg.onboarding.trial'
 
 /**
- * A placement run taken before the learner has an account. It is held only for the hop
- * through sign-up — sessionStorage, so it dies with the tab and never becomes a second,
- * stale source of truth next to the server's attempt.
+ * The token for a recording made before the learner had an account.
+ *
+ * They speak first — asking for a sign-up in front of the microphone charges the highest price
+ * before showing any value — and the assessment is stored server-side against this token. It
+ * is held only for the hop through sign-up: sessionStorage, so it dies with the tab and never
+ * becomes a second, stale source of truth beside the server's own placement.
+ *
+ * It is not a credential. It grants no access; it only lets one already-paid-for assessment
+ * attach itself to one new account, so nobody is measured twice.
  */
-export interface OnboardingDraft {
-  goal: LearningGoal
-  selfRatedComprehension: number
-  selfRatedSpeaking: number
-  answers: DiagnosticAnswer[]
-}
-
 export const onboardingDraft = {
-  save(draft: OnboardingDraft) {
+  save(token: string) {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify(draft))
+      sessionStorage.setItem(KEY, token)
     } catch {
-      // A private-mode storage failure must not lose the learner their answers mid-flow;
-      // the caller keeps them in component state either way.
+      // Private mode. They keep the result on screen either way; only the hand-over is lost.
     }
   },
 
-  read(): OnboardingDraft | null {
-    const raw = sessionStorage.getItem(KEY)
-    if (!raw) return null
-
+  read(): string | null {
     try {
-      const parsed = JSON.parse(raw) as OnboardingDraft
-      return Array.isArray(parsed.answers) && parsed.goal ? parsed : null
+      return sessionStorage.getItem(KEY)
     } catch {
       return null
     }
   },
 
-  exists: () => sessionStorage.getItem(KEY) !== null,
+  exists() {
+    return Boolean(this.read())
+  },
 
   clear() {
-    sessionStorage.removeItem(KEY)
+    try {
+      sessionStorage.removeItem(KEY)
+    } catch {
+      // Nothing to clear is the same outcome.
+    }
   },
 }

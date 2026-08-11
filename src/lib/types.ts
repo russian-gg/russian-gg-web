@@ -460,3 +460,9 @@ export type OnboardingAssessment = {
   firstMissionTitle?: string | null
   transcriptUz: string
 }
+
+/** The token is empty for a signed-in learner: they are placed already, nothing to carry. */
+export type AnonymousAssessment = {
+  assessment: OnboardingAssessment
+  token: string
+}

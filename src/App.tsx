@@ -32,23 +32,14 @@ export function App() {
         <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
 
         {/*
-          Outside the shell, because nothing should compete with the forty seconds — but no
-          longer public.
+          Outside the shell, because nothing should compete with the forty seconds, and public,
+          because the microphone is this product's first taste — asking for a sign-up in front
+          of it charges the highest price before showing any value.
 
-          It used to be: the placement was ten questions anybody could answer, and putting
-          sign-up in front of them charged the highest price before showing any value. It is
-          now a live voice session, which costs us money every time it opens, and that is the
-          same reason the demo went away. An account makes it attributable and rate-limitable;
-          without one the microphone answered 401 and the page sat there.
+          It does cost a live voice session every time it opens. That is held down on the
+          server by a hard per-address limit rather than by a sign-up form here.
         */}
-        <Route
-          path="/onboarding"
-          element={
-            <RequireAuth>
-              <Onboarding />
-            </RequireAuth>
-          }
-        />
+        <Route path="/onboarding" element={<Onboarding />} />
 
 
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>

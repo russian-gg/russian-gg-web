@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { onboardingDraft } from '../lib/onboardingDraft'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { VoiceErrorCode } from '../lib/liveVoice'
-import type { OnboardingAssessment, VoiceSessionOutcome } from '../lib/types'
+import type { AnonymousAssessment, OnboardingAssessment, VoiceSessionOutcome } from '../lib/types'
 import { LevelDashboard } from '../components/LevelDashboard'
 import { VoiceSignal } from '../components/VoiceSignal'
 import { Button, ErrorNote, Spinner } from '../components/ui'
@@ -34,7 +35,7 @@ const MIC_MESSAGE: Partial<Record<VoiceErrorCode, string>> = {
  */
 export function Onboarding() {
   const navigate = useNavigate()
-  const { completePendingOnboarding } = useAuth()
+  const { user, completePendingOnboarding } = useAuth()
 
   const [stage, setStage] = useState<Stage>('intro')
   const [secondsLeft, setSecondsLeft] = useState(0)
@@ -56,12 +57,24 @@ export function Onboarding() {
   const session = useRef<LiveVoiceSession | null>(null)
   const transcript = useRef({ committed: '', live: '' })
 
-  /** Somebody who already spoke gets their result back rather than being asked again. */
+  /**
+   * Somebody who already spoke gets their result back rather than being asked again — and
+   * somebody who spoke before signing up has their recording attached to the account that
+   * just opened, which is what stops them being measured twice.
+   */
   useEffect(() => {
-    let cancelled = false
+    if (!user) return
 
-    void api
-      .get<OnboardingAssessment | null>('/onboarding/assessment')
+    let cancelled = false
+    const pending = onboardingDraft.read()
+
+    const load = pending
+      ? api
+          .post<OnboardingAssessment | null>('/onboarding/claim', { token: pending })
+          .finally(() => onboardingDraft.clear())
+      : api.get<OnboardingAssessment | null>('/onboarding/assessment')
+
+    void load
       .then((existing) => {
         if (!cancelled && existing) {
           setAssessment(existing)
@@ -69,13 +82,13 @@ export function Onboarding() {
         }
       })
       .catch(() => {
-        // No assessment yet is the ordinary case, and it is not an error worth showing.
+        // Nothing placed yet is the ordinary case, and not an error worth showing.
       })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [user])
 
   const finish = useCallback(async () => {
     const live = session.current
@@ -90,13 +103,17 @@ export function Onboarding() {
     setStage('analysing')
 
     try {
-      const result = await api.post<OnboardingAssessment>('/onboarding/assess', {
+      const result = await api.post<AnonymousAssessment>('/onboarding/assess', {
         transcript: spoken,
         elapsedSeconds: elapsed || total,
       })
 
-      await completePendingOnboarding()
-      setAssessment(result)
+      // Held for the hop through sign-up. A signed-in learner is already placed and gets no
+      // token, so there is nothing to carry.
+      if (result.token) onboardingDraft.save(result.token)
+      else await completePendingOnboarding()
+
+      setAssessment(result.assessment)
       setStage('result')
     } catch {
       setFailure("Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.")
@@ -201,10 +218,14 @@ export function Onboarding() {
       <Layout wide>
         <LevelDashboard
           assessment={assessment}
-          continueLabel={assessment.firstMissionTitle ? 'Birinchi mashqni boshlash' : 'Boshlash'}
+          continueLabel={user ? 'Birinchi mashqni boshlash' : "Rejani saqlab, boshlash"}
           onContinue={() =>
             navigate(
-              assessment.firstMissionId ? `/missions/${assessment.firstMissionId}` : '/home',
+              !user
+                ? '/signup'
+                : assessment.firstMissionId
+                  ? `/missions/${assessment.firstMissionId}`
+                  : '/home',
             )
           }
         />
