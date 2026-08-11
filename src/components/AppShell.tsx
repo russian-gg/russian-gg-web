@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { planLabel } from '../lib/format'
+import { useOpenGames } from '../lib/games'
 import { useTheme } from '../lib/theme'
 import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
 import { useQuery } from '@tanstack/react-query'
@@ -11,26 +12,30 @@ import type { EntitlementView, ProgressView } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { Badge, Switch } from './ui'
 
-/** Flipped on when the admin panel owns which games are open. Until then, nobody sees them. */
-const GAMES_ENABLED = false
-
 const NAV = [
   { to: '/home', key: 'today', icon: TodayGlyph },
   { to: '/path', key: 'path', icon: PathGlyph },
   { to: '/practice', key: 'practice', icon: TasksGlyph },
   // No route: the chip says it is not built yet, so the row must not lead anywhere.
   { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
-  /*
-   * Off until the panel can turn each game on, and off by default when it can: nothing here
-   * should reach a learner because it happened to be built. The row disappears entirely
-   * rather than greying out — a menu item that leads nowhere is worse than no menu item.
-   */
-  ...(GAMES_ENABLED ? [{ to: '/games', key: 'games', icon: GamesGlyph } as const] : []),
   { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 
 export function AppShell() {
   const t = useT()
+  /*
+   * The games row exists only when the panel has opened at least one. Everything is off by
+   * default, so the ordinary state is no row at all — and a menu item leading to an empty
+   * shelf is worse than no menu item.
+   */
+  const openGames = useOpenGames()
+  const nav = useMemo(
+    () =>
+      openGames && openGames.length > 0
+        ? [...NAV, { to: '/games', key: 'games' as const, icon: GamesGlyph }]
+        : NAV,
+    [openGames],
+  )
   const { data: progress } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
@@ -54,7 +59,7 @@ export function AppShell() {
         <Wordmark />
 
         <nav className="mt-12 flex flex-col gap-1" aria-label={t.nav.main}>
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <RailLink
               key={item.key}
               to={item.to}
@@ -89,7 +94,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-ground/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <div className="flex items-stretch">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <TabLink
               key={item.key}
               to={item.to}
