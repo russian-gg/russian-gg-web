@@ -52,7 +52,8 @@ export function LevelDashboard({
           <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <Figure label="Jami so'z" value={stats.words} />
             <Figure label="Ruscha" value={`${stats.russianShare}%`} />
-            <Figure label="Gapirdingiz" value={`${stats.seconds} s`} />
+            {/* A typed answer has no length, and "0 s" would read as a measurement of one. */}
+            {stats.seconds > 0 && <Figure label="Gapirdingiz" value={`${stats.seconds} s`} />}
           </dl>
         </div>
 

@@ -11,7 +11,20 @@ import { VoiceSignal } from '../components/VoiceSignal'
 import { Button, ErrorNote, Spinner } from '../components/ui'
 import { cx } from '../lib/cx'
 
-type Stage = 'intro' | 'speaking' | 'analysing' | 'result'
+type Stage = 'intro' | 'speaking' | 'analysing' | 'result' | 'typing'
+
+/**
+ * What to say, for the person staring at a microphone with nothing in their head.
+ *
+ * Most people here have never been asked to speak Russian on purpose, and an empty forty
+ * seconds is its own kind of panic: "what do I say?", "what if I get it wrong?". Three plain
+ * questions remove the blank page without turning this back into a questionnaire.
+ */
+const CUES = [
+  'Ismingiz nima, nima ish qilasiz?',
+  'Rus tili qayerda kerak bo\'ladi — ishdami, ko\'chadami?',
+  'Oxirgi marta qachon qiynalgansiz?',
+]
 
 const MIC_MESSAGE: Partial<Record<VoiceErrorCode, string>> = {
   mic_denied: "Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.",
@@ -61,6 +74,7 @@ export function Onboarding() {
   const [saying, setSaying] = useState('')
 
   const [assessment, setAssessment] = useState<OnboardingAssessment | null>(null)
+  const [typed, setTyped] = useState('')
 
   const session = useRef<LiveVoiceSession | null>(null)
   const transcript = useRef({ committed: '', live: '' })
@@ -98,6 +112,31 @@ export function Onboarding() {
     }
   }, [user])
 
+  const send = useCallback(
+    async (spoken: string, seconds: number) => {
+      setStage('analysing')
+
+      try {
+        const result = await api.post<AnonymousAssessment>('/onboarding/assess', {
+          transcript: spoken,
+          elapsedSeconds: seconds,
+        })
+
+        // Held for the hop through sign-up. A signed-in learner is already placed and gets no
+        // token, so there is nothing to carry.
+        if (result.token) onboardingDraft.save(result.token)
+        else await completePendingOnboarding()
+
+        setAssessment(result.assessment)
+        setStage('result')
+      } catch {
+        setFailure("Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.")
+        setStage('intro')
+      }
+    },
+    [completePendingOnboarding],
+  )
+
   const finish = useCallback(async () => {
     const live = session.current
     session.current = null
@@ -109,29 +148,12 @@ export function Onboarding() {
     const spoken = `${transcript.current.committed} ${transcript.current.live}`.trim()
 
     setConnected(false)
-    setStage('analysing')
 
-    try {
-      const result = await api.post<AnonymousAssessment>('/onboarding/assess', {
-        // The session's own clock, and zero when it never opened. Not the full forty: a
-        // length nobody spoke would put an invented pace on a screen whose whole point is
-        // that its numbers are measured.
-        transcript: spoken,
-        elapsedSeconds: elapsed,
-      })
-
-      // Held for the hop through sign-up. A signed-in learner is already placed and gets no
-      // token, so there is nothing to carry.
-      if (result.token) onboardingDraft.save(result.token)
-      else await completePendingOnboarding()
-
-      setAssessment(result.assessment)
-      setStage('result')
-    } catch {
-      setFailure("Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.")
-      setStage('intro')
-    }
-  }, [completePendingOnboarding])
+    // The session's own clock, and zero when it never opened. Not the full forty: a length
+    // nobody spoke would put an invented pace on a screen whose whole point is that its
+    // numbers are measured.
+    await send(spoken, elapsed)
+  }, [send])
 
   // The clock the learner watches, and the one that ends the session.
   useEffect(() => {
@@ -262,6 +284,43 @@ export function Onboarding() {
     )
   }
 
+  if (stage === 'typing') {
+    return (
+      <Layout>
+        <div className="space-y-4">
+          <h1 className="text-xl font-black text-ink">Yozib bering</h1>
+          <p className="text-[15px] text-ink-muted">
+            Rus tilingiz haqida bir-ikki gap: qayerda kerak, qayerda qiynalasiz. Ruscha
+            so'zlarni bilganingizcha yozing — aralashtirsangiz ham bo'ladi.
+          </p>
+
+          <textarea
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            rows={6}
+            autoFocus
+            placeholder="Men do'konda ishlayman, mijozlar ruscha so'raydi, men тушунаман lekin javob berolmayman…"
+            className="w-full rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+          />
+
+          {failure && <ErrorNote>{failure}</ErrorNote>}
+
+          {/*
+            Sent with no length: a typed answer has no pace, and inventing one would put a
+            words-per-minute figure on a screen that is supposed to only show measurements.
+          */}
+          <Button block disabled={typed.trim().length < 10} onClick={() => void send(typed.trim(), 0)}>
+            Darajamni ko'rish
+          </Button>
+
+          <Button variant="secondary" block onClick={() => setStage('intro')}>
+            Ovoz bilan aytaman
+          </Button>
+        </div>
+      </Layout>
+    )
+  }
+
   if (stage === 'speaking') {
     const said = `${saidSoFar} ${saying}`.trim()
     const elapsed = total - secondsLeft
@@ -274,7 +333,7 @@ export function Onboarding() {
             a session that is already over, which is exactly what it used to become.
           */}
           {connected ? (
-            <Countdown secondsLeft={secondsLeft} total={total} />
+            <Remaining secondsLeft={secondsLeft} total={total} />
           ) : (
             <div className="flex justify-center py-4">
               <Spinner />
@@ -340,44 +399,70 @@ export function Onboarding() {
         </button>
 
         <p className="text-sm font-bold text-ink">Bosing va gapiring</p>
-        <p className="text-xs text-ink-faint">40 soniya · javobingiz saqlanadi</p>
+
+        {/*
+          The blank page, removed. Somebody who has never been asked to speak Russian on
+          purpose freezes on "what do I say?" long before they freeze on the Russian.
+        */}
+        <ul className="space-y-1.5 text-left">
+          {CUES.map((cue) => (
+            <li
+              key={cue}
+              className="rounded-[var(--radius-control)] bg-ground-raised px-3.5 py-2 text-sm text-ink-muted"
+            >
+              {cue}
+            </li>
+          ))}
+        </ul>
+
+        <p className="text-xs text-ink-faint">Qisqa javob ham yetadi</p>
+
+        {/*
+          For the person on a bus, in an open-plan office, or beside a sleeping child. Speaking
+          is the point and stays the default — but a page that only works with a microphone
+          simply loses everybody who cannot use one right now.
+        */}
+        <button
+          type="button"
+          onClick={() => setStage('typing')}
+          className="text-sm font-bold text-ink-muted underline underline-offset-4 transition-colors hover:text-ink"
+        >
+          Hozir gapira olmayman, yozib beraman
+        </button>
       </div>
     </Layout>
   )
 }
 
-/** The clock as a ring: a number alone does not read as running out. */
-function Countdown({ secondsLeft, total }: { secondsLeft: number; total: number }) {
-  const fraction = total === 0 ? 0 : secondsLeft / total
-  const circumference = 2 * Math.PI * 34
+/**
+ * The time left, as a bar that empties. Never a number.
+ *
+ * A digit ticking 40, 39, 38 at somebody who is already nervous about speaking Russian is a
+ * countdown to a deadline, and the thing being counted is their performance. The same
+ * information as a shrinking bar says "there is time, and it is finite" without ever handing
+ * them a figure to fail against.
+ */
+function Remaining({ secondsLeft, total }: { secondsLeft: number; total: number }) {
+  const fraction = total === 0 ? 0 : Math.max(0, Math.min(1, secondsLeft / total))
 
   return (
-    <div className="flex justify-center">
-      <div className="relative grid size-20 place-items-center">
-        <svg viewBox="0 0 80 80" className="absolute inset-0 -rotate-90">
-          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--color-hairline)" strokeWidth="5" />
-          <circle
-            cx="40"
-            cy="40"
-            r="34"
-            fill="none"
-            stroke={secondsLeft <= 8 ? 'var(--color-caution)' : 'var(--color-signal)'}
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - fraction)}
-            className="transition-[stroke-dashoffset,stroke] duration-1000 ease-linear motion-reduce:transition-none"
-          />
-        </svg>
-        <span
-          className={cx(
-            'text-2xl font-black tabular-nums',
-            secondsLeft <= 8 ? 'text-caution' : 'text-ink',
-          )}
-        >
-          {secondsLeft}
-        </span>
-      </div>
+    <div
+      role="progressbar"
+      aria-valuenow={secondsLeft}
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-label="Qolgan vaqt"
+      className="h-2.5 w-full overflow-hidden rounded-full bg-ground-sunken"
+    >
+      <div
+        className={cx(
+          'h-full rounded-full transition-[width,background-color] duration-1000 ease-linear motion-reduce:transition-none',
+          // The last stretch warms rather than alarms: it is a nudge to finish the thought,
+          // not a warning that something is about to go wrong.
+          fraction <= 0.2 ? 'bg-caution' : 'bg-signal',
+        )}
+        style={{ width: `${fraction * 100}%` }}
+      />
     </div>
   )
 }
