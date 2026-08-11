@@ -54,16 +54,64 @@ export function SawGame() {
   const [secondsLeft, setSecondsLeft] = useState(ROUND_SECONDS)
 
   const heard = useRef({ text: '', at: 0, words: 0, russian: 0 })
+  /*
+   * Whether a voice is arriving at all, measured from the microphone rather than from the
+   * recogniser.
+   *
+   * The recogniser is set to Russian because Russian is what the blade retreats for — but a
+   * learner answering in Uzbek produces no Russian result at all, and the blade read that as
+   * silence and rolled straight over somebody who was talking the whole time. Loudness has no
+   * language.
+   */
+  const level = useRef({ loud: 0, stream: null as MediaStream | null, ctx: null as AudioContext | null })
   const question = QUESTIONS[round % QUESTIONS.length]
+
+  const listenForVoice = useCallback(async () => {
+    if (level.current.ctx) return
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const ctx = new AudioContext()
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 512
+      ctx.createMediaStreamSource(stream).connect(analyser)
+
+      const samples = new Uint8Array(analyser.frequencyBinCount)
+      level.current = { loud: 0, stream, ctx }
+
+      const read = () => {
+        if (!level.current.ctx) return
+
+        analyser.getByteTimeDomainData(samples)
+        // Distance from silence, averaged. Cheap, and enough to tell talking from a room.
+        let sum = 0
+        for (const sample of samples) sum += Math.abs(sample - 128)
+        level.current.loud = sum / samples.length
+
+        requestAnimationFrame(read)
+      }
+
+      read()
+    } catch {
+      // No meter, so the recogniser is the only signal — which is the behaviour it had before.
+    }
+  }, [])
+
+  const releaseVoice = useCallback(() => {
+    level.current.stream?.getTracks().forEach((track) => track.stop())
+    void level.current.ctx?.close()
+    level.current = { loud: 0, stream: null, ctx: null }
+  }, [])
 
   const start = useCallback(() => {
     heard.current = { text: '', at: Date.now(), words: 0, russian: 0 }
+    void listenForVoice()
     resetSpeech()
     startSpeech()
     setBlade(0)
     setSecondsLeft(ROUND_SECONDS)
     setPhase('playing')
-  }, [resetSpeech, startSpeech])
+  }, [listenForVoice, resetSpeech, startSpeech])
 
   const stop = useCallback(() => {
     stopSpeech()
@@ -91,6 +139,9 @@ export function SawGame() {
     if (phase !== 'playing') return
 
     const tick = window.setInterval(() => {
+      // A voice in the room counts as speaking, whatever language it is in.
+      if (level.current.loud > 6) heard.current.at = Date.now()
+
       const since = (Date.now() - heard.current.at) / 1000
       const { words, russian } = heard.current
 
@@ -142,10 +193,19 @@ export function SawGame() {
 
   // Whatever ends the round, the microphone closes with it.
   useEffect(() => {
-    if (phase === 'cut' || phase === 'won') stop()
-  }, [phase, stop])
+    if (phase === 'cut' || phase === 'won') {
+      stop()
+      releaseVoice()
+    }
+  }, [phase, stop, releaseVoice])
 
-  useEffect(() => () => stopSpeech(), [stopSpeech])
+  useEffect(
+    () => () => {
+      stopSpeech()
+      releaseVoice()
+    },
+    [stopSpeech, releaseVoice],
+  )
 
   useEffect(() => {
     if (phase === 'won') setScore((current) => current + 1)
