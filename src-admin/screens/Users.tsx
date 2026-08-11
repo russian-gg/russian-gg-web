@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStickyTab } from '../lib/sticky-tab'
-import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
-import type { Audience, Paged, UserDetail, UserItem } from '../lib/types'
+import { formatDate, formatNumber, useAdminQuery } from '../lib/api'
+import type { Audience, Paged, UserItem } from '../lib/types'
 import {
   Badge,
   Button,
@@ -13,12 +13,12 @@ import {
   PageHeader,
   Pager,
   Row,
-  SectionHeading,
   Table,
   Tabs,
   TextField,
 } from '../components/ui'
 import { BarList, Donut } from '../components/charts'
+import { UserDrawer } from '../components/UserDrawer'
 
 const PAGE_SIZE = 20
 
@@ -133,7 +133,7 @@ function UserList() {
 
       {selected && (
         <UserDrawer
-          id={selected}
+          userId={selected}
           onClose={() => setSelected(null)}
           onChanged={() => {
             refresh()
@@ -141,142 +141,6 @@ function UserList() {
           }}
         />
       )}
-    </div>
-  )
-}
-
-function UserDrawer({
-  id,
-  onClose,
-  onChanged,
-}: {
-  id: string
-  onClose: () => void
-  onChanged: () => void
-}) {
-  const { data, error } = useAdminQuery<UserDetail>(`/api/admin-portal/users/${id}`)
-  const [busy, setBusy] = useState(false)
-  const [failure, setFailure] = useState('')
-
-  async function grantPro() {
-    setBusy(true)
-    setFailure('')
-    try {
-      await adminFetch(`/api/admin-portal/users/${id}/grant-pro`, {
-        method: 'POST',
-        body: JSON.stringify({ days: 30, reason: 'Admin panel' }),
-      })
-      onChanged()
-    } catch (caught) {
-      setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function restoreFree() {
-    setBusy(true)
-    setFailure('')
-    try {
-      await adminFetch(`/api/admin-portal/users/${id}/revoke-pro`, {
-        method: 'POST',
-        body: JSON.stringify({ reason: 'Admin panel: restore free access' }),
-      })
-      onChanged()
-    } catch (caught) {
-      setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onClick={onClose}>
-      <aside
-        className="h-full w-full max-w-lg overflow-auto bg-ground p-4 sm:p-6"
-        onClick={(event) => event.stopPropagation()}
-      >
-        {error && <ErrorNote>{error}</ErrorNote>}
-        {!data && !error && <Loading />}
-
-        {data && (
-          <div className="space-y-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-extrabold text-ink">{data.displayName ?? 'Ismsiz'}</h2>
-                <p className="text-sm text-ink-muted">{data.email}</p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                Yopish
-              </Button>
-            </div>
-
-            <Card className="space-y-2">
-              <Line label="Gapirish darajasi" value={data.speakingLevel ?? '- (aniqlanmagan)'} />
-              <Line label="Tushunish darajasi" value={data.comprehensionLevel ?? '- (aniqlanmagan)'} />
-              <Line label="Reja" value={data.plan} />
-              <Line label="Rol" value={data.role} />
-              <Line label="Til" value={data.uiLanguage} />
-              <Line label="Telefon" value={data.phoneNumber ?? '-'} />
-              <Line label="Qurilma" value={data.device} />
-              <Line label="Vaqt mintaqasi" value={data.timeZoneId} />
-              <Line label="Kurs kuni" value={data.currentDay ? `${data.currentDay}-kun` : '-'} />
-              <Line
-                label="Tavsiya etilgan boshlanish"
-                value={data.recommendedStartDay ? `${data.recommendedStartDay}-kun` : '-'}
-              />
-              <Line label="Oxirgi kirish" value={formatDateTime(data.lastLoginAt)} />
-              <Line label="Ro'yxatdan o'tgan" value={formatDateTime(data.createdAt)} />
-            </Card>
-
-            <div>
-              <SectionHeading>Oxirgi mashqlar</SectionHeading>
-              {data.recentMissions.length === 0 ? (
-                <EmptyNote>Hali mashq boshlanmagan</EmptyNote>
-              ) : (
-                <ul className="space-y-2">
-                  {data.recentMissions.map((attempt) => (
-                    <li
-                      key={attempt.id}
-                      className="flex items-center justify-between gap-3 rounded-[var(--radius-card)] border-2 border-hairline px-4 py-3"
-                    >
-                      <span className="text-sm text-ink">{formatDateTime(attempt.createdAt)}</span>
-                      <span className="flex items-center gap-2">
-                        <Badge tone={attempt.status === 'Completed' ? 'milestone' : 'neutral'}>
-                          {attempt.status}
-                        </Badge>
-                        <span className="w-8 text-right text-sm tabular-nums text-ink-muted">
-                          {attempt.overallScore ?? '-'}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {failure && <ErrorNote>{failure}</ErrorNote>}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button onClick={grantPro} disabled={busy} block>
-                {busy ? 'Berilmoqda...' : '30 kunlik PRO berish'}
-              </Button>
-              <Button variant="secondary" onClick={restoreFree} disabled={busy} block>
-                {busy ? 'Qaytarilmoqda...' : '7 kunlik FREE holatiga qaytarish'}
-              </Button>
-            </div>
-          </div>
-        )}
-      </aside>
-    </div>
-  )
-}
-
-function Line({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-hairline pb-2 last:border-b-0 last:pb-0">
-      <span className="text-sm text-ink-muted">{label}</span>
-      <span className="text-sm font-bold text-ink">{value}</span>
     </div>
   )
 }

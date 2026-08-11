@@ -137,6 +137,8 @@ export type UserDetail = UserItem & {
 
 export type Transaction = {
   id: string
+  /** Who paid. The row opens their card, so this is the whole reason the row is clickable. */
+  userId: string
   displayName?: string | null
   email?: string | null
   amount: number
@@ -305,6 +307,8 @@ export type SalesChatSummary = {
   unread: number
   /** Put away by an operator. Still counted everywhere, just not in the working list. */
   isArchived?: boolean
+  /** Held at the top of every folder by an operator who is working it. */
+  isPinned?: boolean
 }
 
 export type SalesUnread = {
@@ -408,3 +412,16 @@ export type SalesChatPage = {
 
 /** Which shelf of the sales inbox to read. Mirrors SalesChatFolder on the server. */
 export type SalesFolder = 'New' | 'Hot' | 'All' | 'Archived'
+
+export type PortalRole = 'Admin' | 'Sales'
+
+export type AdminPortalUser = {
+  id: string
+  username: string
+  displayName: string
+  role: PortalRole
+  isActive: boolean
+  createdAt: string
+  lastLoginAt: string | null
+  createdBy: string | null
+}

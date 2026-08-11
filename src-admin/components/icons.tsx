@@ -1,3 +1,5 @@
+import { cx } from '../../src/lib/cx'
+
 /**
  * The sidebar's glyphs.
  *
@@ -102,6 +104,73 @@ export function FeedbackGlyph() {
   return (
     <svg {...props}>
       <path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.4-4.4A7.5 7.5 0 1 1 20 12Z" />
+    </svg>
+  )
+}
+
+/* ----------------------------------------------------------------- the sales screen's own */
+
+/**
+ * A thumbtack, seen from the side. Filled when the conversation is held, outlined when it is
+ * only offered — the same silhouette either way, so a list of pinned and unpinned rows reads
+ * as one control in two states rather than as two different marks.
+ */
+export function PinGlyph({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg {...props} className={cx(glyph, filled && 'fill-current')}>
+      <path d="M9 4h6l-1 5 3 3v1H7v-1l3-3-1-5Z" />
+      <path d="M12 13v6" className="fill-none" />
+    </svg>
+  )
+}
+
+/**
+ * A speaker, with its waves drawn only when there is sound to hear. The state is the icon
+ * rather than a word beside it: the control sits in a 22rem column where every character of
+ * "Ovoz o'chirilgan" is width a conversation is not using.
+ */
+export function SoundGlyph({ on }: { on: boolean }) {
+  return (
+    <svg {...props}>
+      <path d="M5 9.5h3L12 6v12l-4-3.5H5v-5Z" />
+      {on ? (
+        <>
+          <path d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
+          <path d="M18 7a7 7 0 0 1 0 10" />
+        </>
+      ) : (
+        <path d="M16 10l4 4M20 10l-4 4" />
+      )}
+    </svg>
+  )
+}
+
+/** Two lines in a rounded frame: the inbox, as a conversation rather than as a list. */
+export function InboxGlyph() {
+  return (
+    <svg {...props}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 4v-4h-.5A1.5 1.5 0 0 1 4 14.5v-8Z" />
+    </svg>
+  )
+}
+
+/** A play mark inside a circle: the one-minute demo, which is a thing you press and it speaks. */
+export function DemoGlyph() {
+  return (
+    <svg {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M10.5 9.5l4 2.5-4 2.5v-5Z" />
+    </svg>
+  )
+}
+
+/** Sliders: the agent's settings are values somebody moves, not switches somebody flips. */
+export function SlidersGlyph() {
+  return (
+    <svg {...props}>
+      <path d="M5 8h9M17 8h2M5 16h2M10 16h9" />
+      <circle cx="15.5" cy="8" r="1.8" />
+      <circle cx="8.5" cy="16" r="1.8" />
     </svg>
   )
 }
