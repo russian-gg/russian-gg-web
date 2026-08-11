@@ -204,6 +204,16 @@ export function Onboarding() {
    * progress, so the wait has a visible end and nobody wonders whether the button worked.
    */
   function begin() {
+    /*
+     * One press, one voice.
+     *
+     * Every route out of the brief — it ended, it failed to load, play() was refused, the
+     * button was tapped twice — used to make its own Audio and its own call to start(), so a
+     * single press could put two recordings of the same sentence on top of each other. The
+     * element is made once and handed over once; everything after that is a no-op.
+     */
+    if (briefing.current) return
+
     setFailure('')
     setBriefed(0)
     setStage('briefing')
@@ -211,25 +221,36 @@ export function Onboarding() {
     const audio = new Audio(BRIEFING_AUDIO)
     briefing.current = audio
 
+    let handed = false
+    const handOver = () => {
+      if (handed) return
+      handed = true
+      void start()
+    }
+
     audio.addEventListener('timeupdate', () => {
       if (audio.duration > 0) setBriefed(audio.currentTime / audio.duration)
     })
     // Either way the microphone opens: a brief that fails to load must not cost them the turn.
-    audio.addEventListener('ended', () => void start())
-    audio.addEventListener('error', () => void start())
+    audio.addEventListener('ended', handOver)
+    audio.addEventListener('error', handOver)
 
-    void audio.play().catch(() => void start())
+    void audio.play().catch(handOver)
   }
 
   /** Skips the rest of the brief for somebody who already knows what to say. */
   function skipBriefing() {
-    briefing.current?.pause()
     void start()
   }
 
   async function start() {
+    // Silenced and released here rather than at each call site, so the brief cannot outlive
+    // its own screen and talk over the recording it just handed off to.
     briefing.current?.pause()
     briefing.current = null
+
+    if (session.current) return
+
     setFailure('')
     setStage('speaking')
     setConnected(false)
