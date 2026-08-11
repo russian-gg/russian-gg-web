@@ -7,7 +7,6 @@ import type {
   SalesDashboard as SalesDashboardData,
   SalesChatPage,
   SalesChatSummary,
-  SalesDemo,
   SalesFolder,
   SalesUnread,
   SalesSettings,
@@ -28,7 +27,7 @@ import {
 } from '../components/ui'
 import { BarList, ColumnChart } from '../components/charts'
 import { cx } from '../../src/lib/cx'
-import { DashboardGlyph, DemoGlyph, InboxGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
+import { DashboardGlyph, InboxGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
 import { playIncomingChime, soundMuted } from '../lib/notify'
 
 const statusLabel: Record<SalesUserStatus, string> = {
@@ -56,7 +55,7 @@ const statusTone = {
   Paid: 'milestone',
 } as const
 
-const SALES_TABS = ['dashboard', 'inbox', 'demos', 'settings'] as const
+const SALES_TABS = ['dashboard', 'inbox', 'settings'] as const
 
 /** How many chats a page of the inbox holds, and how many each press of "more" adds. */
 const PAGE = 20
@@ -112,7 +111,6 @@ export function Sales() {
     { id: 'dashboard', label: 'Sotuv paneli', Glyph: DashboardGlyph },
     // Conversations waiting, not messages: five from one person is one thing to answer.
     { id: 'inbox', label: 'Suhbatlar', Glyph: InboxGlyph, badge: unread?.chats },
-    { id: 'demos', label: 'Demolar', Glyph: DemoGlyph },
     { id: 'settings', label: 'Agent sozlamalari', Glyph: SlidersGlyph },
   ]
 
@@ -171,7 +169,6 @@ export function Sales() {
 
       {tab === 'dashboard' && <SalesDashboardTab />}
       {tab === 'inbox' && <Inbox waiting={unread?.chats ?? 0} />}
-      {tab === 'demos' && <Demos />}
       {tab === 'settings' && <AgentSettings />}
     </div>
   )
@@ -631,9 +628,6 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  const [situation, setSituation] = useState('')
-  const [demoOpen, setDemoOpen] = useState(false)
-  const [demoSent, setDemoSent] = useState(false)
   const [offerSent, setOfferSent] = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -718,27 +712,6 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
     }
   }
 
-  async function sendDemo() {
-    setBusy(true)
-    setFailure('')
-    try {
-      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/demo`, {
-        method: 'POST',
-        body: JSON.stringify({ situation: situation.trim() }),
-      })
-
-      setSituation('')
-      setDemoOpen(false)
-      setDemoSent(true)
-      refresh()
-      onChanged()
-    } catch (caught) {
-      setFailure(caught instanceof Error ? caught.message : 'Demo yuborilmadi')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <div
       className={cx(
@@ -797,59 +770,19 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
         </div>
 
         {/*
-          The agent offers a demo when somebody names a place clearly enough for it to notice.
-          This is for every time it does not — the operator is reading the conversation and can
-          see what the model missed.
+          The agent sends this itself when somebody agrees. This is for the conversations it
+          reads differently from the person watching them — and it leaves the agent on,
+          because it is a nudge, not a handover.
         */}
         <div className="mt-3">
-          {demoOpen ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                value={situation}
-                onChange={(event) => setSituation(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    void sendDemo()
-                  }
-                }}
-                autoFocus
-                placeholder="Qayerda qiynalyapti — masalan: sport zalda murabbiy bilan"
-                className="h-10 min-w-0 flex-1 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
-              />
-              <Button size="sm" onClick={() => void sendDemo()} disabled={busy || !situation.trim()}>
-                {busy ? 'Tayyorlanmoqda…' : 'Demo yuborish'}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setDemoOpen(false)} disabled={busy}>
-                Bekor
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setDemoOpen(true)}
-                className="text-sm font-bold text-signal-ink"
-              >
-                {demoSent ? 'Yana demo yuborish' : 'Demo yuborish'}
-              </button>
-
-              {/*
-                The agent sends this itself when somebody agrees or says the demo was good.
-                This is for the conversations it reads differently from the person watching
-                them — and it leaves the agent on, because it is a nudge, not a handover.
-              */}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void sendOffer()}
-                className="text-sm font-bold text-signal-ink disabled:opacity-45"
-              >
-                {offerSent ? 'Yana to\'lov havolasi' : "To'lov havolasi"}
-              </button>
-
-            </div>
-          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void sendOffer()}
+            className="text-sm font-bold text-signal-ink disabled:opacity-45"
+          >
+            {offerSent ? "Yana to'lov havolasi" : "To'lov havolasi"}
+          </button>
         </div>
 
         {/* The cap is a floor under the measured height, not a replacement for it: if the
@@ -1011,93 +944,6 @@ function Line({ label, value }: { label: string; value: string }) {
 
 /** Where Telegram is told to deliver, when nothing has said otherwise. */
 const DEFAULT_WEBHOOK_URL = 'https://russian.gg/api/telegram/webhook'
-
-/**
- * The one-minute demos the agent has built.
- *
- * Each row carries its link, so an operator can open exactly what the customer was sent —
- * which is the only way to answer "what did the bot actually give them?" without guessing.
- */
-function Demos() {
-  const { data, error, isLoading } = useAdminQuery<SalesDemo[]>('/api/admin-portal/sales/demos')
-
-  if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
-  if (!data) return null
-
-  if (data.length === 0) {
-    return (
-      <Card>
-        <EmptyNote>
-          Hali demo tuzilmagan. Mijoz aynan qayerda qiynalayotganini aytganda, agent o'sha holat
-          uchun 1 daqiqalik mashq tayyorlab, havolasini yuboradi.
-        </EmptyNote>
-      </Card>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      <SectionHeading>{formatNumber(data.length)} ta demo</SectionHeading>
-      {data.map((demo) => (
-        <Card key={demo.id}>
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-extrabold text-ink">{demo.titleUz}</p>
-              <p className="mt-0.5 text-sm text-ink-muted">
-                {demo.displayName} · {demo.situationUz}
-              </p>
-            </div>
-            <Badge tone={demoTone[demo.status] ?? 'neutral'}>{demoLabel[demo.status] ?? demo.status}</Badge>
-          </div>
-
-          {/*
-            The three moments worth knowing, and each says something different: sent but never
-            opened is a message that did not land, opened but never spoken is a page that did
-            not convince, and spoken is the only one that was the point.
-          */}
-          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-faint">
-            <div>
-              <dt className="inline font-bold">Yuborilgan: </dt>
-              <dd className="inline">{formatDateTime(demo.createdAt)}</dd>
-            </div>
-            <div>
-              <dt className="inline font-bold">Ochilgan: </dt>
-              <dd className="inline">{demo.openedAt ? formatDateTime(demo.openedAt) : '—'}</dd>
-            </div>
-            <div>
-              <dt className="inline font-bold">Gaplashgan: </dt>
-              <dd className="inline">
-                {demo.completedAt ? `${formatNumber(demo.elapsedSeconds)} soniya` : '—'}
-              </dd>
-            </div>
-          </dl>
-
-          <a
-            href={demo.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 block truncate font-mono text-xs text-signal-ink"
-          >
-            {demo.url}
-          </a>
-        </Card>
-      ))}
-    </div>
-  )
-}
-
-const demoLabel: Record<string, string> = {
-  ready: 'Kutilmoqda',
-  spent: 'Ishlatilgan',
-  expired: 'Muddati tugagan',
-}
-
-const demoTone: Record<string, 'signal' | 'milestone' | 'neutral'> = {
-  ready: 'signal',
-  spent: 'milestone',
-  expired: 'neutral',
-}
 
 function AgentSettings() {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesSettings>('/api/admin-portal/sales/settings')
