@@ -33,6 +33,8 @@ export const ru: Dictionary = {
     practiceShort: 'Задания',
     tests: 'Тесты',
     testsShort: 'Тесты',
+    games: 'Игры',
+    gamesShort: 'Игры',
     progress: 'Прогресс',
     progressShort: 'Прогресс',
     main: 'Основное',

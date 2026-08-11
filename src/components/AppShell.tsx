@@ -17,6 +17,7 @@ const NAV = [
   { to: '/practice', key: 'practice', icon: TasksGlyph },
   // No route: the chip says it is not built yet, so the row must not lead anywhere.
   { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
+  { to: null, key: 'games', icon: GamesGlyph, comingSoon: true },
   { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 
@@ -520,6 +521,17 @@ function TasksGlyph() {
   )
 }
 
+/** A controller, read as a silhouette: two grips, a cross and a button. */
+function GamesGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 5.4l-.6 3A2.6 2.6 0 0 1 16 17.2L14.6 15H9.4L8 17.2a2.6 2.6 0 0 1-4.7-.8l-.6-3A4.5 4.5 0 0 1 7.5 8Z" />
+      <path d="M7 10.6v2.2M5.9 11.7h2.2" strokeLinecap="round" />
+      <circle cx="16.4" cy="11.6" r="1" />
+    </svg>
+  )
+}
+
 function TestsGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
@@ -558,7 +570,7 @@ function RailLink({
       <span className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-base font-bold text-ink-faint">
         <span>{children}</span>
         {comingSoon && comingSoonLabel && (
-          <Badge tone="neutral" size="sm">
+          <Badge tone="primary" size="sm">
             {comingSoonLabel}
           </Badge>
         )}
