@@ -17,7 +17,7 @@ const NAV = [
   { to: '/practice', key: 'practice', icon: TasksGlyph },
   // No route: the chip says it is not built yet, so the row must not lead anywhere.
   { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
-  { to: null, key: 'games', icon: GamesGlyph, comingSoon: true },
+  { to: '/games', key: 'games', icon: GamesGlyph },
   { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 

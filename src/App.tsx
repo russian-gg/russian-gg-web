@@ -17,6 +17,8 @@ import { MissionPlayer } from './routes/MissionPlayer'
 import { MissionResult } from './routes/MissionResult'
 import { Onboarding } from './routes/Onboarding'
 import { BillingReturn, Paywall } from './routes/Paywall'
+import { Games } from './routes/games/Games'
+import { SawGame } from './routes/games/SawGame'
 import { Practice } from './routes/Practice'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
@@ -51,6 +53,7 @@ export function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/path" element={<CoursePath />} />
           <Route path="/practice" element={<Practice />} />
+          <Route path="/games" element={<Games />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/feedbacks" element={<FeedbacksPage />} />
           <Route path="/missions/:missionId" element={<MissionPlayer />} />
@@ -64,6 +67,10 @@ export function App() {
           <Route path="/settings/billing" element={<Settings />} />
           <Route path="/admin" element={<RequireStaff><AdminContent /></RequireStaff>} />
         </Route>
+
+        {/* Full screen, outside the shell: a blade rolling at you should not share a page
+            with navigation. */}
+        <Route path="/games/arra" element={<RequireAuth><SawGame /></RequireAuth>} />
 
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
