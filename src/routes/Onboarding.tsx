@@ -19,8 +19,11 @@ type Stage = 'intro' | 'briefing' | 'speaking' | 'analysing' | 'result' | 'typin
  * Read aloud rather than printed because somebody about to speak is not reading, and generated
  * once rather than per visitor: it is the same forty words every time, and paying a model to
  * say them again for each person is paying for a constant.
+ *
+ * Recorded by scripts/build-onboarding-audio.py. If the file is missing the microphone still
+ * opens — a brief that fails to load must not cost somebody their turn.
  */
-const BRIEFING_AUDIO = '/audio/onboarding-intro.m4a'
+const BRIEFING_AUDIO = '/audio/onboarding-intro.wav'
 
 /**
  * What to say, for the person staring at a microphone with nothing in their head.
