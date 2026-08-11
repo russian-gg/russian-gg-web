@@ -11,13 +11,21 @@ import type { EntitlementView, ProgressView } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { Badge, Switch } from './ui'
 
+/** Flipped on when the admin panel owns which games are open. Until then, nobody sees them. */
+const GAMES_ENABLED = false
+
 const NAV = [
   { to: '/home', key: 'today', icon: TodayGlyph },
   { to: '/path', key: 'path', icon: PathGlyph },
   { to: '/practice', key: 'practice', icon: TasksGlyph },
   // No route: the chip says it is not built yet, so the row must not lead anywhere.
   { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
-  { to: '/games', key: 'games', icon: GamesGlyph },
+  /*
+   * Off until the panel can turn each game on, and off by default when it can: nothing here
+   * should reach a learner because it happened to be built. The row disappears entirely
+   * rather than greying out — a menu item that leads nowhere is worse than no menu item.
+   */
+  ...(GAMES_ENABLED ? [{ to: '/games', key: 'games', icon: GamesGlyph } as const] : []),
   { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 
