@@ -11,7 +11,16 @@ import { VoiceSignal } from '../components/VoiceSignal'
 import { Button, ErrorNote, Spinner } from '../components/ui'
 import { cx } from '../lib/cx'
 
-type Stage = 'intro' | 'speaking' | 'analysing' | 'result' | 'typing'
+type Stage = 'intro' | 'briefing' | 'speaking' | 'analysing' | 'result' | 'typing'
+
+/**
+ * The spoken brief, recorded once and served as a file.
+ *
+ * Read aloud rather than printed because somebody about to speak is not reading, and generated
+ * once rather than per visitor: it is the same forty words every time, and paying a model to
+ * say them again for each person is paying for a constant.
+ */
+const BRIEFING_AUDIO = '/audio/onboarding-intro.m4a'
 
 /**
  * What to say, for the person staring at a microphone with nothing in their head.
@@ -75,6 +84,9 @@ export function Onboarding() {
 
   const [assessment, setAssessment] = useState<OnboardingAssessment | null>(null)
   const [typed, setTyped] = useState('')
+  /** 0 to 1 through the brief, drawn as the ring around the microphone. */
+  const [briefed, setBriefed] = useState(0)
+  const briefing = useRef<HTMLAudioElement | null>(null)
 
   const session = useRef<LiveVoiceSession | null>(null)
   const transcript = useRef({ committed: '', live: '' })
@@ -175,10 +187,46 @@ export function Onboarding() {
     return () => window.clearInterval(timer)
   }, [stage, connected, finish])
 
-  // A tab closed mid-sentence still frees the microphone.
-  useEffect(() => () => void session.current?.close().then(() => releaseMicrophone()), [])
+  // A tab closed mid-sentence still frees the microphone, and stops the brief talking to it.
+  useEffect(
+    () => () => {
+      briefing.current?.pause()
+      void session.current?.close().then(() => releaseMicrophone())
+    },
+    [],
+  )
+
+  /**
+   * Press once, hear the brief, then speak. The ring around the microphone is the audio's own
+   * progress, so the wait has a visible end and nobody wonders whether the button worked.
+   */
+  function begin() {
+    setFailure('')
+    setBriefed(0)
+    setStage('briefing')
+
+    const audio = new Audio(BRIEFING_AUDIO)
+    briefing.current = audio
+
+    audio.addEventListener('timeupdate', () => {
+      if (audio.duration > 0) setBriefed(audio.currentTime / audio.duration)
+    })
+    // Either way the microphone opens: a brief that fails to load must not cost them the turn.
+    audio.addEventListener('ended', () => void start())
+    audio.addEventListener('error', () => void start())
+
+    void audio.play().catch(() => void start())
+  }
+
+  /** Skips the rest of the brief for somebody who already knows what to say. */
+  function skipBriefing() {
+    briefing.current?.pause()
+    void start()
+  }
 
   async function start() {
+    briefing.current?.pause()
+    briefing.current = null
     setFailure('')
     setStage('speaking')
     setConnected(false)
@@ -279,6 +327,49 @@ export function Onboarding() {
           <p className="text-[15px] text-ink-muted">
             Aytganlaringizni o'qiyapmiz — bir necha soniya.
           </p>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (stage === 'briefing') {
+    return (
+      <Layout>
+        <div className="space-y-5 text-center">
+          <h1 className="text-xl font-black text-ink">Tinglang</h1>
+          <p className="text-[15px] text-ink-muted">
+            Nima qilish kerakligini aytib beramiz — tugagach, mikrofon o'zi ochiladi.
+          </p>
+
+          <div className="relative mx-auto grid size-28 place-items-center">
+            <svg viewBox="0 0 112 112" className="absolute inset-0 -rotate-90">
+              <circle cx="56" cy="56" r="52" fill="none" stroke="var(--color-hairline)" strokeWidth="4" />
+              <circle
+                cx="56"
+                cy="56"
+                r="52"
+                fill="none"
+                stroke="var(--color-signal)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray={1}
+                strokeDashoffset={1 - briefed}
+                className="transition-[stroke-dashoffset] duration-200 ease-linear motion-reduce:transition-none"
+              />
+            </svg>
+            <span className="grid size-24 place-items-center rounded-full bg-signal text-on-signal">
+              <MicGlyph />
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={skipBriefing}
+            className="text-sm font-bold text-ink-muted underline underline-offset-4 transition-colors hover:text-ink"
+          >
+            Tushundim, boshlaymiz
+          </button>
         </div>
       </Layout>
     )
@@ -391,7 +482,7 @@ export function Onboarding() {
 
         <button
           type="button"
-          onClick={() => void start()}
+          onClick={begin}
           className="mx-auto grid size-24 place-items-center rounded-full bg-signal text-on-signal transition-transform hover:scale-105 active:scale-95"
           aria-label="Gapirishni boshlash"
         >
