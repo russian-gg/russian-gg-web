@@ -39,7 +39,12 @@ export function SawGame() {
   const navigate = useNavigate()
   // Russian recognition on purpose: the blade retreats for Russian, so Russian is the thing
   // that has to be heard well. Uzbek still registers as speech, which is what stops the stall.
-  const speech = useSpeechRecognition('ru-RU')
+  // Continuous: the whole round is one long answer, so the mic must stay open across pauses.
+  const speech = useSpeechRecognition('ru-RU', { continuous: true })
+  // The hook returns a fresh object each render but these functions are stable. Depend on the
+  // functions, never the object — a `[speech]` dependency fires on every blade tick, and a cleanup
+  // that closes the mic on every render means the recogniser is never actually listening.
+  const { reset: resetSpeech, start: startSpeech, stop: stopSpeech } = speech
 
   const [phase, setPhase] = useState<Phase>('ready')
   const [round, setRound] = useState(0)
@@ -53,16 +58,16 @@ export function SawGame() {
 
   const start = useCallback(() => {
     heard.current = { text: '', at: Date.now(), words: 0, russian: 0 }
-    speech.reset()
-    speech.start()
+    resetSpeech()
+    startSpeech()
     setBlade(0)
     setSecondsLeft(ROUND_SECONDS)
     setPhase('playing')
-  }, [speech])
+  }, [resetSpeech, startSpeech])
 
   const stop = useCallback(() => {
-    speech.stop()
-  }, [speech])
+    stopSpeech()
+  }, [stopSpeech])
 
   /*
    * Every transcript update is a heartbeat: it says they are still talking, and how much of
@@ -140,7 +145,7 @@ export function SawGame() {
     if (phase === 'cut' || phase === 'won') stop()
   }, [phase, stop])
 
-  useEffect(() => () => speech.stop(), [speech])
+  useEffect(() => () => stopSpeech(), [stopSpeech])
 
   useEffect(() => {
     if (phase === 'won') setScore((current) => current + 1)

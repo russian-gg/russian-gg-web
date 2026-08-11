@@ -50,31 +50,40 @@ function recognitionCtor(): SpeechRecognitionCtor | null {
 
 export type SpeechStatus = 'idle' | 'listening' | 'denied' | 'failed'
 
-export function useSpeechRecognition(lang: string) {
+/**
+ * @param options.continuous keep the microphone open across pauses and reopen it when the browser
+ *   closes a session on its own. Placement wants one utterance (false, the default); a
+ *   speak-to-survive game wants the mic live for the whole round (true).
+ */
+export function useSpeechRecognition(lang: string, options?: { continuous?: boolean }) {
+  const continuous = options?.continuous ?? false
   const [supported] = useState(() => recognitionCtor() !== null)
   const [status, setStatus] = useState<SpeechStatus>('idle')
   const [transcript, setTranscript] = useState('')
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  // True while the caller wants the mic open. onend consults it to decide between reopening (a
+  // continuous round still in progress) and settling to idle.
+  const wantOnRef = useRef(false)
+  // Latest lang/continuous for the restart closure, which is created once.
+  const configRef = useRef({ lang, continuous })
+  configRef.current = { lang, continuous }
 
-  // Stop any live recognition when the item changes or the screen unmounts; a recogniser left
-  // running holds the microphone open.
+  // Stop any live recognition when the screen unmounts; a recogniser left running holds the mic open.
   useEffect(() => {
     return () => {
+      wantOnRef.current = false
       recognitionRef.current?.abort()
       recognitionRef.current = null
     }
   }, [])
 
-  const start = useCallback(() => {
+  const spawn = useCallback(() => {
     const Ctor = recognitionCtor()
     if (!Ctor) return
 
-    recognitionRef.current?.abort()
-
     const recognition = new Ctor()
-    recognition.lang = lang
-    // One answer, one utterance: stopping on the learner's natural pause is the whole point.
-    recognition.continuous = false
+    recognition.lang = configRef.current.lang
+    recognition.continuous = configRef.current.continuous
     recognition.interimResults = true
     recognition.maxAlternatives = 1
 
@@ -87,30 +96,59 @@ export function useSpeechRecognition(lang: string) {
     }
 
     recognition.onerror = (event) => {
-      setStatus(event.error === 'not-allowed' || event.error === 'service-not-allowed' ? 'denied' : 'failed')
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        wantOnRef.current = false
+        setStatus('denied')
+      } else if (!configRef.current.continuous) {
+        setStatus('failed')
+      }
+      // Continuous mode swallows transient errors (no-speech / network / aborted); onend reopens.
     }
 
     recognition.onend = () => {
+      if (wantOnRef.current && configRef.current.continuous) {
+        // Chrome ends a session on its own after a silence or its ~60s cap. Reopen (a fresh
+        // instance, after a beat to dodge "already started") so the mic stays live for a long answer.
+        window.setTimeout(() => {
+          if (wantOnRef.current) spawn()
+        }, 120)
+        return
+      }
       setStatus((current) => (current === 'listening' ? 'idle' : current))
     }
 
     recognitionRef.current = recognition
-    setTranscript('')
-    setStatus('listening')
 
     try {
       recognition.start()
     } catch {
-      setStatus('failed')
+      if (wantOnRef.current && configRef.current.continuous) {
+        window.setTimeout(() => {
+          if (wantOnRef.current) spawn()
+        }, 150)
+      } else {
+        setStatus('failed')
+      }
     }
-  }, [lang])
+  }, [])
+
+  const start = useCallback(() => {
+    if (recognitionCtor() === null) return
+    wantOnRef.current = true
+    recognitionRef.current?.abort()
+    setTranscript('')
+    setStatus('listening')
+    spawn()
+  }, [spawn])
 
   const stop = useCallback(() => {
+    wantOnRef.current = false
     recognitionRef.current?.stop()
     setStatus((current) => (current === 'listening' ? 'idle' : current))
   }, [])
 
   const reset = useCallback(() => {
+    wantOnRef.current = false
     recognitionRef.current?.abort()
     setTranscript('')
     setStatus('idle')
