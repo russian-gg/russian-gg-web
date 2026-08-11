@@ -40,6 +40,14 @@ export function Onboarding() {
   const [stage, setStage] = useState<Stage>('intro')
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [total, setTotal] = useState(40)
+  /*
+   * The clock does not exist until the provider answers.
+   *
+   * It used to start with the stage, which begins before the ticket has even been asked for —
+   * so the first tick read a countdown of zero, decided the forty seconds were up, and ended
+   * the session about a second after the microphone appeared.
+   */
+  const [connected, setConnected] = useState(false)
   const [speaking, setSpeaking] = useState(false)
   const [failure, setFailure] = useState('')
 
@@ -100,12 +108,16 @@ export function Onboarding() {
 
     const spoken = `${transcript.current.committed} ${transcript.current.live}`.trim()
 
+    setConnected(false)
     setStage('analysing')
 
     try {
       const result = await api.post<AnonymousAssessment>('/onboarding/assess', {
+        // The session's own clock, and zero when it never opened. Not the full forty: a
+        // length nobody spoke would put an invented pace on a screen whose whole point is
+        // that its numbers are measured.
         transcript: spoken,
-        elapsedSeconds: elapsed || total,
+        elapsedSeconds: elapsed,
       })
 
       // Held for the hop through sign-up. A signed-in learner is already placed and gets no
@@ -119,11 +131,11 @@ export function Onboarding() {
       setFailure("Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.")
       setStage('intro')
     }
-  }, [completePendingOnboarding, total])
+  }, [completePendingOnboarding])
 
   // The clock the learner watches, and the one that ends the session.
   useEffect(() => {
-    if (stage !== 'speaking') return
+    if (stage !== 'speaking' || !connected) return
 
     const timer = window.setInterval(() => {
       setSecondsLeft((left) => {
@@ -139,7 +151,7 @@ export function Onboarding() {
     }, 1000)
 
     return () => window.clearInterval(timer)
-  }, [stage, finish])
+  }, [stage, connected, finish])
 
   // A tab closed mid-sentence still frees the microphone.
   useEffect(() => () => void session.current?.close().then(() => releaseMicrophone()), [])
@@ -147,6 +159,8 @@ export function Onboarding() {
   async function start() {
     setFailure('')
     setStage('speaking')
+    setConnected(false)
+    setSecondsLeft(0)
     setSaidSoFar('')
     setSaying('')
     transcript.current = { committed: '', live: '' }
@@ -178,6 +192,7 @@ export function Onboarding() {
       onConnected: () => {
         setTotal(ticket.maxDurationSeconds)
         setSecondsLeft(ticket.maxDurationSeconds)
+        setConnected(true)
       },
       onInputTranscript: (text) => {
         transcript.current.live = text
@@ -254,17 +269,29 @@ export function Onboarding() {
     return (
       <Layout>
         <div className="space-y-5">
-          <Countdown secondsLeft={secondsLeft} total={total} />
+          {/*
+            No clock until there is one. A zero sitting there while the socket opens reads as
+            a session that is already over, which is exactly what it used to become.
+          */}
+          {connected ? (
+            <Countdown secondsLeft={secondsLeft} total={total} />
+          ) : (
+            <div className="flex justify-center py-4">
+              <Spinner />
+            </div>
+          )}
 
           <p className="text-center text-lg font-black text-ink">
-            Rus tilingiz haqida gapiring
+            {connected ? 'Rus tilingiz haqida gapiring' : 'Mikrofon ulanmoqda…'}
           </p>
           <p className="-mt-3 text-center text-sm text-ink-muted">
-            O'zbekcha aralashtirsangiz ham bo'ladi — qayerda qiynalasiz?
+            {connected
+              ? "O'zbekcha aralashtirsangiz ham bo'ladi — qayerda qiynalasiz?"
+              : 'Bir soniya — ruxsat so\'ralsa, "Ruxsat berish"ni bosing.'}
           </p>
 
           <div className="flex justify-center">
-            <VoiceSignal state={speaking ? 'listening' : 'thinking'} />
+            <VoiceSignal state={connected ? (speaking ? 'listening' : 'thinking') : 'idle'} />
           </div>
 
           {/*
