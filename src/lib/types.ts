@@ -427,3 +427,36 @@ export interface FeedbackSubmissionRequest {
   message: string
   attachmentName?: string | null
 }
+
+export type OnboardingSpeechStats = {
+  words: number
+  russianWords: number
+  russianShare: number
+  /** The telling one: two means words, eight means sentences. */
+  longestRussianRun: number
+  seconds: number
+  wordsPerMinute: number
+}
+
+export type OnboardingMilestone = {
+  day: number
+  titleUz: string
+  bodyUz: string
+  speakingScore: number
+}
+
+export type OnboardingAssessment = {
+  speaking: ProficiencyLevel
+  comprehension: ProficiencyLevel
+  headlineUz: string
+  verdictUz: string
+  gapsUz: string[]
+  strengthsUz: string[]
+  stats: OnboardingSpeechStats
+  plan: OnboardingMilestone[]
+  recommendedStartDay: number
+  phase: string
+  firstMissionId?: string | null
+  firstMissionTitle?: string | null
+  transcriptUz: string
+}
