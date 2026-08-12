@@ -22,12 +22,8 @@ import urllib.error
 import urllib.request
 
 # The words, exactly as they are spoken. Kept here so the file and its script never drift.
-TEXT = """Assalomu alaykum! Hozir 40 soniya ichida menga o'zingiz haqingizda gapirib bering: \
-Ismingiz nima, qayerda ishlaysiz yoki o'qiysiz? Rus tilini o'rganishdan asosiy maqsadingiz \
-nima — ishdami, ko'chadami yoki sayohatdami?
-
-Eng muhimi — o'zbekcha gapiravering! Ruscha so'zlar bilsangiz, qo'shib ketasiz, bilmasangiz \
-to'liq o'zbekcha gapiring. Xato qilishdan umuman tortinmang, tayyor bo'lsangiz, boshladik!"""
+TEXT = """Assalomu alaykum! Hozir 40 soniya ichida menga o'zingiz haqingizda gapirib bering: Ismingiz nima, qayerda ishlaysiz yoki o'qiysiz? Rus tilini o'rganishdan asosiy maqsadingiz nima — ishdami, ko'chadami yoki sayohatdami?
+Eng muhimi — o'zbekcha gapiravering! Ruscha so'zlar bilsangiz, qo'shib ketasiz, bilmasangiz to'liq o'zbekcha ayting. Xato qilishdan umuman tortinmang, tayyor bo'lsangiz, boshladik!"""
 
 # Warm and unhurried. The first thing a stranger hears from this product should not sound
 # like an announcement.

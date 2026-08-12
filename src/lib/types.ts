@@ -436,6 +436,10 @@ export type OnboardingSpeechStats = {
   longestRussianRun: number
   seconds: number
   wordsPerMinute: number
+  uzbekWords: number
+  otherWords: number
+  uzbekShare: number
+  otherShare: number
 }
 
 export type OnboardingMilestone = {

@@ -33,9 +33,9 @@ const BRIEFING_AUDIO = '/audio/onboarding-intro.wav'
  * questions remove the blank page without turning this back into a questionnaire.
  */
 const CUES = [
-  'Ismingiz nima, nima ish qilasiz?',
-  'Rus tili qayerda kerak bo\'ladi — ishdami, ko\'chadami?',
-  'Oxirgi marta qachon qiynalgansiz?',
+  'Ismingiz nima, qayerda ishlaysiz yoki o\'qiysiz?',
+  'Rus tili qayerda kerak — ishdami, ko\'chadami yoki sayohatdami?',
+  'O\'zbekcha gapiravering, bilgan ruscha so\'zlaringizni qo\'shing.',
 ]
 
 const MIC_MESSAGE: Partial<Record<VoiceErrorCode, string>> = {
@@ -93,6 +93,7 @@ export function Onboarding() {
 
   const session = useRef<LiveVoiceSession | null>(null)
   const transcript = useRef({ committed: '', live: '' })
+  const finishing = useRef(false)
 
   /**
    * Somebody who already spoke gets their result back rather than being asked again — and
@@ -153,10 +154,22 @@ export function Onboarding() {
   )
 
   const finish = useCallback(async () => {
-    const live = session.current
-    session.current = null
+    if (finishing.current) return
+    finishing.current = true
 
+    const live = session.current
     const elapsed = Math.round(live?.elapsedSeconds ?? 0)
+
+    // Give Gemini a short chance to deliver the final input-transcription snapshot before
+    // closing its socket. Without this, the last few words were often missing from the result.
+    if (live) {
+      await Promise.race([
+        live.finishCurrentTurn().catch(() => {}),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 2_500)),
+      ])
+    }
+
+    session.current = null
     await live?.close()
     releaseMicrophone()
 
@@ -167,7 +180,11 @@ export function Onboarding() {
     // The session's own clock, and zero when it never opened. Not the full forty: a length
     // nobody spoke would put an invented pace on a screen whose whole point is that its
     // numbers are measured.
-    await send(spoken, elapsed)
+    try {
+      await send(spoken, elapsed)
+    } finally {
+      finishing.current = false
+    }
   }, [send])
 
   // The clock the learner watches, and the one that ends the session.
@@ -251,6 +268,7 @@ export function Onboarding() {
 
     if (session.current) return
 
+    finishing.current = false
     setFailure('')
     setStage('speaking')
     setConnected(false)
@@ -306,7 +324,7 @@ export function Onboarding() {
         transcript.current.live = ''
         setSaidSoFar(transcript.current.committed)
         setSaying('')
-        void live.beginNextTurn()
+        if (!finishing.current) void live.beginNextTurn()
       },
       onSilenceTimeout: () => void live.finishCurrentTurn(),
       onNoSpeech: () => void live.finishCurrentTurn(),

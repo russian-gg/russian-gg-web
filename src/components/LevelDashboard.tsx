@@ -20,6 +20,8 @@ export function LevelDashboard({
   continueLabel: string
 }) {
   const { stats } = assessment
+  const hasLanguageBreakdown =
+    typeof stats.uzbekWords === 'number' && typeof stats.otherWords === 'number'
 
   return (
     <div className="space-y-5">
@@ -51,7 +53,13 @@ export function LevelDashboard({
 
           <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <Figure label="Jami so'z" value={stats.words} />
-            <Figure label="Ruscha" value={`${stats.russianShare}%`} />
+            <Figure label="Ruscha" value={`${stats.russianWords} (${stats.russianShare}%)`} />
+            {hasLanguageBreakdown && (
+              <>
+                <Figure label="O'zbekcha" value={`${stats.uzbekWords} (${stats.uzbekShare}%)`} />
+                <Figure label="Boshqa til" value={`${stats.otherWords} (${stats.otherShare}%)`} />
+              </>
+            )}
             {/* A typed answer has no length, and "0 s" would read as a measurement of one. */}
             {stats.seconds > 0 && <Figure label="Gapirdingiz" value={`${stats.seconds} s`} />}
           </dl>
@@ -99,7 +107,10 @@ export function LevelDashboard({
           <summary className="cursor-pointer text-sm font-bold text-ink-muted">
             Nima deganingizni ko'rish
           </summary>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-muted italic">
+          <p
+            dir="auto"
+            className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-muted"
+          >
             “{assessment.transcriptUz}”
           </p>
         </details>
