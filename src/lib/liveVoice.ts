@@ -94,6 +94,7 @@ export class LiveVoiceSession {
   private playbackSources: AudioBufferSourceNode[] = []
   private nextPlaybackTime = 0
   private recording = false
+  private inputPaused = false
   private closed = false
   private turnCompletePromise: Promise<void> | null = null
   private resolveTurnComplete: (() => void) | null = null
@@ -140,6 +141,33 @@ export class LiveVoiceSession {
 
   get isRecording() {
     return this.recording
+  }
+
+  get isInputPaused() {
+    return this.inputPaused
+  }
+
+  pauseInput() {
+    if (this.closed || this.inputPaused) return
+
+    this.inputPaused = true
+    this.setMicrophoneEnabled(false)
+  }
+
+  resumeInput() {
+    if (this.closed || !this.inputPaused) return
+
+    this.inputPaused = false
+    this.setMicrophoneEnabled(true)
+
+    // A pause is not silence at the end of an answer. Give the learner a fresh window after
+    // resuming instead of immediately firing the existing silence/no-speech timers.
+    const now = Date.now()
+    this.lastSpeechAt = now
+    this.turnStartedAt = now
+    this.autoStopRequested = false
+    this.noSpeechReported = false
+    void this.captureContext?.resume().catch(() => {})
   }
 
   async start() {
@@ -294,6 +322,7 @@ export class LiveVoiceSession {
     if (this.closed) return
     this.closed = true
     this.recording = false
+    this.inputPaused = false
     document.removeEventListener('visibilitychange', this.resumeAudio)
     this.teardownCapture()
     this.stopPlayback()
@@ -478,6 +507,7 @@ export class LiveVoiceSession {
     }
 
     this.mediaStream = await requestMicrophone()
+    this.setMicrophoneEnabled(!this.inputPaused)
     this.captureContext = new AudioContext()
     /*
      * ScriptProcessorNode is deprecated in favour of AudioWorklet, and deliberately kept.
@@ -493,7 +523,7 @@ export class LiveVoiceSession {
     this.captureProcessor.connect(this.captureContext.destination)
 
     this.captureProcessor.onaudioprocess = (event) => {
-      if (!this.recording || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      if (this.inputPaused || !this.recording || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
         return
       }
 
@@ -542,6 +572,12 @@ export class LiveVoiceSession {
         },
       }))
     }
+  }
+
+  private setMicrophoneEnabled(enabled: boolean) {
+    this.mediaStream?.getAudioTracks().forEach((track) => {
+      track.enabled = enabled
+    })
   }
 
   /** Ends this session's capture graph and hands the shared stream back. */

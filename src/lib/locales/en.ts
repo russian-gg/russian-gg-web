@@ -273,6 +273,9 @@ export const en: Dictionary = {
     waiting: 'Waiting…',
     evaluating: 'Scoring your answer…',
     interrupt: 'Let me speak',
+    pauseMicrophone: 'Mute microphone',
+    resumeMicrophone: 'Turn microphone on',
+    microphonePaused: 'Microphone is muted — Gemini cannot hear you',
     reconnecting: 'Reconnecting…',
     noSpeechHint:
       'We cannot hear you. Check that the microphone is on and the right device is selected.',

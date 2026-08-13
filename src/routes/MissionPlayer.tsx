@@ -83,6 +83,7 @@ export function MissionPlayer() {
   const [promptAudioState, setPromptAudioState] = useState<'idle' | 'loading' | 'playing'>('idle')
   const [promptAudioTextKey, setPromptAudioTextKey] = useState<string | null>(null)
   const [hasLiveSession, setHasLiveSession] = useState(false)
+  const [microphonePaused, setMicrophonePaused] = useState(false)
   // Turns already closed. The live transcript and reply stay in their own state and are
   // folded in here when the step ends, so the thread grows instead of resetting each step.
   const [history, setHistory] = useState<ChatMessage[]>([])
@@ -662,6 +663,7 @@ export function MissionPlayer() {
     latestTurnPassedRef.current = false
     latestTurnScoreRef.current = null
     setTurnAccepted(false)
+    setMicrophonePaused(false)
     manualStopRequestedRef.current = false
     connectedReportedRef.current = false
     setVoiceState('thinking')
@@ -784,6 +786,7 @@ export function MissionPlayer() {
       // left of the day. The screen used to quote the mission's length regardless.
       setSecondsLeft(ticket.maxDurationSeconds)
       setHasLiveSession(true)
+      setMicrophonePaused(false)
 
       await liveSession.start()
       if (voiceStartRunRef.current !== runId) {
@@ -1034,6 +1037,7 @@ export function MissionPlayer() {
   }
 
   async function teardownVoice(completed: boolean, failureReason: string | null) {
+    setMicrophonePaused(false)
     const liveSession = liveSessionRef.current
     const sessionId = liveSessionIdRef.current
     if (!liveSession || !sessionId) return
@@ -1060,6 +1064,22 @@ export function MissionPlayer() {
     } catch {
       // Closing the learning session should not block the UI.
     }
+  }
+
+  function toggleMicrophonePause() {
+    const liveSession = liveSessionRef.current
+    if (!liveSession) return
+
+    if (liveSession.isInputPaused) {
+      liveSession.resumeInput()
+      setMicrophonePaused(false)
+      setMicHint(null)
+      return
+    }
+
+    liveSession.pauseInput()
+    setMicrophonePaused(true)
+    setMicHint(null)
   }
 
   async function advance(autoContinue = false) {
@@ -1251,6 +1271,7 @@ export function MissionPlayer() {
               state={voiceState}
               busy={busy}
               hasLiveSession={hasLiveSession}
+              microphonePaused={microphonePaused}
               latestTurnAccepted={turnAccepted}
               hint={micHint}
               secondsLeft={secondsLeft}
@@ -1258,6 +1279,7 @@ export function MissionPlayer() {
               completedPreview={completedPreview}
               onStop={() => void stopVoice()}
               onRestart={() => void resetCompletedPreview()}
+              onToggleMicrophonePause={toggleMicrophonePause}
               onInterrupt={
                 hasLiveSession && voiceState === 'thinking' && !busy
                   ? () => void liveSessionRef.current?.interruptTutor()
@@ -1629,6 +1651,7 @@ function MicControl({
   state,
   busy,
   hasLiveSession,
+  microphonePaused,
   latestTurnAccepted,
   hint,
   secondsLeft,
@@ -1636,6 +1659,7 @@ function MicControl({
   completedPreview,
   onStop,
   onRestart,
+  onToggleMicrophonePause,
   onInterrupt,
   onMoveOn,
   feedback,
@@ -1648,6 +1672,7 @@ function MicControl({
   state: VoiceState
   busy: boolean
   hasLiveSession: boolean
+  microphonePaused: boolean
   latestTurnAccepted: boolean
   /** Said under the microphone when nothing is coming through. Not an error. */
   hint: string | null
@@ -1657,6 +1682,7 @@ function MicControl({
   completedPreview: boolean
   onStop: () => void
   onRestart: () => void
+  onToggleMicrophonePause: () => void
   /** Offered only while the tutor is speaking; null the rest of the time. */
   onInterrupt: (() => void) | null
   /** Offered once the step has taken a few tries, without stopping the conversation. */
@@ -1702,7 +1728,9 @@ function MicControl({
       hasLiveSession
       ? t.player.evaluating
       : t.player.waiting
-    : state === 'listening'
+    : microphonePaused
+      ? t.player.microphonePaused
+      : state === 'listening'
       ? t.player.listening
       : hasLiveSession
         ? latestTurnAccepted
@@ -1728,7 +1756,7 @@ function MicControl({
           taking a single pixel of layout — which is what the equaliser under the button used
           to cost, and it said the same thing twice as the status line above it.
         */}
-        {state === 'listening' && (
+        {state === 'listening' && !microphonePaused && (
           <span aria-hidden="true" className="pointer-events-none absolute">
             {[0, 0.6, 1.2, 1.8].map((delay) => (
               <span
@@ -1798,7 +1826,12 @@ function MicControl({
         an exchange and never happen together, so they share the space instead of taking one
         each.
       */}
-      <div className="flex h-8 items-center justify-center">
+      <div className="flex h-8 items-center justify-center gap-2">
+        {hasLiveSession && (
+          <Button variant="ghost" size="sm" onClick={onToggleMicrophonePause}>
+            {microphonePaused ? t.player.resumeMicrophone : t.player.pauseMicrophone}
+          </Button>
+        )}
         {onInterrupt && (
           <Button variant="ghost" size="sm" onClick={onInterrupt}>
             {t.player.interrupt}
