@@ -151,14 +151,12 @@ export class LiveVoiceSession {
     if (this.closed || this.inputPaused) return
 
     this.inputPaused = true
-    this.setMicrophoneEnabled(false)
   }
 
   resumeInput() {
     if (this.closed || !this.inputPaused) return
 
     this.inputPaused = false
-    this.setMicrophoneEnabled(true)
 
     // A pause is not silence at the end of an answer. Give the learner a fresh window after
     // resuming instead of immediately firing the existing silence/no-speech timers.
@@ -168,6 +166,7 @@ export class LiveVoiceSession {
     this.autoStopRequested = false
     this.noSpeechReported = false
     void this.captureContext?.resume().catch(() => {})
+    void this.playbackContext?.resume().catch(() => {})
   }
 
   async start() {
@@ -507,7 +506,6 @@ export class LiveVoiceSession {
     }
 
     this.mediaStream = await requestMicrophone()
-    this.setMicrophoneEnabled(!this.inputPaused)
     this.captureContext = new AudioContext()
     /*
      * ScriptProcessorNode is deprecated in favour of AudioWorklet, and deliberately kept.
@@ -572,12 +570,6 @@ export class LiveVoiceSession {
         },
       }))
     }
-  }
-
-  private setMicrophoneEnabled(enabled: boolean) {
-    this.mediaStream?.getAudioTracks().forEach((track) => {
-      track.enabled = enabled
-    })
   }
 
   /** Ends this session's capture graph and hands the shared stream back. */
