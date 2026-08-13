@@ -30,6 +30,8 @@ export const en: Dictionary = {
     practiceShort: 'Tasks',
     tests: 'Tests',
     testsShort: 'Tests',
+    games: 'Games',
+    gamesShort: 'Games',
     progress: 'Progress',
     progressShort: 'Progress',
     main: 'Main',

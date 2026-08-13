@@ -410,3 +410,12 @@ export type AdminPortalUser = {
   lastLoginAt: string | null
   createdBy: string | null
 }
+
+export type AdminGame = {
+  slug: string
+  titleUz: string
+  bodyUz: string
+  /** Whether the software exists. A switch cannot be flipped on a game nobody has written. */
+  isBuilt: boolean
+  isEnabled: boolean
+}

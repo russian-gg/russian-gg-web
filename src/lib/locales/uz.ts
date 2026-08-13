@@ -34,6 +34,8 @@ export const uz = {
     practiceShort: 'Topshiriq',
     tests: 'Testlar',
     testsShort: 'Testlar',
+    games: "O'yinlar",
+    gamesShort: "O'yin",
     progress: 'Progress',
     progressShort: 'Progress',
     main: 'Asosiy',

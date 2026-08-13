@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { planLabel } from '../lib/format'
+import { useOpenGames } from '../lib/games'
 import { useTheme } from '../lib/theme'
 import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
 import { useQuery } from '@tanstack/react-query'
@@ -22,6 +23,19 @@ const NAV = [
 
 export function AppShell() {
   const t = useT()
+  /*
+   * The games row exists only when the panel has opened at least one. Everything is off by
+   * default, so the ordinary state is no row at all — and a menu item leading to an empty
+   * shelf is worse than no menu item.
+   */
+  const openGames = useOpenGames()
+  const nav = useMemo(
+    () =>
+      openGames && openGames.length > 0
+        ? [...NAV, { to: '/games', key: 'games' as const, icon: GamesGlyph }]
+        : NAV,
+    [openGames],
+  )
   const { data: progress } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
@@ -45,7 +59,7 @@ export function AppShell() {
         <Wordmark />
 
         <nav className="mt-12 flex flex-col gap-1" aria-label={t.nav.main}>
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <RailLink
               key={item.key}
               to={item.to}
@@ -80,7 +94,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-ground/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <div className="flex items-stretch">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <TabLink
               key={item.key}
               to={item.to}
@@ -520,6 +534,17 @@ function TasksGlyph() {
   )
 }
 
+/** A controller, read as a silhouette: two grips, a cross and a button. */
+function GamesGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
+      <path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 5.4l-.6 3A2.6 2.6 0 0 1 16 17.2L14.6 15H9.4L8 17.2a2.6 2.6 0 0 1-4.7-.8l-.6-3A4.5 4.5 0 0 1 7.5 8Z" />
+      <path d="M7 10.6v2.2M5.9 11.7h2.2" strokeLinecap="round" />
+      <circle cx="16.4" cy="11.6" r="1" />
+    </svg>
+  )
+}
+
 function TestsGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
@@ -558,7 +583,7 @@ function RailLink({
       <span className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-base font-bold text-ink-faint">
         <span>{children}</span>
         {comingSoon && comingSoonLabel && (
-          <Badge tone="neutral" size="sm">
+          <Badge tone="primary" size="sm">
             {comingSoonLabel}
           </Badge>
         )}

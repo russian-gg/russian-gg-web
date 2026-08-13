@@ -24,6 +24,7 @@ import { PromoCodes } from './screens/PromoCodes'
 import { Marketing } from './screens/Marketing'
 import { Sales } from './screens/Sales'
 import { PortalUsers } from './screens/PortalUsers'
+import { Games } from './screens/Games'
 
 type Section =
   | 'dashboard'
@@ -36,6 +37,7 @@ type Section =
   | 'promo-codes'
   | 'feedbacks'
   | 'portal-users'
+  | 'games'
 
 /**
  * `sales` marks the sections a sotuv account may open. It mirrors what the server allows —
@@ -56,6 +58,7 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
+  { id: 'games', label: "O'yinlar", group: 'Tizim' },
   { id: 'portal-users', label: 'Xodimlar', group: 'Tizim' },
 ]
 
@@ -71,6 +74,7 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   'promo-codes': TransactionsGlyph,
   feedbacks: FeedbackGlyph,
   'portal-users': UsersGlyph,
+  games: ClicksGlyph,
 }
 
 function visibleSections(role: PortalRole) {
@@ -271,6 +275,7 @@ export function AdminApp() {
         {active === 'promo-codes' && <PromoCodes />}
         {active === 'feedbacks' && <Feedbacks />}
         {active === 'portal-users' && <PortalUsers />}
+        {active === 'games' && <Games />}
       </main>
     </div>
   )

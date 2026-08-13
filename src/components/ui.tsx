@@ -361,7 +361,7 @@ export function Badge({
   size = 'md',
 }: {
   children: ReactNode
-  tone?: 'neutral' | 'signal' | 'milestone' | 'caution'
+  tone?: 'neutral' | 'signal' | 'primary' | 'milestone' | 'caution'
   outline?: boolean
   /** `sm` is the counter chip that rides inside a nav row; `md` is the standalone badge. */
   size?: 'sm' | 'md'
@@ -369,6 +369,9 @@ export function Badge({
   const filled = {
     neutral: 'bg-ground-sunken text-ink-muted',
     signal: 'bg-signal-soft text-signal-ink',
+    // The brand blue itself rather than a tint of it: this one is meant to be seen from the
+    // corner of the eye, against a row that is otherwise deliberately quiet.
+    primary: 'bg-signal text-on-signal',
     milestone: 'bg-milestone-soft text-milestone',
     caution: 'bg-caution-soft text-caution',
   } as const
@@ -376,6 +379,7 @@ export function Badge({
   const outlined = {
     neutral: 'border-2 border-hairline text-ink-muted',
     signal: 'border-2 border-signal text-signal-ink',
+    primary: 'border-2 border-signal bg-signal text-on-signal',
     milestone: 'border-2 border-milestone text-milestone',
     caution: 'border-2 border-caution text-caution',
   } as const
