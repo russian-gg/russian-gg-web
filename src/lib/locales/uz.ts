@@ -283,7 +283,7 @@ export const uz = {
     interrupt: "Men gapiraman",
     pauseMicrophone: "Mikrofonni o'chirish",
     resumeMicrophone: 'Mikrofonni yoqish',
-    microphonePaused: "Mikrofon o'chirilgan — Gemini sizni eshitmayapti",
+    microphonePaused: "Mikrofon o'chiq",
     reconnecting: 'Qayta ulanmoqda…',
     noSpeechHint:
       "Sizni eshitmayapmiz. Mikrofon yoqilganini va to'g'ri qurilma tanlanganini tekshiring.",

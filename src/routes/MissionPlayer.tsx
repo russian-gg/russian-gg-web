@@ -1277,7 +1277,6 @@ export function MissionPlayer() {
               secondsLeft={secondsLeft}
               onStart={() => void startVoice()}
               completedPreview={completedPreview}
-              onStop={() => void stopVoice()}
               onRestart={() => void resetCompletedPreview()}
               onToggleMicrophonePause={toggleMicrophonePause}
               onInterrupt={
@@ -1657,7 +1656,6 @@ function MicControl({
   secondsLeft,
   onStart,
   completedPreview,
-  onStop,
   onRestart,
   onToggleMicrophonePause,
   onInterrupt,
@@ -1680,7 +1678,6 @@ function MicControl({
   secondsLeft: number | null
   onStart: () => void
   completedPreview: boolean
-  onStop: () => void
   onRestart: () => void
   onToggleMicrophonePause: () => void
   /** Offered only while the tutor is speaking; null the rest of the time. */
@@ -1722,23 +1719,23 @@ function MicControl({
     )
   }
 
-  const status = busy
-    ? // "Waiting" during a live session reads as a stall. What is actually happening is that
-      // the answer has gone off to be scored, which is worth saying.
-      hasLiveSession
-      ? t.player.evaluating
-      : t.player.waiting
-    : microphonePaused
-      ? t.player.microphonePaused
+  const status = microphonePaused
+    ? t.player.microphonePaused
+    : busy
+      ? // "Waiting" during a live session reads as a stall. What is actually happening is that
+        // the answer has gone off to be scored, which is worth saying.
+        hasLiveSession
+        ? t.player.evaluating
+        : t.player.waiting
       : state === 'listening'
-      ? t.player.listening
-      : hasLiveSession
-        ? latestTurnAccepted
-          ? t.player.turnAccepted
-          : t.player.inConversation
-        : completedPreview
-          ? t.player.completedGoalState
-          : t.player.micPrompt
+        ? t.player.listening
+        : hasLiveSession
+          ? latestTurnAccepted
+            ? t.player.turnAccepted
+            : t.player.inConversation
+          : completedPreview
+            ? t.player.completedGoalState
+            : t.player.micPrompt
 
   return (
     /*
@@ -1770,15 +1767,19 @@ function MicControl({
 
         <button
           type="button"
-          onClick={hasLiveSession ? onStop : onStart}
+          onClick={hasLiveSession ? onToggleMicrophonePause : onStart}
           /*
-           * Stopping is never blocked. `busy` is true while a turn is being scored, which is
-           * exactly the moment a learner reaches for the stop button — and a disabled control
-           * there means a live session they cannot end, on the clock, spending voice budget.
-           * Only starting waits.
+           * Muting stays available while a turn is being scored. Only starting a new session
+           * waits for the current request.
            */
           disabled={busy && !hasLiveSession}
-          aria-label={hasLiveSession ? t.player.finish : t.player.answer}
+          aria-label={
+            hasLiveSession
+              ? microphonePaused
+                ? t.player.resumeMicrophone
+                : t.player.pauseMicrophone
+              : t.player.answer
+          }
           /*
            * The screen's one action, and the only control on it that is not a Button — so
            * the press has to be built here. Same language: it rests on a solid edge, lifts
@@ -1791,10 +1792,12 @@ function MicControl({
             'hover:-translate-y-0.5 hover:shadow-[0_7px_0_0_var(--color-signal-depth)]',
             'active:translate-y-[5px] active:shadow-none',
             'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none',
-            hasLiveSession ? 'bg-signal-strong' : 'bg-signal hover:bg-signal-hover',
+            hasLiveSession && !microphonePaused
+              ? 'bg-signal-strong'
+              : 'bg-signal hover:bg-signal-hover',
           )}
         >
-          {hasLiveSession ? <StopGlyph /> : <MicGlyph />}
+          {hasLiveSession && !microphonePaused ? <StopGlyph /> : <MicGlyph />}
         </button>
       </div>
 
@@ -1826,12 +1829,7 @@ function MicControl({
         an exchange and never happen together, so they share the space instead of taking one
         each.
       */}
-      <div className="flex h-8 items-center justify-center gap-2">
-        {hasLiveSession && (
-          <Button variant="ghost" size="sm" onClick={onToggleMicrophonePause}>
-            {microphonePaused ? t.player.resumeMicrophone : t.player.pauseMicrophone}
-          </Button>
-        )}
+      <div className="flex h-8 items-center justify-center">
         {onInterrupt && (
           <Button variant="ghost" size="sm" onClick={onInterrupt}>
             {t.player.interrupt}

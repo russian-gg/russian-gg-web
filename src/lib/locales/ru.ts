@@ -293,7 +293,7 @@ export const ru: Dictionary = {
     interrupt: 'Я скажу',
     pauseMicrophone: 'Выключить микрофон',
     resumeMicrophone: 'Включить микрофон',
-    microphonePaused: 'Микрофон выключен — Gemini вас не слышит',
+    microphonePaused: 'Микрофон выключен',
     reconnecting: 'Переподключаемся…',
     noSpeechHint:
       'Мы вас не слышим. Проверьте, включён ли микрофон и выбрано ли нужное устройство.',

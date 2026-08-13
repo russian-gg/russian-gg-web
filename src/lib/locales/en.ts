@@ -275,7 +275,7 @@ export const en: Dictionary = {
     interrupt: 'Let me speak',
     pauseMicrophone: 'Mute microphone',
     resumeMicrophone: 'Turn microphone on',
-    microphonePaused: 'Microphone is muted — Gemini cannot hear you',
+    microphonePaused: 'Microphone off',
     reconnecting: 'Reconnecting…',
     noSpeechHint:
       'We cannot hear you. Check that the microphone is on and the right device is selected.',
