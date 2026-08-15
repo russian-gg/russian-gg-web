@@ -4,6 +4,7 @@ import { fill, useT } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { HomeView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
+import { LearningActivity } from '../components/LearningActivity'
 import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
 /**
@@ -64,6 +65,7 @@ export function Home() {
             action={<LinkButton to="/path">{t.nav.path}</LinkButton>}
           />
         )}
+        <LearningActivity />
       </section>
 
       {/*

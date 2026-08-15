@@ -81,6 +81,14 @@
   --color-danger: #c8342a;
   --color-danger-soft: #fdeceb;
 
+  /* Daily reward heatmap. Gold is reserved for earned coins and visit history. */
+  --color-coin-faint: #fff8dc;
+  --color-coin-soft: #ffedaa;
+  --color-coin: #f4c84d;
+  --color-coin-strong: #dc8b16;
+  --color-coin-border: #edc24d;
+  --color-coin-ink: #7b5200;
+
   /*
     Chart series. Tokens rather than literals in the chart module, because the dark theme
     needs its own steps: these three are chosen for a white card and are far too dark to
@@ -152,6 +160,13 @@
   --color-danger: #f0736a;
   --color-danger-soft: #2a1614;
   --color-on-danger: #2a0f0c;
+
+  --color-coin-faint: #2c2413;
+  --color-coin-soft: #4b3913;
+  --color-coin: #8a6516;
+  --color-coin-strong: #b66f10;
+  --color-coin-border: #80621e;
+  --color-coin-ink: #f5cf66;
 
   /*
     The same three identities, re-picked for the dark card rather than lightened from the

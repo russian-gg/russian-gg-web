@@ -276,6 +276,33 @@ export interface HomeView {
   repairs: RepairSuggestion[]
 }
 
+export interface ActivityLessonView {
+  missionId: string
+  courseDay?: number | null
+  titleUz: string
+  titleRu: string
+  titleEn?: string | null
+  completedAt: string
+}
+
+export interface LearningActivityDayView {
+  date: string
+  visited: boolean
+  isFuture: boolean
+  firstVisitedAt?: string | null
+  completedLessons: ActivityLessonView[]
+}
+
+export interface LearningActivityView {
+  coins: number
+  coinAwardedToday: boolean
+  streakDays: number
+  windowStart: string
+  windowEnd: string
+  today: string
+  days: LearningActivityDayView[]
+}
+
 export interface CourseDayView {
   day: number
   phase: CoursePhase
