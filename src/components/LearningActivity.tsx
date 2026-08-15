@@ -358,7 +358,7 @@ function CoinReward({
     }
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const timer = window.setTimeout(onComplete, 550)
+      const timer = window.setTimeout(onComplete, 3000)
       return () => window.clearTimeout(timer)
     }
 
@@ -372,16 +372,17 @@ function CoinReward({
       animation = coin.animate(
         [
           { opacity: 0, transform: 'translateY(-26px) scale(.65) rotateY(0deg)' },
-          { opacity: 1, transform: 'translateY(0) scale(1.18) rotateY(180deg)', offset: 0.2 },
-          { opacity: 1, transform: 'translateY(0) scale(1) rotateY(360deg)', offset: 0.4 },
+          { opacity: 1, transform: 'translateY(0) scale(1.18) rotateY(180deg)', offset: 0.075 },
+          // Stay at the top for three full seconds before flying into the counter.
+          { opacity: 1, transform: 'translateY(0) scale(1) rotateY(900deg)', offset: 0.825 },
           {
             opacity: 1,
             transform: `translate(${dx}px, ${dy}px) scale(.45) rotateY(1080deg)`,
-            offset: 0.88,
+            offset: 0.96,
           },
           { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(.2) rotateY(1260deg)` },
         ],
-        { duration: 1650, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'forwards' },
+        { duration: 4000, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'forwards' },
       )
       void animation.finished.then(onComplete).catch(() => {})
     })
