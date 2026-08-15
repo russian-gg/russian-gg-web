@@ -98,6 +98,7 @@ export function LinkButton({
   size = 'lg',
   block = false,
   className,
+  onClick,
 }: {
   to: string
   children: ReactNode
@@ -105,10 +106,12 @@ export function LinkButton({
   size?: ButtonSize
   block?: boolean
   className?: string
+  onClick?: () => void
 }) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       className={cx(base, variants[variant], sizes[size], block && 'w-full', className)}
     >
       {children}

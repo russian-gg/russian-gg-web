@@ -1,0 +1,117 @@
+name: Deploy Demo Stage Frontend
+
+on:
+  push:
+    branches: ["demostage"]
+  workflow_dispatch:
+
+concurrency:
+  group: demostage-frontend-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package release
+        run: git archive --format=tar.gz --output=frontend-demostage-release.tgz HEAD
+
+      - name: Install SSH tools
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Ensure demo-stage directories exist
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p /opt/russian-gg/releases/demostage /opt/russian-gg/demostage/russian-gg-web"
+
+      - name: Upload demo-stage release bundle
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" scp -O -o StrictHostKeyChecking=no -P "$PORT" \
+            frontend-demostage-release.tgz "$DEPLOY_USER@$DEPLOY_HOST:/opt/russian-gg/releases/demostage/frontend-demostage-release.tgz"
+
+      - name: Deploy demo-stage frontend on server
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" '
+            set -euo pipefail
+            DEMO_ROOT=/opt/russian-gg/demostage
+            DEMO_BACKEND="$DEMO_ROOT/russian-gg-server/deploy"
+            LIVE_STACK=/opt/russian-gg/russian-gg-server/deploy
+
+            for attempt in $(seq 1 40); do
+              if [ -f "$DEMO_BACKEND/docker-compose.prod.yml" ] && [ -f "$DEMO_BACKEND/Caddyfile" ]; then
+                break
+              fi
+              echo "Waiting for the demo-stage backend checkout ($attempt/40)..."
+              sleep 15
+            done
+            test -f "$DEMO_BACKEND/docker-compose.prod.yml"
+            test -f "$DEMO_BACKEND/Caddyfile"
+            mkdir -p "$DEMO_ROOT/russian-gg-web"
+            find "$DEMO_ROOT/russian-gg-web" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            tar -xzf /opt/russian-gg/releases/demostage/frontend-demostage-release.tgz -C "$DEMO_ROOT/russian-gg-web"
+
+            install -m 0644 "$DEMO_BACKEND/Caddyfile" "$LIVE_STACK/Caddyfile"
+            install -m 0644 "$DEMO_BACKEND/docker-compose.prod.yml" "$LIVE_STACK/docker-compose.prod.yml"
+            install -m 0755 "$DEMO_BACKEND/manage-stack.sh" "$LIVE_STACK/manage-stack.sh"
+
+            docker rm -f deploy-demostage-web-1 2>/dev/null || true
+            docker ps -aq --filter name=_deploy-demostage-web-1 | xargs -r docker rm -f
+            bash "$LIVE_STACK/manage-stack.sh" up -d --build demostage-web caddy
+            docker compose -f "$LIVE_STACK/docker-compose.prod.yml" restart caddy
+          '
+
+      - name: Wait for demo-stage HTTPS
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl -fsSI https://demostage.russian.gg/ >/dev/null; then
+              echo "demostage.russian.gg is up"
+              exit 0
+            fi
+
+            echo "Waiting for demostage.russian.gg HTTPS ($attempt/20)..."
+            sleep 15
+          done
+
+          echo "demostage.russian.gg did not become healthy in time" >&2
+          exit 1
+
+      - name: Dump demo-stage logs on failure
+        if: failure()
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" '
+            docker compose -f /opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml \
+              logs --tail=200 demostage-web demostage-api caddy
+          '

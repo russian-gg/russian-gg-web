@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { fill, useT } from '../lib/i18n'
+import { missionPath } from '../lib/mission-path'
 import type { HomeView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
@@ -51,7 +52,7 @@ export function Home() {
           <>
             <MissionCard mission={data.todayMission} />
             {!data.todayMission.isLocked && (
-              <LinkButton to={`/missions/${data.todayMission.id}`} block className="mt-3">
+              <LinkButton to={missionPath(data.todayMission)} block className="mt-3">
                 {t.home.start}
               </LinkButton>
             )}

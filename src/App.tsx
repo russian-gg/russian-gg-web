@@ -12,6 +12,7 @@ import { CoursePath } from './routes/CoursePath'
 import { FeedbacksPage } from './routes/FeedbacksPage'
 import { Home } from './routes/Home'
 import { Landing } from './routes/Landing'
+import { LessonOne } from './routes/LessonOne'
 import { MissionPlayer } from './routes/MissionPlayer'
 import { MissionResult } from './routes/MissionResult'
 import { Onboarding } from './routes/Onboarding'
@@ -51,6 +52,7 @@ export function App() {
           <Route path="/games" element={<Games />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/feedbacks" element={<FeedbacksPage />} />
+          <Route path="/lessons/1/:missionId" element={<LessonOne />} />
           <Route path="/missions/:missionId" element={<MissionPlayer />} />
           <Route path="/missions/attempts/:attemptId/result" element={<MissionResult />} />
           <Route path="/paywall" element={<Paywall />} />

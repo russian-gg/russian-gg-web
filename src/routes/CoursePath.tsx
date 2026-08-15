@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
+import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { Badge, Button, Card, CheckCircle, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
@@ -303,7 +304,7 @@ function MissionBrief({ mission }: { mission: MissionSummary }) {
               {mission.lockReason ?? t.path.lockedFallback}
             </p>
           ) : (
-            <LinkButton to={`/missions/${mission.id}`} block className="mt-4">
+            <LinkButton to={missionPath(mission)} block className="mt-4">
               <MicGlyph />
               {t.path.startConversation}
             </LinkButton>

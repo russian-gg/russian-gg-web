@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
+import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
 import { Badge } from './ui'
 
@@ -66,7 +67,7 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
   }
 
   return (
-    <Link to={`/missions/${mission.id}`} className={className}>
+    <Link to={missionPath(mission)} className={className}>
       {body}
     </Link>
   )
