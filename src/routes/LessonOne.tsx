@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Button, Card, LinkButton, PlayGlyph, ProgressBar } from '../components/ui'
 import { cx } from '../lib/cx'
 
@@ -175,67 +175,38 @@ export function LessonOne() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12">
-      <header className="overflow-hidden rounded-[24px] border-2 border-hairline bg-ground-raised shadow-[0_8px_0_0_var(--color-control-depth)]">
-        <div className="relative isolate overflow-hidden bg-[linear-gradient(135deg,var(--color-signal-soft),var(--color-ground-raised)_62%)] px-5 py-7 sm:px-8">
-          <div className="pointer-events-none absolute -top-16 -right-10 -z-10 size-48 rounded-full bg-signal/15" />
-          <div className="pointer-events-none absolute -bottom-14 left-1/3 -z-10 size-36 rounded-full bg-caution-soft" />
-
-          <Link to="/home" className="text-sm font-extrabold text-signal-ink hover:underline">
-            ← Bosh sahifa
-          </Link>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <LessonBadge>1-kun</LessonBadge>
-            <LessonBadge>A1</LessonBadge>
-            <LessonBadge>Знакомство</LessonBadge>
-          </div>
-          <h1 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-ink sm:text-4xl">
-            Choyxonada tanishamiz
-          </h1>
-          <p className="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
-            Ruscha salomlashing, o‘zingizni tanishtiring va yangi tanishingiz bilan qisqa suhbat quring.
+      <header className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 sm:p-6">
+        <h1 className="sr-only">Birinchi dars progressi</h1>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <p className="text-sm font-extrabold text-ink">Dars progressi</p>
+          <p className="text-xs font-bold tracking-wide text-ink-faint uppercase">
+            {state.completed.length} / {sections.length} bo‘lim yakunlandi
           </p>
-
-          <div className="mt-6 max-w-xl">
-            <ProgressBar
-              value={state.completed.length}
-              max={sections.length}
-              label="Dars bo‘yicha umumiy natija"
-            />
-            <p className="mt-2 text-xs font-bold tracking-wide text-ink-faint uppercase">
-              {state.completed.length} / {sections.length} bo‘lim yakunlandi
-            </p>
-          </div>
         </div>
-      </header>
+        <div className="mt-3">
+          <ProgressBar
+            value={state.completed.length}
+            max={sections.length}
+            label="Dars bo‘yicha umumiy natija"
+          />
+        </div>
 
-      <nav aria-label="Dars bo‘limlari" className="overflow-x-auto pb-1">
-        <ol className="flex min-w-max gap-2">
-          {sections.map((section, index) => {
-            const isActive = index === state.sectionIndex
-            const isDone = state.completed.includes(section.id)
-            return (
-              <li key={section.id}>
-                <button
-                  type="button"
-                  onClick={() => visitSection(index)}
-                  aria-current={isActive ? 'step' : undefined}
-                  className={cx(
-                    'flex h-11 items-center gap-2 rounded-full border-2 px-4 text-sm font-extrabold transition',
-                    isActive
-                      ? 'border-signal bg-signal text-on-signal'
-                      : isDone
-                        ? 'border-milestone bg-milestone-soft text-milestone'
-                        : 'border-hairline bg-ground-raised text-ink-muted hover:border-signal',
-                  )}
+        {state.completed.length > 0 && (
+          <ul aria-label="Yakunlangan bo‘limlar" className="mt-4 flex flex-wrap gap-2">
+            {sections
+              .filter((section) => state.completed.includes(section.id))
+              .map((section) => (
+                <li
+                  key={section.id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1 text-xs font-extrabold text-milestone"
                 >
-                  <span>{isDone ? '✓' : index + 1}</span>
-                  <span>{section.eyebrow}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      </nav>
+                  <CompletedSectionGlyph />
+                  {section.title}
+                </li>
+              ))}
+          </ul>
+        )}
+      </header>
 
       <main>
         <div className="mb-5">
@@ -804,8 +775,12 @@ function Outcome({ icon, title, body }: { icon: string; title: string; body: str
   )
 }
 
-function LessonBadge({ children }: { children: string }) {
-  return <span className="rounded-full border border-signal/25 bg-ground-raised/80 px-3 py-1 text-xs font-black text-signal-ink">{children}</span>
+function CompletedSectionGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-2">
+      <path d="m3 8.25 3 3L13 4.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 function LearnRow({ label, value }: { label: string; value: string }) {

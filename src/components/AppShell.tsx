@@ -63,6 +63,7 @@ export function AppShell() {
             <RailLink
               key={item.key}
               to={item.to}
+              icon={item.icon}
               trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
               trailingHint={fill(t.nav.daysDone, { count: completedDays })}
               comingSoon={'comingSoon' in item && item.comingSoon}
@@ -506,19 +507,17 @@ const navGlyph = 'size-6 fill-none stroke-current stroke-[1.7]'
 function TodayGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M9 10.5v3M12 8.5v7M15 10.5v3" strokeLinecap="round" />
+      <rect x="4.5" y="5.5" width="15" height="14" rx="2.5" />
+      <path d="M8 3.5v4M16 3.5v4M4.5 9.5h15" strokeLinecap="round" />
     </svg>
   )
 }
 
-/** A route: where you started, where you are heading, and the winding way between. */
 function PathGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <circle cx="5.5" cy="18.5" r="1.9" />
-      <circle cx="18.5" cy="5.5" r="1.9" />
-      <path d="M5.5 16.6C5.5 12.4 18.5 11.6 18.5 7.4" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m15.5 7.5-2.2 5.8-5.8 2.2 2.2-5.8 5.8-2.2Z" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -526,10 +525,9 @@ function PathGlyph() {
 function TasksGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <rect x="4" y="4.5" width="7" height="7" rx="2" />
-      <rect x="13" y="4.5" width="7" height="7" rx="2" />
-      <rect x="4" y="13" width="7" height="7" rx="2" />
-      <rect x="13" y="13" width="7" height="7" rx="2" />
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="5.25" />
+      <circle cx="12" cy="12" r="2" />
     </svg>
   )
 }
@@ -558,13 +556,14 @@ function TestsGlyph() {
 function ProgressGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <path d="M5 19V11M12 19V5M19 19v-5" strokeLinecap="round" />
+      <path d="M4 20h16M6 17v-6M12 17V5M18 17V9" strokeLinecap="round" />
     </svg>
   )
 }
 
 function RailLink({
   to,
+  icon: Icon,
   children,
   trailing,
   trailingHint,
@@ -572,6 +571,7 @@ function RailLink({
   comingSoonLabel,
 }: {
   to: string | null
+  icon: () => ReactNode
   children: ReactNode
   trailing?: string
   trailingHint?: string
@@ -581,7 +581,12 @@ function RailLink({
   if (!to) {
     return (
       <span className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-base font-bold text-ink-faint">
-        <span>{children}</span>
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
+            <Icon />
+          </span>
+          <span>{children}</span>
+        </span>
         {comingSoon && comingSoonLabel && (
           <Badge tone="primary" size="sm">
             {comingSoonLabel}
@@ -602,7 +607,12 @@ function RailLink({
         }`
       }
     >
-      <span>{children}</span>
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
+          <Icon />
+        </span>
+        <span>{children}</span>
+      </span>
       {trailing && (
         <Badge tone="neutral" size="sm">
           {trailing}
