@@ -101,6 +101,8 @@ export const en: Dictionary = {
     signUpFailed: 'Sign-up failed. Please try again.',
     googleNoToken: 'Google did not return a token.',
     googleFailed: 'Google sign-in failed. Please try again.',
+    registrationFree:
+      'Registration and level assessment are free. Payment is only needed after you choose a plan.',
   },
 
   onboarding: {

@@ -22,6 +22,7 @@ import { Practice } from './routes/Practice'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
 import { SignIn, SignUp } from './routes/SignIn'
+import { TelegramConnect } from './routes/TelegramConnect'
 
 export function App() {
   useVisitBeacon()
@@ -32,6 +33,7 @@ export function App() {
         <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
         <Route path="/signin" element={<PublicOnly><SignIn /></PublicOnly>} />
         <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
+        <Route path="/telegram/connect" element={<TelegramConnect />} />
 
         {/*
           Outside the shell, because nothing should compete with the forty seconds, and public,

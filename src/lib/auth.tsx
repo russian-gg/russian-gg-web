@@ -58,8 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       isPendingOnboarding,
-      async signIn(email, password) {
-        const auth = await api.post<AuthResponse>('/auth/login', { email, password })
+      async signIn(email, password, telegramLinkToken) {
+        const auth = await api.post<AuthResponse>('/auth/login', { email, password, telegramLinkToken })
         tokenStore.set(auth)
         resetCache()
         adoptAccountLocale(auth.user.uiLanguage)
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(false)
         return auth.user
       },
-      async signUp(email, password, displayName) {
+      async signUp(email, password, displayName, telegramLinkToken) {
         const auth = await api.post<AuthResponse>('/auth/register', {
           email,
           password,
@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // The language actually on screen, not an assumption: whoever switched before
           // registering meant it, and the account should be created that way.
           uiLanguage: locale,
+          telegramLinkToken,
         })
         tokenStore.setPending(auth)
         resetCache()
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           displayName,
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
           uiLanguage: locale,
+          telegramLinkToken: options?.telegramLinkToken,
         })
         if (options?.pendingOnboarding && !auth.user.hasCompletedDiagnostic) {
           tokenStore.setPending(auth)

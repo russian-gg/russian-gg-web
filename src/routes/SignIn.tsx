@@ -38,6 +38,7 @@ export function SignIn() {
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const telegramLinkToken = new URLSearchParams(location.search).get('telegramLink') ?? undefined
 
   // Set by RequireAuth when it turned somebody away from a page they asked for.
   const returnTo = typeof location.state?.from === 'string' ? location.state.from : undefined
@@ -54,7 +55,7 @@ export function SignIn() {
     setError(null)
 
     try {
-      const user = await signIn(email, password)
+      const user = await signIn(email, password, telegramLinkToken)
       navigate(destinationAfterAuth(user.hasCompletedDiagnostic, returnTo), { replace: true })
     } catch (caught) {
       setError(
@@ -75,7 +76,7 @@ export function SignIn() {
     setError(null)
 
     try {
-      const user = await signInWithGoogle(response.credential)
+      const user = await signInWithGoogle(response.credential, undefined, { telegramLinkToken })
       navigate(destinationAfterAuth(user.hasCompletedDiagnostic, returnTo), { replace: true })
     } catch (caught) {
       setError(
@@ -94,7 +95,7 @@ export function SignIn() {
       footer={
         <>
           {t.auth.noAccount}{' '}
-          <Link to="/signup" className="font-semibold text-signal-ink">
+          <Link to={{ pathname: '/signup', search: location.search }} className="font-semibold text-signal-ink">
             {t.auth.goSignUp}
           </Link>
         </>
@@ -145,6 +146,7 @@ export function SignUp() {
   const t = useT()
   const { abandonPendingOnboarding, isPendingOnboarding, signInWithGoogle, signUp } = useAuth()
   const location = useLocation()
+  const telegramLinkToken = new URLSearchParams(location.search).get('telegramLink') ?? undefined
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -173,7 +175,7 @@ export function SignUp() {
     setError(null)
 
     try {
-      await signUp(email, password, displayName || undefined)
+      await signUp(email, password, displayName || undefined, telegramLinkToken)
       track('signup_completed')
       navigate('/onboarding')
     } catch (caught) {
@@ -199,6 +201,7 @@ export function SignUp() {
     try {
       const user = await signInWithGoogle(response.credential, displayName || undefined, {
         pendingOnboarding: true,
+        telegramLinkToken,
       })
       track('signup_completed')
       navigate(destinationAfterAuth(user.hasCompletedDiagnostic))
@@ -219,12 +222,15 @@ export function SignUp() {
       footer={
         <>
           {t.auth.haveAccount}{' '}
-          <Link to="/signin" className="font-semibold text-signal-ink">
+          <Link to={{ pathname: '/signin', search: location.search }} className="font-semibold text-signal-ink">
             {t.auth.goSignIn}
           </Link>
         </>
       }
     >
+      <p className="mb-5 rounded-xl bg-ground-sunken px-4 py-3 text-sm text-ink-muted">
+        {t.auth.registrationFree}
+      </p>
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNote>{error}</ErrorNote>}
 

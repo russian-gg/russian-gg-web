@@ -104,6 +104,8 @@ export const ru: Dictionary = {
     signUpFailed: 'Ошибка регистрации. Попробуйте ещё раз.',
     googleNoToken: 'Google не вернул токен.',
     googleFailed: 'Ошибка входа через Google. Попробуйте ещё раз.',
+    registrationFree:
+      'Регистрация и определение уровня бесплатны. Оплата нужна только после выбора тарифа.',
   },
 
   onboarding: {

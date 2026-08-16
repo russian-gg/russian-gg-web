@@ -105,6 +105,8 @@ export const uz = {
     signUpFailed: "Ro'yxatdan o'tishda xatolik. Qayta urinib ko'ring.",
     googleNoToken: 'Google orqali kirishda token kelmadi.',
     googleFailed: "Google orqali kirishda xatolik. Qayta urinib ko'ring.",
+    registrationFree:
+      "Ro'yxatdan o'tish va darajani aniqlash bepul. To'lov faqat reja tanlasangiz kerak bo'ladi.",
   },
 
   onboarding: {

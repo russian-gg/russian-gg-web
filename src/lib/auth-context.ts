@@ -5,12 +5,17 @@ export interface AuthState {
   user: UserProfile | null
   isLoading: boolean
   isPendingOnboarding: boolean
-  signIn: (email: string, password: string) => Promise<UserProfile>
-  signUp: (email: string, password: string, displayName?: string) => Promise<UserProfile>
+  signIn: (email: string, password: string, telegramLinkToken?: string) => Promise<UserProfile>
+  signUp: (
+    email: string,
+    password: string,
+    displayName?: string,
+    telegramLinkToken?: string,
+  ) => Promise<UserProfile>
   signInWithGoogle: (
     credential: string,
     displayName?: string,
-    options?: { pendingOnboarding?: boolean },
+    options?: { pendingOnboarding?: boolean; telegramLinkToken?: string },
   ) => Promise<UserProfile>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
