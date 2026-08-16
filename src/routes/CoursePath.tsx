@@ -238,16 +238,16 @@ function DayCard({
       onClick={onSelect}
       aria-label={`${dayLabel}: ${focus}`}
       aria-busy={isOpening}
-      className={`${missionCardClass(isDone, isLocked)} w-full text-left`}
+      className={`${missionCardClass(isDone, isLocked, true)} w-full text-left`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-extrabold text-ink">{dayLabel}</h3>
+            <h3 className="text-lg font-extrabold text-ink">{focus}</h3>
             {isDone && <CompletedGlyph label={t.path.done} />}
           </div>
-          <p className={`mt-1 text-base ${isLocked ? 'text-ink-faint' : 'text-ink-muted'}`}>
-            {focus}
+          <p className={`mt-0.5 text-sm font-semibold ${isLocked ? 'text-ink-faint' : 'text-ink-muted'}`}>
+            {dayLabel}
           </p>
         </div>
 
@@ -267,12 +267,11 @@ function DayCard({
         max={day.requiredMissionCount}
         completed={isDone}
         label={`${dayLabel}: ${focus}`}
+        compact
       />
 
-      <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-        <span className={`text-sm font-semibold ${notice ? 'text-danger' : 'text-ink-faint'}`}>
-          {notice ?? `${day.completedMissionCount}/${day.requiredMissionCount}`}
-        </span>
+      <div className={`mt-auto flex items-center gap-3 pt-2 ${notice ? 'justify-between' : 'justify-end'}`}>
+        {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
 
         {isDone ? (
           <span className="rounded-[var(--radius-control)] border border-milestone/15 bg-ground-raised px-4 py-1.5 text-sm font-extrabold text-milestone">
@@ -285,7 +284,7 @@ function DayCard({
         ) : isOpening ? (
           <span className="text-sm font-extrabold text-signal-ink">{t.common.loading}…</span>
         ) : (
-          <MissionCardAction>{t.path.startConversation}</MissionCardAction>
+          <MissionCardAction compact>{t.path.startConversation}</MissionCardAction>
         )}
       </div>
     </button>

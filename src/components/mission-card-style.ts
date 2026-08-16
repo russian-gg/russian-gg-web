@@ -1,6 +1,7 @@
-export function missionCardClass(completed: boolean, locked = false) {
+export function missionCardClass(completed: boolean, locked = false, compact = false) {
   return [
-    'flex min-h-44 flex-col rounded-[var(--radius-card)] border p-5',
+    'flex flex-col rounded-[var(--radius-card)] border',
+    compact ? 'min-h-0 px-5 py-3.5' : 'min-h-44 p-5',
     'transition-[border-color,box-shadow,transform] duration-150',
     completed
       ? 'border-milestone/15 bg-milestone-soft/55'

@@ -107,11 +107,13 @@ export function MissionProgress({
   max,
   completed,
   label,
+  compact = false,
 }: {
   value: number
   max: number
   completed: boolean
   label: string
+  compact?: boolean
 }) {
   const t = useT()
   const safeMax = Math.max(1, max)
@@ -119,7 +121,7 @@ export function MissionProgress({
   const percent = Math.round((safeValue / safeMax) * 100)
 
   return (
-    <div className="mt-5">
+    <div className={compact ? 'mt-2.5' : 'mt-5'}>
       <div
         role="progressbar"
         aria-label={label}
@@ -135,7 +137,7 @@ export function MissionProgress({
           style={{ width: `${percent}%` }}
         />
       </div>
-      <p className="mt-1.5 text-right text-[11px] font-semibold text-ink-muted">
+      <p className={`${compact ? 'mt-1' : 'mt-1.5'} text-right text-[11px] font-semibold text-ink-muted`}>
         {completed ? t.path.done : `${safeValue}/${safeMax}`}
       </p>
     </div>
@@ -164,9 +166,19 @@ export function ArrowGlyph() {
   )
 }
 
-export function MissionCardAction({ children }: { children: ReactNode }) {
+export function MissionCardAction({
+  children,
+  compact = false,
+}: {
+  children: ReactNode
+  compact?: boolean
+}) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-signal px-4 py-2 text-sm font-extrabold text-on-signal">
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-signal px-4 text-sm font-extrabold text-on-signal ${
+        compact ? 'py-1.5' : 'py-2'
+      }`}
+    >
       {children}
       <ArrowGlyph />
     </span>
