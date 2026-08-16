@@ -246,6 +246,8 @@ export const uz = {
     empty: "Hozircha topshiriq yo'q",
     emptyBody: "90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda.",
     other: 'Boshqa mashqlar',
+    details: 'Batafsil',
+    start: 'Bajarish',
   },
 
   tests: {

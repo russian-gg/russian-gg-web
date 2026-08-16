@@ -240,6 +240,8 @@ export const en: Dictionary = {
     empty: 'No tasks yet',
     emptyBody: 'Carry on with the 90-day path — tasks are being prepared.',
     other: 'Other tasks',
+    details: 'Details',
+    start: 'Start',
   },
 
   tests: {

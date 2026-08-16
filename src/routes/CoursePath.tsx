@@ -1,23 +1,33 @@
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
-import { Badge, Button, Card, CheckCircle, LinkButton, SectionHeading, Spinner } from '../components/ui'
+import {
+  CompletedGlyph,
+  MissionCardAction,
+  MissionProgress,
+} from '../components/MissionCard'
+import { missionCardClass } from '../components/mission-card-style'
+import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
  * through the earlier days, so offering Pro there would sell something that does not help.
  */
 type LockedDay = { kind: 'pro' | 'progress'; day: number }
+type DayNotice = { day: number; text: string }
 
 export function CoursePath() {
   const t = useT()
-  const [openDay, setOpenDay] = useState<number | null>(null)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [locked, setLocked] = useState<LockedDay | null>(null)
+  const [openingDay, setOpeningDay] = useState<number | null>(null)
+  const [notice, setNotice] = useState<DayNotice | null>(null)
 
   const { data: days, isLoading } = useQuery({
     queryKey: ['course-map'],
@@ -38,9 +48,8 @@ export function CoursePath() {
 
   /*
    * Counted from the same field the ticks are, so the header and the rows cannot contradict
-   * each other. Read off the current day it counted days the learner was *placed past* as
-   * days they had done — which is how this screen came to say 8/90 without a single tick on
-   * it.
+   * each other. Read off the current day it counted days the learner was placed past as
+   * days they had done, which could make the summary claim progress the cards did not show.
    */
   const completedDays = days.filter(
     (day) => day.completedMissionCount >= day.requiredMissionCount,
@@ -57,12 +66,40 @@ export function CoursePath() {
     { phase: 'Immersion' as const, range: '61-90' },
   ]
 
-  function handleToggle(day: CourseDayView) {
+  async function handleDay(day: CourseDayView) {
     if (!day.isUnlocked) {
       setLocked({ kind: day.day > maxUnlockedDay ? 'pro' : 'progress', day: day.day })
       return
     }
-    setOpenDay((current) => (current === day.day ? null : day.day))
+
+    setOpeningDay(day.day)
+    setNotice(null)
+
+    try {
+      const missions = await queryClient.fetchQuery({
+        queryKey: ['day-missions', day.day],
+        queryFn: () => api.get<MissionSummary[]>(`/course/days/${day.day}/missions`),
+        staleTime: 60_000,
+      })
+      const mission = missions.find((candidate) => !candidate.isLocked) ?? missions[0]
+
+      if (!mission) {
+        setNotice({ day: day.day, text: t.path.preparing })
+        return
+      }
+
+      if (mission.isLocked) {
+        const isPro = mission.lockReason?.toLowerCase().includes('pro') ?? false
+        setLocked({ kind: isPro ? 'pro' : 'progress', day: day.day })
+        return
+      }
+
+      navigate(missionPath(mission))
+    } catch {
+      setNotice({ day: day.day, text: t.common.loadFailed })
+    } finally {
+      setOpeningDay(null)
+    }
   }
 
   return (
@@ -70,9 +107,7 @@ export function CoursePath() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.path.title}</h1>
-          <p className="text-support mt-1">
-            {t.path.subtitle}
-          </p>
+          <p className="text-support mt-1">{t.path.subtitle}</p>
         </div>
         <Badge tone="milestone">{completedDays}/90</Badge>
       </header>
@@ -87,15 +122,19 @@ export function CoursePath() {
               {t.labels.phase[phase]} · {range}
             </SectionHeading>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {phaseDays.map((day) => (
-                <DayRow
+                <DayCard
                   key={day.day}
                   day={day}
-                  isOpen={openDay === day.day}
                   maxUnlockedDay={maxUnlockedDay}
                   currentDay={progress?.currentDay ?? 1}
-                  onToggle={() => handleToggle(day)}
+                  showFreeLabel={
+                    entitlement?.hasProAccess === false && day.isFreePreview && day.isUnlocked
+                  }
+                  isOpening={openingDay === day.day}
+                  notice={notice?.day === day.day ? notice.text : null}
+                  onSelect={() => void handleDay(day)}
                 />
               ))}
             </div>
@@ -134,7 +173,6 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
     >
       <Card
         className="w-full max-w-md"
-        // The backdrop closes; the card itself must not.
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -169,230 +207,87 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
   )
 }
 
-function DayRow({
+function DayCard({
   day,
-  isOpen,
   maxUnlockedDay,
   currentDay,
-  onToggle,
+  showFreeLabel,
+  isOpening,
+  notice,
+  onSelect,
 }: {
   day: CourseDayView
-  isOpen: boolean
   maxUnlockedDay: number
   currentDay: number
-  onToggle: () => void
+  showFreeLabel: boolean
+  isOpening: boolean
+  notice: string | null
+  onSelect: () => void
 }) {
-  const { data: missions, isLoading } = useQuery({
-    queryKey: ['day-missions', day.day],
-    queryFn: () => api.get<MissionSummary[]>(`/course/days/${day.day}/missions`),
-    enabled: isOpen,
-  })
-
   const t = useT()
   const { locale } = useLocale()
   const isDone = day.completedMissionCount >= day.requiredMissionCount
   const isToday = day.day === currentDay
+  const isLocked = !day.isUnlocked && !isDone
+  const dayLabel = fill(t.common.day, { day: day.day })
+  const focus = pickContent(locale, { uz: day.focusUz, ru: day.focusRu, en: day.focusEn })
 
   return (
-    <div
-      className={
-        isOpen
-          ? 'rounded-[var(--radius-card)] border border-signal bg-signal-soft/40'
-          : 'border-b border-hairline last:border-b-0'
-      }
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-label={`${dayLabel}: ${focus}`}
+      aria-busy={isOpening}
+      className={`${missionCardClass(isDone, isLocked)} w-full text-left`}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        className="flex w-full items-center gap-4 px-4 py-3 text-left"
-      >
-        {/* Open days get a filled marker; the number alone reads as a list index. */}
-        <span
-          className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${
-            isOpen ? 'bg-signal text-on-signal' : 'text-ink-faint'
-          }`}
-        >
-          {day.day}
-        </span>
-
-        <span
-          className={`flex-1 text-base ${
-            isOpen ? 'font-semibold text-ink' : day.isUnlocked ? 'text-ink' : 'text-ink-faint'
-          }`}
-        >
-          {pickContent(locale, { uz: day.focusUz, ru: day.focusRu, en: day.focusEn })}
-        </span>
-
-        {isToday && !isDone && <Badge tone="signal">{t.path.today}</Badge>}
-        {isDone && <CheckCircle />}
-        {!day.isUnlocked && !isDone && (
-          <Badge tone="caution">{day.day > maxUnlockedDay ? t.path.needsPro : t.path.locked}</Badge>
-        )}
-        <ChevronGlyph open={isOpen} />
-      </button>
-
-      {isOpen && (
-        <div className="px-4 pb-4">
-          {isLoading && <Spinner label={t.path.missions} />}
-          {missions && missions.length === 0 && (
-            <Card>
-              <p className="text-support">{t.path.preparing}</p>
-            </Card>
-          )}
-          {missions?.map((mission) => <MissionBrief key={mission.id} mission={mission} />)}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * The briefing a learner reads before committing five minutes: what it costs, what they walk
- * away able to say, and who they will be saying it to. The plain mission card answered none
- * of those, so the decision to start was made on a title alone.
- */
-function MissionBrief({ mission }: { mission: MissionSummary }) {
-  const t = useT()
-
-  return (
-    <div className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 md:p-5">
-      <div className="grid gap-6 md:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,17rem)]">
-        {/*
-          The facts column had no heading while the one beside it did, so two columns of the
-          same weight read as a stray list next to a section. They are both sections.
-        */}
-        <div>
-          <h3 className="text-base font-extrabold text-ink">{t.path.aboutMission}</h3>
-          <dl className="mt-3 space-y-3">
-            <Meta icon={<ClockGlyph />} label={fill(t.common.minutes, { count: mission.estimatedMinutes })} />
-            <Meta icon={<PhraseGlyph />} label={fill(t.path.phraseCount, { count: mission.targetPhraseCount })} />
-            {mission.hasVoiceStep && <Meta icon={<MicGlyph />} label={t.path.voicePractice} />}
-            <Meta icon={<LevelGlyph />} label={fill(t.path.levelLabel, { level: mission.targetLevel })} />
-          </dl>
-        </div>
-
-        <div>
-          <h3 className="text-base font-extrabold text-ink">{t.path.willLearn}</h3>
-          {mission.learningPointsUz.length > 0 ? (
-            <ul className="mt-3 space-y-2">
-              {mission.learningPointsUz.map((point) => (
-                <li key={point} className="flex gap-2.5">
-                  <CheckCircle size="sm" label="" />
-                  <span className="text-base leading-snug text-ink">{point}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-support mt-3">{mission.objectiveUz}</p>
-          )}
-        </div>
-
-        <div className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground p-4">
-          <div className="flex items-start gap-3">
-            <TutorAvatar />
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-ink">{t.path.tutorTitle}</p>
-              <p className="text-support mt-1">
-                {t.path.tutorBody}
-              </p>
-            </div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-extrabold text-ink">{dayLabel}</h3>
+            {isDone && <CompletedGlyph label={t.path.done} />}
           </div>
+          <p className={`mt-1 text-base ${isLocked ? 'text-ink-faint' : 'text-ink-muted'}`}>
+            {focus}
+          </p>
+        </div>
 
-          {mission.isLocked ? (
-            <p className="text-support mt-4 rounded-xl bg-ground-sunken px-3 py-2">
-              {mission.lockReason ?? t.path.lockedFallback}
-            </p>
-          ) : (
-            <LinkButton to={missionPath(mission)} block className="mt-4">
-              <MicGlyph />
-              {t.path.startConversation}
-            </LinkButton>
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          {isToday && !isDone && <Badge tone="signal">{t.path.today}</Badge>}
+          {showFreeLabel && <Badge>{t.account.plan.free}</Badge>}
+          {isLocked && (
+            <Badge tone="caution">
+              {day.day > maxUnlockedDay ? t.path.needsPro : t.path.locked}
+            </Badge>
           )}
         </div>
       </div>
-    </div>
-  )
-}
 
-function Meta({ icon, label }: { icon: ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-2.5 text-ink-muted">
-      <span className="shrink-0" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="text-sm">{label}</span>
-    </div>
-  )
-}
+      <MissionProgress
+        value={day.completedMissionCount}
+        max={day.requiredMissionCount}
+        completed={isDone}
+        label={`${dayLabel}: ${focus}`}
+      />
 
-/** Falls back to the abstract mark when no avatar image is present; see public/README.md. */
-function TutorAvatar() {
-  const t = useT()
-  const [failed, setFailed] = useState(false)
+      <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+        <span className={`text-sm font-semibold ${notice ? 'text-danger' : 'text-ink-faint'}`}>
+          {notice ?? `${day.completedMissionCount}/${day.requiredMissionCount}`}
+        </span>
 
-  if (failed) {
-    return <span className="size-11 shrink-0 rounded-full bg-signal-soft" aria-hidden="true" />
-  }
-
-  return (
-    <img
-      src="/tutor-avatar.jpg"
-      alt={t.player.tutorName}
-      onError={() => setFailed(true)}
-      className="size-11 shrink-0 rounded-full bg-signal-soft object-cover"
-    />
-  )
-}
-
-/* Abstract line glyphs — circle, line and wave motifs only (PRD §7). */
-
-const metaGlyph = 'size-4 fill-none stroke-current stroke-[1.7]'
-
-function ClockGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={metaGlyph}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function PhraseGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={metaGlyph}>
-      <path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.4-4.4A7.5 7.5 0 1 1 20 12Z" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function MicGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={metaGlyph}>
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function LevelGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={metaGlyph}>
-      <path d="M5 19v-5M12 19V8M19 19v-8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function ChevronGlyph({ open }: { open: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className={`size-4 shrink-0 fill-none stroke-current stroke-[1.8] text-ink-faint ${
-        open ? 'rotate-180' : ''
-      }`}
-    >
-      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+        {isDone ? (
+          <span className="rounded-[var(--radius-control)] border border-milestone/15 bg-ground-raised px-4 py-1.5 text-sm font-extrabold text-milestone">
+            {t.path.done}
+          </span>
+        ) : isLocked ? (
+          <span className="text-sm font-extrabold text-caution">
+            {day.day > maxUnlockedDay ? t.path.needsPro : t.path.locked}
+          </span>
+        ) : isOpening ? (
+          <span className="text-sm font-extrabold text-signal-ink">{t.common.loading}…</span>
+        ) : (
+          <MissionCardAction>{t.path.startConversation}</MissionCardAction>
+        )}
+      </div>
+    </button>
   )
 }

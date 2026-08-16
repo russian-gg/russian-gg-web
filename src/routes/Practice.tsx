@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { TOPIC_ORDER } from '../lib/format'
 import { useT } from '../lib/i18n'
-import type { MissionSummary, MissionTopic } from '../lib/types'
+import type { EntitlementView, MissionSummary, MissionTopic } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
@@ -14,6 +14,10 @@ export function Practice() {
   const { data, isLoading } = useQuery({
     queryKey: ['practice'],
     queryFn: () => api.get<MissionSummary[]>('/course/practice'),
+  })
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
 
   /*
@@ -75,7 +79,11 @@ export function Practice() {
           <SectionHeading>{group.label}</SectionHeading>
           <div className="grid gap-3 lg:grid-cols-3">
             {group.missions.map((mission) => (
-              <MissionCard key={mission.id} mission={mission} />
+              <MissionCard
+                key={mission.id}
+                mission={mission}
+                showFreeLabel={entitlement?.hasProAccess === false}
+              />
             ))}
           </div>
         </section>

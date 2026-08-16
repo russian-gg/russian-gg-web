@@ -244,6 +244,8 @@ export const ru: Dictionary = {
     empty: 'Пока заданий нет',
     emptyBody: 'Продолжайте 90-дневный путь — задания готовятся.',
     other: 'Другие задания',
+    details: 'Подробнее',
+    start: 'Выполнить',
   },
 
   tests: {

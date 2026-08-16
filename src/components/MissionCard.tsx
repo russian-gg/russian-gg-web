@@ -1,11 +1,19 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
+import { missionCardClass } from './mission-card-style'
 import { Badge } from './ui'
 
-export function MissionCard({ mission }: { mission: MissionSummary }) {
+export function MissionCard({
+  mission,
+  showFreeLabel = false,
+}: {
+  mission: MissionSummary
+  showFreeLabel?: boolean
+}) {
   const t = useT()
   const { locale } = useLocale()
   const isProLock =
@@ -17,22 +25,52 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
     mission.formality === 'Slang' ||
     mission.workplaceUse !== 'Safe'
 
-  const body = (
-    <>
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge>{t.labels.category[mission.category]}</Badge>
-        {mission.courseDay && <Badge>{fill(t.common.day, { day: mission.courseDay })}</Badge>}
-        {mission.isCompleted && <Badge tone="milestone">{t.path.done}</Badge>}
-        {mission.isLocked && <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>}
+  const title = pickContent(locale, {
+    uz: mission.titleUz,
+    ru: mission.titleRu,
+    en: mission.titleEn,
+  })
+  const destination = mission.isLocked
+    ? isProLock
+      ? '/paywall'
+      : '/home'
+    : missionPath(mission)
+
+  return (
+    <Link
+      to={destination}
+      aria-label={title}
+      className={missionCardClass(mission.isCompleted, mission.isLocked)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-start gap-2">
+            <h3 className="text-lg font-extrabold leading-snug text-ink">{title}</h3>
+            {mission.isCompleted && <CompletedGlyph label={t.path.done} />}
+          </div>
+
+          <p className="mt-1 text-xs font-semibold text-ink-faint">
+            {t.labels.category[mission.category]}
+            {mission.courseDay ? ` · ${fill(t.common.day, { day: mission.courseDay })}` : ''}
+            {` · ${fill(t.common.minutes, { count: mission.estimatedMinutes })}`}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          {showFreeLabel && !mission.isLocked && <Badge>{t.account.plan.free}</Badge>}
+          {mission.isLocked && (
+            <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>
+          )}
+        </div>
       </div>
 
-      <h3 className="mt-3 text-lg font-extrabold leading-snug text-ink">{pickContent(locale, { uz: mission.titleUz, ru: mission.titleRu, en: mission.titleEn })}</h3>
-      <p className="text-support">{mission.objectiveUz}</p>
+      <MissionProgress
+        value={mission.isCompleted ? 1 : 0}
+        max={1}
+        completed={mission.isCompleted}
+        label={title}
+      />
 
-      {/*
-        Register and workplace-appropriateness are surfaced on the card itself, not buried
-        inside the mission: a learner should know before they open it (PRD principle 5).
-      */}
       {needsRegisterLabel && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Badge tone="caution">{t.labels.formality[mission.formality]}</Badge>
@@ -42,33 +80,95 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
         </div>
       )}
 
-      <p className="mt-4 text-xs font-medium uppercase tracking-[0.12em] text-ink-faint">
-        {fill(t.common.minutes, { count: mission.estimatedMinutes })} · {mission.targetLevel}
-        {mission.isLocked && mission.lockReason ? ` · ${mission.lockReason}` : ''}
-      </p>
-    </>
+      <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+        <span className="text-sm font-extrabold text-signal-ink">{t.practice.details}</span>
+
+        {mission.isCompleted ? (
+          <span className="rounded-[var(--radius-control)] border border-milestone/15 bg-ground-raised px-4 py-1.5 text-sm font-extrabold text-milestone">
+            {t.path.done}
+          </span>
+        ) : mission.isLocked ? (
+          <span className="text-sm font-extrabold text-caution">
+            {isProLock ? t.path.needsPro : t.path.locked}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-signal px-4 py-2 text-sm font-extrabold text-on-signal">
+            {t.practice.start}
+            <ArrowGlyph />
+          </span>
+        )}
+      </div>
+    </Link>
   )
+}
 
-  // A mission card is a thing you push, so it behaves like one: it rests on a solid edge,
-  // rises toward the cursor and sinks onto that edge when tapped.
-  const className =
-    'block rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5 ' +
-    'shadow-[0_4px_0_0_var(--color-control-depth)] ' +
-    'transition-[border-color,box-shadow,transform] duration-150 ' +
-    'hover:-translate-y-0.5 hover:border-signal hover:shadow-[0_6px_0_0_var(--color-control-depth)] ' +
-    'focus-visible:border-signal active:translate-y-1 active:shadow-none'
-
-  if (mission.isLocked) {
-    return (
-      <Link to={isProLock ? '/paywall' : '/home'} className={`${className} opacity-75`}>
-        {body}
-      </Link>
-    )
-  }
+export function MissionProgress({
+  value,
+  max,
+  completed,
+  label,
+}: {
+  value: number
+  max: number
+  completed: boolean
+  label: string
+}) {
+  const t = useT()
+  const safeMax = Math.max(1, max)
+  const safeValue = Math.min(safeMax, Math.max(0, value))
+  const percent = Math.round((safeValue / safeMax) * 100)
 
   return (
-    <Link to={missionPath(mission)} className={className}>
-      {body}
-    </Link>
+    <div className="mt-5">
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuenow={safeValue}
+        aria-valuemin={0}
+        aria-valuemax={safeMax}
+        className="h-2 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/[0.03]"
+      >
+        <span
+          className={`block h-full rounded-full transition-[width] duration-300 ${
+            completed ? 'bg-milestone' : 'bg-signal'
+          }`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <p className="mt-1.5 text-right text-[11px] font-semibold text-ink-muted">
+        {completed ? t.path.done : `${safeValue}/${safeMax}`}
+      </p>
+    </div>
+  )
+}
+
+export function CompletedGlyph({ label }: { label: string }) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-milestone text-milestone"
+    >
+      <svg viewBox="0 0 20 20" aria-hidden="true" className="size-3 fill-none stroke-current stroke-[2.4]">
+        <path d="m4.5 10.25 3.25 3.25 7.75-7.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  )
+}
+
+export function ArrowGlyph() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4 fill-none stroke-current stroke-2">
+      <path d="M4 10h11M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function MissionCardAction({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-signal px-4 py-2 text-sm font-extrabold text-on-signal">
+      {children}
+      <ArrowGlyph />
+    </span>
   )
 }
