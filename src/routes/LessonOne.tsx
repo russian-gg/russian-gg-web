@@ -185,7 +185,11 @@ export function LessonOne() {
               </p>
             )}
             {active.title && (
-              <h2 className={cx('text-2xl font-black text-ink sm:text-3xl', active.eyebrow && 'mt-1')}>
+              <h2 className={cx(
+                'text-2xl font-black sm:text-3xl',
+                active.id === 'welcome' ? 'text-caution' : 'text-ink',
+                active.eyebrow && 'mt-1',
+              )}>
                 {active.title}
               </h2>
             )}
@@ -238,28 +242,34 @@ function WelcomeSection() {
   return (
     <div className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
       <Card className="relative overflow-hidden p-6 sm:p-8">
-        <div className="absolute top-4 right-5 text-5xl" aria-hidden="true">🍵</div>
         <p className="max-w-2xl text-lg leading-relaxed text-ink">
           Bugun siz Russian.gg shahridagi birinchi manzil — <strong>«Чайхана»</strong>ga kirasiz.
-          Har bir topshiriq sizni tabiiy ruscha tanishuvga yaqinlashtiradi.
+          Har bir topshiriq sizni tabiiy ruscha tanishuvga
+          <img
+            src="/lesson/uzbek-piyola.png"
+            alt=""
+            aria-hidden="true"
+            className="ml-1 inline-block size-11 translate-y-1 object-contain align-middle sm:absolute sm:top-4 sm:right-5 sm:ml-0 sm:size-16 sm:translate-y-0"
+          />{' '}
+          yaqinlashtiradi.
         </p>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
-          <Outcome icon="👋" title="Salomlashish" body="Vaqtga mos iborani tanlaysiz." />
-          <Outcome icon="🗣️" title="Gapirish" body="Ism, familiya va kelib chiqishni aytasiz." />
-          <Outcome icon="🏛️" title="Shahar" body="Choyxona obyektini ochasiz." />
+          <Outcome icon="👋" title="Приветствие" tone="yellow" body="Vaqtga mos iborani tanlaysiz." />
+          <Outcome icon="🗣️" title="знакомство" tone="yellow" body="Ism, familiya va kelib chiqishni aytasiz." />
+          <Outcome icon="🏛️" title="городок" tone="blue" body="Choyxona obyektini ochasiz." />
         </div>
       </Card>
 
-      <Card className="bg-ink text-ground-raised">
-        <p className="text-xs font-black tracking-[0.15em] text-signal uppercase">Yo‘l xaritasi</p>
+      <Card className="border-signal/25 bg-signal-soft">
+        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Yo‘l xaritasi</p>
         <ol className="mt-4 space-y-3 text-sm">
-          {['2 ta tezkor test', 'Rodlar va Аканье', '15 ta yashirin ibora', 'Matching o‘yini', 'AI bilan suhbat', '10 ta yangi birikma'].map((item, index) => (
+          {['2 ta tezkor test', 'Rodlar va Аканье', '15 ta yashirin ibora', 'O‘yin', 'AI bilan suhbat', '10 ta yangi birikma'].map((item, index) => (
             <li key={item} className="flex items-center gap-3">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ground-raised/10 font-black text-signal">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-signal font-black text-on-signal">
                 {index + 1}
               </span>
-              <span>{item}</span>
+              <span className="font-semibold text-ink">{item}</span>
             </li>
           ))}
         </ol>
@@ -906,11 +916,23 @@ function celebrateCorrectAnswer() {
   navigator.vibrate?.(35)
 }
 
-function Outcome({ icon, title, body }: { icon: string; title: string; body: string }) {
+function Outcome({
+  icon,
+  title,
+  body,
+  tone,
+}: {
+  icon: string
+  title: string
+  body: string
+  tone: 'yellow' | 'blue'
+}) {
   return (
     <div className="rounded-2xl bg-ground-sunken p-4">
       <span className="text-2xl" aria-hidden="true">{icon}</span>
-      <h3 className="mt-2 font-black text-ink">{title}</h3>
+      <h3 className={cx('mt-2 font-black', tone === 'yellow' ? 'text-caution' : 'text-signal-ink')}>
+        {title}
+      </h3>
       <p className="mt-1 text-sm leading-snug text-ink-muted">{body}</p>
     </div>
   )
