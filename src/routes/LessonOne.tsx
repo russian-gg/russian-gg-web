@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, Dispatch, SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Button, Card, LinkButton, PlayGlyph, ProgressBar } from '../components/ui'
+import { api } from '../lib/api'
 import { cx } from '../lib/cx'
 import {
   LESSON_ONE_SECTIONS as sections,
   LESSON_ONE_STORAGE_KEY as storageKey,
 } from '../lib/demo-lesson-one'
 import type { LessonOneSection as LessonSection } from '../lib/demo-lesson-one'
+import type { MissionSummary } from '../lib/types'
 
 type LessonState = {
   sectionIndex: number
@@ -65,16 +68,16 @@ const aiQuestions = [
 ]
 
 const vocabulary = [
-  { phrase: 'мой друг', transliteration: 'moy drug', example: 'Этот человек — мой лучший друг.', icon: '🤝', tone: 'blue' },
-  { phrase: 'моя мама', transliteration: 'moya mama', example: 'Моя мама готовит самый вкусный чай.', icon: '👩‍👧', tone: 'red' },
-  { phrase: 'доброе утро', transliteration: 'dobroye utro', example: 'Утром мы говорим: «Доброе утро!»', icon: '🌄', tone: 'yellow' },
-  { phrase: 'хорошая погода', transliteration: 'khoroshaya pogoda', example: 'Сегодня на улице очень хорошая погода.', icon: '☁️', tone: 'red' },
-  { phrase: 'новое имя', transliteration: 'novoye imya', example: 'У него красивое и новое имя.', icon: '🏷️', tone: 'yellow' },
-  { phrase: 'моя фамилия', transliteration: 'moya familiya', example: 'Назовите вашу фамилию, пожалуйста.', icon: '🪪', tone: 'red' },
-  { phrase: 'горячий чай', transliteration: 'goryachiy chay', example: 'В чайхане нам подали горячий чай.', icon: '🍵', tone: 'blue' },
-  { phrase: 'сладкая самса', transliteration: 'sladkaya samsa', example: 'На столе лежит аппетитная сладкая самса.', icon: '🥟', tone: 'red' },
-  { phrase: 'большой город', transliteration: 'bolshoy gorod', example: 'Ташкент — это большой и красивый город.', icon: '🌆', tone: 'blue' },
-  { phrase: 'родной дом', transliteration: 'rodnoy dom', example: 'Мой родной дом всегда полон гостей.', icon: '🏡', tone: 'blue' },
+  { phrase: 'мой друг', meaning: 'mening do‘stim', transliteration: 'moy drug', example: 'Этот человек — мой лучший друг.', tone: 'blue' },
+  { phrase: 'моя мама', meaning: 'mening onam', transliteration: 'moya mama', example: 'Моя мама готовит самый вкусный чай.', tone: 'red' },
+  { phrase: 'доброе утро', meaning: 'xayrli tong', transliteration: 'dobroye utro', example: 'Утром мы говорим: «Доброе утро!»', tone: 'yellow' },
+  { phrase: 'хорошая погода', meaning: 'yaxshi ob-havo', transliteration: 'khoroshaya pogoda', example: 'Сегодня на улице очень хорошая погода.', tone: 'red' },
+  { phrase: 'новое имя', meaning: 'yangi ism', transliteration: 'novoye imya', example: 'У него красивое и новое имя.', tone: 'yellow' },
+  { phrase: 'моя фамилия', meaning: 'mening familiyam', transliteration: 'moya familiya', example: 'Назовите вашу фамилию, пожалуйста.', tone: 'red' },
+  { phrase: 'горячий чай', meaning: 'issiq choy', transliteration: 'goryachiy chay', example: 'В чайхане нам подали горячий чай.', tone: 'blue' },
+  { phrase: 'сладкая самса', meaning: 'shirin somsa', transliteration: 'sladkaya samsa', example: 'На столе лежит аппетитная сладкая самса.', tone: 'red' },
+  { phrase: 'большой город', meaning: 'katta shahar', transliteration: 'bolshoy gorod', example: 'Ташкент — это большой и красивый город.', tone: 'blue' },
+  { phrase: 'родной дом', meaning: 'qadrdon uy', transliteration: 'rodnoy dom', example: 'Мой родной дом всегда полон гостей.', tone: 'blue' },
 ] as const
 
 const greetings = ['Доброе утро!', 'Добрый день!', 'Спокойной ночи!']
@@ -98,7 +101,15 @@ export function LessonOne() {
   const { missionId } = useParams<{ missionId: string }>()
   const [state, setState] = useState<LessonState>(loadState)
   const active = sections[state.sectionIndex] ?? sections[0]
+  const { data: practiceMissions, isLoading: isPracticeLoading, isError: isPracticeError } = useQuery({
+    queryKey: ['practice'],
+    queryFn: () => api.get<MissionSummary[]>('/course/practice'),
+    enabled: active.id === 'missions',
+  })
   const completedCount = sections.filter((section) => state.completed.includes(section.id)).length
+  const dialogueMissionId = practiceMissions?.find(
+    (mission) => mission.slug === 'practice-day-01-acquaintance-dialogue',
+  )?.id
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(state))
@@ -188,7 +199,7 @@ export function LessonOne() {
             {active.title && (
               <h2 className={cx(
                 'text-2xl font-black sm:text-3xl',
-                active.id === 'welcome' ? 'text-caution' : 'text-ink',
+                active.id === 'welcome' ? 'text-[#f1b900]' : 'text-ink',
                 active.eyebrow && 'mt-1',
               )}>
                 {active.title}
@@ -203,7 +214,12 @@ export function LessonOne() {
         {active.id === 'walk' && <WalkSection state={state} setState={setState} />}
         {active.id === 'game' && <GameSection state={state} setState={setState} solved={gameSolved} />}
         {active.id === 'missions' && (
-          <MissionsSection missionId={missionId} onStartMission={markMissionsComplete} />
+          <MissionsSection
+            dialogueMissionId={dialogueMissionId}
+            isLoading={isPracticeLoading}
+            hasError={isPracticeError}
+            onStartMission={markMissionsComplete}
+          />
         )}
         {active.id === 'vocabulary' && <VocabularySection />}
         {active.id === 'city' && <CitySection missionId={missionId} onReset={resetLesson} />}
@@ -257,8 +273,8 @@ function WelcomeSection() {
 
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
           <Outcome icon="👋" title="Приветствие" tone="yellow" body="Vaqtga mos iborani tanlaysiz." />
-          <Outcome icon="🗣️" title="знакомство" tone="yellow" body="Ism, familiya va kelib chiqishni aytasiz." />
-          <Outcome icon="🏛️" title="городок" tone="blue" body="Choyxona obyektini ochasiz." />
+          <Outcome icon="🗣️" title="Знакомство" tone="yellow" body="Ism, familiya va kelib chiqishni aytasiz." />
+          <Outcome icon="🏛️" title="Городок" tone="blue" body="Choyxona obyektini ochasiz." />
         </div>
       </Card>
 
@@ -614,7 +630,17 @@ function GameSection({
   )
 }
 
-function MissionsSection({ missionId, onStartMission }: { missionId?: string; onStartMission: () => void }) {
+function MissionsSection({
+  dialogueMissionId,
+  isLoading,
+  hasError,
+  onStartMission,
+}: {
+  dialogueMissionId?: string
+  isLoading: boolean
+  hasError: boolean
+  onStartMission: () => void
+}) {
   return (
     <div className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
       <Card className="p-6">
@@ -649,14 +675,19 @@ function MissionsSection({ missionId, onStartMission }: { missionId?: string; on
           <div className="text-5xl" aria-hidden="true">🎙️</div>
           <h3 className="mt-3 text-xl font-black text-ink">Gapirishga tayyormisiz?</h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-            AI savol beradi, siz ruscha javob berasiz. Talaffuz va grammatika bo‘yicha darhol fikr olasiz.
+            AI avval yuqoridagi dialogdan o‘z replikasini o‘qiydi. Siz mikrofon orqali javob berasiz,
+            AI talaffuzingizni tekshiradi va keyingi savolni beradi.
           </p>
-          {missionId ? (
-            <LinkButton to={`/missions/${missionId}`} block className="mt-5" onClick={onStartMission}>
-              AI missiyani boshlash
+          {dialogueMissionId ? (
+            <LinkButton to={`/missions/${dialogueMissionId}`} block className="mt-5" onClick={onStartMission}>
+              🎙️ Dialogni AI bilan boshlash
             </LinkButton>
+          ) : isLoading ? (
+            <p className="mt-5 text-sm font-bold text-ink-muted">Dialog tayyorlanmoqda…</p>
+          ) : hasError ? (
+            <p className="mt-5 text-sm font-bold text-danger">Dialogni yuklab bo‘lmadi. Sahifani yangilab ko‘ring.</p>
           ) : (
-            <p className="mt-5 text-sm font-bold text-danger">Missiya identifikatori topilmadi.</p>
+            <p className="mt-5 text-sm font-bold text-danger">Dialog missiyasi topilmadi.</p>
           )}
         </Card>
       </div>
@@ -685,50 +716,47 @@ function VocabularySection() {
 
   function openWord(index: number) {
     setActiveIndex(index)
-    speakRussian(vocabulary[index].phrase)
-  }
-
-  function showNextWord() {
-    setActiveIndex((current) => {
-      if (current === null || current >= vocabulary.length - 1) return null
-      const next = current + 1
-      speakRussian(vocabulary[next].phrase)
-      return next
-    })
   }
 
   return (
-    <div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {vocabulary.map((word, index) => (
-          <button
-            key={word.phrase}
-            type="button"
-            onClick={() => openWord(index)}
-            className="group flex items-start gap-4 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 text-left transition hover:-translate-y-0.5 hover:border-signal"
-          >
-            <span className={cx(
-              'flex size-14 shrink-0 items-center justify-center rounded-2xl text-2xl',
-              word.tone === 'blue' ? 'bg-signal-soft' : word.tone === 'red' ? 'bg-danger-soft' : 'bg-caution-soft',
-            )} aria-hidden="true">{word.icon}</span>
-            <span className="min-w-0 flex-1">
-              <span className={cx('flex items-center gap-2 text-lg font-black', vocabularyTextClass(word.tone))}>
-                {word.phrase}
-                <span className="text-signal-ink opacity-60 transition group-hover:opacity-100"><PlayGlyph /></span>
+    <div className="mx-auto max-w-2xl">
+      <p className="text-center text-sm leading-relaxed text-ink-muted">
+        Bitta kartani oching, tarjimasini ko‘ring va bilganingizni belgilang.
+      </p>
+
+      <div className="relative mx-auto mt-8 max-w-xl px-2 pb-6 pt-3 sm:px-8">
+        <div className="absolute inset-x-10 bottom-1 top-10 rotate-3 rounded-[2rem] border-2 border-hairline bg-ground-sunken" />
+        <div className="absolute inset-x-7 bottom-4 top-6 -rotate-2 rounded-[2rem] border-2 border-hairline bg-ground-raised shadow-sm" />
+        <button
+          type="button"
+          onClick={() => openWord(0)}
+          className="group relative w-full overflow-hidden rounded-[2rem] border-2 border-signal bg-ground-raised text-left shadow-[0_10px_30px_rgba(30,89,170,.16)] transition hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(30,89,170,.22)] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-signal"
+        >
+          <VocabularyPhoto index={0} className="block aspect-[16/9] w-full" />
+          <span className="block p-5 sm:p-6">
+            <span className="flex items-center justify-between gap-3">
+              <span className="text-xs font-black tracking-[0.14em] text-signal-ink uppercase">
+                {vocabulary.length} ta karta
               </span>
-              <span className="block text-xs font-bold text-ink-faint">{word.transliteration}</span>
-              <span className="mt-2 block text-sm leading-relaxed text-ink-muted">{word.example}</span>
+              <span className="rounded-full bg-signal-soft px-3 py-1 text-xs font-black text-signal-ink">
+                Bosib oching
+              </span>
             </span>
-          </button>
-        ))}
+            <span className="mt-3 block text-2xl font-black text-ink sm:text-3xl">Yangi so‘zlar kolodasi</span>
+            <span className="mt-2 block text-sm leading-relaxed text-ink-muted">
+              Tarjima kartaning orqa tomonida. Bilganingiz o‘ngga, bilmaganingiz chapga ketadi.
+            </span>
+            <span className="mt-5 flex h-12 items-center justify-center rounded-full bg-signal px-5 font-black text-on-signal shadow-[0_4px_0_0_var(--color-signal-depth)] transition group-active:translate-y-1 group-active:shadow-none">
+              Kartalarni boshlash →
+            </span>
+          </span>
+        </button>
       </div>
 
       {activeIndex !== null && (
         <VocabularyStudy
-          word={vocabulary[activeIndex]}
-          index={activeIndex}
+          initialIndex={activeIndex}
           onClose={() => setActiveIndex(null)}
-          onNext={showNextWord}
         />
       )}
     </div>
@@ -736,16 +764,52 @@ function VocabularySection() {
 }
 
 function VocabularyStudy({
-  word,
-  index,
+  initialIndex,
   onClose,
-  onNext,
 }: {
-  word: (typeof vocabulary)[number]
-  index: number
+  initialIndex: number
   onClose: () => void
-  onNext: () => void
 }) {
+  const [index, setIndex] = useState(initialIndex)
+  const [isFlipped, setIsFlipped] = useState(false)
+  const [exit, setExit] = useState<VocabularyRating | null>(null)
+  const [knownCount, setKnownCount] = useState(0)
+  const [unknownCount, setUnknownCount] = useState(0)
+  const [isFinished, setIsFinished] = useState(false)
+  const word = vocabulary[index]
+
+  function rate(rating: VocabularyRating) {
+    if (exit) return
+    setExit(rating)
+    if (rating === 'known') setKnownCount((count) => count + 1)
+    if (rating === 'unknown') setUnknownCount((count) => count + 1)
+
+    window.setTimeout(() => {
+      if (index >= vocabulary.length - 1) {
+        setIsFinished(true)
+      } else {
+        setIndex((current) => current + 1)
+      }
+      setIsFlipped(false)
+      setExit(null)
+    }, 320)
+  }
+
+  function restart() {
+    setIndex(0)
+    setIsFlipped(false)
+    setExit(null)
+    setKnownCount(0)
+    setUnknownCount(0)
+    setIsFinished(false)
+  }
+
+  const cardTransform = exit
+    ? `${vocabularyExitTransform(exit)} ${isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'}`
+    : isFlipped
+      ? 'rotateY(180deg)'
+      : 'rotateY(0deg)'
+
   return (
     <div
       className="fixed inset-0 z-[90] overflow-y-auto bg-ground"
@@ -754,10 +818,15 @@ function VocabularyStudy({
       aria-labelledby="vocabulary-word"
     >
       <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 py-5 sm:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-extrabold text-ink-muted">
-            {index + 1} / {vocabulary.length}
-          </span>
+        <div className="flex items-center justify-between gap-4 border-b border-hairline pb-4">
+          <div>
+            <span className="text-sm font-extrabold text-ink-muted">
+              {isFinished ? vocabulary.length : index + 1} / {vocabulary.length}
+            </span>
+            <span className="ml-3 text-xs font-bold text-ink-faint">
+              ✓ {knownCount} &nbsp; · &nbsp; ? {unknownCount}
+            </span>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -768,58 +837,131 @@ function VocabularyStudy({
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col justify-center py-8 text-center">
-          <div className={cx(
-            'mx-auto flex size-52 items-center justify-center rounded-[2.5rem] sm:size-64',
-            vocabularySurfaceClass(word.tone),
-          )}>
-            <span className="text-8xl sm:text-9xl" aria-hidden="true">{word.icon}</span>
+        {isFinished ? (
+          <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+            <div className="flex size-20 items-center justify-center rounded-full bg-milestone-soft text-4xl text-milestone">✓</div>
+            <h2 id="vocabulary-word" className="mt-5 text-3xl font-black text-ink">Koloda tugadi</h2>
+            <p className="mt-3 max-w-md leading-relaxed text-ink-muted">
+              {knownCount} ta so‘zni bildingiz, {unknownCount} tasini yana mashq qilasiz.
+              Qolgan kartalar takrorlash uchun saqlandi.
+            </p>
+            <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:flex-row">
+              <Button size="lg" block onClick={restart}>Qayta boshlash</Button>
+              <Button size="lg" block variant="secondary" onClick={onClose}>Yopish</Button>
+            </div>
           </div>
-          <h2
-            id="vocabulary-word"
-            className={cx('mt-7 text-4xl font-black sm:text-5xl', vocabularyTextClass(word.tone))}
-          >
-            {word.phrase}
-          </h2>
-          <p className="mt-2 text-base font-bold text-ink-faint">{word.transliteration}</p>
+        ) : (
+          <>
+            <div className="flex flex-1 flex-col justify-center py-6 text-center sm:py-8">
+              <div className="mx-auto w-full max-w-xl [perspective:1200px]">
+                <div
+                  className={cx(
+                    'relative min-h-[29rem] w-full cursor-pointer transition-[transform,opacity] duration-300 ease-out sm:min-h-[33rem]',
+                    exit && 'opacity-0',
+                  )}
+                  style={{ transform: cardTransform, transformStyle: 'preserve-3d' }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={isFlipped ? 'Kartaning old tomonini ko‘rish' : 'Tarjimani ko‘rish'}
+                  onClick={() => setIsFlipped((flipped) => !flipped)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setIsFlipped((flipped) => !flipped)
+                    }
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 overflow-hidden rounded-[2rem] border-2 border-hairline bg-ground-raised shadow-[0_18px_50px_rgba(20,35,60,.18)]"
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    <VocabularyPhoto index={index} className="block aspect-[16/10] w-full" />
+                    <div className="p-6 sm:p-8">
+                      <p className="text-xs font-black tracking-[0.14em] text-signal-ink uppercase">Ruscha ibora</p>
+                      <h2
+                        id="vocabulary-word"
+                        className={cx('mt-3 text-3xl font-black sm:text-4xl', vocabularyTextClass(word.tone))}
+                      >
+                        {word.phrase}
+                      </h2>
+                      <p className="mt-3 text-sm font-bold text-ink-faint">Kartani bosing — tarjimasini ko‘ring</p>
+                    </div>
+                  </div>
 
-          <button
-            type="button"
-            onClick={() => speakRussian(word.phrase)}
-            className="mx-auto mt-6 inline-flex items-center gap-3 rounded-full bg-signal px-6 py-3 font-extrabold text-on-signal shadow-[0_4px_0_0_var(--color-signal-depth)] active:translate-y-1 active:shadow-none"
-          >
-            <span className="flex size-8 items-center justify-center rounded-full bg-white/20">
-              <PlayGlyph />
-            </span>
-            Talaffuzni tinglash
-          </button>
+                  <div
+                    className={cx(
+                      'absolute inset-0 overflow-hidden rounded-[2rem] border-2 bg-ground-raised shadow-[0_18px_50px_rgba(20,35,60,.18)]',
+                      word.tone === 'blue' ? 'border-signal' : word.tone === 'red' ? 'border-danger' : 'border-[#f1b900]',
+                    )}
+                    style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                  >
+                    <VocabularyPhoto index={index} className="block h-40 w-full sm:h-48" />
+                    <div className="p-6 text-left sm:p-8">
+                      <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">O‘zbekcha tarjima</p>
+                      <h2 className={cx('mt-2 text-3xl font-black', vocabularyTextClass(word.tone))}>{word.meaning}</h2>
+                      <p className="mt-2 font-bold text-ink-faint">{word.transliteration}</p>
+                      <div className="mt-5 rounded-2xl bg-ground-sunken p-4">
+                        <p className="text-xs font-black tracking-[0.12em] text-ink-faint uppercase">Namunaviy gap</p>
+                        <p className="mt-2 leading-relaxed text-ink">{word.example}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          speakRussian(word.phrase)
+                        }}
+                        className="mt-5 inline-flex items-center gap-3 rounded-full bg-signal px-5 py-3 font-extrabold text-on-signal"
+                      >
+                        <span className="flex size-7 items-center justify-center rounded-full bg-white/20"><PlayGlyph /></span>
+                        Talaffuzni tinglash
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <Card className="mx-auto mt-7 w-full max-w-xl text-left">
-            <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">Namunaviy gap</p>
-            <p className="mt-2 text-lg leading-relaxed text-ink">{word.example}</p>
-          </Card>
-        </div>
-
-        <div className="sticky bottom-0 grid gap-3 border-t border-hairline bg-ground/95 py-5 backdrop-blur sm:grid-cols-3">
-          <Button size="lg" block onClick={onNext}>Выучил</Button>
-          <Button size="lg" block variant="secondary" onClick={onNext}>Не знаю</Button>
-          <Button size="lg" block variant="secondary" onClick={onNext}>Повторю</Button>
-        </div>
+            <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-hairline bg-ground/95 py-5 backdrop-blur sm:grid-cols-3">
+              <Button size="lg" block className="sm:order-3" onClick={() => rate('known')}>Выучил →</Button>
+              <Button size="lg" block variant="danger" className="sm:order-1" onClick={() => rate('unknown')}>← Не знаю</Button>
+              <Button size="lg" block variant="secondary" className="col-span-2 sm:order-2 sm:col-span-1" onClick={() => rate('repeat')}>Повторю ↓</Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
-function vocabularyTextClass(tone: (typeof vocabulary)[number]['tone']): string {
-  if (tone === 'red') return 'text-danger'
-  if (tone === 'yellow') return 'text-caution'
-  return 'text-signal-ink'
+type VocabularyRating = 'known' | 'unknown' | 'repeat'
+
+function vocabularyExitTransform(rating: VocabularyRating): string {
+  if (rating === 'known') return 'translateX(110vw) rotateZ(12deg)'
+  if (rating === 'unknown') return 'translateX(-110vw) rotateZ(-12deg)'
+  return 'translateY(80vh) rotateZ(4deg)'
 }
 
-function vocabularySurfaceClass(tone: (typeof vocabulary)[number]['tone']): string {
-  if (tone === 'red') return 'bg-danger-soft'
-  if (tone === 'yellow') return 'bg-caution-soft'
-  return 'bg-signal-soft'
+function VocabularyPhoto({ index, className }: { index: number; className?: string }) {
+  const column = index % 5
+  const row = Math.floor(index / 5)
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cx('bg-cover bg-no-repeat', className)}
+      style={{
+        backgroundImage: "url('/lesson/vocabulary-scenes-v1.png')",
+        backgroundPosition: `${column * 25}% ${row * 100}%`,
+        backgroundSize: '500% 200%',
+      }}
+    />
+  )
+}
+
+function vocabularyTextClass(tone: (typeof vocabulary)[number]['tone']): string {
+  if (tone === 'red') return 'text-danger'
+  if (tone === 'yellow') return 'text-[#f1b900]'
+  return 'text-signal-ink'
 }
 
 function CitySection({ missionId, onReset }: { missionId?: string; onReset: () => void }) {
@@ -993,7 +1135,7 @@ function Outcome({
   return (
     <div className="rounded-2xl bg-ground-sunken p-4">
       <span className="text-2xl" aria-hidden="true">{icon}</span>
-      <h3 className={cx('mt-2 font-black', tone === 'yellow' ? 'text-caution' : 'text-signal-ink')}>
+      <h3 className={cx('mt-2 font-black', tone === 'yellow' ? 'text-[#f1b900]' : 'text-signal-ink')}>
         {title}
       </h3>
       <p className="mt-1 text-sm leading-snug text-ink-muted">{body}</p>
