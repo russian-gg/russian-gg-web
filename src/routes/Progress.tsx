@@ -1,15 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
 import { fill, useT } from '../lib/i18n'
 import type { ProgressView, SkillArea } from '../lib/types'
 import { ConfidenceTrend, MilestoneTimeline, SkillRow } from '../components/Progress'
-import { Badge, Card, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Card, ProgressBar, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 const SKILLS: SkillArea[] = ['Listening', 'Speaking', 'Pronunciation', 'Vocabulary', 'Grammar']
 
 export function Progress() {
   const t = useT()
+  const lessonOne = readLessonOneProgress()
   const { data, isLoading } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
@@ -27,6 +29,40 @@ export function Progress() {
         </div>
         <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{t.progress.title}</h1>
       </header>
+
+      {lessonOne.completed.length > 0 && (
+        <section>
+          <SectionHeading>1-kun · Dars natijasi</SectionHeading>
+          <Card className={lessonOne.isComplete ? 'border-milestone bg-milestone-soft/35' : undefined}>
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <h2 className="text-lg font-extrabold text-ink">Знакомство</h2>
+              <span className="text-xs font-bold tracking-wide text-ink-faint uppercase">
+                {lessonOne.completed.length} / {LESSON_ONE_SECTIONS.length} bo‘lim yakunlandi
+              </span>
+            </div>
+            <div className="mt-3">
+              <ProgressBar
+                value={lessonOne.completed.length}
+                max={LESSON_ONE_SECTIONS.length}
+                label="Birinchi dars bo‘yicha umumiy natija"
+              />
+            </div>
+            <ul aria-label="Yakunlangan bo‘limlar" className="mt-4 flex flex-wrap gap-2">
+              {LESSON_ONE_SECTIONS
+                .filter((section) => lessonOne.completed.includes(section.id))
+                .map((section) => (
+                  <li
+                    key={section.id}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1.5 text-xs font-extrabold text-milestone"
+                  >
+                    <span aria-hidden="true">✓</span>
+                    {section.progressTitle}
+                  </li>
+                ))}
+            </ul>
+          </Card>
+        </section>
+      )}
 
       <Card>
         <ConfidenceTrend value={data.confidenceIndex} delta={data.confidenceDelta30d} />

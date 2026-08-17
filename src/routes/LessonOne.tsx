@@ -1,18 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
+import type { CSSProperties, Dispatch, SetStateAction } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button, Card, LinkButton, PlayGlyph, ProgressBar } from '../components/ui'
 import { cx } from '../lib/cx'
-
-type LessonSection =
-  | 'welcome'
-  | 'tests'
-  | 'learn'
-  | 'walk'
-  | 'game'
-  | 'missions'
-  | 'vocabulary'
-  | 'city'
+import {
+  LESSON_ONE_SECTIONS as sections,
+  LESSON_ONE_STORAGE_KEY as storageKey,
+} from '../lib/demo-lesson-one'
+import type { LessonOneSection as LessonSection } from '../lib/demo-lesson-one'
 
 type LessonState = {
   sectionIndex: number
@@ -30,19 +25,6 @@ type WalkPhrase = {
   color: string
   place: string
 }
-
-const storageKey = 'rgg.demostage.lesson-one.v1'
-
-const sections: Array<{ id: LessonSection; eyebrow: string; title: string }> = [
-  { id: 'welcome', eyebrow: 'Kirish', title: 'Знакомство' },
-  { id: 'tests', eyebrow: '1–2', title: 'Boshlang‘ich testlar' },
-  { id: 'learn', eyebrow: '3', title: 'Rodlar va talaffuz' },
-  { id: 'walk', eyebrow: '4', title: 'Чайхана bo‘ylab sayr' },
-  { id: 'game', eyebrow: '5', title: 'Vaqt va salomlashuv' },
-  { id: 'missions', eyebrow: '6', title: 'AI bilan missiya' },
-  { id: 'vocabulary', eyebrow: '7', title: 'Lug‘at' },
-  { id: 'city', eyebrow: '8', title: 'Russian.gg shahri' },
-]
 
 const walkPhrases: WalkPhrase[] = [
   { ru: 'Доброе утро!', transliteration: 'Dobroye utro!', character: '🪶', color: 'Sariq', place: 'Kirishdagi tonggi lavha' },
@@ -115,9 +97,11 @@ export function LessonOne() {
   const { missionId } = useParams<{ missionId: string }>()
   const [state, setState] = useState<LessonState>(loadState)
   const active = sections[state.sectionIndex] ?? sections[0]
+  const completedCount = sections.filter((section) => state.completed.includes(section.id)).length
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(state))
+    window.dispatchEvent(new Event('rgg:lesson-one-progress'))
   }, [state])
 
   const gameSolved = useMemo(
@@ -180,41 +164,33 @@ export function LessonOne() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <p className="text-sm font-extrabold text-ink">Dars progressi</p>
           <p className="text-xs font-bold tracking-wide text-ink-faint uppercase">
-            {state.completed.length} / {sections.length} bo‘lim yakunlandi
+            {completedCount} / {sections.length} bo‘lim yakunlandi
           </p>
         </div>
         <div className="mt-3">
           <ProgressBar
-            value={state.completed.length}
+            value={completedCount}
             max={sections.length}
             label="Dars bo‘yicha umumiy natija"
           />
         </div>
-
-        {state.completed.length > 0 && (
-          <ul aria-label="Yakunlangan bo‘limlar" className="mt-4 flex flex-wrap gap-2">
-            {sections
-              .filter((section) => state.completed.includes(section.id))
-              .map((section) => (
-                <li
-                  key={section.id}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1 text-xs font-extrabold text-milestone"
-                >
-                  <CompletedSectionGlyph />
-                  {section.title}
-                </li>
-              ))}
-          </ul>
-        )}
       </header>
 
       <main>
-        <div className="mb-5">
-          <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">
-            {active.eyebrow}
-          </p>
-          <h2 className="mt-1 text-2xl font-black text-ink sm:text-3xl">{active.title}</h2>
-        </div>
+        {(active.eyebrow || active.title) && (
+          <div className="mb-5">
+            {active.eyebrow && (
+              <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">
+                {active.eyebrow}
+              </p>
+            )}
+            {active.title && (
+              <h2 className={cx('text-2xl font-black text-ink sm:text-3xl', active.eyebrow && 'mt-1')}>
+                {active.title}
+              </h2>
+            )}
+          </div>
+        )}
 
         {active.id === 'welcome' && <WelcomeSection />}
         {active.id === 'tests' && <TestsSection state={state} setState={setState} />}
@@ -297,7 +273,7 @@ function TestsSection({ state, setState }: { state: LessonState; setState: SetLe
     <div className="space-y-5">
       <QuizCard
         number="01"
-        character="🪶 Feather"
+        character="🪶 Перо"
         question='«Здравствуйте» so‘zini talaffuz qiling. Birinchi «в» tovushiga nima bo‘ladi?'
         answer={state.phoneticAnswer}
         correct="b"
@@ -312,7 +288,7 @@ function TestsSection({ state, setState }: { state: LessonState; setState: SetLe
 
       <QuizCard
         number="02"
-        character="🐧 Penguin"
+        character="🐧 Пингвин"
         question='Jumlani tugating: «Добр... утро!»'
         answer={state.grammarAnswer}
         correct="c"
@@ -511,7 +487,10 @@ function GameSection({
   setState: SetLessonState
   solved: boolean
 }) {
-  function match(cardId: string, greeting: string) {
+  function match(cardId: string, greeting: string, correctAnswer: string) {
+    if (greeting === correctAnswer && state.gameMatches[cardId] !== correctAnswer) {
+      celebrateCorrectAnswer()
+    }
     setState((current) => ({
       ...current,
       gameMatches: { ...current.gameMatches, [cardId]: greeting },
@@ -532,7 +511,8 @@ function GameSection({
           const selected = state.gameMatches[card.id]
           const correct = selected === card.answer
           return (
-            <Card key={card.id} className={cx(correct && 'border-milestone bg-milestone-soft')}>
+            <Card key={card.id} className={cx('relative overflow-hidden', correct && 'border-milestone bg-milestone-soft')}>
+              {correct && <AnswerCelebration />}
               <div className="text-center">
                 <span className="text-5xl" aria-hidden="true">{card.icon}</span>
                 <p className="mt-3 text-3xl font-black tabular-nums text-ink">{card.time}</p>
@@ -543,7 +523,7 @@ function GameSection({
                   <button
                     key={greeting}
                     type="button"
-                    onClick={() => match(card.id, greeting)}
+                    onClick={() => match(card.id, greeting, card.answer)}
                     className={cx(
                       'w-full rounded-xl border-2 px-3 py-2.5 text-sm font-extrabold transition',
                       selected === greeting
@@ -627,18 +607,46 @@ function MissionsSection({ missionId, onStartMission }: { missionId?: string; on
 }
 
 function VocabularySection() {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (activeIndex === null) return
+
+    const previousOverflow = document.body.style.overflow
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setActiveIndex(null)
+    }
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [activeIndex])
+
+  function openWord(index: number) {
+    setActiveIndex(index)
+    speakRussian(vocabulary[index].phrase)
+  }
+
+  function showNextWord() {
+    setActiveIndex((current) => {
+      if (current === null || current >= vocabulary.length - 1) return null
+      const next = current + 1
+      speakRussian(vocabulary[next].phrase)
+      return next
+    })
+  }
+
   return (
     <div>
-      <p className="mb-5 max-w-3xl leading-relaxed text-ink-muted">
-        Rangni rod bilan bog‘lang: 🐧 ko‘k — мужской, 🐼 qizil — женский, 🪶 sariq — средний.
-        Har bir birikmani bosib tinglashingiz mumkin.
-      </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        {vocabulary.map((word) => (
+        {vocabulary.map((word, index) => (
           <button
             key={word.phrase}
             type="button"
-            onClick={() => speakRussian(word.phrase)}
+            onClick={() => openWord(index)}
             className="group flex items-start gap-4 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 text-left transition hover:-translate-y-0.5 hover:border-signal"
           >
             <span className={cx(
@@ -646,7 +654,7 @@ function VocabularySection() {
               word.tone === 'blue' ? 'bg-signal-soft' : word.tone === 'red' ? 'bg-danger-soft' : 'bg-caution-soft',
             )} aria-hidden="true">{word.icon}</span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2 text-lg font-black text-ink">
+              <span className={cx('flex items-center gap-2 text-lg font-black', vocabularyTextClass(word.tone))}>
                 {word.phrase}
                 <span className="text-signal-ink opacity-60 transition group-hover:opacity-100"><PlayGlyph /></span>
               </span>
@@ -656,8 +664,104 @@ function VocabularySection() {
           </button>
         ))}
       </div>
+
+      {activeIndex !== null && (
+        <VocabularyStudy
+          word={vocabulary[activeIndex]}
+          index={activeIndex}
+          onClose={() => setActiveIndex(null)}
+          onNext={showNextWord}
+        />
+      )}
     </div>
   )
+}
+
+function VocabularyStudy({
+  word,
+  index,
+  onClose,
+  onNext,
+}: {
+  word: (typeof vocabulary)[number]
+  index: number
+  onClose: () => void
+  onNext: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[90] overflow-y-auto bg-ground"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="vocabulary-word"
+    >
+      <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 py-5 sm:px-8">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm font-extrabold text-ink-muted">
+            {index + 1} / {vocabulary.length}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Yopish"
+            className="flex size-11 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-2xl font-bold text-ink hover:border-ink-faint"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col justify-center py-8 text-center">
+          <div className={cx(
+            'mx-auto flex size-52 items-center justify-center rounded-[2.5rem] sm:size-64',
+            vocabularySurfaceClass(word.tone),
+          )}>
+            <span className="text-8xl sm:text-9xl" aria-hidden="true">{word.icon}</span>
+          </div>
+          <h2
+            id="vocabulary-word"
+            className={cx('mt-7 text-4xl font-black sm:text-5xl', vocabularyTextClass(word.tone))}
+          >
+            {word.phrase}
+          </h2>
+          <p className="mt-2 text-base font-bold text-ink-faint">{word.transliteration}</p>
+
+          <button
+            type="button"
+            onClick={() => speakRussian(word.phrase)}
+            className="mx-auto mt-6 inline-flex items-center gap-3 rounded-full bg-signal px-6 py-3 font-extrabold text-on-signal shadow-[0_4px_0_0_var(--color-signal-depth)] active:translate-y-1 active:shadow-none"
+          >
+            <span className="flex size-8 items-center justify-center rounded-full bg-white/20">
+              <PlayGlyph />
+            </span>
+            Talaffuzni tinglash
+          </button>
+
+          <Card className="mx-auto mt-7 w-full max-w-xl text-left">
+            <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">Namunaviy gap</p>
+            <p className="mt-2 text-lg leading-relaxed text-ink">{word.example}</p>
+          </Card>
+        </div>
+
+        <div className="sticky bottom-0 grid gap-3 border-t border-hairline bg-ground/95 py-5 backdrop-blur sm:grid-cols-3">
+          <Button size="lg" block onClick={onNext}>Выучил</Button>
+          <Button size="lg" block variant="secondary" onClick={onNext}>Не знаю</Button>
+          <Button size="lg" block variant="secondary" onClick={onNext}>Повторю</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function vocabularyTextClass(tone: (typeof vocabulary)[number]['tone']): string {
+  if (tone === 'red') return 'text-danger'
+  if (tone === 'yellow') return 'text-caution'
+  return 'text-signal-ink'
+}
+
+function vocabularySurfaceClass(tone: (typeof vocabulary)[number]['tone']): string {
+  if (tone === 'red') return 'bg-danger-soft'
+  if (tone === 'yellow') return 'bg-caution-soft'
+  return 'bg-signal-soft'
 }
 
 function CitySection({ missionId, onReset }: { missionId?: string; onReset: () => void }) {
@@ -686,7 +790,7 @@ function CitySection({ missionId, onReset }: { missionId?: string; onReset: () =
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
         {missionId && <LinkButton to={`/missions/${missionId}`}>AI suhbatni mashq qilish</LinkButton>}
-        <LinkButton to="/home" variant="secondary">Bosh sahifaga qaytish</LinkButton>
+        <LinkButton to="/progress" variant="secondary">Progressni ko‘rish</LinkButton>
         <Button variant="ghost" size="lg" onClick={onReset}>Darsni qayta boshlash</Button>
       </div>
     </div>
@@ -715,7 +819,8 @@ function QuizCard({
   const answeredCorrectly = answer === correct
 
   return (
-    <Card className={cx('p-6 sm:p-8', answeredCorrectly && 'border-milestone')}>
+    <Card className={cx('relative overflow-hidden p-6 sm:p-8', answeredCorrectly && 'border-milestone')}>
+      {answeredCorrectly && <AnswerCelebration />}
       <div className="flex items-start gap-4">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-ground-sunken font-black text-ink-muted">{number}</span>
         <div>
@@ -732,7 +837,10 @@ function QuizCard({
             <button
               key={value}
               type="button"
-              onClick={() => onAnswer(value)}
+              onClick={() => {
+                if (isCorrectOption && !answeredCorrectly) celebrateCorrectAnswer()
+                onAnswer(value)
+              }}
               className={cx(
                 'flex items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition',
                 selected
@@ -765,6 +873,39 @@ function QuizCard({
   )
 }
 
+const celebrationColors = ['#5b9bf5', '#ef4444', '#f4c84d', '#22c55e', '#a855f7']
+
+function AnswerCelebration() {
+  return (
+    <span className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true">
+      {Array.from({ length: 18 }, (_, index) => {
+        const direction = index % 2 === 0 ? 1 : -1
+        const distance = 24 + (index % 6) * 15
+        const style = {
+          '--burst-x': `${direction * distance}px`,
+          '--burst-y': `${-44 - (index % 5) * 19}px`,
+          '--burst-rotate': `${direction * (100 + index * 23)}deg`,
+          '--burst-delay': `${(index % 4) * 35}ms`,
+          '--burst-color': celebrationColors[index % celebrationColors.length],
+        } as CSSProperties
+
+        return (
+          <span
+            key={index}
+            className={cx('answer-celebration__piece', index % 3 === 0 && 'rounded-full')}
+            style={style}
+          />
+        )
+      })}
+    </span>
+  )
+}
+
+function celebrateCorrectAnswer() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  navigator.vibrate?.(35)
+}
+
 function Outcome({ icon, title, body }: { icon: string; title: string; body: string }) {
   return (
     <div className="rounded-2xl bg-ground-sunken p-4">
@@ -772,14 +913,6 @@ function Outcome({ icon, title, body }: { icon: string; title: string; body: str
       <h3 className="mt-2 font-black text-ink">{title}</h3>
       <p className="mt-1 text-sm leading-snug text-ink-muted">{body}</p>
     </div>
-  )
-}
-
-function CompletedSectionGlyph() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-2">
-      <path d="m3 8.25 3 3L13 4.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   )
 }
 

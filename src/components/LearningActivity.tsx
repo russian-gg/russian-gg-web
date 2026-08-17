@@ -253,11 +253,11 @@ function ActivityGrid({
                     !day.isFuture && !day.visited &&
                       'border-hairline bg-ground-sunken hover:-translate-y-0.5 hover:border-ink-faint',
                     !day.isFuture && day.visited && lessonCount === 0 &&
-                      'border-coin-border bg-coin-soft hover:-translate-y-0.5',
+                      'border-milestone/25 bg-milestone-soft hover:-translate-y-0.5',
                     !day.isFuture && lessonCount === 1 &&
-                      'border-coin-border bg-coin hover:-translate-y-0.5',
+                      'border-milestone/45 bg-milestone/45 hover:-translate-y-0.5',
                     !day.isFuture && lessonCount > 1 &&
-                      'border-coin-strong bg-coin-strong hover:-translate-y-0.5',
+                      'border-milestone bg-milestone hover:-translate-y-0.5',
                     selectedDate === day.date &&
                       'ring-2 ring-signal ring-offset-2 ring-offset-ground-raised',
                   )}
@@ -293,7 +293,7 @@ function DayDetail({
             <p className="mt-1 text-sm text-ink-muted">{labels.futureDay}</p>
           ) : day.visited ? (
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              <span className="font-semibold text-coin-ink">{labels.visited}</span>
+              <span className="font-semibold text-milestone">{labels.visited}</span>
               {day.firstVisitedAt && (
                 <span>{fill(labels.enteredAt, { time: formatTime(day.firstVisitedAt, locale) })}</span>
               )}
@@ -438,9 +438,9 @@ function ActivityLegend({ less, more }: { less: string; more: string }) {
     <div className="flex items-center gap-1.5 text-[10px] font-bold text-ink-faint" aria-hidden="true">
       <span>{less}</span>
       <span className="size-3 rounded-[3px] bg-ground-sunken" />
-      <span className="size-3 rounded-[3px] bg-coin-soft" />
-      <span className="size-3 rounded-[3px] bg-coin" />
-      <span className="size-3 rounded-[3px] bg-coin-strong" />
+      <span className="size-3 rounded-[3px] bg-milestone-soft" />
+      <span className="size-3 rounded-[3px] bg-milestone/45" />
+      <span className="size-3 rounded-[3px] bg-milestone" />
       <span>{more}</span>
     </div>
   )

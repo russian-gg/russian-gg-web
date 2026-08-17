@@ -81,7 +81,7 @@
   --color-danger: #c8342a;
   --color-danger-soft: #fdeceb;
 
-  /* Daily reward heatmap. Gold is reserved for earned coins and visit history. */
+  /* Gold is reserved for the earned coin itself; activity history uses milestone green. */
   --color-coin-faint: #fff8dc;
   --color-coin-soft: #ffedaa;
   --color-coin: #f4c84d;
@@ -235,6 +235,24 @@
   }
 }
 
+@keyframes answerCelebrationBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--burst-x)),
+        calc(-50% + var(--burst-y))
+      )
+      scale(1) rotate(var(--burst-rotate));
+  }
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -270,6 +288,18 @@
 }
 
 @layer utilities {
+  .answer-celebration__piece {
+    position: absolute;
+    top: 58%;
+    left: 50%;
+    width: 9px;
+    height: 15px;
+    background: var(--burst-color);
+    opacity: 0;
+    animation: answerCelebrationBurst 780ms cubic-bezier(0.18, 0.72, 0.25, 1) var(--burst-delay)
+      both;
+  }
+
   .telegram-fab {
     display: inline-flex;
     align-items: center;

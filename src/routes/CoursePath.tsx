@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { pickContent } from '../lib/content'
-import { fill, useLocale, useT } from '../lib/i18n'
+import { cx } from '../lib/cx'
+import { readLessonOneProgress } from '../lib/demo-lesson-one'
+import { fill, useT } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import {
@@ -51,14 +52,37 @@ export function CoursePath() {
    * each other. Read off the current day it counted days the learner was placed past as
    * days they had done, which could make the summary claim progress the cards did not show.
    */
-  const completedDays = days.filter(
-    (day) => day.completedMissionCount >= day.requiredMissionCount,
-  ).length
   const maxPreviewDay = days.reduce(
     (highest, day) => (day.isFreePreview ? Math.max(highest, day.day) : highest),
     0,
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
+  const lessonOneComplete = readLessonOneProgress().isComplete
+  let previousDaysComplete = true
+  const displayedDays = days.map((day) => {
+    const isComplete =
+      day.completedMissionCount >= day.requiredMissionCount || (day.day === 1 && lessonOneComplete)
+    const isSequentiallyUnlocked = previousDaysComplete
+    const completedMissionCount = isComplete
+      ? day.requiredMissionCount
+      : day.completedMissionCount
+    const displayedDay = {
+      ...day,
+      completedMissionCount,
+      isUnlocked: isComplete || (day.isUnlocked && isSequentiallyUnlocked),
+    }
+    const lockKind: LockedDay['kind'] = !isSequentiallyUnlocked
+      ? 'progress'
+      : day.day > maxUnlockedDay
+        ? 'pro'
+        : 'progress'
+
+    previousDaysComplete = previousDaysComplete && isComplete
+    return { day: displayedDay, lockKind }
+  })
+  const completedDays = displayedDays.filter(
+    ({ day }) => day.completedMissionCount >= day.requiredMissionCount,
+  ).length
 
   const phases = [
     { phase: 'Foundation' as const, range: '1-30' },
@@ -66,9 +90,9 @@ export function CoursePath() {
     { phase: 'Immersion' as const, range: '61-90' },
   ]
 
-  async function handleDay(day: CourseDayView) {
+  async function handleDay(day: CourseDayView, lockKind: LockedDay['kind']) {
     if (!day.isUnlocked) {
-      setLocked({ kind: day.day > maxUnlockedDay ? 'pro' : 'progress', day: day.day })
+      setLocked({ kind: lockKind, day: day.day })
       return
     }
 
@@ -113,7 +137,7 @@ export function CoursePath() {
       </header>
 
       {phases.map(({ phase, range }) => {
-        const phaseDays = days.filter((day) => day.phase === phase)
+        const phaseDays = displayedDays.filter(({ day }) => day.phase === phase)
         if (phaseDays.length === 0) return null
 
         return (
@@ -123,7 +147,7 @@ export function CoursePath() {
             </SectionHeading>
 
             <div className="space-y-3">
-              {phaseDays.map((day) => (
+              {phaseDays.map(({ day, lockKind }) => (
                 <DayCard
                   key={day.day}
                   day={day}
@@ -134,7 +158,7 @@ export function CoursePath() {
                   }
                   isOpening={openingDay === day.day}
                   notice={notice?.day === day.day ? notice.text : null}
-                  onSelect={() => void handleDay(day)}
+                  onSelect={() => void handleDay(day, lockKind)}
                 />
               ))}
             </div>
@@ -225,12 +249,12 @@ function DayCard({
   onSelect: () => void
 }) {
   const t = useT()
-  const { locale } = useLocale()
   const isDone = day.completedMissionCount >= day.requiredMissionCount
   const isToday = day.day === currentDay
   const isLocked = !day.isUnlocked && !isDone
   const dayLabel = fill(t.common.day, { day: day.day })
-  const focus = pickContent(locale, { uz: day.focusUz, ru: day.focusRu, en: day.focusEn })
+  const focus = day.focusRu || day.focusUz || day.focusEn || dayLabel
+  const supportingLabel = day.focusUz ? `${dayLabel} · ${day.focusUz}` : dayLabel
 
   return (
     <button
@@ -243,16 +267,16 @@ function DayCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-extrabold text-ink">{focus}</h3>
+            <h3 className={cx('text-lg font-extrabold', topicToneClass(focus))}>{focus}</h3>
             {isDone && <CompletedGlyph label={t.path.done} />}
           </div>
           <p className={`mt-0.5 text-sm font-semibold ${isLocked ? 'text-ink-faint' : 'text-ink-muted'}`}>
-            {dayLabel}
+            {supportingLabel}
           </p>
         </div>
 
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
-          {isToday && !isDone && <Badge tone="signal">{t.path.today}</Badge>}
+          {isToday && !isDone && !isLocked && <Badge tone="signal">{t.path.today}</Badge>}
           {showFreeLabel && <Badge>{t.account.plan.free}</Badge>}
           {isLocked && (
             <Badge tone="caution">
@@ -289,4 +313,12 @@ function DayCard({
       </div>
     </button>
   )
+}
+
+function topicToneClass(topic: string): string {
+  const normalized = topic.trim().toLocaleLowerCase('ru-RU')
+
+  if (/^(моя|твоя|ваша|эта)\b/u.test(normalized)) return 'text-danger'
+  if (/^(моё|мое|твоё|твое|ваше|это)\b/u.test(normalized)) return 'text-caution'
+  return 'text-signal-ink'
 }
