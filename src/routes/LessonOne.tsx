@@ -159,7 +159,7 @@ export function LessonOne() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12">
+    <div className="mx-auto -mt-5 max-w-5xl pb-12 md:mt-0">
       <header className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 sm:p-6">
         <h1 className="sr-only">Birinchi dars progressi</h1>
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -177,7 +177,7 @@ export function LessonOne() {
         </div>
       </header>
 
-      <main>
+      <main className="mt-2">
         {(active.eyebrow || active.title) && (
           <div className="mb-5">
             {active.eyebrow && (
@@ -209,7 +209,7 @@ export function LessonOne() {
         {active.id === 'city' && <CitySection missionId={missionId} onReset={resetLesson} />}
       </main>
 
-      <footer className="flex flex-col-reverse gap-3 border-t border-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="mt-6 flex flex-col-reverse gap-3 border-t border-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="ghost"
           disabled={state.sectionIndex === 0}
