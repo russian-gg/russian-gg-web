@@ -3,7 +3,7 @@ import type { CSSProperties, Dispatch, SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, LinkButton, PlayGlyph, ProgressBar } from '../components/ui'
+import { Button, Card, LinkButton, PauseGlyph, PlayGlyph, ProgressBar } from '../components/ui'
 import { api } from '../lib/api'
 import { cx } from '../lib/cx'
 import {
@@ -26,26 +26,25 @@ type WalkPhrase = {
   ru: string
   transliteration: string
   character: '🐧' | '🐼' | '🪶'
-  color: string
   place: string
 }
 
 const walkPhrases: WalkPhrase[] = [
-  { ru: 'Доброе утро!', transliteration: 'Dobroye utro!', character: '🪶', color: 'Sariq', place: 'Kirishdagi tonggi lavha' },
-  { ru: 'Добрый день!', transliteration: "Dobriy den'!", character: '🐧', color: 'Ko‘k', place: 'Favvora yonidagi sotuvchi' },
-  { ru: 'Как тебя зовут?', transliteration: 'Kak tebya zovut?', character: '🐧', color: 'Ko‘k', place: 'Mehribon yo‘lovchi' },
-  { ru: 'Меня зовут Анвар.', transliteration: 'Menya zovut Anvar.', character: '🐧', color: 'Ko‘k', place: 'O‘rindiqdagi sayyoh' },
-  { ru: 'Как ваша фамилия?', transliteration: 'Kak vasha familiya?', character: '🐼', color: 'Qizil', place: 'Ko‘ngilli beydji' },
-  { ru: 'Моя фамилия Каримов.', transliteration: 'Moya familiya Karimov.', character: '🐧', color: 'Ko‘k', place: 'Yangi tanishning daftari' },
-  { ru: 'Очень приятно.', transliteration: "Ochen' priyatno.", character: '🐧', color: 'Ko‘k', place: 'Suhbatdoshning tabassumi' },
-  { ru: 'Рад знакомству!', transliteration: 'Rad znakomstvu!', character: '🐧', color: 'Ko‘k', place: 'Qo‘l berib ko‘rishish' },
-  { ru: 'Как зовут твоего отца?', transliteration: 'Kak zovut tvoyego ottsa?', character: '🐧', color: 'Ko‘k', place: 'Choyxonadagi katta do‘st' },
-  { ru: 'Можно познакомиться?', transliteration: "Mozhno poznakomit'sya?", character: '🐧', color: 'Ko‘k', place: 'Yangi kelgan mehmon' },
-  { ru: 'Давайте познакомимся!', transliteration: 'Davayte poznakomimsya!', character: '🐧', color: 'Ko‘k', place: 'Oqsoqol taklifi' },
-  { ru: 'Я люблю пить горячий чай.', transliteration: "Ya lyublyu pit' goryachiy chay.", character: '🐧', color: 'Ko‘k', place: 'Choynak yonidagi suhbat' },
-  { ru: 'Здесь очень сладкая самса.', transliteration: "Zdes' ochen' sladkaya samsa.", character: '🐼', color: 'Qizil', place: 'Tandir peshtoqidagi yozuv' },
-  { ru: 'Спокойной ночи!', transliteration: 'Spokoynoy nochi!', character: '🐼', color: 'Qizil', place: 'Kechki chiroqlar' },
-  { ru: 'До свидания, до завтра!', transliteration: 'Do svidaniya, do zavtra!', character: '🐧', color: 'Ko‘k', place: 'Choyxona darvozasi' },
+  { ru: 'Доброе утро!', transliteration: 'Dobroye utro!', character: '🪶', place: 'Kirishdagi tonggi lavha' },
+  { ru: 'Добрый день!', transliteration: "Dobriy den'!", character: '🐧', place: 'Favvora yonidagi sotuvchi' },
+  { ru: 'Как тебя зовут?', transliteration: 'Kak tebya zovut?', character: '🐧', place: 'Mehribon yo‘lovchi' },
+  { ru: 'Меня зовут Анвар.', transliteration: 'Menya zovut Anvar.', character: '🐧', place: 'O‘rindiqdagi sayyoh' },
+  { ru: 'Как ваша фамилия?', transliteration: 'Kak vasha familiya?', character: '🐼', place: 'Ko‘ngilli beydji' },
+  { ru: 'Моя фамилия Каримов.', transliteration: 'Moya familiya Karimov.', character: '🐧', place: 'Yangi tanishning daftari' },
+  { ru: 'Очень приятно.', transliteration: "Ochen' priyatno.", character: '🐧', place: 'Suhbatdoshning tabassumi' },
+  { ru: 'Рад знакомству!', transliteration: 'Rad znakomstvu!', character: '🐧', place: 'Qo‘l berib ko‘rishish' },
+  { ru: 'Как зовут твоего отца?', transliteration: 'Kak zovut tvoyego ottsa?', character: '🐧', place: 'Choyxonadagi katta do‘st' },
+  { ru: 'Можно познакомиться?', transliteration: "Mozhno poznakomit'sya?", character: '🐧', place: 'Yangi kelgan mehmon' },
+  { ru: 'Давайте познакомимся!', transliteration: 'Davayte poznakomimsya!', character: '🐧', place: 'Oqsoqol taklifi' },
+  { ru: 'Я люблю пить горячий чай.', transliteration: "Ya lyublyu pit' goryachiy chay.", character: '🐧', place: 'Choynak yonidagi suhbat' },
+  { ru: 'Здесь очень сладкая самса.', transliteration: "Zdes' ochen' sladkaya samsa.", character: '🐼', place: 'Tandir peshtoqidagi yozuv' },
+  { ru: 'Спокойной ночи!', transliteration: 'Spokoynoy nochi!', character: '🐼', place: 'Kechki chiroqlar' },
+  { ru: 'До свидания, до завтра!', transliteration: 'Do svidaniya, do zavtra!', character: '🐧', place: 'Choyxona darvozasi' },
 ]
 
 const dialogue = [
@@ -472,6 +471,14 @@ function LearnSection() {
 }
 
 function WalkSection({ state, setState }: { state: LessonState; setState: SetLessonState }) {
+  const [speakingPhraseIndex, setSpeakingPhraseIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel()
+    }
+  }, [])
+
   function discover(index: number) {
     setState((current) => ({
       ...current,
@@ -479,6 +486,29 @@ function WalkSection({ state, setState }: { state: LessonState; setState: SetLes
         ? current.discoveredPhrases
         : [...current.discoveredPhrases, index],
     }))
+  }
+
+  function togglePhrasePlayback(index: number, text: string) {
+    if (!('speechSynthesis' in window)) return
+
+    if (speakingPhraseIndex === index) {
+      window.speechSynthesis.cancel()
+      setSpeakingPhraseIndex(null)
+      return
+    }
+
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'ru-RU'
+    utterance.rate = 0.84
+    utterance.onend = () => {
+      setSpeakingPhraseIndex((current) => (current === index ? null : current))
+    }
+    utterance.onerror = () => {
+      setSpeakingPhraseIndex((current) => (current === index ? null : current))
+    }
+    setSpeakingPhraseIndex(index)
+    window.speechSynthesis.speak(utterance)
   }
 
   return (
@@ -529,10 +559,22 @@ function WalkSection({ state, setState }: { state: LessonState; setState: SetLes
                   <p className="mt-1 text-sm text-ink-muted">{phrase.transliteration}</p>
                   <button
                     type="button"
-                    onClick={() => speakRussian(phrase.ru)}
-                    className="mt-3 inline-flex items-center gap-2 text-sm font-black text-signal-ink"
+                    onClick={() => togglePhrasePlayback(index, phrase.ru)}
+                    aria-label={speakingPhraseIndex === index ? 'Tinglashni to‘xtatish' : 'Tinglash'}
+                    aria-pressed={speakingPhraseIndex === index}
+                    className={cx(
+                      'mt-3 inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-black text-signal-ink transition',
+                      speakingPhraseIndex === index && 'bg-signal-soft',
+                    )}
                   >
-                    <PlayGlyph /> Tinglash · {phrase.color}
+                    {speakingPhraseIndex === index ? (
+                      <span className="flex size-6 items-center justify-center rounded-full bg-signal text-on-signal">
+                        <PauseGlyph />
+                      </span>
+                    ) : (
+                      <PlayGlyph />
+                    )}
+                    Tinglash
                   </button>
                 </>
               ) : (
@@ -1089,14 +1131,14 @@ const celebrationColors = ['#5b9bf5', '#ef4444', '#f4c84d', '#22c55e', '#a855f7'
 function AnswerCelebration() {
   return createPortal(
     <span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">
-      {Array.from({ length: 30 }, (_, index) => {
+      {Array.from({ length: 42 }, (_, index) => {
         const direction = index % 2 === 0 ? 1 : -1
         const style = {
           '--fall-x': `${3 + ((index * 37) % 94)}vw`,
           '--fall-drift': `${direction * (18 + (index % 5) * 9)}px`,
           '--fall-rotate': `${direction * (360 + index * 29)}deg`,
-          '--fall-delay': `${(index % 10) * 55}ms`,
-          '--fall-duration': `${1050 + (index % 6) * 95}ms`,
+          '--fall-delay': `${(index % 14) * 45}ms`,
+          '--fall-duration': `${2000 + (index % 8) * 125}ms`,
           '--fall-color': celebrationColors[index % celebrationColors.length],
         } as CSSProperties
 
