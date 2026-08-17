@@ -80,9 +80,9 @@ const vocabulary = [
 const greetings = ['Доброе утро!', 'Добрый день!', 'Спокойной ночи!']
 
 const timeCards = [
-  { id: 'morning', time: '08:00', label: 'Tong', answer: 'Доброе утро!', icon: '🌅' },
-  { id: 'day', time: '14:00', label: 'Kunduz', answer: 'Добрый день!', icon: '☀️' },
-  { id: 'night', time: '22:30', label: 'Tun', answer: 'Спокойной ночи!', icon: '🌙' },
+  { id: 'morning', time: '08:00', label: 'Утро', labelClass: 'text-[#c88b00]', answer: 'Доброе утро!', icon: '🌅' },
+  { id: 'day', time: '14:00', label: 'День', labelClass: 'text-[#084fbd]', answer: 'Добрый день!', icon: '☀️' },
+  { id: 'night', time: '22:30', label: 'Ночь', labelClass: 'text-[#e0001b]', answer: 'Спокойной ночи!', icon: '🌙' },
 ]
 
 const emptyState: LessonState = {
@@ -574,7 +574,7 @@ function GameSection({
               <div className="text-center">
                 <span className="text-5xl" aria-hidden="true">{card.icon}</span>
                 <p className="mt-3 text-3xl font-black tabular-nums text-ink">{card.time}</p>
-                <p className="text-sm font-bold text-ink-muted">{card.label}</p>
+                <p className={cx('text-base font-black', card.labelClass)}>{card.label}</p>
               </div>
               <div className="mt-5 space-y-2">
                 {greetings.map((greeting) => (
@@ -597,7 +597,7 @@ function GameSection({
               </div>
               {selected && (
                 <p className={cx('mt-3 text-center text-sm font-bold', correct ? 'text-milestone' : 'text-danger')}>
-                  {correct ? 'To‘g‘ri!' : 'Vaqtga yana bir qarang.'}
+                  {correct ? 'Верно!' : 'Vaqtga yana bir qarang.'}
                 </p>
               )}
             </Card>
@@ -934,7 +934,7 @@ function QuizCard({
             answeredCorrectly ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger',
           )}
         >
-          <strong>{answeredCorrectly ? 'To‘g‘ri! ' : 'Yana urinib ko‘ring. '}</strong>
+          <strong>{answeredCorrectly ? 'Верно! ' : 'Yana urinib ko‘ring. '}</strong>
           {answeredCorrectly && feedback}
         </div>
       )}
