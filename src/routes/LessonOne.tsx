@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, Dispatch, SetStateAction } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { Button, Card, LinkButton, PlayGlyph, ProgressBar } from '../components/ui'
 import { cx } from '../lib/cx'
@@ -303,9 +304,9 @@ function TestsSection({ state, setState }: { state: LessonState; setState: SetLe
         answer={state.grammarAnswer}
         correct="c"
         options={[
-          ['a', 'добрый — синий / мужской род'],
-          ['b', 'добрая — красный / женский род'],
-          ['c', 'доброе — жёлтый / средний род'],
+          ['a', 'Добрый', 'blue'],
+          ['b', 'Добрая', 'red'],
+          ['c', 'Доброе', 'yellow'],
         ]}
         feedback="Barakalla! «Утро» — средний род, shuning uchun sifatning qo‘shimchasi «-ое»: доброе утро."
         onAnswer={(answer) => setState((current) => ({ ...current, grammarAnswer: answer }))}
@@ -822,7 +823,7 @@ function QuizCard({
   question: string
   answer: string | null
   correct: string
-  options: Array<[string, string]>
+  options: Array<[string, string, ('blue' | 'red' | 'yellow')?]>
   feedback: string
   onAnswer: (answer: string) => void
 }) {
@@ -840,7 +841,7 @@ function QuizCard({
       </div>
 
       <div className="mt-6 grid gap-3">
-        {options.map(([value, label]) => {
+        {options.map(([value, label, tone]) => {
           const selected = answer === value
           const isCorrectOption = value === correct
           return (
@@ -861,7 +862,18 @@ function QuizCard({
               )}
             >
               <span className="font-black uppercase text-ink">{value}</span>
-              <span className="text-sm leading-relaxed text-ink">{label}</span>
+              <span className={cx(
+                'text-base font-black leading-relaxed',
+                tone === 'blue'
+                  ? 'text-signal-ink'
+                  : tone === 'red'
+                    ? 'text-danger'
+                    : tone === 'yellow'
+                      ? 'text-caution'
+                      : 'text-ink',
+              )}>
+                {label}
+              </span>
             </button>
           )
         })}
@@ -886,28 +898,32 @@ function QuizCard({
 const celebrationColors = ['#5b9bf5', '#ef4444', '#f4c84d', '#22c55e', '#a855f7']
 
 function AnswerCelebration() {
-  return (
-    <span className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true">
-      {Array.from({ length: 18 }, (_, index) => {
+  return createPortal(
+    <span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">
+      {Array.from({ length: 30 }, (_, index) => {
         const direction = index % 2 === 0 ? 1 : -1
-        const distance = 24 + (index % 6) * 15
         const style = {
-          '--burst-x': `${direction * distance}px`,
-          '--burst-y': `${-44 - (index % 5) * 19}px`,
-          '--burst-rotate': `${direction * (100 + index * 23)}deg`,
-          '--burst-delay': `${(index % 4) * 35}ms`,
-          '--burst-color': celebrationColors[index % celebrationColors.length],
+          '--fall-x': `${3 + ((index * 37) % 94)}vw`,
+          '--fall-drift': `${direction * (18 + (index % 5) * 9)}px`,
+          '--fall-rotate': `${direction * (360 + index * 29)}deg`,
+          '--fall-delay': `${(index % 10) * 55}ms`,
+          '--fall-duration': `${1050 + (index % 6) * 95}ms`,
+          '--fall-color': celebrationColors[index % celebrationColors.length],
         } as CSSProperties
 
         return (
           <span
             key={index}
-            className={cx('answer-celebration__piece', index % 3 === 0 && 'rounded-full')}
+            className={cx(
+              'answer-celebration__piece',
+              index % 3 === 0 ? 'answer-celebration__ball' : 'answer-celebration__ribbon',
+            )}
             style={style}
           />
         )
       })}
-    </span>
+    </span>,
+    document.body,
   )
 }
 
