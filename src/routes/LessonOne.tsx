@@ -325,6 +325,7 @@ function LearnSection() {
       examples: 'друг, день, папа',
       anchor: 'он мой',
       className: 'border-signal bg-signal-soft',
+      accentClass: 'text-[#084fbd]',
     },
     {
       character: '🐼',
@@ -334,6 +335,7 @@ function LearnSection() {
       examples: 'мама, земля, ночь',
       anchor: 'она моя',
       className: 'border-danger bg-danger-soft',
+      accentClass: 'text-[#e0001b]',
     },
     {
       character: '🪶',
@@ -343,22 +345,67 @@ function LearnSection() {
       examples: 'утро, имя, здание',
       anchor: 'оно моё',
       className: 'border-caution bg-caution-soft',
+      accentClass: 'text-[#c88b00]',
     },
   ]
 
   return (
     <div className="space-y-6">
+      <Card className="overflow-hidden border-signal/25 p-0">
+        <div className="bg-[linear-gradient(135deg,var(--color-signal-soft),var(--color-ground-raised))] p-6 sm:p-8">
+          <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">
+            Rodlar haqida ertak
+          </p>
+          <h3 className="mt-2 text-2xl font-black text-ink sm:text-3xl">
+            Rodlar qirolliklariga xush kelibsiz!
+          </h3>
+          <p className="mt-4 max-w-3xl leading-relaxed text-ink-muted">
+            Olis zamonlarda <strong className="text-ink">OT (имя существительное)</strong> nomli
+            katta qirollik bo‘lgan va uning ichiga hamma “kim?” hamda “nima?” savollariga javob
+            bo‘ladigan so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish
+            qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.
+          </p>
+        </div>
+
+        <div className="grid gap-3 p-5 sm:p-6 lg:grid-cols-3">
+          <article className="rounded-2xl border-2 border-signal bg-signal-soft p-5">
+            <p className="font-black text-[#084fbd]">🐧 Pingvin qirolligi · Мужской род</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink">
+              Undosh harf va <strong>-ь</strong> bilan tugagan so‘zlarni o‘z ichiga tanlab olibdi
+              (misol uchun, <strong>друг, день, папа</strong>). Ular faxr bilan:
+              <strong className="text-[#084fbd]"> “он мой”</strong> deyishadi.
+            </p>
+          </article>
+
+          <article className="rounded-2xl border-2 border-danger bg-danger-soft p-5">
+            <p className="font-black text-[#e0001b]">🐼 Panda qirolligi · Женский род</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink">
+              <strong>-а, -я, -ь</strong> harflari bilan tugagan so‘zlarni o‘z hududiga kirgizibdi
+              (masalan, <strong>мама, земля, фамилия</strong>). Ular ohista shivirlashadi:
+              <strong className="text-[#e0001b]"> “она моя”</strong>.
+            </p>
+          </article>
+
+          <article className="rounded-2xl border-2 border-caution bg-caution-soft p-5">
+            <p className="font-black text-[#c88b00]">🪶 Pat qirolligi · Средний род</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink">
+              Jonsiz narsalardan aynan <strong>-о, -е, -ё</strong> harflari bilan tugaganlarini
+              saralab olibdi (masalan, <strong>утро, имя, здание</strong>). Ular ishonch bilan:
+              <strong className="text-[#c88b00]"> “оно моё”</strong> deb aytadi.
+            </p>
+          </article>
+        </div>
+      </Card>
+
       <Card className="p-6 sm:p-8">
-        <p className="max-w-3xl text-base leading-relaxed text-ink-muted">
-          Rus tilidagi «kim?» va «nima?» savoliga javob beradigan otlar uch roddan biriga kiradi.
-          So‘zning oxiri uning qirolligini topishga yordam beradi.
-        </p>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {genders.map((gender) => (
             <article key={gender.title} className={cx('rounded-2xl border-2 p-5', gender.className)}>
               <span className="text-4xl" aria-hidden="true">{gender.character}</span>
-              <p className="mt-3 text-xs font-black tracking-wider text-ink-muted uppercase">{gender.color}</p>
-              <h3 className="mt-1 text-xl font-black text-ink">{gender.title}</h3>
+              <p className={cx('mt-3 text-xs font-black tracking-wider uppercase', gender.accentClass)}>
+                {gender.color}
+              </p>
+              <h3 className={cx('mt-1 text-xl font-black', gender.accentClass)}>{gender.title}</h3>
               <dl className="mt-4 space-y-2 text-sm">
                 <LearnRow label="Tugashi" value={gender.endings} />
                 <LearnRow label="Misollar" value={gender.examples} />
