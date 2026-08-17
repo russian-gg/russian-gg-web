@@ -571,6 +571,25 @@ export const en: Dictionary = {
     fallback: "We'll firm this up with a short exercise.",
   },
 
+  welcomeGift: {
+    eyebrow: 'A gift for you',
+    title: 'Choose one of three boxes',
+    body: 'There is a special prize inside for your 90-day journey. You may open only one.',
+    chooseLabel: 'Gift boxes',
+    boxLabel: 'Open gift box {number}',
+    hint: 'Pick the one that feels lucky',
+    opening: 'Opening your gift...',
+    wonTitle: 'Congratulations!',
+    wonBody: 'Your prize is now attached to your Russian.gg account.',
+    yourPrize: 'Your prize',
+    bonusPrize: '+{days} free days',
+    discountPrize: '{percent}% off the 90-day plan',
+    discountRedirect: 'Your discount lasts 10 minutes. Opening Pro...',
+    expiresIn: 'Time left: {time}',
+    continue: 'Start practising',
+    error: 'We could not open the gift. Please try again.',
+  },
+
   labels: {
     phase: {
       Foundation: 'Foundation',

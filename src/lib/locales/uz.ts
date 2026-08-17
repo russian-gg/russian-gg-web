@@ -587,6 +587,25 @@ export const uz = {
     fallback: 'Bu mavzuni qisqa mashq bilan mustahkamlaymiz.',
   },
 
+  welcomeGift: {
+    eyebrow: "Siz uchun sovg'a",
+    title: "Uch qutidan birini tanlang",
+    body: "Ichida 90 kunlik yo'lingiz uchun maxsus sovrin bor. Faqat bittasini ochish mumkin.",
+    chooseLabel: "Sovg'a qutilari",
+    boxLabel: "{number}-sovg'a qutisini ochish",
+    hint: "Qaysi biri omadli ekanini his qilib tanlang",
+    opening: "Quti ochilmoqda...",
+    wonTitle: "Tabriklaymiz!",
+    wonBody: "Sovriningiz Russian.gg hisobingizga biriktirildi.",
+    yourPrize: "Sizning sovriningiz",
+    bonusPrize: "+{days} kun bepul",
+    discountPrize: "90 kunlikka {percent}% chegirma",
+    discountRedirect: "Chegirma 10 daqiqa amal qiladi. Pro bo'limi ochilmoqda...",
+    expiresIn: "Qolgan vaqt: {time}",
+    continue: "Mashqni boshlash",
+    error: "Sovg'ani ochib bo'lmadi. Qayta urinib ko'ring.",
+  },
+
   labels: {
     phase: {
       Foundation: "Boshlang'ich",

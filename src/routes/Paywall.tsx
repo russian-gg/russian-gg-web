@@ -11,6 +11,7 @@ import type {
   PlansView,
   PromoCodePreview,
   SubscriptionActionResponse,
+  WelcomeGiftStatus,
 } from '../lib/types'
 import { Badge, Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
 
@@ -63,6 +64,7 @@ export function Paywall() {
   const [promoFeedback, setPromoFeedback] = useState<string | null>(null)
   const [promoPreview, setPromoPreview] = useState<PromoCodePreview | null>(null)
   const [showPromoCelebration, setShowPromoCelebration] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['plans'],
@@ -73,6 +75,18 @@ export function Paywall() {
     queryKey: ['entitlement'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
+
+  const { data: welcomeGift } = useQuery({
+    queryKey: ['welcome-gift'],
+    queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
+    refetchOnWindowFocus: false,
+  })
+
+  useEffect(() => {
+    if (!welcomeGift?.isDiscountActive || !welcomeGift.expiresAt) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [welcomeGift?.expiresAt, welcomeGift?.isDiscountActive])
 
   useEffect(() => {
     setPromoPreview(null)
@@ -95,7 +109,7 @@ export function Paywall() {
       const result = await api.post<CheckoutResponse>('/billing/checkout', {
         period,
         returnUrl: `${window.location.origin}/billing/return`,
-        promoCode: promoPreview?.isValid ? promoPreview.code : undefined,
+        promoCode: giftApplies ? undefined : promoPreview?.isValid ? promoPreview.code : undefined,
       })
       track('checkout_started', { period })
       window.location.href = result.checkoutUrl
@@ -127,7 +141,22 @@ export function Paywall() {
   }
 
   const selected = plans.options.find((option) => option.period === period) ?? plans.options[0]
-  const amountToPay = promoPreview?.isValid ? promoPreview.finalAmountTiyin : selected.amountTiyin
+  const giftSecondsRemaining = welcomeGift?.expiresAt
+    ? Math.max(0, Math.ceil((new Date(welcomeGift.expiresAt).getTime() - now) / 1000))
+    : 0
+  const giftActive = Boolean(
+    welcomeGift?.isDiscountActive && welcomeGift.discountPercent > 0 && giftSecondsRemaining > 0,
+  )
+  const giftApplies = giftActive && period === 'NinetyDay'
+  const giftDiscountAmount = giftApplies
+    ? Math.floor((selected.amountTiyin * welcomeGift!.discountPercent) / 100)
+    : 0
+  const giftFinalAmount = selected.amountTiyin - giftDiscountAmount
+  const amountToPay = giftApplies
+    ? giftFinalAmount
+    : promoPreview?.isValid
+      ? promoPreview.finalAmountTiyin
+      : selected.amountTiyin
   const promoPercent =
     promoPreview?.isValid && promoPreview.originalAmountTiyin > 0
       ? Math.max(1, Math.round((promoPreview.discountAmountTiyin / promoPreview.originalAmountTiyin) * 100))
@@ -155,6 +184,22 @@ export function Paywall() {
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
+      {giftActive && (
+        <div className="rounded-[var(--radius-card)] border border-amber-300 bg-gradient-to-r from-amber-50 to-blue-50 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <Badge tone="milestone">
+                {fill(t.welcomeGift.discountPrize, { percent: welcomeGift!.discountPercent })}
+              </Badge>
+              <p className="mt-2 text-sm font-semibold text-ink-muted">
+                {fill(t.welcomeGift.expiresIn, { time: formatCountdown(giftSecondsRemaining) })}
+              </p>
+            </div>
+            <span className="text-3xl" aria-hidden="true">🎁</span>
+          </div>
+        </div>
+      )}
+
       {entitlement?.paymentProcessing && (
         <Card>
           <Badge tone="caution">{t.billing.processing}</Badge>
@@ -171,9 +216,17 @@ export function Paywall() {
           <div className="space-y-3">
             {plans.options.map((option) => (
               (() => {
-                const discounted = promoPreview?.isValid && promoPreview.period === option.period
-                const shownAmount = discounted ? promoPreview.finalAmountTiyin : option.amountTiyin
-                const shownCurrency = discounted ? promoPreview.currency : option.currency
+                const giftDiscounted = giftActive && option.period === 'NinetyDay'
+                const promoDiscounted = promoPreview?.isValid && promoPreview.period === option.period
+                const discounted = giftDiscounted || promoDiscounted
+                const discountPercent = giftDiscounted ? welcomeGift!.discountPercent : promoPercent
+                const discountedAmount = giftDiscounted
+                  ? option.amountTiyin - Math.floor((option.amountTiyin * welcomeGift!.discountPercent) / 100)
+                  : promoDiscounted
+                    ? promoPreview.finalAmountTiyin
+                    : option.amountTiyin
+                const shownAmount = discountedAmount
+                const shownCurrency = promoDiscounted && !giftDiscounted ? promoPreview.currency : option.currency
                 const futurePrice = futureListPriceTiyin[option.period]
                 const perDayPrice = formatPrice(
                   perDayAmountTiyin(shownAmount, option.period),
@@ -209,9 +262,9 @@ export function Paywall() {
                           {formatPrice(option.amountTiyin, option.currency, locale)}
                         </p>
                         <p className="text-2xl font-semibold tracking-tight text-ink">
-                          {formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale)}
+                          {formatPrice(discountedAmount, shownCurrency, locale)}
                         </p>
-                        <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
+                        <Badge tone="signal">{fill(t.billing.promoPercent, { percent: discountPercent })}</Badge>
                       </div>
                     ) : (
                       <div className="mt-2">
@@ -260,7 +313,7 @@ export function Paywall() {
             ))}
           </div>
 
-          <Card>
+          {!giftActive && <Card>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="flex-1">
                 <span className="mb-1.5 block text-sm font-bold text-ink">{t.billing.promoTitle}</span>
@@ -292,9 +345,9 @@ export function Paywall() {
                 </div>
               </div>
             )}
-          </Card>
+          </Card>}
 
-          {promoPreview?.isValid && (
+          {!giftActive && promoPreview?.isValid && (
             <div className="rounded-[var(--radius-card)] border border-signal/30 bg-signal-soft/50 px-4 py-3 text-sm text-ink">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-semibold">{fill(t.billing.promoPercent, { percent: promoPercent })}</span>
@@ -349,6 +402,12 @@ export function Paywall() {
       </p>
     </div>
   )
+}
+
+function formatCountdown(seconds: number) {
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const remainder = (seconds % 60).toString().padStart(2, '0')
+  return `${minutes}:${remainder}`
 }
 
 function PromoCelebration({

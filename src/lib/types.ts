@@ -39,6 +39,12 @@ export type DiagnosticItemKind = 'Listening' | 'Vocabulary' | 'Speaking'
 export type UserRole = 'Learner' | 'ContentEditor' | 'Support' | 'Administrator'
 export type PlanTier = 'Free' | 'Pro'
 export type BillingPeriod = 'Monthly' | 'NinetyDay'
+export type WelcomeGiftPrize =
+  | 'BonusSevenDays'
+  | 'Discount5'
+  | 'Discount10'
+  | 'Discount15'
+  | 'Discount20'
 export type SubscriptionStatus =
   | 'None'
   | 'Trialing'
@@ -401,6 +407,16 @@ export interface CheckoutResponse {
   checkoutUrl: string
   merchantTransId: string
   amountTiyin: number
+}
+
+export interface WelcomeGiftStatus {
+  isAvailable: boolean
+  isClaimed: boolean
+  prize?: WelcomeGiftPrize | null
+  bonusFreeDays: number
+  discountPercent: number
+  expiresAt?: string | null
+  isDiscountActive: boolean
 }
 
 export interface SubscriptionActionResponse {

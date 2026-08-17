@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { InstallPrompt } from './components/InstallPrompt'
 import { TelegramFloatingButton } from './components/TelegramFloatingButton'
+import { WelcomeGiftGate } from './components/WelcomeGiftGate'
 import { Spinner } from './components/ui'
 import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
@@ -71,6 +72,8 @@ export function App() {
 
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
+
+      <WelcomeGiftGate />
 
       <TelegramFloatingButton />
       {/*
