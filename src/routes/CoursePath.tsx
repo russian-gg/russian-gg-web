@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { cx } from '../lib/cx'
-import { readLessonOneProgress } from '../lib/demo-lesson-one'
+import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
 import { fill, useT } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
@@ -57,7 +57,8 @@ export function CoursePath() {
     0,
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
-  const lessonOneComplete = readLessonOneProgress().isComplete
+  const lessonOneProgress = readLessonOneProgress()
+  const lessonOneComplete = lessonOneProgress.isComplete
   let previousDaysComplete = true
   const displayedDays = days.map((day) => {
     const isComplete =
@@ -158,6 +159,14 @@ export function CoursePath() {
                   }
                   isOpening={openingDay === day.day}
                   notice={notice?.day === day.day ? notice.text : null}
+                  partialProgress={
+                    day.day === 1 && !lessonOneComplete
+                      ? {
+                          value: lessonOneProgress.completed.length,
+                          max: LESSON_ONE_SECTIONS.length,
+                        }
+                      : null
+                  }
                   onSelect={() => void handleDay(day, lockKind)}
                 />
               ))}
@@ -238,6 +247,7 @@ function DayCard({
   showFreeLabel,
   isOpening,
   notice,
+  partialProgress,
   onSelect,
 }: {
   day: CourseDayView
@@ -246,6 +256,7 @@ function DayCard({
   showFreeLabel: boolean
   isOpening: boolean
   notice: string | null
+  partialProgress: { value: number; max: number } | null
   onSelect: () => void
 }) {
   const t = useT()
@@ -255,6 +266,12 @@ function DayCard({
   const dayLabel = fill(t.common.day, { day: day.day })
   const focus = day.focusRu || day.focusUz || day.focusEn || dayLabel
   const supportingLabel = day.focusUz ? `${dayLabel} · ${day.focusUz}` : dayLabel
+  const progressValue = !isDone && partialProgress
+    ? partialProgress.value
+    : day.completedMissionCount
+  const progressMax = !isDone && partialProgress
+    ? partialProgress.max
+    : day.requiredMissionCount
 
   return (
     <button
@@ -287,8 +304,8 @@ function DayCard({
       </div>
 
       <MissionProgress
-        value={day.completedMissionCount}
-        max={day.requiredMissionCount}
+        value={progressValue}
+        max={progressMax}
         completed={isDone}
         label={`${dayLabel}: ${focus}`}
         compact
