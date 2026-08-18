@@ -210,7 +210,7 @@ const welcomeGiftStyles = `
   .welcome-box-lid:before{right:50%;border-radius:34px 9px 4px 34px;transform:rotate(12deg)}.welcome-box-lid:after{left:50%;border-radius:9px 34px 34px 4px;transform:rotate(-12deg)}
   .welcome-box-2 .welcome-box-body{background:linear-gradient(145deg,#8b5cf6,#6d28d9)}.welcome-box-2 .welcome-box-lid{background:linear-gradient(145deg,#a78bfa,#7c3aed)}
   .welcome-box-3 .welcome-box-body{background:linear-gradient(145deg,#f43f5e,#be123c)}.welcome-box-3 .welcome-box-lid{background:linear-gradient(145deg,#fb7185,#e11d48)}
-  .welcome-gift-opening .welcome-box-wrap:not(.is-selected),.welcome-gift-revealed .welcome-box-wrap:not(.is-selected){opacity:0;pointer-events:none;transform:scale(.55)}
+  .welcome-gift-opening .welcome-box-wrap:not(.is-selected),.welcome-gift-revealed .welcome-box-wrap:not(.is-selected){display:none}
   .welcome-gift-opening .welcome-boxes,.welcome-gift-revealed .welcome-boxes{position:relative}
   .welcome-gift-opening .is-selected,.welcome-gift-revealed .is-selected{position:absolute;left:50%;transform:translateX(-50%) scale(1.18);animation:none}
   .welcome-gift-opening .is-selected .welcome-box{animation:welcome-box-shake .72s ease-in-out .08s both}
