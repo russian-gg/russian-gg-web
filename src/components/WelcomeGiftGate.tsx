@@ -83,6 +83,10 @@ export function WelcomeGiftGate() {
       : fill(t.welcomeGift.discountPrize, { percent: reward.discountPercent })
   }, [reward, t])
 
+  const visibleBoxes = phase === 'choosing' || selectedBox === null
+    ? [1, 2, 3]
+    : [selectedBox]
+
   if (!visible) return null
 
   async function choose(box: number) {
@@ -148,7 +152,7 @@ export function WelcomeGiftGate() {
         <p>{phase === 'revealed' ? t.welcomeGift.wonBody : t.welcomeGift.body}</p>
 
         <div className="welcome-boxes" aria-label={t.welcomeGift.chooseLabel}>
-          {[1, 2, 3].map((box) => (
+          {visibleBoxes.map((box) => (
             <button
               type="button"
               key={box}
