@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { fill, useT } from '../lib/i18n'
@@ -29,7 +29,6 @@ export function WelcomeGiftGate() {
   const t = useT()
   const { user } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [phase, setPhase] = useState<Phase>('choosing')
   const [selectedBox, setSelectedBox] = useState<number | null>(null)
@@ -68,13 +67,11 @@ export function WelcomeGiftGate() {
 
   useEffect(() => {
     if (phase !== 'revealed' || !reward || reward.discountPercent <= 0) return
-    const navigateTimer = window.setTimeout(() => navigate('/paywall'), 2300)
     const closeTimer = window.setTimeout(() => setHidden(true), 2800)
     return () => {
-      window.clearTimeout(navigateTimer)
       window.clearTimeout(closeTimer)
     }
-  }, [navigate, phase, reward])
+  }, [phase, reward])
 
   const prizeText = useMemo(() => {
     if (!reward) return ''
@@ -100,6 +97,7 @@ export function WelcomeGiftGate() {
         selectedBox: box,
       })
       setReward(result)
+      queryClient.setQueryData<WelcomeGiftStatus>(['welcome-gift'], result)
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['entitlement'] }),
         queryClient.invalidateQueries({ queryKey: ['course-map'] }),

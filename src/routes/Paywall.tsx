@@ -191,9 +191,6 @@ export function Paywall() {
               <Badge tone="milestone">
                 {fill(t.welcomeGift.discountPrize, { percent: welcomeGift!.discountPercent })}
               </Badge>
-              <p className="mt-2 text-sm font-semibold text-ink-muted">
-                {fill(t.welcomeGift.expiresIn, { time: formatCountdown(giftSecondsRemaining) })}
-              </p>
             </div>
             <span className="text-3xl" aria-hidden="true">🎁</span>
           </div>
@@ -402,12 +399,6 @@ export function Paywall() {
       </p>
     </div>
   )
-}
-
-function formatCountdown(seconds: number) {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, '0')
-  const remainder = (seconds % 60).toString().padStart(2, '0')
-  return `${minutes}:${remainder}`
 }
 
 function PromoCelebration({

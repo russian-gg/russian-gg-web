@@ -591,7 +591,7 @@ export const ru: Dictionary = {
     yourPrize: 'Ваш приз',
     bonusPrize: '+{days} бесплатных дней',
     discountPrize: 'Скидка {percent}% на 90 дней',
-    discountRedirect: 'Скидка действует 10 минут. Открываем раздел Pro...',
+    discountRedirect: 'Скидка действует 10 минут. Оставшееся время показано в правом верхнем углу.',
     expiresIn: 'Осталось: {time}',
     continue: 'Начать занятие',
     error: 'Не удалось открыть подарок. Попробуйте ещё раз.',

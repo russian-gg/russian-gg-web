@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme'
 import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import type { EntitlementView, ProgressView } from '../lib/types'
+import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { Badge, Switch } from './ui'
 
@@ -80,6 +80,10 @@ export function AppShell() {
         </div>
       </aside>
 
+      <div className="fixed right-[5.75rem] top-[.8rem] z-30 md:right-6 md:top-6">
+        <WelcomeDiscountCountdown />
+      </div>
+
       {/*
         The bottom padding clears the tab bar plus the home indicator; without it the last
         card on every screen sits under the bar and cannot be reached.
@@ -115,6 +119,55 @@ export function AppShell() {
       </nav>
     </div>
   )
+}
+
+function WelcomeDiscountCountdown() {
+  const t = useT()
+  const [now, setNow] = useState(() => Date.now())
+  const { data: welcomeGift } = useQuery({
+    queryKey: ['welcome-gift'],
+    queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  })
+
+  const secondsRemaining = welcomeGift?.expiresAt
+    ? Math.max(0, Math.ceil((new Date(welcomeGift.expiresAt).getTime() - now) / 1000))
+    : 0
+  const isActive = Boolean(
+    welcomeGift?.isDiscountActive && welcomeGift.discountPercent > 0 && secondsRemaining > 0,
+  )
+
+  useEffect(() => {
+    if (!isActive) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [isActive])
+
+  if (!isActive) return null
+
+  const urgent = secondsRemaining <= 180
+  const time = formatCountdown(secondsRemaining)
+
+  return (
+    <div
+      role="timer"
+      aria-label={fill(t.welcomeGift.expiresIn, { time })}
+      className={`rounded-full border bg-white/95 px-3 py-1.5 text-sm font-black tabular-nums shadow-sm ${
+        urgent
+          ? 'border-danger/30 bg-danger-soft text-danger'
+          : 'border-hairline text-[#111827]'
+      }`}
+    >
+      {time}
+    </div>
+  )
+}
+
+function formatCountdown(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const remainder = seconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
 }
 
 function Wordmark() {
