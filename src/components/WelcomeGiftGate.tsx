@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { fill, useT } from '../lib/i18n'
@@ -29,7 +29,9 @@ export function WelcomeGiftGate() {
   const t = useT()
   const { user } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const discountRedirectedRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('choosing')
   const [selectedBox, setSelectedBox] = useState<number | null>(null)
   const [reward, setReward] = useState<WelcomeGiftStatus | null>(null)
@@ -54,6 +56,7 @@ export function WelcomeGiftGate() {
     setSelectedBox(null)
     setReward(null)
     setError(null)
+    discountRedirectedRef.current = false
   }, [user?.id])
 
   useEffect(() => {
@@ -67,11 +70,17 @@ export function WelcomeGiftGate() {
 
   useEffect(() => {
     if (phase !== 'revealed' || !reward || reward.discountPercent <= 0) return
-    const closeTimer = window.setTimeout(() => setHidden(true), 2800)
-    return () => {
-      window.clearTimeout(closeTimer)
-    }
-  }, [phase, reward])
+    if (discountRedirectedRef.current) return
+
+    const redirectTimer = window.setTimeout(() => {
+      if (discountRedirectedRef.current) return
+      discountRedirectedRef.current = true
+      setHidden(true)
+      navigate('/paywall')
+    }, 2300)
+
+    return () => window.clearTimeout(redirectTimer)
+  }, [navigate, phase, reward])
 
   const prizeText = useMemo(() => {
     if (!reward) return ''

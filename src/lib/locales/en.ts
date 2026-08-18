@@ -584,7 +584,7 @@ export const en: Dictionary = {
     yourPrize: 'Your prize',
     bonusPrize: '+{days} free days',
     discountPrize: '{percent}% off the 90-day plan',
-    discountRedirect: 'Your discount lasts 10 minutes. The remaining time is shown in the top-right corner.',
+    discountRedirect: 'Your discount lasts 10 minutes. Opening subscriptions...',
     expiresIn: 'Time left: {time}',
     continue: 'Start practising',
     error: 'We could not open the gift. Please try again.',

@@ -600,7 +600,7 @@ export const uz = {
     yourPrize: "Sizning sovriningiz",
     bonusPrize: "+{days} kun bepul",
     discountPrize: "90 kunlik uchun {percent}% chegirma",
-    discountRedirect: "Chegirma 10 daqiqa amal qiladi. Qolgan vaqt yuqori o'ng burchakda ko'rsatiladi.",
+    discountRedirect: "Chegirma 10 daqiqa amal qiladi. Obuna bo'limi ochilmoqda...",
     expiresIn: "Qolgan vaqt: {time}",
     continue: "Mashqni boshlash",
     error: "Sovg'ani ochib bo'lmadi. Qayta urinib ko'ring.",
