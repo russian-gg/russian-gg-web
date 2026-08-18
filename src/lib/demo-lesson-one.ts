@@ -1,4 +1,14 @@
-export const LESSON_ONE_STORAGE_KEY = 'rgg.demostage.lesson-one.v1'
+const LESSON_ONE_STORAGE_PREFIX = 'rgg.demostage.lesson-one.v2'
+
+/**
+ * Lesson one is currently a client-side demo lesson, so its draft progress lives in the
+ * browser. The account id is part of the key because the same browser can be used by more
+ * than one learner. A new version intentionally leaves the old, unscoped key unread: there
+ * is no safe way to know which account owned that legacy progress.
+ */
+export function lessonOneStorageKey(userId: string): string {
+  return `${LESSON_ONE_STORAGE_PREFIX}.${encodeURIComponent(userId)}`
+}
 
 export const LESSON_ONE_SECTIONS = [
   { id: 'welcome', eyebrow: '', title: 'Знакомство', progressTitle: 'Знакомство' },
@@ -23,11 +33,11 @@ export type LessonOneProgress = {
   isComplete: boolean
 }
 
-export function readLessonOneProgress(): LessonOneProgress {
-  if (typeof window === 'undefined') return { completed: [], isComplete: false }
+export function readLessonOneProgress(userId: string | null | undefined): LessonOneProgress {
+  if (typeof window === 'undefined' || !userId) return { completed: [], isComplete: false }
 
   try {
-    const stored = localStorage.getItem(LESSON_ONE_STORAGE_KEY)
+    const stored = localStorage.getItem(lessonOneStorageKey(userId))
     if (!stored) return { completed: [], isComplete: false }
 
     const candidate = JSON.parse(stored) as StoredLessonOneState

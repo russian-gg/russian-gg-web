@@ -5,10 +5,11 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Card, LinkButton, PauseGlyph, PlayGlyph, ProgressBar } from '../components/ui'
 import { api } from '../lib/api'
+import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import {
   LESSON_ONE_SECTIONS as sections,
-  LESSON_ONE_STORAGE_KEY as storageKey,
+  lessonOneStorageKey,
 } from '../lib/demo-lesson-one'
 import type { LessonOneSection as LessonSection } from '../lib/demo-lesson-one'
 import type { MissionSummary } from '../lib/types'
@@ -98,7 +99,9 @@ const emptyState: LessonState = {
 
 export function LessonOne() {
   const { missionId } = useParams<{ missionId: string }>()
-  const [state, setState] = useState<LessonState>(loadState)
+  const { user } = useAuth()
+  const storageKey = user ? lessonOneStorageKey(user.id) : null
+  const [state, setState] = useState<LessonState>(() => loadState(storageKey))
   const active = sections[state.sectionIndex] ?? sections[0]
   const { data: practiceMissions, isLoading: isPracticeLoading, isError: isPracticeError } = useQuery({
     queryKey: ['practice'],
@@ -111,9 +114,10 @@ export function LessonOne() {
   )?.id
 
   useEffect(() => {
+    if (!storageKey) return
     localStorage.setItem(storageKey, JSON.stringify(state))
     window.dispatchEvent(new Event('rgg:lesson-one-progress'))
-  }, [state])
+  }, [state, storageKey])
 
   const gameSolved = useMemo(
     () => timeCards.every((card) => state.gameMatches[card.id] === card.answer),
@@ -1203,7 +1207,9 @@ function speakRussian(text: string) {
   window.speechSynthesis.speak(utterance)
 }
 
-function loadState(): LessonState {
+function loadState(storageKey: string | null): LessonState {
+  if (!storageKey) return emptyState
+
   try {
     const stored = localStorage.getItem(storageKey)
     if (!stored) return emptyState

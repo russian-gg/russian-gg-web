@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useAuth } from '../lib/auth-context'
 import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
 import { fill, useT } from '../lib/i18n'
 import type { ProgressView, SkillArea } from '../lib/types'
@@ -11,7 +12,8 @@ const SKILLS: SkillArea[] = ['Listening', 'Speaking', 'Pronunciation', 'Vocabula
 
 export function Progress() {
   const t = useT()
-  const lessonOne = readLessonOneProgress()
+  const { user } = useAuth()
+  const lessonOne = readLessonOneProgress(user?.id)
   const { data, isLoading } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),

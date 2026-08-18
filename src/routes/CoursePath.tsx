@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
 import { fill, useT } from '../lib/i18n'
@@ -24,6 +25,7 @@ type DayNotice = { day: number; text: string }
 
 export function CoursePath() {
   const t = useT()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [locked, setLocked] = useState<LockedDay | null>(null)
@@ -57,7 +59,7 @@ export function CoursePath() {
     0,
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
-  const lessonOneProgress = readLessonOneProgress()
+  const lessonOneProgress = readLessonOneProgress(user?.id)
   const lessonOneComplete = lessonOneProgress.isComplete
   let previousDaysComplete = true
   const displayedDays = days.map((day) => {
