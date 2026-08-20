@@ -23,70 +23,84 @@ type LessonState = {
   gameMatches: Record<string, string>
 }
 
-type WalkPhrase = {
+type LessonPhrase = {
   ru: string
-  transliteration: string
+  meaning: string
   character: '🐧' | '🐼' | '🪶'
-  place: string
+  category: string
+  tone: 'blue' | 'red' | 'yellow' | 'neutral'
 }
 
-const walkPhrases: WalkPhrase[] = [
-  { ru: 'Доброе утро!', transliteration: 'Dobroye utro!', character: '🪶', place: 'Kirishdagi tonggi lavha' },
-  { ru: 'Добрый день!', transliteration: "Dobriy den'!", character: '🐧', place: 'Favvora yonidagi sotuvchi' },
-  { ru: 'Как тебя зовут?', transliteration: 'Kak tebya zovut?', character: '🐧', place: 'Mehribon yo‘lovchi' },
-  { ru: 'Меня зовут Анвар.', transliteration: 'Menya zovut Anvar.', character: '🐧', place: 'O‘rindiqdagi sayyoh' },
-  { ru: 'Как ваша фамилия?', transliteration: 'Kak vasha familiya?', character: '🐼', place: 'Ko‘ngilli beydji' },
-  { ru: 'Моя фамилия Каримов.', transliteration: 'Moya familiya Karimov.', character: '🐧', place: 'Yangi tanishning daftari' },
-  { ru: 'Очень приятно.', transliteration: "Ochen' priyatno.", character: '🐧', place: 'Suhbatdoshning tabassumi' },
-  { ru: 'Рад знакомству!', transliteration: 'Rad znakomstvu!', character: '🐧', place: 'Qo‘l berib ko‘rishish' },
-  { ru: 'Как зовут твоего отца?', transliteration: 'Kak zovut tvoyego ottsa?', character: '🐧', place: 'Choyxonadagi katta do‘st' },
-  { ru: 'Можно познакомиться?', transliteration: "Mozhno poznakomit'sya?", character: '🐧', place: 'Yangi kelgan mehmon' },
-  { ru: 'Давайте познакомимся!', transliteration: 'Davayte poznakomimsya!', character: '🐧', place: 'Oqsoqol taklifi' },
-  { ru: 'Я люблю пить горячий чай.', transliteration: "Ya lyublyu pit' goryachiy chay.", character: '🐧', place: 'Choynak yonidagi suhbat' },
-  { ru: 'Здесь очень сладкая самса.', transliteration: "Zdes' ochen' sladkaya samsa.", character: '🐼', place: 'Tandir peshtoqidagi yozuv' },
-  { ru: 'Спокойной ночи!', transliteration: 'Spokoynoy nochi!', character: '🐼', place: 'Kechki chiroqlar' },
-  { ru: 'До свидания, до завтра!', transliteration: 'Do svidaniya, do zavtra!', character: '🐧', place: 'Choyxona darvozasi' },
+const lessonPhrases: LessonPhrase[] = [
+  { ru: 'Здравствуйте!', meaning: 'Assalomu alaykum!', character: '🪶', category: 'Salomlashish', tone: 'neutral' },
+  { ru: 'Меня зовут Али.', meaning: 'Mening ismim Ali.', character: '🐧', category: 'Tanishtirish', tone: 'neutral' },
+  { ru: 'А как вас зовут?', meaning: 'Sizning ismingiz nima?', character: '🪶', category: 'Savol', tone: 'neutral' },
+  { ru: 'Я ваш сосед.', meaning: 'Men sizning qo‘shningizman.', character: '🐧', category: 'Tanishuv', tone: 'blue' },
+  { ru: 'Это моя квартира.', meaning: 'Bu mening xonadonim.', character: '🐼', category: 'Uy', tone: 'red' },
+  { ru: 'А это мой дом.', meaning: 'Bu esa mening uyim.', character: '🐧', category: 'Uy', tone: 'blue' },
+  { ru: 'Очень приятно!', meaning: 'Juda yoqimli!', character: '🪶', category: 'Javob', tone: 'neutral' },
+  { ru: 'Где вы живёте?', meaning: 'Siz qayerda yashaysiz?', character: '🪶', category: 'Savol', tone: 'neutral' },
+  { ru: 'Я живу на пятом этаже.', meaning: 'Men beshinchi qavatda yashayman.', character: '🐧', category: 'Manzil', tone: 'blue' },
+  { ru: 'А вы? — А я на втором.', meaning: 'Sizchi? — Men ikkinchi qavatda.', character: '🐧', category: 'Manzil', tone: 'blue' },
+  { ru: 'Это ваш ключ?', meaning: 'Bu sizning kalitingizmi?', character: '🐧', category: 'Savol', tone: 'blue' },
+  { ru: 'Да, это мой ключ.', meaning: 'Ha, bu mening kalitim.', character: '🐧', category: 'Javob', tone: 'blue' },
+  { ru: 'Добро пожаловать!', meaning: 'Xush kelibsiz!', character: '🪶', category: 'Taklif', tone: 'neutral' },
+  { ru: 'Я хочу пригласить вас на чай.', meaning: 'Men sizni choyga taklif qilmoqchiman.', character: '🐧', category: 'Taklif', tone: 'blue' },
+  { ru: 'С удовольствием!', meaning: 'Mamnuniyat bilan!', character: '🪶', category: 'Rozilik', tone: 'yellow' },
 ]
 
 const dialogue = [
-  ['— Можно познакомиться? Меня зовут Али. А вас?', '— Приятно познакомиться! Моё имя Захро.'],
-  ['— Рад знакомству. Можно на ты?', '— Да, конечно. Откуда ты?'],
-  ['— Я из Узбекистана. А кто ты по национальности?', '— Я узбечка. Как твоя фамилия?'],
-  ['— Моя фамилия Абдуллаев.', '— А как твоё отчество?'],
-  ['— Моё отчество Алишерович.', '— Кто это?'],
-  ['— Это мой друг.', '— Как его зовут?'],
-  ['— Его зовут Ахмадбек. Можно просто Ахмад.', ''],
+  ['🐧 Пингвин: — Здравствуйте! Меня зовут Пингвин. Я ваш сосед.', '🐼 Панда: — Очень приятно! А меня Панда. Это моя квартира.'],
+  ['🐧 Пингвин: — А это мой дом. Я живу на пятом этаже.', '🐼 Панда: — А я на втором. Где вы живёте?'],
+  ['🐧 Пингвин: — На пятом. Это ваш ключ?', '🐼 Панда: — Да, мой.'],
+  ['🐧 Пингвин: — Добро пожаловать! Я хочу пригласить вас на чай.', '🐼 Панда: — С удовольствием!'],
 ]
 
 const aiQuestions = [
-  'Давайте познакомимся! Как Вас зовут?',
-  'Можно на ты?',
-  'Как твоя фамилия?',
-  'Как твоё отчество?',
-  'Откуда ты?',
-  'Кто ты по национальности?',
+  { question: 'Как вас зовут?', answer: 'Меня зовут [ism].' },
+  { question: 'Кто вы?', answer: 'Я сосед. / Я ваш сосед.' },
+  { question: 'Где вы живёте?', answer: 'Я живу на пятом этаже.' },
+  { question: 'Это ваш ключ?', answer: 'Да, это мой ключ.' },
+  { question: 'Что вы хотите?', answer: 'Я хочу пригласить вас на чай.' },
+  { question: 'Вы согласны?', answer: 'С удовольствием!' },
 ]
 
 const vocabulary = [
-  { phrase: 'мой друг', meaning: 'mening do‘stim', transliteration: 'moy drug', example: 'Этот человек — мой лучший друг.', tone: 'blue' },
-  { phrase: 'моя мама', meaning: 'mening onam', transliteration: 'moya mama', example: 'Моя мама готовит самый вкусный чай.', tone: 'red' },
-  { phrase: 'доброе утро', meaning: 'xayrli tong', transliteration: 'dobroye utro', example: 'Утром мы говорим: «Доброе утро!»', tone: 'yellow' },
-  { phrase: 'хорошая погода', meaning: 'yaxshi ob-havo', transliteration: 'khoroshaya pogoda', example: 'Сегодня на улице очень хорошая погода.', tone: 'red' },
-  { phrase: 'новое имя', meaning: 'yangi ism', transliteration: 'novoye imya', example: 'У него красивое и новое имя.', tone: 'yellow' },
-  { phrase: 'моя фамилия', meaning: 'mening familiyam', transliteration: 'moya familiya', example: 'Назовите вашу фамилию, пожалуйста.', tone: 'red' },
-  { phrase: 'горячий чай', meaning: 'issiq choy', transliteration: 'goryachiy chay', example: 'В чайхане нам подали горячий чай.', tone: 'blue' },
-  { phrase: 'сладкая самса', meaning: 'shirin somsa', transliteration: 'sladkaya samsa', example: 'На столе лежит аппетитная сладкая самса.', tone: 'red' },
-  { phrase: 'большой город', meaning: 'katta shahar', transliteration: 'bolshoy gorod', example: 'Ташкент — это большой и красивый город.', tone: 'blue' },
-  { phrase: 'родной дом', meaning: 'qadrdon uy', transliteration: 'rodnoy dom', example: 'Мой родной дом всегда полон гостей.', tone: 'blue' },
+  { phrase: 'здравствуйте', meaning: 'assalomu alaykum', transliteration: 'zdravstvuyte', example: 'Здравствуйте! Я ваш сосед.', tone: 'neutral', icon: '👋' },
+  { phrase: 'привет', meaning: 'salom', transliteration: 'privet', example: 'Привет! Как вас зовут?', tone: 'neutral', icon: '👋' },
+  { phrase: 'добро пожаловать', meaning: 'xush kelibsiz', transliteration: 'dobro pozhalovat', example: 'Добро пожаловать в мой дом!', tone: 'neutral', icon: '🏠' },
+  { phrase: 'меня зовут…', meaning: 'mening ismim…', transliteration: 'menya zovut', example: 'Меня зовут Али.', tone: 'neutral', icon: '🪪' },
+  { phrase: 'как вас зовут?', meaning: 'ismingiz nima?', transliteration: 'kak vas zovut', example: 'Здравствуйте! Как вас зовут?', tone: 'neutral', icon: '❓' },
+  { phrase: 'очень приятно', meaning: 'tanishganimdan xursandman', transliteration: 'ochen priyatno', example: 'Очень приятно! Я ваш сосед.', tone: 'neutral', icon: '🤝' },
+  { phrase: 'сосед', meaning: 'qo‘shni', transliteration: 'sosed', example: 'Это мой сосед.', tone: 'blue', icon: '🐧' },
+  { phrase: 'квартира', meaning: 'kvartira, xonadon', transliteration: 'kvartira', example: 'Это моя квартира.', tone: 'red', icon: '🐼' },
+  { phrase: 'дом', meaning: 'uy', transliteration: 'dom', example: 'А это мой дом.', tone: 'blue', icon: '🏠' },
+  { phrase: 'этаж', meaning: 'qavat', transliteration: 'etazh', example: 'Я живу на пятом этаже.', tone: 'blue', icon: '🏢' },
+  { phrase: 'ключ', meaning: 'kalit', transliteration: 'klyuch', example: 'Это мой ключ.', tone: 'blue', icon: '🔑' },
+  { phrase: 'я хочу…', meaning: 'men xohlayman…', transliteration: 'ya khochu', example: 'Я хочу пригласить вас на чай.', tone: 'neutral', icon: '💬' },
+  { phrase: 'пригласить', meaning: 'taklif qilmoq', transliteration: 'priglasit', example: 'Я хочу пригласить соседа.', tone: 'neutral', icon: '🫖' },
+  { phrase: 'чай', meaning: 'choy', transliteration: 'chay', example: 'Приглашаю вас на чай.', tone: 'blue', icon: '🍵' },
+  { phrase: 'с удовольствием', meaning: 'mamnuniyat bilan', transliteration: 's udovolstviyem', example: 'С удовольствием!', tone: 'yellow', icon: '✨' },
 ] as const
 
-const greetings = ['Доброе утро!', 'Добрый день!', 'Спокойной ночи!']
+const genderBoxes = [
+  { id: 'masculine', label: 'Мужской род', color: 'Ko‘k', character: '🐧', className: 'border-signal bg-signal-soft text-signal-ink' },
+  { id: 'feminine', label: 'Женский род', color: 'Qizil', character: '🐼', className: 'border-danger bg-danger-soft text-danger' },
+  { id: 'neuter', label: 'Средний род', color: 'Sariq', character: '🪶', className: 'border-caution bg-caution-soft text-caution' },
+] as const
 
-const timeCards = [
-  { id: 'morning', time: '08:00', label: 'Утро', labelClass: 'text-[#c88b00]', answer: 'Доброе утро!', icon: '🌅' },
-  { id: 'day', time: '14:00', label: 'День', labelClass: 'text-[#084fbd]', answer: 'Добрый день!', icon: '☀️' },
-  { id: 'night', time: '22:30', label: 'Ночь', labelClass: 'text-[#e0001b]', answer: 'Спокойной ночи!', icon: '🌙' },
-]
+const gameWords = [
+  { id: 'dom', word: 'дом', stressed: 'до́м', answer: 'masculine' },
+  { id: 'kvartira', word: 'квартира', stressed: 'кварти́ра', answer: 'feminine' },
+  { id: 'okno', word: 'окно', stressed: 'окно́', answer: 'neuter' },
+  { id: 'sosed', word: 'сосед', stressed: 'сосе́д', answer: 'masculine' },
+  { id: 'klyuch', word: 'ключ', stressed: 'клю́ч', answer: 'masculine' },
+  { id: 'chay', word: 'чай', stressed: 'ча́й', answer: 'masculine' },
+  { id: 'etazh', word: 'этаж', stressed: 'эта́ж', answer: 'masculine' },
+  { id: 'lestnitsa', word: 'лестница', stressed: 'ле́стница', answer: 'feminine' },
+  { id: 'dver', word: 'дверь', stressed: 'две́рь', answer: 'feminine' },
+  { id: 'komnata', word: 'комната', stressed: 'ко́мната', answer: 'feminine' },
+] as const
 
 const emptyState: LessonState = {
   sectionIndex: 0,
@@ -120,15 +134,15 @@ export function LessonOne() {
   }, [state, storageKey])
 
   const gameSolved = useMemo(
-    () => timeCards.every((card) => state.gameMatches[card.id] === card.answer),
+    () => gameWords.every((word) => state.gameMatches[word.id] === word.answer),
     [state.gameMatches],
   )
 
   const canContinue =
     active.id === 'tests'
-      ? state.phoneticAnswer === 'b' && state.grammarAnswer === 'c'
-      : active.id === 'walk'
-        ? state.discoveredPhrases.length === walkPhrases.length
+      ? state.phoneticAnswer === 'a' && state.grammarAnswer === 'a'
+      : active.id === 'phrases'
+        ? state.discoveredPhrases.length === lessonPhrases.length
         : active.id === 'game'
           ? gameSolved
           : true
@@ -138,8 +152,8 @@ export function LessonOne() {
       ...current,
       sectionIndex: index,
       completed:
-        sections[index]?.id === 'city' && !current.completed.includes('city')
-          ? [...current.completed, 'city']
+        sections[index]?.id === 'complete' && !current.completed.includes('complete')
+          ? [...current.completed, 'complete']
           : current.completed,
     }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -152,7 +166,7 @@ export function LessonOne() {
       completed: Array.from(new Set([
         ...current.completed,
         active.id,
-        ...(current.sectionIndex + 1 === sections.length - 1 ? ['city' as const] : []),
+        ...(current.sectionIndex + 1 === sections.length - 1 ? ['complete' as const] : []),
       ])),
     }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -175,9 +189,11 @@ export function LessonOne() {
   return (
     <div className="mx-auto -mt-5 max-w-5xl pb-12 md:mt-0">
       <header className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 sm:p-6">
-        <h1 className="sr-only">Birinchi dars progressi</h1>
+        <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">1-dars · A1</p>
+        <h1 className="mt-1 text-2xl font-black text-ink sm:text-3xl">Знакомство с соседом</h1>
+        <p className="mt-1 text-sm font-semibold text-ink-muted">Qo‘shni bilan tanishuv</p>
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <p className="text-sm font-extrabold text-ink">Dars progressi</p>
+          <p className="mt-5 text-sm font-extrabold text-ink">Dars progressi</p>
           <p className="text-xs font-bold tracking-wide text-ink-faint uppercase">
             {completedCount} / {sections.length} bo‘lim yakunlandi
           </p>
@@ -192,32 +208,23 @@ export function LessonOne() {
       </header>
 
       <main className="mt-2">
-        {(active.eyebrow || active.title) && (
-          <div className="mb-5">
-            {active.eyebrow && (
-              <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">
-                {active.eyebrow}
-              </p>
-            )}
-            {active.title && (
-              <h2 className={cx(
-                'text-2xl font-black sm:text-3xl',
-                active.id === 'welcome' ? 'text-[#f1b900]' : 'text-ink',
-                active.eyebrow && 'mt-1',
-              )}>
-                {active.title}
-              </h2>
-            )}
-          </div>
-        )}
+        <div className="mb-5">
+          <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">
+            {active.eyebrow}
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-ink sm:text-3xl">
+            {active.title}
+          </h2>
+        </div>
 
-        {active.id === 'welcome' && <WelcomeSection />}
         {active.id === 'tests' && <TestsSection state={state} setState={setState} />}
-        {active.id === 'learn' && <LearnSection />}
-        {active.id === 'walk' && <WalkSection state={state} setState={setState} />}
+        {active.id === 'phonetics' && <PhoneticsSection />}
+        {active.id === 'grammar' && <GrammarSection />}
+        {active.id === 'phrases' && <PhrasesSection state={state} setState={setState} />}
         {active.id === 'game' && <GameSection state={state} setState={setState} solved={gameSolved} />}
         {active.id === 'missions' && (
           <MissionsSection
+            lessonMissionId={missionId}
             dialogueMissionId={dialogueMissionId}
             isLoading={isPracticeLoading}
             hasError={isPracticeError}
@@ -225,7 +232,8 @@ export function LessonOne() {
           />
         )}
         {active.id === 'vocabulary' && <VocabularySection />}
-        {active.id === 'city' && <CitySection missionId={missionId} onReset={resetLesson} />}
+        {active.id === 'picture' && <PictureExerciseSection />}
+        {active.id === 'complete' && <CompleteSection missionId={missionId} onReset={resetLesson} />}
       </main>
 
       <footer className="mt-6 flex flex-col-reverse gap-3 border-t border-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -246,54 +254,14 @@ export function LessonOne() {
               <p className="mt-2 text-xs text-ink-muted">
                 {active.id === 'tests'
                   ? 'Davom etish uchun ikki testga to‘g‘ri javob bering.'
-                  : active.id === 'walk'
-                    ? 'Choyxonadagi barcha 15 iborani toping.'
-                    : 'Uchala vaqtni to‘g‘ri salomlashuv bilan moslang.'}
+                  : active.id === 'phrases'
+                    ? 'Davom etish uchun barcha 15 iborani oching va tinglang.'
+                    : 'Davom etish uchun 10 ta so‘zni to‘g‘ri rangli uyga joylang.'}
               </p>
             )}
           </div>
         )}
       </footer>
-    </div>
-  )
-}
-
-function WelcomeSection() {
-  return (
-    <div className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
-      <Card className="relative overflow-hidden p-6 sm:p-8">
-        <p className="max-w-2xl text-lg leading-relaxed text-ink">
-          Bugun siz Russian.gg shahridagi birinchi manzil — <strong>«Чайхана»</strong>ga kirasiz.
-          Har bir topshiriq sizni tabiiy ruscha tanishuvga
-          <img
-            src="/lesson/uzbek-piyola.png"
-            alt=""
-            aria-hidden="true"
-            className="ml-1 inline-block size-11 translate-y-1 object-contain align-middle sm:absolute sm:top-4 sm:right-5 sm:ml-0 sm:size-16 sm:translate-y-0"
-          />{' '}
-          yaqinlashtiradi.
-        </p>
-
-        <div className="mt-7 grid gap-3 sm:grid-cols-3">
-          <Outcome icon="👋" title="Приветствие" tone="yellow" body="Vaqtga mos iborani tanlaysiz." />
-          <Outcome icon="🗣️" title="Знакомство" tone="yellow" body="Ism, familiya va kelib chiqishni aytasiz." />
-          <Outcome icon="🏛️" title="Городок" tone="blue" body="Choyxona obyektini ochasiz." />
-        </div>
-      </Card>
-
-      <Card className="border-signal/25 bg-signal-soft">
-        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Yo‘l xaritasi</p>
-        <ol className="mt-4 space-y-3 text-sm">
-          {['2 ta tezkor test', 'Rodlar va Аканье', '15 ta yashirin ibora', 'O‘yin', 'AI bilan suhbat', '10 ta yangi birikma'].map((item, index) => (
-            <li key={item} className="flex items-center gap-3">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-signal font-black text-on-signal">
-                {index + 1}
-              </span>
-              <span className="font-semibold text-ink">{item}</span>
-            </li>
-          ))}
-        </ol>
-      </Card>
     </div>
   )
 }
@@ -304,44 +272,117 @@ function TestsSection({ state, setState }: { state: LessonState; setState: SetLe
       <QuizCard
         number="01"
         character="🪶 Перо"
-        question='«Здравствуйте» so‘zini talaffuz qiling. Birinchi «в» tovushiga nima bo‘ladi?'
+        question='Quyidagi variantlardan qaysi birida «мама» so‘zi to‘g‘ri talaffuz qilingan?'
         answer={state.phoneticAnswer}
-        correct="b"
+        correct="a"
         options={[
-          ['a', 'Urg‘u birinchi bo‘g‘inga tushadi va «в» aniq aytiladi.'],
-          ['b', 'Urg‘u birinchi bo‘g‘inga tushadi va «в» talaffuzda tushib qoladi.'],
-          ['c', 'Urg‘u ikkinchi bo‘g‘inga tushadi va barcha harflar aniq aytiladi.'],
+          ['a', 'ма́ма — urg‘u birinchi bo‘g‘inda'],
+          ['b', 'мама́ — urg‘u ikkinchi bo‘g‘inda'],
         ]}
-        feedback="Qadrdonim, uzun so‘zni ko‘rgan birinchi «В» hushidan ketgan 😉 — u talaffuz qilinmaydi. Urg‘u birinchi bo‘g‘inga tushadi: здра́вствуйте."
+        feedback="Siz birinchi bo‘g‘inga urg‘u qo‘yganingizni eshitdim. Juda zo‘r! Rus tilida «мама» so‘zida urg‘u faqat birinchi bo‘g‘inda: ма́ма."
         onAnswer={(answer) => setState((current) => ({ ...current, phoneticAnswer: answer }))}
       />
 
       <QuizCard
         number="02"
         character="🐧 Пингвин"
-        question='Jumlani tugating: «Добр... утро!»'
+        question='Quyidagi so‘zlardan qaysi biri мужской родga kiradi?'
         answer={state.grammarAnswer}
-        correct="c"
+        correct="a"
         options={[
-          ['a', 'Добрый', 'blue'],
-          ['b', 'Добрая', 'red'],
-          ['c', 'Доброе', 'yellow'],
+          ['a', 'дом', 'blue'],
+          ['b', 'квартира', 'red'],
+          ['c', 'окно', 'yellow'],
         ]}
-        feedback="Barakalla! «Утро» — средний род, shuning uchun sifatning qo‘shimchasi «-ое»: доброе утро."
+        feedback="To‘g‘ri! «Дом» — мужской род, shuning uchun u ko‘k rangda. So‘z oxirida undosh yoki «-й» bo‘lsa, odatda мужской род bo‘ladi."
         onAnswer={(answer) => setState((current) => ({ ...current, grammarAnswer: answer }))}
       />
     </div>
   )
 }
 
-function LearnSection() {
+function PhoneticsSection() {
+  const vowels = [
+    {
+      letter: 'А',
+      character: '🐼 Панда',
+      description: 'Og‘iz keng ochiladi, til pastda yotadi. O‘zbek tilidagi «a»ga o‘xshaydi, ammo urg‘uli А yanada aniq va cho‘ziq eshitiladi.',
+      examples: ['ма́ма', 'па́па', 'па́нда'],
+      className: 'border-danger bg-danger-soft',
+      accentClass: 'text-danger',
+    },
+    {
+      letter: 'О',
+      character: '🪶 Перо',
+      description: 'Lablar dumaloqlanadi, til orqaga tortiladi. Urg‘uli О o‘zbekcha «o»dan chuqurroq va aniqroq eshitiladi.',
+      examples: ['до́м', 'сто́л', 'по́рт'],
+      className: 'border-caution bg-caution-soft',
+      accentClass: 'text-caution',
+    },
+    {
+      letter: 'У',
+      character: '🐧 Пингвин',
+      description: 'Lablar oldinga cho‘zilib, trubka shaklini hosil qiladi. O‘zbek tilidagi «u» bilan deyarli bir xil.',
+      examples: ['сту́л', 'му́ж'],
+      className: 'border-signal bg-signal-soft',
+      accentClass: 'text-signal-ink',
+    },
+  ]
+
+  return (
+    <div className="space-y-5">
+      <Card className="border-signal bg-signal-soft p-6 sm:p-8">
+        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">A, O, U va urg‘u</p>
+        <h3 className="mt-2 text-2xl font-black text-ink">Urg‘uli unlini aniq va cho‘ziq ayting</h3>
+        <p className="mt-3 max-w-3xl leading-relaxed text-ink-muted">
+          Rus tilida unlilar urg‘uli va urg‘usiz holatda turlicha talaffuz qilinadi. Hozir urg‘uli
+          unlilarni mashq qilamiz. Urg‘u so‘z ma’nosini ham o‘zgartirishi mumkin:
+          <strong className="text-ink"> за́мок</strong> — qal’a, <strong className="text-ink">замо́к</strong> — qulf.
+        </p>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {vowels.map((vowel) => (
+          <Card key={vowel.letter} className={cx('border-2 p-6', vowel.className)}>
+            <div className="flex items-center justify-between gap-3">
+              <span className={cx('text-5xl font-black', vowel.accentClass)}>{vowel.letter}</span>
+              <span className="text-sm font-black text-ink-muted">{vowel.character}</span>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-ink">{vowel.description}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {vowel.examples.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => speakRussian(example)}
+                  className="inline-flex items-center gap-2 rounded-full bg-ground-raised px-3 py-2 font-black text-ink shadow-sm"
+                >
+                  <PlayGlyph /> {example}
+                </button>
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="p-6 text-center sm:p-8">
+        <p className="text-3xl" aria-hidden="true">🐼</p>
+        <p className="mt-3 font-black text-ink">
+          Har bir yangi so‘zni tinglaganda, urg‘uli bo‘g‘inni balandroq va cho‘ziqroq ayting!
+        </p>
+      </Card>
+    </div>
+  )
+}
+
+function GrammarSection() {
   const genders = [
     {
       character: '🐧',
       title: 'Мужской род',
       color: 'Ko‘k qirollik',
-      endings: 'undosh, -й, -ь',
-      examples: 'друг, день, папа',
+      endings: 'undosh yoki -й',
+      examples: 'дом, сосед, ключ',
       anchor: 'он мой',
       className: 'border-signal bg-signal-soft',
       accentClass: 'text-[#084fbd]',
@@ -351,7 +392,7 @@ function LearnSection() {
       title: 'Женский род',
       color: 'Qizil qirollik',
       endings: '-а, -я, -ь',
-      examples: 'мама, земля, ночь',
+      examples: 'квартира, лестница, дверь',
       anchor: 'она моя',
       className: 'border-danger bg-danger-soft',
       accentClass: 'text-[#e0001b]',
@@ -360,8 +401,8 @@ function LearnSection() {
       character: '🪶',
       title: 'Средний род',
       color: 'Sariq qirollik',
-      endings: '-о, -е, -мя',
-      examples: 'утро, имя, здание',
+      endings: '-о, -е, -ё',
+      examples: 'окно, море, ружьё',
       anchor: 'оно моё',
       className: 'border-caution bg-caution-soft',
       accentClass: 'text-[#c88b00]',
@@ -390,8 +431,8 @@ function LearnSection() {
           <article className="rounded-2xl border-2 border-signal bg-signal-soft p-5">
             <p className="font-black text-[#084fbd]">🐧 Pingvin qirolligi · Мужской род</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">
-              Undosh harf va <strong>-ь</strong> bilan tugagan so‘zlarni o‘z ichiga tanlab olibdi
-              (misol uchun, <strong>друг, день, папа</strong>). Ular faxr bilan:
+              Undosh harf yoki <strong>-й</strong> bilan tugagan so‘zlarni o‘z ichiga tanlab olibdi
+              (misol uchun, <strong>дом, сосед, ключ</strong>). Ular faxr bilan:
               <strong className="text-[#084fbd]"> “он мой”</strong> deyishadi.
             </p>
           </article>
@@ -400,7 +441,7 @@ function LearnSection() {
             <p className="font-black text-[#e0001b]">🐼 Panda qirolligi · Женский род</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">
               <strong>-а, -я, -ь</strong> harflari bilan tugagan so‘zlarni o‘z hududiga kirgizibdi
-              (masalan, <strong>мама, земля, фамилия</strong>). Ular ohista shivirlashadi:
+              (masalan, <strong>квартира, лестница, дверь</strong>). Ular ohista shivirlashadi:
               <strong className="text-[#e0001b]"> “она моя”</strong>.
             </p>
           </article>
@@ -409,7 +450,7 @@ function LearnSection() {
             <p className="font-black text-[#c88b00]">🪶 Pat qirolligi · Средний род</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">
               Jonsiz narsalardan aynan <strong>-о, -е, -ё</strong> harflari bilan tugaganlarini
-              saralab olibdi (masalan, <strong>утро, имя, здание</strong>). Ular ishonch bilan:
+              saralab olibdi (masalan, <strong>окно, море, ружьё</strong>). Ular ishonch bilan:
               <strong className="text-[#c88b00]"> “оно моё”</strong> deb aytadi.
             </p>
           </article>
@@ -435,38 +476,17 @@ function LearnSection() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden border-signal p-0">
-        <div className="grid md:grid-cols-[.7fr_1.3fr]">
-          <div className="flex min-h-48 items-center justify-center bg-signal-soft p-8">
-            <div className="text-center">
-              <div className="text-6xl" aria-hidden="true">🐼</div>
-              <p className="mt-3 font-black text-signal-ink">Talaffuz murabbiyi</p>
-            </div>
-          </div>
-          <div className="p-6 sm:p-8">
-            <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Аканье qoidasi</p>
-            <h3 className="mt-2 text-2xl font-black text-ink">Urg‘usiz «О» → «А»</h3>
-            <p className="mt-3 leading-relaxed text-ink-muted">
-              «О» harfiga urg‘u tushmasa, u talaffuzda «А»ga yaqin eshitiladi. Yozilishi o‘zgarmaydi,
-              faqat aytilishi o‘zgaradi.
+      <Card className="border-signal bg-signal-soft p-6 sm:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <span className="text-5xl" aria-hidden="true">🐧</span>
+          <div>
+            <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Pingvin eslatmasi</p>
+            <p className="mt-2 leading-relaxed text-ink">
+              Rangni so‘zning oxiriga qarab tanlang: <strong className="text-signal-ink">ko‘k — мужской</strong>,
+              <strong className="text-danger"> qizil — женский</strong>,
+              <strong className="text-caution"> sariq — средний</strong>. <strong>дверь</strong> kabi
+              yumshatish belgisi bilan tugagan so‘zlarni lug‘at bilan tekshirish kerak.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              {[
-                ['откуда', '[atkuda]'],
-                ['утро', '[utra]'],
-                ['твоя', '[tvaya]'],
-              ].map(([word, sound]) => (
-                <button
-                  key={word}
-                  type="button"
-                  onClick={() => speakRussian(word)}
-                  className="flex items-center gap-3 rounded-2xl border-2 border-hairline bg-ground-raised px-4 py-3 text-left transition hover:border-signal"
-                >
-                  <span className="flex size-9 items-center justify-center rounded-full bg-signal text-on-signal"><PlayGlyph /></span>
-                  <span><strong className="block text-ink">{word}</strong><span className="text-sm text-ink-muted">{sound}</span></span>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </Card>
@@ -474,7 +494,7 @@ function LearnSection() {
   )
 }
 
-function WalkSection({ state, setState }: { state: LessonState; setState: SetLessonState }) {
+function PhrasesSection({ state, setState }: { state: LessonState; setState: SetLessonState }) {
   const [speakingPhraseIndex, setSpeakingPhraseIndex] = useState<number | null>(null)
 
   useEffect(() => {
@@ -522,7 +542,7 @@ function WalkSection({ state, setState }: { state: LessonState; setState: SetLes
           <div className="absolute top-5 left-8 size-14 rounded-full bg-[#f8c84b] shadow-[0_0_0_14px_rgba(248,200,75,.15)]" />
           <div className="absolute right-8 bottom-5 text-7xl opacity-80" aria-hidden="true">🌳</div>
           <div className="relative mx-auto mt-9 max-w-xl rounded-t-[64px] border-8 border-b-0 border-[#9a5f36] bg-[#f2c382] px-5 pt-8 pb-4 shadow-soft">
-            <div className="mx-auto w-fit rounded-full bg-[#57371f] px-5 py-2 text-sm font-black tracking-widest text-white uppercase">Чайхана</div>
+            <div className="mx-auto w-fit rounded-full bg-[#57371f] px-5 py-2 text-sm font-black tracking-widest text-white uppercase">Дом</div>
             <div className="mt-7 flex justify-center gap-4">
               <span className="h-24 w-16 rounded-t-full bg-[#5b9bf5]/70" />
               <span className="h-24 w-16 rounded-t-full bg-[#c8342a]/65" />
@@ -532,15 +552,15 @@ function WalkSection({ state, setState }: { state: LessonState; setState: SetLes
         </div>
         <div className="border-t-2 border-caution bg-ground-raised px-5 py-4 sm:flex sm:items-center sm:justify-between">
           <div>
-            <p className="font-black text-ink">15 ta iborani toping</p>
-            <p className="text-sm text-ink-muted">Har bir joyni bosing, iborani tinglang va qaytaring.</p>
+            <p className="font-black text-ink">15 ta asosiy iborani oching</p>
+            <p className="text-sm text-ink-muted">Vaziyat kartasini oching, 🎧 orqali tinglang va ovoz chiqarib takrorlang.</p>
           </div>
           <p className="mt-2 text-lg font-black text-caution sm:mt-0">{state.discoveredPhrases.length} / 15</p>
         </div>
       </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {walkPhrases.map((phrase, index) => {
+        {lessonPhrases.map((phrase, index) => {
           const discovered = state.discoveredPhrases.includes(index)
           return (
             <article
@@ -556,11 +576,20 @@ function WalkSection({ state, setState }: { state: LessonState; setState: SetLes
                 <span className="text-2xl" aria-hidden="true">{discovered ? phrase.character : '❓'}</span>
                 <span className="text-xs font-black text-ink-faint">#{index + 1}</span>
               </div>
-              <p className="mt-3 text-xs font-bold tracking-wide text-ink-muted uppercase">{phrase.place}</p>
+              <p className="mt-3 text-xs font-bold tracking-wide text-ink-muted uppercase">{phrase.category}</p>
               {discovered ? (
                 <>
-                  <p className="mt-2 text-lg font-black leading-snug text-ink">{phrase.ru}</p>
-                  <p className="mt-1 text-sm text-ink-muted">{phrase.transliteration}</p>
+                  <p className={cx(
+                    'mt-2 text-lg font-black leading-snug',
+                    phrase.tone === 'blue'
+                      ? 'text-signal-ink'
+                      : phrase.tone === 'red'
+                        ? 'text-danger'
+                        : phrase.tone === 'yellow'
+                          ? 'text-caution'
+                          : 'text-ink',
+                  )}>{phrase.ru}</p>
+                  <p className="mt-1 text-sm text-ink-muted">{phrase.meaning}</p>
                   <button
                     type="button"
                     onClick={() => togglePhrasePlayback(index, phrase.ru)}
@@ -607,14 +636,20 @@ function GameSection({
   setState: SetLessonState
   solved: boolean
 }) {
-  function match(cardId: string, greeting: string, correctAnswer: string) {
-    if (greeting === correctAnswer && state.gameMatches[cardId] !== correctAnswer) {
+  const [selectedWordId, setSelectedWordId] = useState<string | null>(null)
+  const correctCount = gameWords.filter((word) => state.gameMatches[word.id] === word.answer).length
+
+  function placeWord(wordId: string, genderId: string) {
+    const word = gameWords.find((candidate) => candidate.id === wordId)
+    if (!word) return
+    if (genderId === word.answer && state.gameMatches[word.id] !== word.answer) {
       celebrateCorrectAnswer()
     }
     setState((current) => ({
       ...current,
-      gameMatches: { ...current.gameMatches, [cardId]: greeting },
+      gameMatches: { ...current.gameMatches, [word.id]: genderId },
     }))
+    setSelectedWordId(null)
   }
 
   return (
@@ -622,54 +657,110 @@ function GameSection({
       <Card className="bg-ink text-ground-raised">
         <p className="text-xs font-black tracking-[0.15em] text-signal uppercase">O‘yin qoidasi</p>
         <p className="mt-2 max-w-3xl text-lg leading-relaxed">
-          Har bir soat uchun mos salomlashuvni tanlang. Uchala javob to‘g‘ri bo‘lsa, yo‘l ochiladi.
+          So‘zni to‘g‘ri rangli uyga sudrang. Telefonda so‘zni, keyin rangli uyni bosing.
+          Har bir to‘g‘ri javob — 10 ball.
+        </p>
+        <p className="mt-3 text-sm text-ground-raised/75">
+          🎧 tugmasi orqali urg‘uni tinglang va ovoz chiqarib takrorlang. AI missiyasida to‘g‘ri urg‘u alohida tekshiriladi.
         </p>
       </Card>
 
+      <Card className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-black text-ink">So‘zlar</p>
+          <p className="rounded-full bg-signal-soft px-4 py-2 font-black text-signal-ink">
+            {correctCount * 10} / {gameWords.length * 10} ball
+          </p>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-3">
+          {gameWords.map((word) => {
+            const placed = state.gameMatches[word.id]
+            const correct = placed === word.answer
+            const selected = selectedWordId === word.id
+            return (
+              <div
+                key={word.id}
+                draggable
+                onDragStart={(event) => event.dataTransfer.setData('text/plain', word.id)}
+                className={cx(
+                  'flex items-center gap-2 rounded-2xl border-2 bg-ground-raised px-3 py-2 shadow-sm transition',
+                  selected
+                    ? 'border-signal ring-2 ring-signal/25'
+                    : placed
+                      ? correct ? 'border-milestone' : 'border-danger'
+                      : 'border-hairline',
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedWordId((current) => current === word.id ? null : word.id)}
+                  className="font-black text-ink"
+                  aria-pressed={selected}
+                >
+                  {word.word}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => speakRussian(word.stressed)}
+                  aria-label={`${word.word} talaffuzini tinglash`}
+                  className="flex size-7 items-center justify-center rounded-full bg-signal-soft text-signal-ink"
+                >
+                  <PlayGlyph />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-3">
-        {timeCards.map((card) => {
-          const selected = state.gameMatches[card.id]
-          const correct = selected === card.answer
+        {genderBoxes.map((box) => {
+          const wordsInBox = gameWords.filter((word) => state.gameMatches[word.id] === box.id)
           return (
-            <Card key={card.id} className={cx('relative overflow-hidden', correct && 'border-milestone bg-milestone-soft')}>
-              {correct && <AnswerCelebration />}
-              <div className="text-center">
-                <span className="text-5xl" aria-hidden="true">{card.icon}</span>
-                <p className="mt-3 text-3xl font-black tabular-nums text-ink">{card.time}</p>
-                <p className={cx('text-base font-black', card.labelClass)}>{card.label}</p>
-              </div>
-              <div className="mt-5 space-y-2">
-                {greetings.map((greeting) => (
-                  <button
-                    key={greeting}
-                    type="button"
-                    onClick={() => match(card.id, greeting, card.answer)}
-                    className={cx(
-                      'w-full rounded-xl border-2 px-3 py-2.5 text-sm font-extrabold transition',
-                      selected === greeting
-                        ? correct
-                          ? 'border-milestone bg-ground-raised text-milestone'
-                          : 'border-danger bg-danger-soft text-danger'
-                        : 'border-hairline bg-ground-raised text-ink hover:border-signal',
-                    )}
-                  >
-                    {greeting}
-                  </button>
-                ))}
-              </div>
-              {selected && (
-                <p className={cx('mt-3 text-center text-sm font-bold', correct ? 'text-milestone' : 'text-danger')}>
-                  {correct ? 'Верно!' : 'Vaqtga yana bir qarang.'}
-                </p>
+            <button
+              key={box.id}
+              type="button"
+              onClick={() => selectedWordId && placeWord(selectedWordId, box.id)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault()
+                placeWord(event.dataTransfer.getData('text/plain'), box.id)
+              }}
+              className={cx(
+                'min-h-56 rounded-[var(--radius-card)] border-2 border-dashed p-5 text-left transition hover:-translate-y-0.5',
+                box.className,
               )}
-            </Card>
+            >
+              <span className="text-4xl" aria-hidden="true">{box.character}</span>
+              <span className="mt-3 block text-xs font-black tracking-[0.14em] uppercase">{box.color} uy</span>
+              <span className="mt-1 block text-xl font-black">{box.label}</span>
+              <span className="mt-5 flex flex-wrap gap-2">
+                {wordsInBox.length === 0 && (
+                  <span className="text-sm font-semibold opacity-70">So‘zni shu yerga tashlang</span>
+                )}
+                {wordsInBox.map((word) => {
+                  const correct = word.answer === box.id
+                  return (
+                    <span
+                      key={word.id}
+                      className={cx(
+                        'rounded-full bg-ground-raised px-3 py-1.5 text-sm font-black shadow-sm',
+                        correct ? 'text-milestone' : 'text-danger',
+                      )}
+                    >
+                      {word.word} {correct ? '✓' : '— qayta urinib ko‘ring'}
+                    </span>
+                  )
+                })}
+              </span>
+            </button>
           )
         })}
       </div>
 
       {solved && (
         <div role="status" className="rounded-2xl bg-milestone-soft px-5 py-4 text-center font-black text-milestone">
-          ✓ Ajoyib! Salomlashuvlar vaqt bilan to‘g‘ri moslandi.
+          ✓ Ajoyib! 10 ta so‘zning rodi to‘g‘ri topildi — {gameWords.length * 10} ball.
         </div>
       )}
     </div>
@@ -677,11 +768,13 @@ function GameSection({
 }
 
 function MissionsSection({
+  lessonMissionId,
   dialogueMissionId,
   isLoading,
   hasError,
   onStartMission,
 }: {
+  lessonMissionId?: string
   dialogueMissionId?: string
   isLoading: boolean
   hasError: boolean
@@ -708,33 +801,47 @@ function MissionsSection({
         <Card>
           <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">AI sizdan so‘raydi</p>
           <ol className="mt-4 space-y-3">
-            {aiQuestions.map((question, index) => (
-              <li key={question} className="flex gap-3 text-sm leading-snug text-ink">
+            {aiQuestions.map((item, index) => (
+              <li key={item.question} className="flex gap-3 text-sm leading-snug text-ink">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-signal-soft text-xs font-black text-signal-ink">{index + 1}</span>
-                <span>{question}</span>
+                <span>
+                  <strong className="block">{item.question}</strong>
+                  <span className="mt-1 block text-xs text-ink-muted">Kutilgan javob: {item.answer}</span>
+                </span>
               </li>
             ))}
           </ol>
+          <p className="mt-5 rounded-2xl bg-ground-sunken p-3 text-xs leading-relaxed text-ink-muted">
+            AI urg‘u (сосе́д, кварти́ра, этаже́), unlilar talaffuzi va javobning to‘liqligini tekshiradi.
+          </p>
         </Card>
 
         <Card className="border-signal bg-signal-soft text-center">
           <div className="text-5xl" aria-hidden="true">🎙️</div>
-          <h3 className="mt-3 text-xl font-black text-ink">Gapirishga tayyormisiz?</h3>
+          <h3 className="mt-3 text-xl font-black text-ink">Ovozli missiyaga tayyormisiz?</h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-            AI avval yuqoridagi dialogdan o‘z replikasini o‘qiydi. Siz mikrofon orqali javob berasiz,
-            AI talaffuzingizni tekshiradi va keyingi savolni beradi.
+            AI yuqoridagi 6 ta savolni ketma-ket beradi. Siz mikrofon orqali javob berasiz;
+            AI urg‘u, talaffuz va javobning to‘liqligini tekshiradi.
           </p>
-          {dialogueMissionId ? (
-            <LinkButton to={`/missions/${dialogueMissionId}`} block className="mt-5" onClick={onStartMission}>
-              🎙️ Dialogni AI bilan boshlash
+          {lessonMissionId && (
+            <LinkButton to={`/missions/${lessonMissionId}`} block className="mt-5" onClick={onStartMission}>
+              🎙️ 6 ta AI savolini boshlash
             </LinkButton>
-          ) : isLoading ? (
-            <p className="mt-5 text-sm font-bold text-ink-muted">Dialog tayyorlanmoqda…</p>
-          ) : hasError ? (
-            <p className="mt-5 text-sm font-bold text-danger">Dialogni yuklab bo‘lmadi. Sahifani yangilab ko‘ring.</p>
-          ) : (
-            <p className="mt-5 text-sm font-bold text-danger">Dialog missiyasi topilmadi.</p>
           )}
+          <div className="mt-5 border-t border-signal/20 pt-5">
+            <p className="text-xs font-bold text-ink-muted">Yuqoridagi namunaviy dialogni rollarga bo‘lib mashq qiling:</p>
+            {dialogueMissionId ? (
+              <LinkButton to={`/missions/${dialogueMissionId}`} block variant="secondary" className="mt-3" onClick={onStartMission}>
+                🐧🐼 Dialogni AI bilan mashq qilish
+              </LinkButton>
+            ) : isLoading ? (
+              <p className="mt-3 text-sm font-bold text-ink-muted">Dialog tayyorlanmoqda…</p>
+            ) : hasError ? (
+              <p className="mt-3 text-sm font-bold text-danger">Dialogni yuklab bo‘lmadi. Sahifani yangilab ko‘ring.</p>
+            ) : (
+              <p className="mt-3 text-sm font-bold text-danger">Dialog missiyasi topilmadi.</p>
+            )}
+          </div>
         </Card>
       </div>
     </div>
@@ -937,7 +1044,13 @@ function VocabularyStudy({
                   <div
                     className={cx(
                       'absolute inset-0 overflow-hidden rounded-[2rem] border-2 bg-ground-raised shadow-[0_18px_50px_rgba(20,35,60,.18)]',
-                      word.tone === 'blue' ? 'border-signal' : word.tone === 'red' ? 'border-danger' : 'border-[#f1b900]',
+                      word.tone === 'blue'
+                        ? 'border-signal'
+                        : word.tone === 'red'
+                          ? 'border-danger'
+                          : word.tone === 'yellow'
+                            ? 'border-[#f1b900]'
+                            : 'border-hairline',
                     )}
                     style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                   >
@@ -988,49 +1101,89 @@ function vocabularyExitTransform(rating: VocabularyRating): string {
 }
 
 function VocabularyPhoto({ index, className }: { index: number; className?: string }) {
-  const column = index % 5
-  const row = Math.floor(index / 5)
+  const word = vocabulary[index]
 
   return (
     <span
       aria-hidden="true"
-      className={cx('bg-cover bg-no-repeat', className)}
-      style={{
-        backgroundImage: "url('/lesson/vocabulary-scenes-v1.png')",
-        backgroundPosition: `${column * 25}% ${row * 100}%`,
-        backgroundSize: '500% 200%',
-      }}
-    />
+      className={cx(
+        'flex items-center justify-center bg-[radial-gradient(circle_at_top,#ffffff_0%,var(--color-signal-soft)_48%,var(--color-ground-sunken)_100%)] text-7xl',
+        className,
+      )}
+    >
+      {word.icon}
+    </span>
   )
 }
 
 function vocabularyTextClass(tone: (typeof vocabulary)[number]['tone']): string {
   if (tone === 'red') return 'text-danger'
   if (tone === 'yellow') return 'text-[#f1b900]'
-  return 'text-signal-ink'
+  if (tone === 'blue') return 'text-signal-ink'
+  return 'text-ink'
 }
 
-function CitySection({ missionId, onReset }: { missionId?: string; onReset: () => void }) {
+function PictureExerciseSection() {
+  const promptWords = ['сосед', 'квартира', 'дом', 'ключ', 'чай']
+
   return (
     <div className="space-y-5">
-      <Card className="overflow-hidden border-milestone p-0">
-        <div className="relative min-h-72 overflow-hidden bg-[linear-gradient(180deg,#dff2ff_0%,#fff3c9_58%,#d7edcf_58%)] px-5 pt-8 text-center">
-          <div className="absolute top-7 left-10 size-16 rounded-full bg-[#ffd34e] shadow-[0_0_0_18px_rgba(255,211,78,.2)]" />
-          <div className="absolute top-8 right-8 text-5xl" aria-hidden="true">☁️</div>
-          <div className="relative mx-auto mt-12 max-w-md">
-            <div className="mx-auto w-fit rounded-full border-4 border-[#5b3823] bg-[#704729] px-6 py-2 text-sm font-black tracking-widest text-white">ЧАЙХАНА</div>
-            <div className="mx-auto -mt-1 grid max-w-sm grid-cols-3 gap-4 rounded-t-[70px] border-8 border-b-0 border-[#a9683d] bg-[#efbd77] px-8 pt-12">
-              {[0, 1, 2].map((door) => <span key={door} className="h-28 rounded-t-full bg-[#396aa7] shadow-inner" />)}
-            </div>
+      <Card className="overflow-hidden border-signal p-0">
+        <div className="relative min-h-80 overflow-hidden bg-[linear-gradient(180deg,#dff2ff_0%,#fff7d8_55%,#d9efcf_55%)] p-6">
+          <div className="absolute top-8 left-8 size-16 rounded-full bg-[#ffd34e] shadow-[0_0_0_18px_rgba(255,211,78,.2)]" />
+          <div className="absolute top-8 right-10 text-5xl" aria-hidden="true">☁️</div>
+          <div className="absolute right-[12%] bottom-0 h-56 w-52 rounded-t-[2.5rem] border-8 border-[#a9683d] bg-[#efbd77]">
+            <div className="absolute inset-x-7 bottom-0 h-36 rounded-t-full bg-[#396aa7]" />
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 rounded-full bg-[#704729] px-4 py-1 text-xs font-black text-white">КВАРТИРА</div>
+          </div>
+          <div className="absolute bottom-5 left-[16%] flex items-end gap-2" aria-label="Eshik oldida kalit ushlab turgan kishi va uning qo‘shnisi">
+            <span className="text-7xl" role="img" aria-label="Kalit ushlagan kishi">🧑‍🔧</span>
+            <span className="mb-10 text-4xl" role="img" aria-label="Kalit">🔑</span>
+            <span className="text-7xl" role="img" aria-label="Qo‘shni">🧑</span>
+            <span className="mb-10 text-4xl" role="img" aria-label="Choy">🍵</span>
           </div>
         </div>
-        <div className="bg-ground-raised p-6 text-center sm:p-8">
-          <span className="inline-flex rounded-full bg-milestone-soft px-4 py-2 text-sm font-black text-milestone">Yangi obyekt ochildi</span>
-          <h3 className="mt-4 text-3xl font-black text-ink">«Чайхана»</h3>
-          <p className="mx-auto mt-3 max-w-2xl leading-relaxed text-ink-muted">
-            Bu bino muloqotning boshlanishi, mehmondo‘stlik va yangi do‘stlarga olib boradigan ko‘prikni anglatadi.
-            Bilimingiz oshgani sayin Russian.gg shahri ham o‘sadi.
+        <div className="bg-ground-raised p-6 sm:p-8">
+          <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Mashq</p>
+          <h3 className="mt-2 text-2xl font-black text-ink">Rasmni rus tilida 3–4 gap bilan tasvirlang</h3>
+          <p className="mt-3 leading-relaxed text-ink-muted">
+            Eshik oldidagi odamlar, kalit va choy taklifiga qarang. Quyidagi so‘zlardan foydalaning:
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {promptWords.map((word) => (
+              <span key={word} className="rounded-full bg-signal-soft px-3 py-1.5 font-black text-signal-ink">{word}</span>
+            ))}
+          </div>
+          <div className="mt-5 rounded-2xl bg-ground-sunken p-4">
+            <p className="text-xs font-black tracking-[0.12em] text-ink-faint uppercase">Namuna</p>
+            <p className="mt-2 leading-relaxed text-ink">
+              «Это я и мой сосед. Я живу в этом доме. Это моя квартира. Я хочу пригласить соседа на чай.»
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+function CompleteSection({ missionId, onReset }: { missionId?: string; onReset: () => void }) {
+  return (
+    <div className="space-y-5">
+      <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-8 text-center sm:p-12">
+        <AnswerCelebration />
+        <div className="text-7xl" aria-hidden="true">🐧</div>
+        <span className="mt-5 inline-flex rounded-full bg-milestone-soft px-4 py-2 text-sm font-black text-milestone">
+          1-dars muvaffaqiyatli tugadi
+        </span>
+        <h3 className="mt-4 text-3xl font-black text-ink">Ajoyib!</h3>
+        <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
+          Endi siz qo‘shningiz bilan tanisha olasiz, o‘zingizni tanishtira olasiz va rus tilida
+          taklif qilishni bilasiz. Shunday davom eting — bu sizning ilk qadamingiz!
+        </p>
+        <div className="mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
+          <Outcome icon="👋" title="Tanishuv" tone="yellow" body="Ismingizni ayta olasiz." />
+          <Outcome icon="🏠" title="Uy va qo‘shni" tone="blue" body="Manzil haqida gapirasiz." />
+          <Outcome icon="🍵" title="Taklif" tone="yellow" body="Choyga taklif qilasiz." />
         </div>
       </Card>
 

@@ -1,4 +1,4 @@
-const LESSON_ONE_STORAGE_PREFIX = 'rgg.demostage.lesson-one.v2'
+const LESSON_ONE_STORAGE_PREFIX = 'rgg.demostage.lesson-one.v3'
 
 /**
  * Lesson one is currently a client-side demo lesson, so its draft progress lives in the
@@ -11,14 +11,15 @@ export function lessonOneStorageKey(userId: string): string {
 }
 
 export const LESSON_ONE_SECTIONS = [
-  { id: 'welcome', eyebrow: '', title: 'Знакомство', progressTitle: 'Знакомство' },
-  { id: 'tests', eyebrow: '1–2', title: '', progressTitle: '2 ta tezkor test' },
-  { id: 'learn', eyebrow: '3', title: 'Rodlar va talaffuz', progressTitle: 'Rodlar va talaffuz' },
-  { id: 'walk', eyebrow: '4', title: 'Чайхана bo‘ylab sayr', progressTitle: 'Чайхана bo‘ylab sayr' },
-  { id: 'game', eyebrow: '5', title: 'Vaqt va salomlashuv', progressTitle: 'Vaqt va salomlashuv' },
-  { id: 'missions', eyebrow: '6', title: 'AI bilan missiya', progressTitle: 'AI bilan missiya' },
-  { id: 'vocabulary', eyebrow: '7', title: 'Словарь', progressTitle: 'Словарь' },
-  { id: 'city', eyebrow: '8', title: 'Russian.gg shahri', progressTitle: 'Russian.gg shahri' },
+  { id: 'tests', eyebrow: '1', title: 'Yengil test', progressTitle: 'Yengil test' },
+  { id: 'phonetics', eyebrow: '2', title: 'Fonetik qoida', progressTitle: 'A, O, U va urg‘u' },
+  { id: 'grammar', eyebrow: '3', title: 'Grammatik qoida', progressTitle: 'Otlarning rodi' },
+  { id: 'phrases', eyebrow: '4', title: '15 ta asosiy ibora', progressTitle: '15 ta ibora' },
+  { id: 'game', eyebrow: '5', title: 'Rangli uy', progressTitle: 'Rangli uy o‘yini' },
+  { id: 'missions', eyebrow: '6', title: 'Dialog va AI savollari', progressTitle: 'AI missiyasi' },
+  { id: 'vocabulary', eyebrow: '7', title: 'Lug‘at', progressTitle: 'Lug‘at' },
+  { id: 'picture', eyebrow: '8', title: 'Rasmli mashq', progressTitle: 'Rasmli mashq' },
+  { id: 'complete', eyebrow: '9', title: 'Dars yakuni', progressTitle: 'Dars yakuni' },
 ] as const
 
 export type LessonOneSection = (typeof LESSON_ONE_SECTIONS)[number]['id']

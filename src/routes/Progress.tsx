@@ -37,7 +37,7 @@ export function Progress() {
           <SectionHeading>1-kun · Dars natijasi</SectionHeading>
           <Card className={lessonOne.isComplete ? 'border-milestone bg-milestone-soft/35' : undefined}>
             <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 className="text-lg font-extrabold text-ink">Знакомство</h2>
+              <h2 className="text-lg font-extrabold text-ink">Знакомство с соседом</h2>
               <span className="text-xs font-bold tracking-wide text-ink-faint uppercase">
                 {lessonOne.completed.length} / {LESSON_ONE_SECTIONS.length} bo‘lim yakunlandi
               </span>
