@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
-import { fill, useT } from '../lib/i18n'
+import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import {
@@ -13,7 +14,6 @@ import {
   MissionCardAction,
   MissionProgress,
 } from '../components/MissionCard'
-import { missionCardClass } from '../components/mission-card-style'
 import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../components/ui'
 
 /**
@@ -22,15 +22,19 @@ import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../com
  */
 type LockedDay = { kind: 'pro' | 'progress'; day: number }
 type DayNotice = { day: number; text: string }
+type PathFilter = 'all' | 'active' | 'done'
 
 export function CoursePath() {
   const t = useT()
+  const { locale } = useLocale()
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [locked, setLocked] = useState<LockedDay | null>(null)
   const [openingDay, setOpeningDay] = useState<number | null>(null)
   const [notice, setNotice] = useState<DayNotice | null>(null)
+  const [filter, setFilter] = useState<PathFilter>('all')
+  const [search, setSearch] = useState('')
 
   const { data: days, isLoading } = useQuery({
     queryKey: ['course-map'],
@@ -86,6 +90,20 @@ export function CoursePath() {
   const completedDays = displayedDays.filter(
     ({ day }) => day.completedMissionCount >= day.requiredMissionCount,
   ).length
+  const normalizedSearch = search.trim().toLocaleLowerCase(locale === 'ru' ? 'ru-RU' : locale)
+  const visibleDays = displayedDays.filter(({ day }) => {
+    const isDone = day.completedMissionCount >= day.requiredMissionCount
+    const matchesFilter =
+      filter === 'all' ||
+      (filter === 'done' && isDone) ||
+      (filter === 'active' && day.isUnlocked && !isDone)
+    const matchesSearch =
+      !normalizedSearch ||
+      String(day.day).includes(normalizedSearch) ||
+      getDayFocus(day, locale).toLocaleLowerCase(locale === 'ru' ? 'ru-RU' : locale).includes(normalizedSearch)
+
+    return matchesFilter && matchesSearch
+  })
 
   const phases = [
     { phase: 'Foundation' as const, range: '1-30' },
@@ -130,7 +148,7 @@ export function CoursePath() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.path.title}</h1>
@@ -139,8 +157,44 @@ export function CoursePath() {
         <Badge tone="milestone">{completedDays}/90</Badge>
       </header>
 
+      <div className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-1 rounded-xl bg-ground-sunken p-1">
+          {(['all', 'active', 'done'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilter(value)}
+              className={cx(
+                'rounded-lg px-3 py-2 text-sm font-bold transition-colors',
+                filter === value
+                  ? 'bg-ground-raised text-signal-ink shadow-sm'
+                  : 'text-ink-muted hover:text-ink',
+              )}
+            >
+              {value === 'all'
+                ? t.path.filterAll
+                : value === 'active'
+                  ? t.path.filterActive
+                  : t.path.filterDone}
+            </button>
+          ))}
+        </div>
+
+        <label className="relative block w-full sm:max-w-xs">
+          <span className="sr-only">{t.path.search}</span>
+          <SearchGlyph />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t.path.search}
+            className="h-10 w-full rounded-xl border border-hairline bg-ground px-4 pr-3 pl-10 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-signal"
+          />
+        </label>
+      </div>
+
       {phases.map(({ phase, range }) => {
-        const phaseDays = displayedDays.filter(({ day }) => day.phase === phase)
+        const phaseDays = visibleDays.filter(({ day }) => day.phase === phase)
         if (phaseDays.length === 0) return null
 
         return (
@@ -149,13 +203,14 @@ export function CoursePath() {
               {t.labels.phase[phase]} · {range}
             </SectionHeading>
 
-            <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {phaseDays.map(({ day, lockKind }) => (
                 <DayCard
                   key={day.day}
                   day={day}
                   maxUnlockedDay={maxUnlockedDay}
                   currentDay={progress?.currentDay ?? 1}
+                  locale={locale}
                   showFreeLabel={
                     entitlement?.hasProAccess === false && day.isFreePreview && day.isUnlocked
                   }
@@ -176,6 +231,12 @@ export function CoursePath() {
           </section>
         )
       })}
+
+      {visibleDays.length === 0 && (
+        <Card className="py-10 text-center text-sm font-semibold text-ink-muted">
+          {t.path.noResults}
+        </Card>
+      )}
 
       {locked && <LockedDayDialog locked={locked} onDismiss={() => setLocked(null)} />}
     </div>
@@ -246,6 +307,7 @@ function DayCard({
   day,
   maxUnlockedDay,
   currentDay,
+  locale,
   showFreeLabel,
   isOpening,
   notice,
@@ -255,6 +317,7 @@ function DayCard({
   day: CourseDayView
   maxUnlockedDay: number
   currentDay: number
+  locale: Locale
   showFreeLabel: boolean
   isOpening: boolean
   notice: string | null
@@ -266,8 +329,7 @@ function DayCard({
   const isToday = day.day === currentDay
   const isLocked = !day.isUnlocked && !isDone
   const dayLabel = fill(t.common.day, { day: day.day })
-  const focus = day.focusRu || day.focusUz || day.focusEn || dayLabel
-  const supportingLabel = day.focusUz ? `${dayLabel} · ${day.focusUz}` : dayLabel
+  const focus = getDayFocus(day, locale)
   const progressValue = !isDone && partialProgress
     ? partialProgress.value
     : day.completedMissionCount
@@ -281,17 +343,40 @@ function DayCard({
       onClick={onSelect}
       aria-label={`${dayLabel}: ${focus}`}
       aria-busy={isOpening}
-      className={`${missionCardClass(isDone, isLocked, true)} w-full text-left`}
+      className={cx(
+        'flex min-h-44 w-full flex-col rounded-[var(--radius-card)] border p-5 text-left',
+        'transition-[border-color,box-shadow,transform] duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
+        isDone
+          ? 'border-milestone/20 bg-milestone-soft/45'
+          : isLocked
+            ? 'border-hairline bg-ground-raised opacity-65'
+            : isToday
+              ? 'border-signal/50 bg-signal-soft/45 shadow-[0_8px_24px_rgb(31_111_224/0.06)]'
+              : 'border-hairline bg-ground-raised hover:-translate-y-0.5 hover:border-signal/40 hover:shadow-[0_8px_24px_rgb(22_24_29/0.06)]',
+      )}
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className={cx('text-lg font-extrabold', topicToneClass(focus))}>{focus}</h3>
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={cx(
+              'flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums',
+              isDone
+                ? 'bg-milestone text-white'
+                : isToday && !isLocked
+                  ? 'bg-signal text-on-signal'
+                  : 'bg-ground-sunken text-ink-muted',
+            )}
+          >
+            {day.day}
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <div className="flex items-start gap-2">
+            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>{focus}</h3>
             {isDone && <CompletedGlyph label={t.path.done} />}
+            </div>
+            <p className="mt-1 text-xs font-semibold text-ink-faint">{dayLabel}</p>
           </div>
-          <p className={`mt-0.5 text-sm font-semibold ${isLocked ? 'text-ink-faint' : 'text-ink-muted'}`}>
-            {supportingLabel}
-          </p>
         </div>
 
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -313,7 +398,7 @@ function DayCard({
         compact
       />
 
-      <div className={`mt-auto flex items-center gap-3 pt-2 ${notice ? 'justify-between' : 'justify-end'}`}>
+      <div className={`mt-auto flex items-center gap-3 pt-3 ${notice ? 'justify-between' : 'justify-end'}`}>
         {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
 
         {isDone ? (
@@ -334,10 +419,29 @@ function DayCard({
   )
 }
 
-function topicToneClass(topic: string): string {
-  const normalized = topic.trim().toLocaleLowerCase('ru-RU')
+function getDayFocus(day: CourseDayView, locale: Locale): string {
+  return pickContent(locale, {
+    uz: day.focusUz || fillFallbackDay(day.day, 'uz'),
+    ru: day.focusRu,
+    en: day.focusEn,
+  })
+}
 
-  if (/^(моя|твоя|ваша|эта)\b/u.test(normalized)) return 'text-danger'
-  if (/^(моё|мое|твоё|твое|ваше|это)\b/u.test(normalized)) return 'text-caution'
-  return 'text-signal-ink'
+function fillFallbackDay(day: number, locale: Locale) {
+  if (locale === 'ru') return `День ${day}`
+  if (locale === 'en') return `Day ${day}`
+  return `${day}-kun`
+}
+
+function SearchGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 fill-none stroke-current stroke-2 text-ink-faint"
+    >
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m15.5 15.5 4 4" strokeLinecap="round" />
+    </svg>
+  )
 }

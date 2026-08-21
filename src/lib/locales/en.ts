@@ -49,6 +49,9 @@ export const en: Dictionary = {
     signOut: 'Sign out',
     darkMode: 'Dark mode',
     language: 'Language',
+    speed: 'Speed',
+    soundOn: 'Sound on',
+    soundOff: 'Sound off',
     plan: {
       free: 'Free',
       pro: 'Pro',
@@ -231,6 +234,11 @@ export const en: Dictionary = {
     lockedProgressTitle: 'This day is still closed',
     lockedProgressBody: 'Finish the earlier days first — day {day} then opens on its own.',
     buyPro: 'Get Pro',
+    filterAll: 'All',
+    filterActive: 'In progress',
+    filterDone: 'Completed',
+    search: 'Find a day or topic',
+    noResults: 'No matching days found.',
   },
 
   practice: {

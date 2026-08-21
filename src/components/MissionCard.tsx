@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { pickContent } from '../lib/content'
+import { cx } from '../lib/cx'
 import { fill, useLocale, useT } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
@@ -10,9 +11,11 @@ import { Badge } from './ui'
 export function MissionCard({
   mission,
   showFreeLabel = false,
+  featured = false,
 }: {
   mission: MissionSummary
   showFreeLabel?: boolean
+  featured?: boolean
 }) {
   const t = useT()
   const { locale } = useLocale()
@@ -40,7 +43,10 @@ export function MissionCard({
     <Link
       to={destination}
       aria-label={title}
-      className={missionCardClass(mission.isCompleted, mission.isLocked)}
+      className={cx(
+        missionCardClass(mission.isCompleted, mission.isLocked),
+        featured && !mission.isLocked && 'border-milestone/20 shadow-[0_8px_24px_rgb(15_115_85/0.06)]',
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -92,8 +98,13 @@ export function MissionCard({
             {isProLock ? t.path.needsPro : t.path.locked}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-signal px-4 py-2 text-sm font-extrabold text-on-signal">
-            {t.practice.start}
+          <span
+            className={cx(
+              'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-4 py-2 text-sm font-extrabold text-on-signal',
+              featured ? 'bg-milestone' : 'bg-signal',
+            )}
+          >
+            {featured ? t.home.start : t.practice.start}
             <ArrowGlyph />
           </span>
         )}

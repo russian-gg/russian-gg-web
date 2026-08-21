@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { fill, useT } from '../lib/i18n'
-import { missionPath } from '../lib/mission-path'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { HomeView } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { LearningActivity } from '../components/LearningActivity'
@@ -13,6 +13,7 @@ import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../compo
  */
 export function Home() {
   const t = useT()
+  const { locale } = useLocale()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeView>('/course/home'),
@@ -32,9 +33,17 @@ export function Home() {
     )
   }
 
+  const title = data.todayMission
+    ? pickContent(locale, {
+        uz: data.todayMission.titleUz,
+        ru: data.todayMission.titleRu,
+        en: data.todayMission.titleEn,
+      })
+    : data.dayFocusUz || t.home.fallbackTitle
+
   return (
-    <div className="space-y-10">
-      <header>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <header className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised px-6 py-6 shadow-[0_8px_28px_rgb(22_24_29/0.04)] sm:px-7">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: 90 })}</Badge>
           <Badge>{t.labels.phase[data.phase]}</Badge>
@@ -42,22 +51,15 @@ export function Home() {
           {data.tier === 'Free' && <Badge tone="caution">{t.account.plan.free}</Badge>}
         </div>
 
-        <h1 className="mt-4 text-2xl font-extrabold leading-snug tracking-tight text-ink">
-          {data.dayFocusUz || t.home.fallbackTitle}
+        <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-ink">
+          {title}
         </h1>
       </header>
 
       <section>
         <SectionHeading>{t.home.todayMission}</SectionHeading>
         {data.todayMission ? (
-          <>
-            <MissionCard mission={data.todayMission} />
-            {!data.todayMission.isLocked && (
-              <LinkButton to={missionPath(data.todayMission)} block className="mt-3">
-                {t.home.start}
-              </LinkButton>
-            )}
-          </>
+          <MissionCard mission={data.todayMission} featured />
         ) : (
           <EmptyState
             title={t.home.empty}

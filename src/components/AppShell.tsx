@@ -2,6 +2,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { createPortal } from 'react-dom'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
+import {
+  PLAYBACK_SPEEDS,
+  readAudioPreferences,
+  storeAudioPreferences,
+  type AudioPreferences,
+} from '../lib/audio-preferences'
 import { planLabel } from '../lib/format'
 import { useOpenGames } from '../lib/games'
 import { useTheme } from '../lib/theme'
@@ -46,7 +52,7 @@ export function AppShell() {
   const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
 
   return (
-    <div className="min-h-dvh overflow-x-clip md:flex">
+    <div className="min-h-dvh overflow-x-clip bg-ground-sunken md:flex">
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
@@ -55,10 +61,10 @@ export function AppShell() {
         </div>
       </header>
 
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-hairline px-6 py-8 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
+      <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-hairline bg-ground-raised px-5 py-6 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
         <Wordmark />
 
-        <nav className="mt-12 flex flex-col gap-1" aria-label={t.nav.main}>
+        <nav className="mt-10 flex flex-col gap-1" aria-label={t.nav.main}>
           {nav.map((item) => (
             <RailLink
               key={item.key}
@@ -76,7 +82,10 @@ export function AppShell() {
 
         {/* Sign-out lives inside the menu, not beside it: one account surface, not two. */}
         <div className="mt-auto pt-8">
+          <SidebarAudioControls />
+          <div className="mt-3">
           <ProfileMenu />
+          </div>
         </div>
       </aside>
 
@@ -88,7 +97,7 @@ export function AppShell() {
         The bottom padding clears the tab bar plus the home indicator; without it the last
         card on every screen sits under the bar and cannot be reached.
       */}
-      <main className="mx-auto w-full max-w-5xl px-5 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-12 md:py-12 md:pb-12">
+      <main className="mx-auto w-full max-w-6xl px-5 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-10 md:py-10 md:pb-12 lg:px-14">
         <Outlet />
       </main>
 
@@ -178,6 +187,53 @@ function Wordmark() {
   )
 }
 
+function SidebarAudioControls() {
+  const t = useT()
+  const [preferences, setPreferences] = useState<AudioPreferences>(readAudioPreferences)
+
+  function update(next: AudioPreferences) {
+    setPreferences(next)
+    storeAudioPreferences(next)
+  }
+
+  function cycleSpeed() {
+    const currentIndex = PLAYBACK_SPEEDS.indexOf(preferences.speed)
+    const speed = PLAYBACK_SPEEDS[(currentIndex + 1) % PLAYBACK_SPEEDS.length]
+    update({ ...preferences, speed })
+  }
+
+  return (
+    <div className="rounded-2xl border border-hairline bg-ground-sunken/70 p-1.5">
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={cycleSpeed}
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl bg-ground-raised px-3 py-2 text-sm font-bold text-ink transition-colors hover:text-signal-ink"
+          aria-label={`${t.account.speed}: ${preferences.speed}x`}
+        >
+          <span className="flex items-center gap-2 text-ink-muted">
+            <SpeedGlyph />
+            {t.account.speed}
+          </span>
+          <span className="rounded-lg bg-signal-soft px-2 py-0.5 text-xs font-extrabold tabular-nums text-signal-ink">
+            {preferences.speed}x
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => update({ ...preferences, muted: !preferences.muted })}
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ground-raised text-ink-muted transition-colors hover:text-signal-ink"
+          aria-label={preferences.muted ? t.account.soundOff : t.account.soundOn}
+          aria-pressed={preferences.muted}
+        >
+          <SoundGlyph muted={preferences.muted} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ProfileMenu({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate()
   const t = useT()
@@ -217,19 +273,20 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center gap-3 rounded-2xl border-2 border-hairline bg-ground-raised text-left transition hover:border-signal ${
+        className={`flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left transition hover:border-signal ${
           compact ? 'max-w-[10.5rem] px-2.5 py-2' : 'w-full px-3 py-2'
         }`}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
-          {initials}
-        </span>
-        {!compact && (
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-semibold leading-5 text-ink">{name}</span>
-            {subtitle && <span className="block truncate text-sm text-ink-muted">{subtitle}</span>}
+        {compact ? (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
+            {initials}
+          </span>
+        ) : (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-ink-muted">
+            <GearGlyph />
           </span>
         )}
+        {!compact && <span className="min-w-0 flex-1 text-sm font-bold text-ink">{t.account.settings}</span>}
         <ChevronGlyph direction={open ? 'up' : 'down'} />
       </button>
 
@@ -343,7 +400,7 @@ function ProfilePopover({
         role="menu"
         aria-label={label}
         style={style ?? { visibility: 'hidden' }}
-        className="fixed z-50 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-2 shadow-2xl"
+        className="fixed z-50 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-2 shadow-2xl"
       >
         {children}
       </div>
@@ -485,6 +542,29 @@ function ExitGlyph() {
     <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
       <path d="M14 5.5H6.5v13H14" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M13.5 12h6m0 0-2.6-2.6M19.5 12l-2.6 2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function SpeedGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
+      <path d="M4 15.5a8.5 8.5 0 1 1 16 0" strokeLinecap="round" />
+      <path d="m12 13 4-4" strokeLinecap="round" />
+      <circle cx="12" cy="13" r="1.4" />
+    </svg>
+  )
+}
+
+function SoundGlyph({ muted }: { muted: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
+      <path d="M5 9.5h3l4-3v11l-4-3H5Z" strokeLinejoin="round" />
+      {muted ? (
+        <path d="m16 10 4 4m0-4-4 4" strokeLinecap="round" />
+      ) : (
+        <path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10" strokeLinecap="round" />
+      )}
     </svg>
   )
 }

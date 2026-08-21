@@ -1,4 +1,5 @@
 import { api } from './api'
+import { readAudioPreferences } from './audio-preferences'
 import type { VoiceSessionTicket } from './types'
 
 const INPUT_SAMPLE_RATE = 16_000
@@ -590,6 +591,9 @@ export class LiveVoiceSession {
   private playAudioChunk(base64Pcm: string) {
     if (!this.playbackContext) return
 
+    const preferences = readAudioPreferences()
+    if (preferences.muted) return
+
     const bytes = base64ToBytes(base64Pcm)
     const samples = new Int16Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
     if (samples.length === 0) return
@@ -602,6 +606,7 @@ export class LiveVoiceSession {
 
     const source = this.playbackContext.createBufferSource()
     source.buffer = audioBuffer
+    source.playbackRate.value = preferences.speed
     source.connect(this.playbackContext.destination)
     source.onended = () => {
       this.playbackSources = this.playbackSources.filter((queued) => queued !== source)
@@ -610,7 +615,7 @@ export class LiveVoiceSession {
 
     const startAt = Math.max(this.playbackContext.currentTime, this.nextPlaybackTime)
     source.start(startAt)
-    this.nextPlaybackTime = startAt + audioBuffer.duration
+    this.nextPlaybackTime = startAt + audioBuffer.duration / preferences.speed
   }
 
   /**
@@ -856,6 +861,9 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
 
   const audioUrl = URL.createObjectURL(audioBlob)
   const audio = new Audio(audioUrl)
+  const preferences = readAudioPreferences()
+  audio.playbackRate = preferences.speed
+  audio.muted = preferences.muted
   promptAudio = audio
   promptAudioUrl = audioUrl
   promptAudioText = normalized

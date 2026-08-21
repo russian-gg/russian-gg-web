@@ -53,6 +53,9 @@ export const uz = {
     signOut: 'Chiqish',
     darkMode: "Qorong'i rejim",
     language: 'Til',
+    speed: 'Tezlik',
+    soundOn: 'Ovoz yoqilgan',
+    soundOff: "Ovoz o'chiq",
     plan: {
       free: 'Bepul',
       pro: 'Pro',
@@ -236,6 +239,11 @@ export const uz = {
     lockedProgressBody:
       "Avval oldingi kunlarni yakunlang — shundan keyin {day}-kun o'zi ochiladi.",
     buyPro: 'Pro sotib olish',
+    filterAll: 'Barchasi',
+    filterActive: 'Jarayonda',
+    filterDone: 'Bajarilgan',
+    search: 'Kun yoki mavzuni qidiring',
+    noResults: 'Mos keladigan kun topilmadi.',
   },
 
   practice: {

@@ -52,6 +52,9 @@ export const ru: Dictionary = {
     signOut: 'Выйти',
     darkMode: 'Тёмная тема',
     language: 'Язык',
+    speed: 'Скорость',
+    soundOn: 'Звук включён',
+    soundOff: 'Звук выключен',
     plan: {
       free: 'Бесплатно',
       pro: 'Pro',
@@ -235,6 +238,11 @@ export const ru: Dictionary = {
     lockedProgressTitle: 'Этот день ещё закрыт',
     lockedProgressBody: 'Сначала завершите предыдущие дни — после этого день {day} откроется сам.',
     buyPro: 'Купить Pro',
+    filterAll: 'Все',
+    filterActive: 'В процессе',
+    filterDone: 'Завершённые',
+    search: 'Найти день или тему',
+    noResults: 'Подходящих дней не найдено.',
   },
 
   practice: {

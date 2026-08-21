@@ -156,7 +156,7 @@ export function Card({
     <Tag
       {...props}
       className={cx(
-        'rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5',
+        'rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5',
         className,
       )}
     >
