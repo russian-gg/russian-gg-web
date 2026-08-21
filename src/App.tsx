@@ -8,6 +8,7 @@ import { WelcomeGiftGate } from './components/WelcomeGiftGate'
 import { Spinner } from './components/ui'
 import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
+import { playUiSound, type UiSound } from './lib/ui-sounds'
 import { AdminContent } from './routes/AdminContent'
 import { CoursePath } from './routes/CoursePath'
 import { FeedbacksPage } from './routes/FeedbacksPage'
@@ -27,6 +28,7 @@ import { SignIn, SignUp } from './routes/SignIn'
 
 export function App() {
   useVisitBeacon()
+  useGlobalUiSounds()
 
   return (
     <>
@@ -84,6 +86,23 @@ export function App() {
       <InstallPrompt />
     </>
   )
+}
+
+function useGlobalUiSounds() {
+  useEffect(() => {
+    function onClick(event: MouseEvent) {
+      const source = event.target instanceof Element
+        ? event.target.closest<HTMLElement>('button, a, [role="button"]')
+        : null
+      if (!source || source.matches(':disabled') || source.getAttribute('aria-disabled') === 'true') return
+      const requested = source.dataset.uiSound as UiSound | 'none' | undefined
+      if (requested === 'none') return
+      playUiSound(requested ?? 'click')
+    }
+
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [])
 }
 
 function RequireAuth({ children }: { children: ReactNode }) {

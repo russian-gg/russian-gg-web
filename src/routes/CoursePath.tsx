@@ -24,6 +24,7 @@ import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../com
 type LockedDay = { kind: 'pro' | 'progress'; day: number }
 type DayNotice = { day: number; text: string }
 type PathFilter = 'all' | 'active' | 'done'
+type SelectedDay = { day: CourseDayView; lockKind: LockedDay['kind'] }
 
 export function CoursePath() {
   const t = useT()
@@ -32,6 +33,7 @@ export function CoursePath() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [locked, setLocked] = useState<LockedDay | null>(null)
+  const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null)
   const [openingDay, setOpeningDay] = useState<number | null>(null)
   const [notice, setNotice] = useState<DayNotice | null>(null)
   const [filter, setFilter] = useState<PathFilter>('all')
@@ -145,11 +147,16 @@ export function CoursePath() {
     { phase: 'Immersion' as const, range: '61-90' },
   ]
 
-  async function handleDay(day: CourseDayView, lockKind: LockedDay['kind']) {
+  function handleDay(day: CourseDayView, lockKind: LockedDay['kind']) {
     if (!day.isUnlocked) {
       setLocked({ kind: lockKind, day: day.day })
       return
     }
+
+    setSelectedDay({ day, lockKind })
+  }
+
+  async function startDay(day: CourseDayView, lockKind: LockedDay['kind'], restart: boolean) {
 
     setOpeningDay(day.day)
     setNotice(null)
@@ -169,11 +176,12 @@ export function CoursePath() {
 
       if (mission.isLocked) {
         const isPro = mission.lockReason?.toLowerCase().includes('pro') ?? false
-        setLocked({ kind: isPro ? 'pro' : 'progress', day: day.day })
+        setLocked({ kind: isPro ? 'pro' : lockKind, day: day.day })
         return
       }
 
-      navigate(missionPath(mission))
+      setSelectedDay(null)
+      navigate(`${missionPath(mission)}${restart ? '?start=1' : ''}`)
     } catch {
       setNotice({ day: day.day, text: t.common.loadFailed })
     } finally {
@@ -258,7 +266,7 @@ export function CoursePath() {
                         }
                       : null
                   }
-                  onSelect={() => void handleDay(day, lockKind)}
+                  onSelect={() => handleDay(day, lockKind)}
                 />
               ))}
             </div>
@@ -273,6 +281,115 @@ export function CoursePath() {
       )}
 
       {locked && <LockedDayDialog locked={locked} onDismiss={() => setLocked(null)} />}
+      {selectedDay && (
+        <DayPreviewDrawer
+          selected={selectedDay}
+          locale={locale}
+          isOpening={openingDay === selectedDay.day.day}
+          partialProgress={
+            selectedDay.day.day === 1 && !lessonOneComplete
+              ? { value: lessonOneProgress.completed.length, max: LESSON_ONE_SECTIONS.length }
+              : null
+          }
+          onDismiss={() => setSelectedDay(null)}
+          onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
+        />
+      )}
+    </div>
+  )
+}
+
+function DayPreviewDrawer({
+  selected,
+  locale,
+  isOpening,
+  partialProgress,
+  onDismiss,
+  onStart,
+}: {
+  selected: SelectedDay
+  locale: Locale
+  isOpening: boolean
+  partialProgress: { value: number; max: number } | null
+  onDismiss: () => void
+  onStart: (restart: boolean) => void
+}) {
+  const { day } = selected
+  const focus = getDayFocus(day, locale)
+  const isDone = day.completedMissionCount >= day.requiredMissionCount
+  const completed = partialProgress?.value ?? day.completedMissionCount
+  const total = partialProgress?.max ?? day.requiredMissionCount
+  const hasProgress = completed > 0 && !isDone
+  const restart = isDone || !hasProgress
+  const description = locale === 'ru'
+    ? `На уроке «${focus}» вы изучите новые правила и фразы, а затем закрепите их в интерактивных заданиях.`
+    : locale === 'en'
+      ? `In “${focus}” you will learn new rules and phrases, then practise them in interactive activities.`
+      : `«${focus}» darsida yangi qoida va iboralarni o‘rganib, ularni interaktiv mashqlarda mustahkamlaysiz.`
+  const action = locale === 'ru'
+    ? isDone ? 'Повторить урок' : hasProgress ? 'Продолжить урок' : 'Начать урок'
+    : locale === 'en'
+      ? isDone ? 'Repeat lesson' : hasProgress ? 'Continue lesson' : 'Start lesson'
+      : isDone ? 'Darsni takrorlash' : hasProgress ? 'Darsni davom ettirish' : 'Darsni boshlash'
+  const close = locale === 'ru' ? 'Закрыть' : locale === 'en' ? 'Close' : 'Yopish'
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onDismiss()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [onDismiss])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-end" role="presentation">
+      <button
+        type="button"
+        aria-label={close}
+        data-ui-sound="click"
+        className="absolute inset-0 h-full w-full cursor-default bg-ink/45 backdrop-blur-[1px]"
+        onClick={onDismiss}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="day-preview-title"
+        className="relative flex max-h-[88dvh] w-full flex-col overflow-y-auto rounded-t-[2rem] bg-ground-raised p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-[2rem] sm:p-8"
+      >
+        <div className="flex items-start justify-between gap-5">
+          <div>
+            <p className="text-xs font-black tracking-[.14em] text-ink-muted uppercase">
+              {locale === 'ru' ? 'Программа обучения' : locale === 'en' ? 'Learning programme' : 'O‘quv dasturi'}
+            </p>
+            <h2 id="day-preview-title" className="mt-1 text-3xl font-black text-ink">
+              {locale === 'ru' ? `Урок ${day.day}` : locale === 'en' ? `Lesson ${day.day}` : `${day.day}-dars`}
+            </h2>
+          </div>
+          <button type="button" onClick={onDismiss} aria-label={close} className="flex size-10 shrink-0 items-center justify-center rounded-full text-2xl text-ink-muted transition hover:bg-ground-sunken hover:text-ink">×</button>
+        </div>
+
+        <div className="mt-7 rounded-2xl bg-signal-soft/60 p-4">
+          <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{focus}</p>
+          <p className="mt-3 text-base leading-7 text-ink-muted">{description}</p>
+          <div className="mt-4 flex items-center justify-between gap-3 text-xs font-black text-ink-muted">
+            <span>{completed} / {total} {locale === 'ru' ? 'разделов' : locale === 'en' ? 'sections' : 'bo‘lim'}</span>
+            {isDone && <span className="text-milestone">✓ {locale === 'ru' ? 'Пройдено' : locale === 'en' ? 'Completed' : 'Yakunlangan'}</span>}
+          </div>
+          <MissionProgress value={completed} max={total} completed={isDone} label={focus} compact />
+        </div>
+
+        <div className="mt-6 border-t border-hairline pt-6 sm:mt-auto">
+          <Button block size="lg" disabled={isOpening} data-ui-sound="whoosh" onClick={() => onStart(restart)}>
+            {isOpening ? 'Yuklanmoqda…' : `${action} →`}
+          </Button>
+          <Button block variant="ghost" size="lg" className="mt-2" onClick={onDismiss}>{close}</Button>
+        </div>
+      </aside>
     </div>
   )
 }
@@ -375,6 +492,7 @@ function DayCard({
     <button
       type="button"
       onClick={onSelect}
+      data-ui-sound="select"
       aria-label={`${dayLabel}: ${focus}`}
       aria-busy={isOpening}
       className={cx(

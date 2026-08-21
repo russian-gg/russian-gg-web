@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Button, Card, PlayGlyph, ProgressBar } from '../components/ui'
+import { Button, Card, PauseGlyph, PlayGlyph, ProgressBar } from '../components/ui'
+import { readAudioPreferences } from '../lib/audio-preferences'
 import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData, type Mascot, type Phrase, type Quiz, type Vocab } from '../lib/foundation-lessons'
 import { lessonOneStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
+import { playUiSound, type UiSound } from '../lib/ui-sounds'
 
 const sections = [
   { id: 'tests', title: 'Yengil test' },
@@ -46,15 +48,29 @@ export function FoundationLesson() {
   const lesson = foundationLessons[day]
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const storageKey = user && lesson
     ? day === 1
       ? lessonOneStorageKey(user.id)
       : `rgg.demostage.foundation-lesson.v1.${user.id}.${day}`
     : null
   const [state, setState] = useState<StoredState>(() => readState(storageKey))
+  const skipSave = useRef(searchParams.get('start') === '1')
 
-  useEffect(() => setState(readState(storageKey)), [storageKey])
+  const restartRequested = searchParams.get('start') === '1'
   useEffect(() => {
+    const nextState = restartRequested ? { ...emptyState } : readState(storageKey)
+    if (restartRequested) skipSave.current = true
+    if (restartRequested && storageKey) localStorage.setItem(storageKey, JSON.stringify(nextState))
+    setState(nextState)
+    if (restartRequested) setSearchParams({}, { replace: true })
+  }, [restartRequested, setSearchParams, storageKey])
+  useEffect(() => {
+    if (skipSave.current) {
+      skipSave.current = false
+      return
+    }
     if (storageKey) localStorage.setItem(storageKey, JSON.stringify(state))
   }, [state, storageKey])
 
@@ -81,7 +97,11 @@ export function FoundationLesson() {
         ])
       } catch {
         // Local progress remains safe; CoursePath retries its day-one sync and the learner can retry.
+      } finally {
+        navigate('/path', { replace: true })
       }
+    } else if (active.id === 'complete') {
+      navigate('/path', { replace: true })
     }
   }
 
@@ -181,6 +201,7 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
             onClick={() => {
               onAnswer(index)
               if (index === quiz.correct) celebrate()
+              else playUiSound('wrong')
             }}
             className={cx(
               'rounded-xl border-2 px-3 py-2.5 text-left text-sm font-bold transition',
@@ -210,9 +231,7 @@ function RuleSection({ rule }: { rule: LessonData['phonetics'] }) {
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl">{rule.title}</h3>
           <p className="mt-2 font-semibold leading-relaxed text-ink-muted">{rule.lead}</p>
-          <button type="button" onClick={() => speak(`${rule.title}. ${rule.lead} ${rule.body.join(' ')}`, 'uz-UZ')} className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">
-            <PlayGlyph /> Qoidani tinglash
-          </button>
+          <SpeechButton text={`${rule.title}. ${rule.lead} ${rule.body.join(' ')}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm leading-relaxed text-ink-muted sm:text-base">
@@ -220,9 +239,9 @@ function RuleSection({ rule }: { rule: LessonData['phonetics'] }) {
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {rule.examples.map((example) => (
-          <button key={example} type="button" onClick={() => speak(example, 'ru-RU')} className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АИУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
+          <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АИУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
             <RussianText text={example} />
-          </button>
+          </SpeechButton>
         ))}
       </div>
     </Card>
@@ -240,7 +259,7 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-xl">{phrase.icon}</span>
             <span className="min-w-0 flex-1">
               <span className="block font-black text-ink"><RussianText text={phrase.ru} /></span>
-              <span className="mt-0.5 block text-xs font-bold text-signal-ink">▶ Tinglang va takrorlang!</span>
+              <span className="mt-0.5 block text-xs font-bold text-signal-ink">Kartani oching</span>
             </span>
             {ratings[index] && <span className="text-sm text-milestone">✓</span>}
           </button>
@@ -263,11 +282,11 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
           <h3 className="text-2xl font-black text-ink"><RussianText text={phrase.ru} /></h3>
           {phrase.pronunciation && <p className="mt-1 text-sm font-semibold text-ink-muted">{phrase.pronunciation}</p>}
           <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={phrase.example} /></p>
-          <button type="button" onClick={() => speak(phrase.ru, 'ru-RU')} className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal"><PlayGlyph /> Tinglang va takrorlang!</button>
+          <SpeechButton text={phrase.ru} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">Tinglang va takrorlang!</SpeechButton>
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => onRate('known')} className="rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">выучил</button>
-            <button type="button" onClick={() => onRate('unknown')} className="rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">не знаю</button>
-            <button type="button" onClick={() => onRate('repeat')} className="rounded-xl border border-hairline px-2 py-2 text-xs font-black text-ink">повторю</button>
+            <button type="button" onClick={() => { playUiSound('coin'); onRate('known') }} className="rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">выучил</button>
+            <button type="button" onClick={() => { playUiSound('wrong'); onRate('unknown') }} className="rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">не знаю</button>
+            <button type="button" onClick={() => { playUiSound('select'); onRate('repeat') }} className="rounded-xl border border-hairline px-2 py-2 text-xs font-black text-ink">повторю</button>
           </div>
         </div>
       </Card>
@@ -306,6 +325,7 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
                   celebrate()
                 } else {
                   navigator.vibrate?.([30, 30, 30])
+                  playUiSound('wrong')
                 }
               }} className={cx('min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
             })}
@@ -321,10 +341,6 @@ function MissionModes({ lesson }: { lesson: LessonData }) {
   const [questionIndex, setQuestionIndex] = useState(0)
   const [feedback, setFeedback] = useState('')
   const [listening, setListening] = useState(false)
-
-  useEffect(() => {
-    if (mode === 'ai') speak(lesson.questions[questionIndex].question, 'ru-RU')
-  }, [lesson.questions, mode, questionIndex])
 
   function listen(onDone?: () => void) {
     const SpeechRecognition = getSpeechRecognition()
@@ -376,7 +392,7 @@ function MissionModes({ lesson }: { lesson: LessonData }) {
       ) : (
         <div className="text-center">
           <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">{questionIndex + 1} / {lesson.questions.length}</p>
-          <button type="button" onClick={() => speak(lesson.questions[questionIndex].question, 'ru-RU')} className="mt-3 w-full rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></button>
+          <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
           <MicButton listening={listening} onClick={() => listen(() => setTimeout(() => setQuestionIndex((current) => Math.min(current + 1, lesson.questions.length - 1)), 900))} />
         </div>
       )}
@@ -407,7 +423,8 @@ function VocabularyDeck({ words, onClose }: { words: Vocab[]; onClose: () => voi
   const [index, setIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const word = words[index]
-  function rate() {
+  function rate(sound: UiSound) {
+    playUiSound(sound)
     if (index === words.length - 1) { onClose(); return }
     setIndex((current) => current + 1)
     setFlipped(false)
@@ -417,18 +434,23 @@ function VocabularyDeck({ words, onClose }: { words: Vocab[]; onClose: () => voi
       <div className="mx-auto flex min-h-full max-w-lg flex-col">
         <div className="flex items-center justify-between py-2 text-sm font-black text-ink-muted"><span>{index + 1} / {words.length}</span><button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full border border-hairline text-xl text-ink">×</button></div>
         <div className="flex flex-1 items-center py-2">
-          <button type="button" onClick={() => setFlipped((current) => !current)} className="w-full overflow-hidden rounded-[1.75rem] border-2 border-hairline bg-ground-raised text-left shadow-[0_12px_35px_rgba(20,35,60,.14)]">
+          <div role="button" tabIndex={0} onClick={() => setFlipped((current) => !current)} onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              setFlipped((current) => !current)
+            }
+          }} className="w-full cursor-pointer overflow-hidden rounded-[1.75rem] border-2 border-hairline bg-ground-raised text-left shadow-[0_12px_35px_rgba(20,35,60,.14)]">
             <div className="flex h-32 items-center justify-center bg-signal-soft text-6xl sm:h-40">{word.icon}</div>
             <div className="min-h-52 p-5 sm:min-h-60 sm:p-7">
               {!flipped ? (
-                <><h2 className="text-3xl font-black text-ink"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><span onClick={(event) => { event.stopPropagation(); speak(word.ru, 'ru-RU') }} className="mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal"><PlayGlyph /> Tinglang va takrorlang</span></>
+                <><h2 className="text-3xl font-black text-ink"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">Tinglang va takrorlang</SpeechButton></>
               ) : (
                 <><h2 className="text-3xl font-black text-ink">{word.uz}</h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><span className="mt-4 block text-sm font-bold text-ink-muted">Old tomon uchun kartani bosing</span></>
               )}
             </div>
-          </button>
+          </div>
         </div>
-        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={rate} className="rounded-xl bg-signal py-3 text-xs font-black text-white">выучил</button><button type="button" onClick={rate} className="rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={rate} className="rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
+        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('coin')} className="rounded-xl bg-signal py-3 text-xs font-black text-white">выучил</button><button type="button" onClick={() => rate('wrong')} className="rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={() => rate('select')} className="rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
       </div>
     </div>, document.body,
   )
@@ -440,13 +462,13 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
     <Card className="p-4 sm:p-5">
       <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><div><h3 className="font-black text-ink">{lesson.exercise.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div></div>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
-      <button type="button" onClick={() => speak(answer || lesson.exercise.starter, 'ru-RU')} className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink"><PlayGlyph /> Matnni tinglash</button>
+      <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
     </Card>
   )
 }
 
 function CompleteSection({ lesson }: { lesson: LessonData }) {
-  useEffect(() => { celebrate([45, 45, 80]) }, [])
+  useEffect(() => { celebrate([45, 45, 80], 'win') }, [])
   return (
     <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
       <Celebration />
@@ -532,11 +554,76 @@ function getSpeechRecognition(): RecognitionConstructor | null {
 
 function speak(text: string, lang: string) {
   if (!('speechSynthesis' in window)) return
+  if (readAudioPreferences().muted) return
+  window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id: null } }))
   window.speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, ''))
   utterance.lang = lang
-  utterance.rate = lang === 'ru-RU' ? 0.84 : 0.92
+  utterance.rate = (lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
   window.speechSynthesis.speak(utterance)
+}
+
+function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken }: {
+  text: string
+  lang: string
+  children: ReactNode
+  className?: string
+  stopPropagation?: boolean
+  autoPlayToken?: string
+}) {
+  const id = useId()
+  const [status, setStatus] = useState<'idle' | 'playing' | 'paused'>('idle')
+
+  function start() {
+    if (!('speechSynthesis' in window) || readAudioPreferences().muted) return
+    window.speechSynthesis.cancel()
+    window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id } }))
+    const utterance = new SpeechSynthesisUtterance(text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, ''))
+    utterance.lang = lang
+    utterance.rate = (lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
+    utterance.onend = () => setStatus('idle')
+    utterance.onerror = () => setStatus('idle')
+    setStatus('playing')
+    window.speechSynthesis.speak(utterance)
+  }
+
+  function toggle(event: React.MouseEvent) {
+    if (stopPropagation) event.stopPropagation()
+    if (!('speechSynthesis' in window)) return
+    if (status === 'playing') {
+      window.speechSynthesis.pause()
+      setStatus('paused')
+      return
+    }
+    if (status === 'paused') {
+      window.speechSynthesis.resume()
+      setStatus('playing')
+      return
+    }
+    start()
+  }
+
+  useEffect(() => {
+    function reset(event: Event) {
+      const owner = (event as CustomEvent<{ id: string | null }>).detail?.id
+      if (owner !== id) setStatus('idle')
+    }
+    window.addEventListener('rgg-speech-start', reset)
+    return () => window.removeEventListener('rgg-speech-start', reset)
+  }, [id])
+
+  useEffect(() => {
+    if (autoPlayToken) start()
+    // A token is emitted only when a new AI prompt becomes active.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlayToken])
+
+  return (
+    <button type="button" onClick={toggle} className={className} aria-label={status === 'playing' ? 'Pauza' : 'Tinglash'}>
+      {status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
+      {children}
+    </button>
+  )
 }
 
 function readState(storageKey: string | null): StoredState {
@@ -566,6 +653,7 @@ function Celebration() {
   })}</span>, document.body)
 }
 
-function celebrate(pattern: number | number[] = 35) {
+function celebrate(pattern: number | number[] = 35, sound: UiSound = 'correct') {
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) navigator.vibrate?.(pattern)
+  playUiSound(sound)
 }
