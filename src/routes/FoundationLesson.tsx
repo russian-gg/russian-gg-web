@@ -310,13 +310,13 @@ type WordDrag = { word: string; x: number; y: number }
 const genderHouses: Array<{
   name: GenderHouseName
   label: string
-  icon: string
+  mascot: Mascot
   color: string
   background: string
 }> = [
-  { name: 'Мужской род', label: 'Ko‘k uy', icon: '🐧', color: '#0000FF', background: '#e7f0ff' },
-  { name: 'Женский род', label: 'Qizil uy', icon: '🐼', color: '#FF2400', background: '#fff0ef' },
-  { name: 'Средний род', label: 'Sariq uy', icon: '🪶', color: '#8a6500', background: '#fff6d9' },
+  { name: 'Мужской род', label: 'Ko‘k uy', mascot: 'penguin', color: '#0000FF', background: '#e7f0ff' },
+  { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', color: '#FF2400', background: '#fff0ef' },
+  { name: 'Средний род', label: 'Sariq uy', mascot: 'pero', color: '#8a6500', background: '#fff6d9' },
 ]
 
 function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
@@ -465,7 +465,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
               style={{ borderColor: isWrongTarget ? '#dc2626' : house.color, background: house.background }}
               aria-label={`${house.label}: ${house.name}`}
             >
-              <span className="block text-2xl sm:text-3xl" aria-hidden="true">{house.icon}</span>
+              <MascotImage mascot={house.mascot} className="h-12 w-12 object-contain object-left sm:h-16 sm:w-16" />
               <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.color }}>{house.label}</span>
               <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.color }}><RussianText text={house.name} /></span>
               <span className="mt-3 flex flex-wrap gap-1">
