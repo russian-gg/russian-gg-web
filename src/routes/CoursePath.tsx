@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
-import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
+import { LESSON_ONE_SECTIONS, readFoundationLessonProgress } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
@@ -65,7 +65,13 @@ export function CoursePath() {
     0,
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
-  const lessonOneProgress = readLessonOneProgress(user?.id)
+  const foundationProgress = Object.fromEntries(
+    Array.from({ length: 6 }, (_, index) => {
+      const day = index + 1
+      return [day, readFoundationLessonProgress(user?.id, day)]
+    }),
+  ) as Record<number, ReturnType<typeof readFoundationLessonProgress>>
+  const lessonOneProgress = foundationProgress[1]
   const lessonOneComplete = lessonOneProgress.isComplete
 
   useEffect(() => {
@@ -103,8 +109,9 @@ export function CoursePath() {
 
   let previousDaysComplete = true
   const displayedDays = days.map((day) => {
+    const localProgress = foundationProgress[day.day]
     const isComplete =
-      day.completedMissionCount >= day.requiredMissionCount || (day.day === 1 && lessonOneComplete)
+      day.completedMissionCount >= day.requiredMissionCount || localProgress?.isComplete === true
     const isSequentiallyUnlocked = previousDaysComplete
     const completedMissionCount = isComplete
       ? day.requiredMissionCount
@@ -259,9 +266,9 @@ export function CoursePath() {
                   isOpening={openingDay === day.day}
                   notice={notice?.day === day.day ? notice.text : null}
                   partialProgress={
-                    day.day === 1 && !lessonOneComplete
+                    foundationProgress[day.day] && !foundationProgress[day.day].isComplete
                       ? {
-                          value: lessonOneProgress.completed.length,
+                          value: foundationProgress[day.day].completed.length,
                           max: LESSON_ONE_SECTIONS.length,
                         }
                       : null
@@ -287,8 +294,8 @@ export function CoursePath() {
           locale={locale}
           isOpening={openingDay === selectedDay.day.day}
           partialProgress={
-            selectedDay.day.day === 1 && !lessonOneComplete
-              ? { value: lessonOneProgress.completed.length, max: LESSON_ONE_SECTIONS.length }
+            foundationProgress[selectedDay.day.day] && !foundationProgress[selectedDay.day.day].isComplete
+              ? { value: foundationProgress[selectedDay.day.day].completed.length, max: LESSON_ONE_SECTIONS.length }
               : null
           }
           onDismiss={() => setSelectedDay(null)}

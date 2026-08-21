@@ -4,13 +4,17 @@ import { createPortal } from 'react-dom'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button, Card, PauseGlyph, PlayGlyph, ProgressBar } from '../components/ui'
+import { RussianText } from '../components/RussianText'
 import { readAudioPreferences } from '../lib/audio-preferences'
 import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData, type Mascot, type Phrase, type Quiz, type Vocab } from '../lib/foundation-lessons'
-import { lessonOneStorageKey } from '../lib/demo-lesson-one'
+import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
+import { api, RequestError } from '../lib/api'
+import { pausePromptAudio, playPromptAudio, resumePromptAudio } from '../lib/liveVoice'
 import { playUiSound, type UiSound } from '../lib/ui-sounds'
+import type { StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
 
 const sections = [
   { id: 'tests', title: 'Yengil test' },
@@ -51,9 +55,7 @@ export function FoundationLesson() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const storageKey = user && lesson
-    ? day === 1
-      ? lessonOneStorageKey(user.id)
-      : `rgg.demostage.foundation-lesson.v1.${user.id}.${day}`
+    ? foundationLessonStorageKey(user.id, day)
     : null
   const [state, setState] = useState<StoredState>(() => readState(storageKey))
   const skipSave = useRef(searchParams.get('start') === '1')
@@ -77,7 +79,7 @@ export function FoundationLesson() {
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
 
-  if (!lesson || day < 1 || day > 5) return <Navigate to="/path" replace />
+  if (!lesson || day < 1 || day > 6) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)
@@ -139,11 +141,15 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'game' && (
-          <MatchingGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
-            setState((current) => ({ ...current, gameMatches }))
-          }} />
+          lesson.game.kind === 'family-crossword'
+            ? <FamilyCrossword lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                setState((current) => ({ ...current, gameMatches }))
+              }} />
+            : <MatchingGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                setState((current) => ({ ...current, gameMatches }))
+              }} />
         )}
-        {active.id === 'missions' && <MissionModes lesson={lesson} />}
+        {active.id === 'missions' && <MissionModes lesson={lesson} missionId={missionId} />}
         {active.id === 'vocabulary' && <VocabularySection words={lesson.vocabulary} />}
         {active.id === 'picture' && <ExerciseSection lesson={lesson} />}
         {active.id === 'complete' && <CompleteSection lesson={lesson} />}
@@ -163,7 +169,7 @@ function LessonHero({ lesson, progress }: { lesson: LessonData; progress: number
   return (
     <Card className="lesson-hero p-4 sm:p-6">
       <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{lesson.day}-dars · A1</p>
-      <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl">{lesson.titleRu}</h1>
+      <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
       <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
       <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold sm:text-sm">
         <span className="text-ink">Dars progressi</span>
@@ -229,13 +235,13 @@ function RuleSection({ rule }: { rule: LessonData['phonetics'] }) {
       <div className="flex items-start gap-3 sm:gap-5">
         <MascotImage mascot={rule.mascot} className="size-16 shrink-0 sm:size-24" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl">{rule.title}</h3>
-          <p className="mt-2 font-semibold leading-relaxed text-ink-muted">{rule.lead}</p>
+          <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
+          <p className="mt-2 font-semibold leading-relaxed text-ink-muted"><RussianText text={rule.lead} /></p>
           <SpeechButton text={`${rule.title}. ${rule.lead} ${rule.body.join(' ')}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm leading-relaxed text-ink-muted sm:text-base">
-        {rule.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        {rule.body.map((paragraph) => <p key={paragraph}><RussianText text={paragraph} /></p>)}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {rule.examples.map((example) => (
@@ -280,7 +286,7 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
         </div>
         <div className="p-5">
           <h3 className="text-2xl font-black text-ink"><RussianText text={phrase.ru} /></h3>
-          {phrase.pronunciation && <p className="mt-1 text-sm font-semibold text-ink-muted">{phrase.pronunciation}</p>}
+          {phrase.pronunciation && <p className="mt-1 text-sm font-semibold text-ink-muted"><RussianText text={phrase.pronunciation} /></p>}
           <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={phrase.example} /></p>
           <SpeechButton text={phrase.ru} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">Tinglang va takrorlang!</SpeechButton>
           <div className="mt-4 grid grid-cols-3 gap-2">
@@ -336,33 +342,178 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
   )
 }
 
-function MissionModes({ lesson }: { lesson: LessonData }) {
+function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const clues = lesson.game.clues ?? []
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [wrong, setWrong] = useState<string | null>(null)
+  const solved = Object.keys(matches).length
+
+  function check(answer: string) {
+    const value = (answers[answer] ?? '').trim().toLocaleLowerCase('ru-RU')
+    if (value.replaceAll('ё', 'е') === answer.replaceAll('ё', 'е')) {
+      onChange({ ...matches, [answer]: answer })
+      setWrong(null)
+      celebrate()
+      return
+    }
+    setWrong(answer)
+    playUiSound('wrong')
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <h3 className="font-black text-signal-ink">{lesson.game.title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p>
+      </Card>
+      <Card className="overflow-hidden p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between text-xs font-black text-ink-muted"><span>Oilaviy surat</span><span>{solved}/{clues.length}</span></div>
+        <div className="relative mx-auto aspect-square max-w-md overflow-hidden rounded-2xl bg-signal-soft">
+          <img src={lesson.sceneImage} alt="Panda va Pingvin bilan oilaviy surat" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-5" aria-hidden="true">
+            {clues.map(({ answer }) => <span key={answer} className={cx('border border-white/25 bg-ink/80 transition-all duration-500', matches[answer] && 'scale-0 opacity-0')} />)}
+          </div>
+        </div>
+      </Card>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {clues.map(({ clue, answer }, index) => {
+          const done = matches[answer] === answer
+          return (
+            <Card key={answer} className={cx('p-3', done && 'border-milestone bg-milestone-soft/40', wrong === answer && 'border-danger')}>
+              <p className="text-xs font-black text-ink-muted">{index + 1}. <RussianText text={clue} /></p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={done ? answer : answers[answer] ?? ''}
+                  disabled={done}
+                  lang="ru"
+                  onChange={(event) => setAnswers((current) => ({ ...current, [answer]: event.target.value }))}
+                  onKeyDown={(event) => { if (event.key === 'Enter') check(answer) }}
+                  placeholder={'_ '.repeat(answer.length).trim()}
+                  className="min-w-0 flex-1 rounded-xl border border-hairline bg-ground px-3 py-2 text-sm font-black text-ink outline-none focus:border-signal disabled:text-milestone"
+                />
+                <button type="button" disabled={done} onClick={() => check(answer)} className="rounded-xl bg-signal px-3 text-sm font-black text-on-signal disabled:bg-milestone">{done ? '✓' : '→'}</button>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: string }) {
   const [mode, setMode] = useState<'dialogue' | 'ai' | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
   const [feedback, setFeedback] = useState('')
   const [listening, setListening] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const attemptRef = useRef<StartAttemptResponse | null>(null)
 
-  function listen(onDone?: () => void) {
-    const SpeechRecognition = getSpeechRecognition()
-    if (!SpeechRecognition) {
-      setFeedback('Brauzer ovozni matnga aylantirishni qo‘llamaydi. Gapni ovoz chiqarib o‘qing va keyingi bosqichga o‘ting.')
-      speak('Gapni ovoz chiqarib o‘qing. Ajoyib mashq!', 'uz-UZ')
-      onDone?.()
+  useEffect(() => () => {
+    const recorder = recorderRef.current
+    if (recorder?.state === 'recording') {
+      recorder.onstop = null
+      recorder.onerror = null
+      recorder.stop()
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+  }, [])
+
+  async function requireAttempt() {
+    if (!missionId) throw new Error('Missiya topilmadi.')
+    if (attemptRef.current && !attemptRef.current.requiresExplicitRestart) return attemptRef.current
+    let attempt = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`)
+    if (attempt.requiresExplicitRestart) {
+      attempt = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts?restart=true`)
+    }
+    attemptRef.current = attempt
+    return attempt
+  }
+
+  async function toggleRecording(onDone?: () => void) {
+    if (listening) {
+      recorderRef.current?.stop()
       return
     }
-    const recognition = new SpeechRecognition()
-    recognition.lang = 'ru-RU'
-    recognition.interimResults = false
-    recognition.onstart = () => { setListening(true); setFeedback('') }
-    recognition.onend = () => setListening(false)
-    recognition.onerror = () => setFeedback('Ovoz aniqlanmadi. Mikrofonni qayta bosing.')
-    recognition.onresult = () => {
-      const message = 'Yaxshi! Talaffuzingiz eshitildi. Ruscha urg‘uga e’tibor berib yana bir marta takrorlang.'
-      setFeedback(message)
-      speak(message, 'uz-UZ')
-      onDone?.()
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        throw new Error('Bu brauzer ovoz yozishni qo‘llamaydi.')
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      // Keep the permission request inside the learner's tap; Android may reject it after a network await.
+      const attempt = await requireAttempt()
+      const mimeType = preferredRecordingMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      recorderRef.current = recorder
+      chunksRef.current = []
+      setFeedback('')
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
+      }
+      recorder.onstop = () => {
+        const recordedType = recorder.mimeType || mimeType || 'audio/webm'
+        const audio = new Blob(chunksRef.current, { type: recordedType })
+        setListening(false)
+        recorderRef.current = null
+        stream.getTracks().forEach((track) => track.stop())
+        streamRef.current = null
+        void submitRecording(audio, recordedType, attempt, onDone)
+      }
+      recorder.onerror = () => {
+        setListening(false)
+        stream.getTracks().forEach((track) => track.stop())
+        streamRef.current = null
+        setFeedback('Ovoz yozishda xatolik yuz berdi. Mikrofon ruxsatini tekshirib, yana bosing.')
+      }
+      recorder.start()
+      setListening(true)
+    } catch (error) {
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+      setListening(false)
+      const denied = error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+      setFeedback(denied
+        ? 'Mikrofonga ruxsat berilmagan. Brauzer sozlamasidan mikrofonni yoqing va qayta bosing.'
+        : error instanceof RequestError ? error.message : error instanceof Error ? error.message : 'Mikrofonni ishga tushirib bo‘lmadi.')
     }
-    recognition.start()
+  }
+
+  async function submitRecording(audio: Blob, mimeType: string, attempt: StartAttemptResponse, onDone?: () => void) {
+    if (audio.size === 0) {
+      setFeedback('Ovoz yozilmadi. Mikrofonni yana bosib, gapirib bo‘lgach to‘xtating.')
+      return
+    }
+    setProcessing(true)
+    try {
+      const stepIndex = mode === 'ai'
+        ? Math.min(questionIndex + 1, Math.max(attempt.totalSteps - 1, 0))
+        : Math.min(Math.max(attempt.currentStepIndex, 1), Math.max(attempt.totalSteps - 1, 0))
+      const form = new FormData()
+      form.set('attemptId', attempt.attemptId)
+      form.set('stepIndex', String(stepIndex))
+      form.set('isRetry', 'false')
+      form.set('audio', audio, `foundation-answer.${recordingExtension(mimeType)}`)
+      const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
+      attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
+      const message = [
+        result.transcript ? `Siz aytdingiz: ${result.transcript}` : '',
+        result.feedback.strengthNote,
+        result.feedback.headlineCorrection,
+      ].filter(Boolean).join('. ')
+      setFeedback(message)
+      await speak(message, 'uz-UZ')
+      onDone?.()
+    } catch (error) {
+      setFeedback(error instanceof RequestError ? error.message : 'Ovozni tekshirib bo‘lmadi. Internetni tekshirib, yana urinib ko‘ring.')
+    } finally {
+      setProcessing(false)
+    }
   }
 
   if (!mode) {
@@ -387,22 +538,22 @@ function MissionModes({ lesson }: { lesson: LessonData }) {
               <div key={`${line}-${index}`} className={cx('rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}><RussianText text={line} /></div>
             ))}
           </div>
-          <MicButton listening={listening} onClick={() => listen()} />
+          <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording()} />
         </div>
       ) : (
         <div className="text-center">
           <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">{questionIndex + 1} / {lesson.questions.length}</p>
           <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
-          <MicButton listening={listening} onClick={() => listen(() => setTimeout(() => setQuestionIndex((current) => Math.min(current + 1, lesson.questions.length - 1)), 900))} />
+          <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording(() => setTimeout(() => setQuestionIndex((current) => Math.min(current + 1, lesson.questions.length - 1)), 900))} />
         </div>
       )}
-      {feedback && <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone">{feedback}</p>}
+      {feedback && <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={feedback} /></p>}
     </Card>
   )
 }
 
-function MicButton({ listening, onClick }: { listening: boolean; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className={cx('mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white shadow-lg', listening ? 'animate-pulse bg-danger' : 'bg-signal')} aria-label="Mikrofon">{listening ? '■' : '🎙️'}</button>
+function MicButton({ listening, processing, onClick }: { listening: boolean; processing: boolean; onClick: () => void }) {
+  return <button type="button" onClick={onClick} disabled={processing} className={cx('mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white shadow-lg disabled:opacity-60', listening ? 'animate-pulse bg-danger' : 'bg-signal')} aria-label={listening ? 'Yozishni to‘xtatish' : 'Mikrofon'}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening ? '■' : '🎙️'}</button>
 }
 
 function VocabularySection({ words }: { words: Vocab[] }) {
@@ -460,6 +611,7 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
   const [answer, setAnswer] = useState('')
   return (
     <Card className="p-4 sm:p-5">
+      {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
       <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><div><h3 className="font-black text-ink">{lesson.exercise.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div></div>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
@@ -477,7 +629,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
       <h3 className="mt-3 text-3xl font-black text-ink">Ajoyib!</h3>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
-        {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : 'text-[#0000ff]')}>{outcome.title}</h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
+        {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
       </div>
     </Card>
   )
@@ -487,80 +639,31 @@ function MascotImage({ mascot, className }: { mascot: Mascot; className?: string
   return <img src={`/lesson-mascots/${mascot}.png`} alt={mascot === 'penguin' ? 'Pingvin ustoz' : mascot === 'panda' ? 'Panda murabbiy' : 'Pero yordamchi'} className={cx('object-contain', className)} />
 }
 
-const nounColors = {
-  masculine: '#0000FF', feminine: '#FF2400', neuter: '#FFFF00',
-}
-const caseColors: Record<string, string> = { genitive: '#8B00FF', dative: '#964B00', accusative: '#00BFFF', instrumental: '#44944A', prepositional: '#480607' }
-const nounStems = [
-  ...'учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,стул,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост'.split(',').map((stem) => ({ stem, color: nounColors.masculine })),
-  ...'професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,панд'.split(',').map((stem) => ({ stem, color: nounColors.feminine })),
-  ...'упражнен,письм,радио,мюсл,окн,мор,слов,мыл'.split(',').map((stem) => ({ stem, color: nounColors.neuter })),
-].sort((a, b) => b.stem.length - a.stem.length)
-
-function RussianText({ text }: { text: string }) {
-  const pieces = text.split(/([А-Яа-яЁё]+)/g)
-  let previousWord = ''
-  return <>{pieces.map((piece, index) => {
-    if (!/[А-Яа-яЁё]/.test(piece)) return <span key={index}>{piece}</span>
-    const lower = piece.toLocaleLowerCase('ru-RU')
-    const rendered = colorRussianWord(piece, lower, previousWord)
-    previousWord = lower
-    return <span key={index}>{rendered}</span>
-  })}</>
+function preferredRecordingMimeType() {
+  return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+    .find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) ?? ''
 }
 
-function colorRussianWord(original: string, lower: string, previousWord: string): ReactNode {
-  if (/^[аиу]$/u.test(lower)) return <span style={{ color: '#FF2400' }}>{original}</span>
-  const noun = nounStems.find(({ stem }) => lower.startsWith(stem))
-  if (noun) {
-    const rootLength = noun.stem.length
-    const root = original.slice(0, rootLength)
-    const ending = original.slice(rootLength)
-    const caseName = previousWord === 'к' ? 'dative'
-      : ['с', 'со'].includes(previousWord) ? 'instrumental'
-        : ['о', 'об', 'на', 'в'].includes(previousWord) ? 'prepositional'
-          : ['у', 'без', 'для', 'до', 'от'].includes(previousWord) ? 'genitive'
-            : null
-    const rootStyle = noun.color === '#FFFF00' ? { color: noun.color, textShadow: '0 0 1px #7a6500' } : { color: noun.color }
-    const endingColor = caseName ? caseColors[caseName] : noun.color
-    const endingStyle = endingColor === '#FFFF00' ? { color: endingColor, textShadow: '0 0 1px #7a6500' } : { color: endingColor }
-    return <><span style={rootStyle}>{root}</span>{ending && <span style={endingStyle}>{ending}</span>}</>
-  }
-  const past = lower.match(/л[аои]?$/u)
-  if (past && lower.length > past[0].length + 1) {
-    return <><span>{original.slice(0, -past[0].length)}</span><span style={{ color: '#F984E5' }}>{original.slice(-past[0].length)}</span></>
-  }
-  const personalEndings = ['аетесь', 'яетесь', 'итесь', 'аешь', 'яешь', 'аьют', 'яют', 'уют', 'аете', 'яете', 'аете', 'ишь', 'ешь', 'ете', 'ите', 'ает', 'яет', 'уют', 'ют', 'ут', 'ят', 'ат', 'ем', 'им', 'ю', 'у']
-  const ending = personalEndings.find((candidate) => lower.endsWith(candidate) && lower.length > candidate.length + 1)
-  if (ending) return <><span>{original.slice(0, -ending.length)}</span><span style={{ color: '#ED3CCA' }}>{original.slice(-ending.length)}</span></>
-  return original
+function recordingExtension(mimeType: string) {
+  return mimeType.includes('mp4') ? 'm4a' : 'webm'
 }
 
-type RecognitionLike = {
-  lang: string
-  interimResults: boolean
-  onstart: (() => void) | null
-  onend: (() => void) | null
-  onerror: (() => void) | null
-  onresult: (() => void) | null
-  start: () => void
-}
-type RecognitionConstructor = new () => RecognitionLike
-
-function getSpeechRecognition(): RecognitionConstructor | null {
-  const speechWindow = window as unknown as { SpeechRecognition?: RecognitionConstructor; webkitSpeechRecognition?: RecognitionConstructor }
-  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null
-}
-
-function speak(text: string, lang: string) {
-  if (!('speechSynthesis' in window)) return
+async function speak(text: string, lang: string) {
   if (readAudioPreferences().muted) return
   window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id: null } }))
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, ''))
-  utterance.lang = lang
-  utterance.rate = (lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
-  window.speechSynthesis.speak(utterance)
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let started = false
+      void playPromptAudio(cleanSpeechText(text), {
+        onStateChange: (state) => {
+          if (state === 'playing') started = true
+          if (state === 'idle' && started) resolve()
+        },
+      }).catch(reject)
+    })
+  } catch {
+    await new Promise<void>((resolve) => speakWithBrowser(text, lang, resolve))
+  }
 }
 
 function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken }: {
@@ -572,35 +675,38 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   autoPlayToken?: string
 }) {
   const id = useId()
-  const [status, setStatus] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle')
 
-  function start() {
-    if (!('speechSynthesis' in window) || readAudioPreferences().muted) return
-    window.speechSynthesis.cancel()
+  async function start() {
+    if (readAudioPreferences().muted) return
+    window.speechSynthesis?.cancel()
     window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id } }))
-    const utterance = new SpeechSynthesisUtterance(text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, ''))
-    utterance.lang = lang
-    utterance.rate = (lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
-    utterance.onend = () => setStatus('idle')
-    utterance.onerror = () => setStatus('idle')
-    setStatus('playing')
-    window.speechSynthesis.speak(utterance)
+    try {
+      await playPromptAudio(cleanSpeechText(text), {
+        onStateChange: (next) => setStatus(next),
+      })
+    } catch {
+      setStatus('playing')
+      speakWithBrowser(text, lang, () => setStatus('idle'))
+    }
   }
 
   function toggle(event: React.MouseEvent) {
     if (stopPropagation) event.stopPropagation()
-    if (!('speechSynthesis' in window)) return
     if (status === 'playing') {
-      window.speechSynthesis.pause()
+      pausePromptAudio()
+      window.speechSynthesis?.pause()
       setStatus('paused')
       return
     }
     if (status === 'paused') {
-      window.speechSynthesis.resume()
-      setStatus('playing')
+      void resumePromptAudio().then((resumed) => {
+        if (!resumed) window.speechSynthesis?.resume()
+        setStatus('playing')
+      })
       return
     }
-    start()
+    void start()
   }
 
   useEffect(() => {
@@ -613,17 +719,75 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   }, [id])
 
   useEffect(() => {
-    if (autoPlayToken) start()
+    if (autoPlayToken) void start()
     // A token is emitted only when a new AI prompt becomes active.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlayToken])
 
   return (
-    <button type="button" onClick={toggle} className={className} aria-label={status === 'playing' ? 'Pauza' : 'Tinglash'}>
-      {status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
+    <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? 'Pauza' : 'Tinglash'}>
+      {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
       {children}
     </button>
   )
+}
+
+function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void) {
+  if (!('speechSynthesis' in window)) {
+    onEnd?.()
+    return
+  }
+  const segments = splitSpeechByScript(cleanSpeechText(text), defaultLang)
+  const voices = window.speechSynthesis.getVoices()
+  window.speechSynthesis.cancel()
+
+  function play(index: number) {
+    const segment = segments[index]
+    if (!segment) {
+      onEnd?.()
+      return
+    }
+    const utterance = new SpeechSynthesisUtterance(segment.text)
+    utterance.lang = segment.lang
+    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
+    utterance.voice = pickVoice(voices, segment.lang)
+    utterance.onend = () => play(index + 1)
+    utterance.onerror = () => play(index + 1)
+    window.speechSynthesis.speak(utterance)
+  }
+
+  play(0)
+}
+
+function splitSpeechByScript(text: string, defaultLang: string) {
+  const segments: Array<{ text: string; lang: string }> = []
+  let buffer = ''
+  let language = defaultLang
+  for (const character of text) {
+    const nextLanguage = /[А-Яа-яЁё]/u.test(character) ? 'ru-RU' : /[A-Za-zʻʼ‘’]/u.test(character) ? defaultLang : language
+    if (buffer && nextLanguage !== language) {
+      segments.push({ text: buffer, lang: language })
+      buffer = ''
+    }
+    language = nextLanguage
+    buffer += character
+  }
+  if (buffer.trim()) segments.push({ text: buffer, lang: language })
+  return segments
+}
+
+function pickVoice(voices: SpeechSynthesisVoice[], lang: string) {
+  const prefix = lang.split('-')[0].toLocaleLowerCase()
+  const exact = voices.find((voice) => voice.lang.toLocaleLowerCase() === lang.toLocaleLowerCase())
+  if (exact) return exact
+  const sameLanguage = voices.find((voice) => voice.lang.toLocaleLowerCase().startsWith(prefix))
+  if (sameLanguage) return sameLanguage
+  if (lang === 'uz-UZ') return voices.find((voice) => voice.lang.toLocaleLowerCase().startsWith('tr')) ?? null
+  return null
+}
+
+function cleanSpeechText(text: string) {
+  return text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, '').replaceAll('—', ',').trim()
 }
 
 function readState(storageKey: string | null): StoredState {

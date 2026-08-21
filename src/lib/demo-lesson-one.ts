@@ -10,6 +10,12 @@ export function lessonOneStorageKey(userId: string): string {
   return `${LESSON_ONE_STORAGE_PREFIX}.${encodeURIComponent(userId)}`
 }
 
+export function foundationLessonStorageKey(userId: string, day: number): string {
+  return day === 1
+    ? lessonOneStorageKey(userId)
+    : `rgg.demostage.foundation-lesson.v1.${encodeURIComponent(userId)}.${day}`
+}
+
 export const LESSON_ONE_SECTIONS = [
   { id: 'tests', eyebrow: '1', title: 'Yengil test', progressTitle: 'Yengil test' },
   { id: 'phonetics', eyebrow: '2', title: 'Fonetik qoida', progressTitle: 'Fonetik qoida' },
@@ -35,10 +41,17 @@ export type LessonOneProgress = {
 }
 
 export function readLessonOneProgress(userId: string | null | undefined): LessonOneProgress {
+  return readFoundationLessonProgress(userId, 1)
+}
+
+export function readFoundationLessonProgress(
+  userId: string | null | undefined,
+  day: number,
+): LessonOneProgress {
   if (typeof window === 'undefined' || !userId) return { completed: [], isComplete: false }
 
   try {
-    const stored = localStorage.getItem(lessonOneStorageKey(userId))
+    const stored = localStorage.getItem(foundationLessonStorageKey(userId, day))
     if (!stored) return { completed: [], isComplete: false }
 
     const candidate = JSON.parse(stored) as StoredLessonOneState

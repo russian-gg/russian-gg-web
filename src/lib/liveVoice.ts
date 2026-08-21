@@ -903,6 +903,16 @@ export function stopPromptAudio() {
   promptAudioText = null
 }
 
+export function pausePromptAudio() {
+  promptAudio?.pause()
+}
+
+export async function resumePromptAudio() {
+  if (!promptAudio) return false
+  await promptAudio.play()
+  return true
+}
+
 function buildLiveWebSocketUrl(ticket: VoiceSessionTicket) {
   const rawBase = ticket.connectUrl.replace(
     'BidiGenerateContent',

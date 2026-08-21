@@ -39,15 +39,18 @@ export type LessonData = {
   grammar: RuleBlock
   phrases: Phrase[]
   game: {
+    kind?: 'matching' | 'family-crossword'
     title: string
     instruction: string
     pairs: Array<{ left: string; right: string }>
+    clues?: Array<{ clue: string; answer: string }>
   }
   dialogue: string[]
   questions: Array<{ question: string; answer: string }>
   vocabulary: Vocab[]
   exercise: { title: string; instruction: string; starter: string }
-  outcomes: Array<{ title: string; translation: string; tone: 'yellow' | 'blue' }>
+  outcomes: Array<{ title: string; translation: string; tone: 'yellow' | 'blue' | 'red' }>
+  sceneImage?: string
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
@@ -329,10 +332,139 @@ const lesson5: LessonData = {
   outcomes: [{ title: 'Русский язык', translation: 'rus tili', tone: 'blue' }, { title: 'Вопрос', translation: 'savol', tone: 'yellow' }, { title: 'Отрицание', translation: 'inkor', tone: 'blue' }],
 }
 
+const lesson6: LessonData = {
+  day: 6,
+  titleRu: 'Моя семья — какие они?',
+  titleUz: 'Mening oilam — ular qanday?',
+  tests: [
+    {
+      question: 'Qaysi so‘zda Т tovushi yumshoq [Т’] talaffuz qilinadi?',
+      options: ['тень', 'теннис'],
+      correct: 0,
+      feedback: '«тень» so‘zida е harfi oldingi Т tovushini yumshatadi: [т’эн’]. «теннис» o‘zlashma so‘zida esa Т qattiq aytiladi.',
+    },
+    {
+      question: 'Qaysi gapda sifat ot bilan to‘g‘ri moslashtirilgan?',
+      options: ['красивый сестра', 'красивая сестра', 'красивое сестра'],
+      correct: 1,
+      feedback: '«сестра» — женский род, shuning uchun to‘g‘ri shakl «красивая сестра».',
+    },
+  ],
+  phonetics: {
+    title: 'Qattiq Т va yumshoq Т’',
+    mascot: 'penguin',
+    lead: 'Rus tilida Т tovushi tilning holatiga qarab qattiq yoki yumshoq aytiladi.',
+    body: [
+      '[Т] qattiq aytilganda til uchi yuqori tishlarga tegadi va tilning orqa qismi pastda qoladi.',
+      '[Т’] yumshoq aytilganda tilning o‘rta qismi tanglayga ko‘tariladi. а, о, у, ы, э oldidan qattiq; я, ё, ю, и, е yoki ь oldidan yumshoq aytiladi.',
+    ],
+    examples: ['та — тя', 'то — тё', 'ту — тю', 'ты — ти', 'тэ — те', 'тень — теннис'],
+  },
+  grammar: {
+    title: 'Sifatlarning ot bilan moslashuvi',
+    mascot: 'panda',
+    lead: 'Sifat otning jinsi va soniga moslashadi: какой, какая, какое yoki какие.',
+    body: [
+      'Мужской род: -ый/-ой/-ий — красивый брат, большой дом. Женский род: -ая/-яя — красивая сестра, большая семья.',
+      'Средний род: -ое/-ее — красивое окно, синее море. Ko‘plikda barcha jinslar uchun -ые/-ие ishlatiladi: красивые дома, книги, окна.',
+    ],
+    examples: ['красивый брат', 'красивая сестра', 'красивое окно', 'большой папа', 'большая семья', 'дружные родители'],
+  },
+  phrases: [
+    p('Это моя семья.', 'Bu mening oilam.', '👨‍👩‍👧‍👦'),
+    p('Мой брат — красивый.', 'Mening akam chiroyli.', '👦'),
+    p('Моя сестра — умная.', 'Mening singlim aqlli.', '👧'),
+    p('Мой папа — сильный.', 'Mening dadam kuchli.', '👨'),
+    p('Моя мама — добрая.', 'Mening onam mehribon.', '👩'),
+    p('Моя бабушка — старая.', 'Mening buvim keksa.', '👵'),
+    p('Мой дедушка — мудрый.', 'Mening bobom dono.', '👴'),
+    p('Моя сестра — высокая.', 'Mening singlim baland bo‘yli.', '📏'),
+    p('Мой брат — молодой.', 'Mening akam yosh.', '🌱'),
+    p('Это моя тётя — она красивая.', 'Bu mening xolam — u chiroyli.', '👩‍🦰'),
+    p('Это мой дядя — он добрый.', 'Bu mening tog‘am — u mehribon.', '🧔'),
+    p('Наша семья — большая.', 'Bizning oilamiz katta.', '🏡'),
+    p('Мой брат — высокий и сильный.', 'Mening akam baland va kuchli.', '💪'),
+    p('Моя мама — молодая и красивая.', 'Mening onam yosh va chiroyli.', '🌷'),
+    p('Мы все — дружные.', 'Biz hammamiz ahilmiz.', '🤗'),
+  ],
+  game: {
+    kind: 'family-crossword',
+    title: 'Krossvord: Mening oilam',
+    instruction: 'Ta’rifni o‘qing va ruscha oila a’zosini yozing. Har bir to‘g‘ri javob oilaviy suratning bir qismini ochadi.',
+    pairs: [],
+    clues: [
+      { clue: 'Он молодой, высокий и сильный.', answer: 'брат' },
+      { clue: 'Она добрая, молодая и красивая.', answer: 'мама' },
+      { clue: 'Он сильный и серьёзный.', answer: 'папа' },
+      { clue: 'Она умная и высокая.', answer: 'сестра' },
+      { clue: 'Она старая и добрая.', answer: 'бабушка' },
+      { clue: 'Он старый и мудрый.', answer: 'дедушка' },
+      { clue: 'Мамина или папина сестра.', answer: 'тётя' },
+      { clue: 'Мамин или папин брат.', answer: 'дядя' },
+      { clue: 'Мама, папа и дети вместе.', answer: 'семья' },
+      { clue: 'Мама и папа одним словом.', answer: 'родители' },
+    ],
+  },
+  dialogue: [
+    'Пингвин: Это твоя семья?',
+    'Панда: Да, это моя семья. Вот мой брат — он красивый. Моя сестра — она умная.',
+    'Пингвин: А твой папа?',
+    'Панда: Мой папа — сильный. Моя мама — добрая.',
+    'Пингвин: Моя бабушка — старая, а дедушка — мудрый.',
+    'Панда: Твоя сестра высокая?',
+    'Пингвин: Да, она высокая, а брат молодой.',
+    'Панда: Это моя тётя — она красивая. А это мой дядя — он добрый.',
+    'Пингвин: Ваша семья большая?',
+    'Панда: Да, наша семья большая и дружная.',
+  ],
+  questions: [
+    { question: 'Это твоя семья?', answer: 'Да, это моя семья.' },
+    { question: 'Какой твой брат?', answer: 'Мой брат красивый, молодой, высокий и сильный.' },
+    { question: 'Какая твоя сестра?', answer: 'Моя сестра умная и высокая.' },
+    { question: 'Какая твоя мама?', answer: 'Моя мама добрая, молодая и красивая.' },
+    { question: 'Какой твой папа?', answer: 'Мой папа сильный.' },
+    { question: 'Ваша семья большая?', answer: 'Да, наша семья большая и дружная.' },
+  ],
+  vocabulary: [
+    v('красивый брат', 'chiroyli aka', '👦', 'Мой брат красивый.'),
+    v('умная сестра', 'aqlli opa yoki singil', '👧', 'Моя сестра умная.'),
+    v('сильный папа', 'kuchli dada', '👨', 'Мой папа сильный.'),
+    v('добрая мама', 'mehribon ona', '👩', 'Моя мама добрая.'),
+    v('старая бабушка', 'keksa buvi', '👵', 'Моя бабушка старая.'),
+    v('мудрый дедушка', 'dono bobo', '👴', 'Мой дедушка мудрый.'),
+    v('высокий дядя', 'baland bo‘yli tog‘a', '🧔', 'Мой дядя высокий.'),
+    v('красивая тётя', 'chiroyli xola', '👩‍🦰', 'Моя тётя красивая.'),
+    v('большая семья', 'katta oila', '👨‍👩‍👧‍👦', 'У нас большая семья.'),
+    v('дружные родители', 'ahil ota-ona', '🤝', 'Мои родители дружные.'),
+    v('молодой человек', 'yosh yigit', '🧑', 'Он молодой человек.'),
+    v('маленький ребёнок', 'kichkina bola', '🧒', 'Это маленький ребёнок.'),
+    v('добрый сосед', 'mehribon qo‘shni', '🏘️', 'У нас добрый сосед.'),
+    v('красивая девушка', 'chiroyli qiz', '👩‍🦱', 'Она красивая девушка.'),
+    v('новый дом', 'yangi uy', '🏠', 'Это наш новый дом.'),
+    v('уютная квартира', 'qulay kvartira', '🛋️', 'У нас уютная квартира.'),
+    v('светлое окно', 'yorug‘ deraza', '🪟', 'В комнате светлое окно.'),
+    v('интересная книга', 'qiziqarli kitob', '📖', 'Это интересная книга.'),
+    v('хороший друг', 'yaxshi do‘st', '🫂', 'Он мой хороший друг.'),
+    v('все вместе', 'hamma birga', '💞', 'Мы все вместе.'),
+  ],
+  exercise: {
+    title: 'Oilani tasvirlang',
+    instruction: 'Rasmga qarab oila a’zolarining tashqi ko‘rinishi va xarakteri haqida rus tilida 4–5 gap yozing. высокий, молодой, красивый, добрый, улыбчивый, серьёзный sifatlaridan foydalaning.',
+    starter: 'Это моя семья. Мой папа — высокий и серьёзный. Моя мама — красивая и добрая. …',
+  },
+  outcomes: [
+    { title: 'Моя семья', translation: 'mening oilam', tone: 'red' },
+    { title: 'Какой? Какая?', translation: 'qanday?', tone: 'blue' },
+    { title: 'Дружные', translation: 'ahil', tone: 'yellow' },
+  ],
+  sceneImage: '/lesson-scenes/day-6-family.jpg',
+}
+
 export const foundationLessons: Record<number, LessonData> = {
   1: lesson1,
   2: lesson2,
   3: lesson3,
   4: lesson4,
   5: lesson5,
+  6: lesson6,
 }
