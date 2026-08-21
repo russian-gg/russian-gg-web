@@ -182,16 +182,16 @@ export function CoursePath() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.path.title}</h1>
-          <p className="text-support mt-1">{t.path.subtitle}</p>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">{t.path.title}</h1>
+          <p className="mt-0.5 text-sm text-ink-muted sm:mt-1 sm:text-base">{t.path.subtitle}</p>
         </div>
         <Badge tone="milestone">{completedDays}/90</Badge>
       </header>
 
-      <div className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex-row sm:items-center sm:justify-between">
+      <div className="hidden flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-1 rounded-xl bg-ground-sunken p-1">
           {(['all', 'active', 'done'] as const).map((value) => (
             <button
@@ -378,7 +378,7 @@ function DayCard({
       aria-label={`${dayLabel}: ${focus}`}
       aria-busy={isOpening}
       className={cx(
-        'flex min-h-44 w-full flex-col rounded-[var(--radius-card)] border p-5 text-left',
+        'flex min-h-36 w-full flex-col rounded-[var(--radius-card)] border p-4 text-left sm:min-h-44 sm:p-5',
         'transition-[border-color,box-shadow,transform] duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
         isDone

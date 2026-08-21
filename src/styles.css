@@ -356,9 +356,18 @@
 
   @media (max-width: 767px) {
     .telegram-fab__surface {
-      width: 3.25rem;
-      height: 3.25rem;
+      width: 2.75rem;
+      height: 2.75rem;
     }
+
+    .telegram-fab__glow {
+      inset: -0.25rem;
+    }
+  }
+
+  .lesson-scene-icon {
+    animation: lessonSceneFloat 1.8s ease-in-out infinite;
+    transform-origin: 50% 80%;
   }
 
   /* Uzbek support text: always present, always visually secondary (PRD §7). */
@@ -378,4 +387,9 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+@keyframes lessonSceneFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
 }

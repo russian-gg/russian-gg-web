@@ -12,12 +12,12 @@ export function lessonOneStorageKey(userId: string): string {
 
 export const LESSON_ONE_SECTIONS = [
   { id: 'tests', eyebrow: '1', title: 'Yengil test', progressTitle: 'Yengil test' },
-  { id: 'phonetics', eyebrow: '2', title: 'Fonetik qoida', progressTitle: 'A, O, U va urg‘u' },
-  { id: 'grammar', eyebrow: '3', title: 'Grammatik qoida', progressTitle: 'Otlarning rodi' },
+  { id: 'phonetics', eyebrow: '2', title: 'Fonetik qoida', progressTitle: 'Fonetik qoida' },
+  { id: 'grammar', eyebrow: '3', title: 'Rodlar haqida ertak', progressTitle: 'Rodlar haqida ertak' },
   { id: 'phrases', eyebrow: '4', title: '15 ta asosiy ibora', progressTitle: '15 ta ibora' },
   { id: 'game', eyebrow: '5', title: 'Rangli uy', progressTitle: 'Rangli uy o‘yini' },
   { id: 'missions', eyebrow: '6', title: 'Dialog va AI savollari', progressTitle: 'AI missiyasi' },
-  { id: 'vocabulary', eyebrow: '7', title: 'Lug‘at', progressTitle: 'Lug‘at' },
+  { id: 'vocabulary', eyebrow: '7', title: 'Словарь', progressTitle: 'Словарь' },
   { id: 'picture', eyebrow: '8', title: 'Rasmli mashq', progressTitle: 'Rasmli mashq' },
   { id: 'complete', eyebrow: '9', title: 'Dars yakuni', progressTitle: 'Dars yakuni' },
 ] as const

@@ -55,7 +55,7 @@ export function AppShell() {
     <div className="min-h-dvh overflow-x-clip bg-ground-sunken md:flex">
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-2">
           <Wordmark />
           <ProfileMenu compact />
         </div>
@@ -97,7 +97,7 @@ export function AppShell() {
         The bottom padding clears the tab bar plus the home indicator; without it the last
         card on every screen sits under the bar and cannot be reached.
       */}
-      <main className="mx-auto w-full max-w-6xl px-5 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-10 md:py-10 md:pb-12 lg:px-14">
+      <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-6 md:px-10 md:py-10 md:pb-12 lg:px-14">
         <Outlet />
       </main>
 

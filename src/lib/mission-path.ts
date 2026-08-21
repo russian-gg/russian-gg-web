@@ -1,13 +1,12 @@
 import type { MissionSummary } from './types'
 
 /**
- * Day one is a complete lesson journey on the demo-stage release. Every other mission keeps
- * using the focused voice player, and the day-one journey hands off to that player for its
- * AI conversation section.
+ * The first five curriculum days use the complete mobile lesson journey. Later days keep
+ * using the focused voice player until their extended lesson content is authored.
  */
 export function missionPath(mission: Pick<MissionSummary, 'id' | 'slug' | 'courseDay'>) {
-  if (mission.slug === 'work-introduce-yourself' && mission.courseDay === 1) {
-    return `/lessons/1/${mission.id}`
+  if (mission.courseDay != null && mission.courseDay >= 1 && mission.courseDay <= 5) {
+    return `/lessons/${mission.courseDay}/${mission.id}`
   }
 
   return `/missions/${mission.id}`
