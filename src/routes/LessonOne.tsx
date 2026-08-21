@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, Dispatch, SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Card, LinkButton, PauseGlyph, PlayGlyph, ProgressBar } from '../components/ui'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
@@ -11,6 +11,7 @@ import {
   LESSON_ONE_SECTIONS as sections,
   lessonOneStorageKey,
 } from '../lib/demo-lesson-one'
+import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import type { LessonOneSection as LessonSection } from '../lib/demo-lesson-one'
 import type { MissionSummary } from '../lib/types'
 
@@ -114,6 +115,7 @@ const emptyState: LessonState = {
 export function LessonOne() {
   const { missionId } = useParams<{ missionId: string }>()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const storageKey = user ? lessonOneStorageKey(user.id) : null
   const [state, setState] = useState<LessonState>(() => loadState(storageKey))
   const active = sections[state.sectionIndex] ?? sections[0]
@@ -132,6 +134,19 @@ export function LessonOne() {
     localStorage.setItem(storageKey, JSON.stringify(state))
     window.dispatchEvent(new Event('rgg:lesson-one-progress'))
   }, [state, storageKey])
+
+  useEffect(() => {
+    if (active.id !== 'complete' || !missionId) return
+
+    void syncLessonOneCompletion(missionId).then(() => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['course-map'] }),
+      queryClient.invalidateQueries({ queryKey: ['day-missions'] }),
+      queryClient.invalidateQueries({ queryKey: ['progress'] }),
+      queryClient.invalidateQueries({ queryKey: ['home'] }),
+    ])).catch(() => {
+      // A later visit retries the idempotent sync; the completed browser lesson is preserved.
+    })
+  }, [active.id, missionId, queryClient])
 
   const gameSolved = useMemo(
     () => gameWords.every((word) => state.gameMatches[word.id] === word.answer),

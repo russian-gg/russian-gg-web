@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-one'
+import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
@@ -35,6 +36,7 @@ export function CoursePath() {
   const [notice, setNotice] = useState<DayNotice | null>(null)
   const [filter, setFilter] = useState<PathFilter>('all')
   const [search, setSearch] = useState('')
+  const lessonOneSyncStarted = useRef(false)
 
   const { data: days, isLoading } = useQuery({
     queryKey: ['course-map'],
@@ -51,20 +53,52 @@ export function CoursePath() {
     queryFn: () => api.get<ProgressView>('/course/progress'),
   })
 
-  if (isLoading || !days) return <Spinner />
-
   /*
    * Counted from the same field the ticks are, so the header and the rows cannot contradict
    * each other. Read off the current day it counted days the learner was placed past as
    * days they had done, which could make the summary claim progress the cards did not show.
    */
-  const maxPreviewDay = days.reduce(
+  const maxPreviewDay = (days ?? []).reduce(
     (highest, day) => (day.isFreePreview ? Math.max(highest, day.day) : highest),
     0,
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
   const lessonOneProgress = readLessonOneProgress(user?.id)
   const lessonOneComplete = lessonOneProgress.isComplete
+
+  useEffect(() => {
+    if (!lessonOneComplete
+      || !user?.id
+      || !progress
+      || progress.currentDay > 1
+      || lessonOneSyncStarted.current) {
+      return
+    }
+
+    lessonOneSyncStarted.current = true
+    void (async () => {
+      const missions = await queryClient.fetchQuery({
+        queryKey: ['day-missions', 1],
+        queryFn: () => api.get<MissionSummary[]>('/course/days/1/missions'),
+      })
+      const mission = missions.find((candidate) => candidate.slug === 'work-introduce-yourself')
+        ?? missions[0]
+      if (!mission) return
+
+      await syncLessonOneCompletion(mission.id)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['course-map'] }),
+        queryClient.invalidateQueries({ queryKey: ['day-missions'] }),
+        queryClient.invalidateQueries({ queryKey: ['progress'] }),
+        queryClient.invalidateQueries({ queryKey: ['home'] }),
+      ])
+    })().catch(() => {
+      lessonOneSyncStarted.current = false
+    })
+  }, [lessonOneComplete, progress, queryClient, user?.id])
+
+  if (isLoading || !days) return <Spinner />
+
   let previousDaysComplete = true
   const displayedDays = days.map((day) => {
     const isComplete =
