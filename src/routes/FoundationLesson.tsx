@@ -145,6 +145,10 @@ export function FoundationLesson() {
             ? <FamilyCrossword lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
+            : lesson.game.kind === 'gender-houses'
+              ? <GenderHouseGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                  setState((current) => ({ ...current, gameMatches }))
+                }} />
             : <MatchingGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
@@ -297,6 +301,188 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
         </div>
       </Card>
     </div>, document.body,
+  )
+}
+
+type GenderHouseName = 'Мужской род' | 'Женский род' | 'Средний род'
+type WordDrag = { word: string; x: number; y: number }
+
+const genderHouses: Array<{
+  name: GenderHouseName
+  label: string
+  icon: string
+  color: string
+  background: string
+}> = [
+  { name: 'Мужской род', label: 'Ko‘k uy', icon: '🐧', color: '#0000FF', background: '#e7f0ff' },
+  { name: 'Женский род', label: 'Qizil uy', icon: '🐼', color: '#FF2400', background: '#fff0ef' },
+  { name: 'Средний род', label: 'Sariq uy', icon: '🪶', color: '#8a6500', background: '#fff6d9' },
+]
+
+function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [dragging, setDragging] = useState<WordDrag | null>(null)
+  const [error, setError] = useState<{ word: string; house: string } | null>(null)
+  const pointerRef = useRef<{ pointerId: number; word: string; x: number; y: number } | null>(null)
+  const draggingRef = useRef<WordDrag | null>(null)
+  const didDragRef = useRef<string | null>(null)
+  const errorTimerRef = useRef<number | null>(null)
+  const remaining = lesson.game.pairs.filter((pair) => matches[pair.left] !== pair.right)
+  const matchedCount = lesson.game.pairs.length - remaining.length
+
+  useEffect(() => () => {
+    if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current)
+  }, [])
+
+  function showError(word: string, house: string) {
+    setError({ word, house })
+    playUiSound('wrong')
+    navigator.vibrate?.([35, 35, 35])
+    if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current)
+    errorTimerRef.current = window.setTimeout(() => setError(null), 1_800)
+  }
+
+  function placeWord(word: string, house: string | undefined) {
+    setSelected(null)
+    if (!house) return
+    const expected = lesson.game.pairs.find((pair) => pair.left === word)?.right
+    if (expected === house) {
+      setError(null)
+      onChange({ ...matches, [word]: house })
+      celebrate([25, 35, 60], 'coin')
+      return
+    }
+    showError(word, house)
+  }
+
+  function startPointer(event: React.PointerEvent<HTMLButtonElement>, word: string) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    didDragRef.current = null
+    pointerRef.current = { pointerId: event.pointerId, word, x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function movePointer(event: React.PointerEvent<HTMLButtonElement>) {
+    const pointer = pointerRef.current
+    if (!pointer || pointer.pointerId !== event.pointerId) return
+    const dx = event.clientX - pointer.x
+    const dy = event.clientY - pointer.y
+    if (!draggingRef.current && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+      draggingRef.current = { word: pointer.word, x: event.clientX, y: event.clientY }
+      setDragging(draggingRef.current)
+    }
+    if (draggingRef.current) {
+      event.preventDefault()
+      draggingRef.current = { ...draggingRef.current, x: event.clientX, y: event.clientY }
+      setDragging(draggingRef.current)
+    }
+  }
+
+  function finishPointer(event: React.PointerEvent<HTMLButtonElement>) {
+    const pointer = pointerRef.current
+    const activeDrag = draggingRef.current
+    pointerRef.current = null
+    draggingRef.current = null
+    setDragging(null)
+    if (!pointer || pointer.pointerId !== event.pointerId || !activeDrag) return
+    didDragRef.current = activeDrag.word
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-gender-house]')
+    placeWord(activeDrag.word, target?.dataset.genderHouse)
+  }
+
+  function cancelPointer() {
+    pointerRef.current = null
+    draggingRef.current = null
+    setDragging(null)
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-black text-signal-ink">{lesson.game.title}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{matchedCount}/{lesson.game.pairs.length}</span>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-3 sm:p-4">
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-ink-muted">
+          <span>So‘zlar</span>
+          <span>Yon tomonga suring →</span>
+        </div>
+        <div className="-mx-3 overflow-x-auto px-3 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
+          <div className="flex w-max min-w-full gap-2">
+            {remaining.length > 0 ? remaining.map((pair) => (
+              <div key={pair.left} className={cx('flex shrink-0 items-center rounded-xl border-2 bg-ground-raised shadow-sm transition', selected === pair.left && 'border-signal bg-signal-soft', error?.word === pair.left ? 'animate-pulse border-danger bg-danger-soft' : 'border-hairline')}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (didDragRef.current === pair.left) {
+                      didDragRef.current = null
+                      return
+                    }
+                    setSelected((current) => current === pair.left ? null : pair.left)
+                    playUiSound('select')
+                  }}
+                  onPointerDown={(event) => startPointer(event, pair.left)}
+                  onPointerMove={movePointer}
+                  onPointerUp={finishPointer}
+                  onPointerCancel={cancelPointer}
+                  className="touch-pan-x px-3 py-2.5 text-base font-black text-ink select-none"
+                  aria-pressed={selected === pair.left}
+                >
+                  <RussianText text={pair.left} />
+                </button>
+                <SpeechButton text={pair.left} lang="ru-RU" stopPropagation className="mr-1.5 flex size-8 items-center justify-center rounded-full bg-signal-soft text-signal-ink">
+                  <span className="sr-only">{pair.left} so‘zini tinglash</span>
+                </SpeechButton>
+              </div>
+            )) : <p className="w-full py-2 text-center text-sm font-black text-milestone">Barcha so‘zlar joylashtirildi! ✓</p>}
+          </div>
+        </div>
+      </Card>
+
+      {error && (
+        <p role="status" className="rounded-xl bg-danger-soft px-3 py-2 text-center text-sm font-black text-danger">
+          <RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring
+        </p>
+      )}
+
+      <div className="grid grid-cols-3 gap-2">
+        {genderHouses.map((house) => {
+          const placed = lesson.game.pairs.filter((pair) => matches[pair.left] === house.name)
+          const isWrongTarget = error?.house === house.name
+          return (
+            <button
+              key={house.name}
+              type="button"
+              data-gender-house={house.name}
+              onClick={() => { if (selected) placeWord(selected, house.name) }}
+              className={cx('min-h-44 rounded-2xl border-2 border-dashed p-2 text-left transition sm:min-h-52 sm:p-4', selected && 'ring-2 ring-signal/30', isWrongTarget && 'animate-pulse border-danger')}
+              style={{ borderColor: isWrongTarget ? '#dc2626' : house.color, background: house.background }}
+              aria-label={`${house.label}: ${house.name}`}
+            >
+              <span className="block text-2xl sm:text-3xl" aria-hidden="true">{house.icon}</span>
+              <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.color }}>{house.label}</span>
+              <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.color }}><RussianText text={house.name} /></span>
+              <span className="mt-3 flex flex-wrap gap-1">
+                {placed.map((pair) => <span key={pair.left} className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-ink shadow-sm sm:text-xs"><RussianText text={pair.left} /> ✓</span>)}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {dragging && createPortal(
+        <span className="pointer-events-none fixed z-[120] -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 border-signal bg-ground-raised px-4 py-2 text-base font-black text-ink shadow-xl" style={{ left: dragging.x, top: dragging.y }}>
+          <RussianText text={dragging.word} />
+        </span>,
+        document.body,
+      )}
+    </div>
   )
 }
 

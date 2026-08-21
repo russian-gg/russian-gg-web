@@ -39,7 +39,7 @@ export type LessonData = {
   grammar: RuleBlock
   phrases: Phrase[]
   game: {
-    kind?: 'matching' | 'family-crossword'
+    kind?: 'matching' | 'gender-houses' | 'family-crossword'
     title: string
     instruction: string
     pairs: Array<{ left: string; right: string }>
@@ -115,12 +115,15 @@ const lesson1: LessonData = {
     p('С удовольствием!', 'Mamnuniyat bilan!', '✨', 'С удовольствием!', 's udavólstviyem'),
   ],
   game: {
+    kind: 'gender-houses',
     title: 'Rangli uy',
-    instruction: 'So‘zni bosing, keyin mos rangli uyni tanlang. Sudrash shart emas — telefonda hammasi ekranga sig‘adi.',
+    instruction: 'So‘zni pastdagi mos rangli uyga sudrang. Telefonda xohlasangiz so‘zni, keyin uyni bosishingiz ham mumkin.',
     pairs: [
       { left: 'дом', right: 'Мужской род' }, { left: 'квартира', right: 'Женский род' },
       { left: 'окно', right: 'Средний род' }, { left: 'сосед', right: 'Мужской род' },
-      { left: 'дверь', right: 'Женский род' }, { left: 'море', right: 'Средний род' },
+      { left: 'ключ', right: 'Мужской род' }, { left: 'чай', right: 'Мужской род' },
+      { left: 'этаж', right: 'Мужской род' }, { left: 'лестница', right: 'Женский род' },
+      { left: 'дверь', right: 'Женский род' }, { left: 'комната', right: 'Женский род' },
     ],
   },
   dialogue: [
