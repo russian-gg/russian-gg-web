@@ -121,6 +121,12 @@
   */
   --animate-ripple: ripple 2.4s ease-out infinite;
   --animate-rise: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  /*
+    The full-bleed reels strip below the hero. Slow and linear — it is there to be felt at the
+    edge of attention, not read like a ticker. Two identical halves translate by exactly one
+    half, so the loop is seamless; hovering pauses it so a card can be clicked.
+  */
+  --animate-marquee: marquee 60s linear infinite;
 }
 
 /*
@@ -210,6 +216,54 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* The games section's illustrations are alive: the blade spins, the road rushes, the sound
+   pulses. All decorative and aria-hidden, and the global reduced-motion rule stills them. */
+@keyframes gameSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gameDash {
+  to {
+    stroke-dashoffset: -60;
+  }
+}
+
+@keyframes gamePulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes gameBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
   }
 }
 
@@ -385,6 +439,20 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+    }
+
+    /*
+      The reels strip does not auto-scroll when motion is reduced. Left as a manually
+      scrollable shelf so every reel is still reachable, rather than a static clip that hides
+      most of them.
+    */
+    .reel-viewport {
+      overflow-x: auto;
+    }
+
+    .reel-track {
+      animation: none !important;
+      transform: none !important;
     }
   }
 }

@@ -78,6 +78,129 @@ export const uz = {
     disclaimer:
       "Russian.gg — amaliy gapirish mashqi. Bu rasmiy til sertifikati yoki imtihonga " +
       "tayyorgarlik kursi emas, va jonli o'qituvchi o'rnini bosmaydi.",
+
+    nav: {
+      getStarted: 'Bepul boshlash',
+      signIn: 'Kirish',
+      method: 'Qanday ishlaydi',
+      games: "O'yinlar",
+      pricing: 'Narxlar',
+    },
+
+    hero: {
+      eyebrow: "O'zbeklar uchun rus tili murabbiysi",
+      primaryCta: 'Bepul boshlash',
+      secondaryCta: 'Darajangizni bepul aniqlang',
+      socialProof: "2 500+ o'quvchi allaqachon rus tilida gapiryapti.",
+      trustNote: 'Karta talab qilinmaydi',
+      mockDay: '3-kun',
+      mockObjective: 'Tanishuv',
+      mockHint: "Salomlashing va ismingizni ayting.",
+      mockAction: 'Gapiring',
+    },
+
+    stats: {
+      eyebrow: 'Traksiya',
+      title: "O'sishimiz — raqamlarda",
+      subtitle: "Investorlar uchun ham, o'quvchilar uchun ham: mana haqiqiy ko'rsatkichlar.",
+      learners: "o'quvchi",
+      active: 'oylik faol foydalanuvchi',
+      installRate: 'tashrifchi ilovani telefoniga o‘rnatadi',
+      opens: 'oylik ilova ochilishi',
+      note: "Ko'rsatkichlar so'nggi 30 kun bo'yicha.",
+    },
+
+    method: {
+      eyebrow: 'Qanday ishlaydi',
+      title: 'Har kuni 15–20 daqiqa. Ovoz bilan.',
+      subtitle:
+        "Test yechish emas — gapirish. Har bir mashq haqiqiy vaziyatga asoslangan.",
+      step1Title: 'Gapiring',
+      step1Body: "AI murabbiy bilan haqiqiy vaziyatlarda ovozli suhbat quring.",
+      step2Title: 'Darhol tuzatish',
+      step2Body: "Har bir javobdan keyin bitta kuchli tomon va bitta aniq tuzatish.",
+      step3Title: 'Har kuni oldinga',
+      step3Body: "Progress ko'rinib turadi: kun sayin yangi vaziyat, yangi so'z.",
+      milestonesTitle: "90 kunlik yo'l",
+    },
+
+    games: {
+      eyebrow: "O'yinlar",
+      title: "Mashqni o'yinga aylantiring",
+      subtitle: 'Gapirish va grammatikani o‘yin orqali refleksga aylantiring.',
+      runnerTitle: 'Rod-runner',
+      runnerBody:
+        "So'zlarni jinsi bo'yicha ajrating — yugurib borarkansiz. Rus tilidagi род refleksga aylanadi.",
+      sawTitle: 'Arra',
+      sawBody:
+        "Savol beriladi, arra sizga tomon suriladi. Gapirsangiz — orqaga chekinadi. Bir daqiqa gapirib qoling.",
+    },
+
+    creators: {
+      eyebrow: 'Ular biz haqimizda gapiryapti',
+      title: 'Bloggerlar va UGC ijodkorlari',
+      subtitle:
+        "Har oy minglab o'quvchi Instagram va ijodkorlar videolari orqali keladi.",
+      channelStat: 'Instagram orqali oylik tashrif',
+      watch: "Ko'rish",
+    },
+
+    mobile: {
+      eyebrow: 'Mobil',
+      title: 'Telefoningizda — xuddi ilovadek',
+      body:
+        "Russian.gg'ni bosh ekranga qo'shing: to'liq ekran, push eslatmalar, oflayn tayyor. Endi mahalliy iOS va Android ilovalari ustida ishlayapmiz.",
+      pwaTitle: 'Hozir: veb-ilova',
+      pwaBody: 'Bir bosishda telefon bosh ekraningizda.',
+      nativeTitle: 'Mobil ilova',
+      nativeBody: 'iOS va Android uchun — ishlab chiqilyapti.',
+      nativeBadge: 'Tez orada',
+      installedStat: 'telefonga allaqachon o‘rnatildi',
+    },
+
+    pricing: {
+      eyebrow: 'Narxlar',
+      title: 'Bugun bepul boshlang',
+      subtitle: "Avval sinab ko'ring. Tayyor bo'lganda Pro'ga o'ting.",
+      freeTitle: 'Bepul',
+      freePrice: '0',
+      freeUnit: "so'm",
+      freeBody: 'Boshlash uchun',
+      freeFeatures: [
+        'Darajangizni aniqlash',
+        'Dastlabki kunlar',
+        "O'yinlar",
+        "O'zbekcha qo'llab-quvvatlash",
+      ],
+      freeCta: 'Bepul boshlash',
+      proTitle: 'Pro',
+      proPrice: '119 000',
+      proUnit: "so'm / oy",
+      proBadge: 'Ommabop',
+      proBody: "To'liq 90 kunlik kurs",
+      proFeatures: [
+        'Barcha 90 kun missiyalari',
+        'Cheksiz ovozli mashq',
+        "Barcha o'yinlar",
+        'Progress va tuzatishlar tahlili',
+      ],
+      proAlt: 'yoki 90 kun — 299 000 so‘m',
+      proCta: "Pro'ni tanlash",
+      payNote: "Uzcard va Humo — Click orqali xavfsiz to'lov.",
+    },
+
+    final: {
+      title: '90 kun. Har kuni 15 daqiqa. Rus tilida gapiring.',
+      body: 'Bugun darajangizni bepul aniqlang.',
+      cta: 'Bepul boshlash',
+      signIn: 'Hisobingiz bormi? Kiring',
+    },
+
+    footer: {
+      tagline: "O'zbeklar uchun rus tili gapirish murabbiysi.",
+      madeIn: "O'zbekistonda ishlab chiqilgan.",
+      rights: '© 2026 Russian.gg',
+    },
   },
 
   auth: {

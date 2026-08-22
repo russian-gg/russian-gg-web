@@ -74,6 +74,128 @@ export const en: Dictionary = {
     disclaimer:
       'Russian.gg is speaking practice. It is not a language certificate, not exam ' +
       'preparation, and not a replacement for a human teacher.',
+
+    nav: {
+      getStarted: 'Start free',
+      signIn: 'Sign in',
+      method: 'How it works',
+      games: 'Games',
+      pricing: 'Pricing',
+    },
+
+    hero: {
+      eyebrow: 'A Russian speaking coach for Uzbek speakers',
+      primaryCta: 'Start free',
+      secondaryCta: 'Find your level free',
+      socialProof: '2,500+ learners already speaking Russian.',
+      trustNote: 'No card required',
+      mockDay: 'Day 3',
+      mockObjective: 'Introductions',
+      mockHint: 'Say hello and give your name.',
+      mockAction: 'Speak',
+    },
+
+    stats: {
+      eyebrow: 'Traction',
+      title: 'Our growth — in numbers',
+      subtitle: 'For investors and learners alike: here are the real figures.',
+      learners: 'learners',
+      active: 'monthly active users',
+      installRate: 'of visitors install the app',
+      opens: 'app opens per month',
+      note: 'Figures from the last 30 days.',
+    },
+
+    method: {
+      eyebrow: 'How it works',
+      title: '15–20 minutes a day. Out loud.',
+      subtitle: 'Not tests — talking. Every drill is built on a real situation.',
+      step1Title: 'Speak',
+      step1Body: 'Hold a voice conversation with an AI coach in real situations.',
+      step2Title: 'Instant correction',
+      step2Body: 'After every answer, one strength and one precise correction.',
+      step3Title: 'Forward every day',
+      step3Body: 'Progress is visible: a new situation and new words each day.',
+      milestonesTitle: 'The 90-day path',
+    },
+
+    games: {
+      eyebrow: 'Games',
+      title: 'Turn practice into a game',
+      subtitle: 'Make speaking and grammar automatic through play.',
+      runnerTitle: 'Rod-runner',
+      runnerBody:
+        'Sort words by gender — as you run. Russian род becomes a reflex.',
+      sawTitle: 'The Saw',
+      sawBody:
+        'A question appears and a blade rolls toward you. Speak and it retreats. Last a minute.',
+    },
+
+    creators: {
+      eyebrow: 'People are talking about us',
+      title: 'Bloggers and UGC creators',
+      subtitle:
+        'Every month thousands of learners arrive from Instagram and creator videos.',
+      channelStat: 'visits from Instagram per month',
+      watch: 'Watch',
+    },
+
+    mobile: {
+      eyebrow: 'Mobile',
+      title: 'On your phone — just like an app',
+      body:
+        'Add Russian.gg to your home screen: full screen, push reminders, offline-ready. We are now building native iOS and Android apps.',
+      pwaTitle: 'Now: web app',
+      pwaBody: 'One tap onto your phone home screen.',
+      nativeTitle: 'Mobile app',
+      nativeBody: 'For iOS and Android — in development.',
+      nativeBadge: 'Soon',
+      installedStat: 'phones already installed',
+    },
+
+    pricing: {
+      eyebrow: 'Pricing',
+      title: 'Start free today',
+      subtitle: 'Try it first. Move to Pro when you are ready.',
+      freeTitle: 'Free',
+      freePrice: '0',
+      freeUnit: 'so‘m',
+      freeBody: 'To get started',
+      freeFeatures: [
+        'Level placement',
+        'First days of the course',
+        'Games',
+        'Support in Uzbek',
+      ],
+      freeCta: 'Start free',
+      proTitle: 'Pro',
+      proPrice: '119,000',
+      proUnit: 'so‘m / mo',
+      proBadge: 'Popular',
+      proBody: 'The full 90-day course',
+      proFeatures: [
+        'All 90 days of missions',
+        'Unlimited voice practice',
+        'All games',
+        'Progress and correction analytics',
+      ],
+      proAlt: 'or 90 days — 299,000 so‘m',
+      proCta: 'Choose Pro',
+      payNote: 'Uzcard and Humo — secure payment via Click.',
+    },
+
+    final: {
+      title: '90 days. 15 minutes a day. Speak Russian.',
+      body: 'Find your level free today.',
+      cta: 'Start free',
+      signIn: 'Already have an account? Sign in',
+    },
+
+    footer: {
+      tagline: 'A Russian speaking coach for Uzbek speakers.',
+      madeIn: 'Made in Uzbekistan.',
+      rights: '© 2026 Russian.gg',
+    },
   },
 
   auth: {
