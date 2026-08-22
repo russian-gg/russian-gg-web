@@ -79,7 +79,7 @@ export function FoundationLesson() {
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
 
-  if (!lesson || day < 1 || day > 9) return <Navigate to="/path" replace />
+  if (!lesson || day < 1 || day > 10) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)
@@ -141,7 +141,11 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'game' && (
-          lesson.game.kind === 'missing-bag'
+          lesson.game.kind === 'city-map'
+            ? <CityMapGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                setState((current) => ({ ...current, gameMatches }))
+              }} />
+            : lesson.game.kind === 'missing-bag'
             ? <MissingBagGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
@@ -607,6 +611,63 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
           {solved.map((pair) => <span key={pair.left} className="rounded-full bg-milestone-soft px-2.5 py-1 text-xs font-black text-milestone">{bagItemIcons[pair.left]} <RussianText text={pair.left} /> ✓</span>)}
         </div>
       </Card>
+    </div>
+  )
+}
+
+const cityPlaceIcons: Record<string, string> = {
+  парк: '🌳', музей: '🏛️', кафе: '☕', улица: '🛣️', мост: '🌉',
+  фонтан: '⛲', магазин: '🏬', школа: '🏫', вокзал: '🚉', театр: '🎭',
+}
+
+function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [wrong, setWrong] = useState<string | null>(null)
+  const solved = lesson.game.pairs.filter((pair) => matches[pair.left] === pair.right)
+  const current = lesson.game.pairs.find((pair) => pair.left === selected)
+  const options = useMemo(() => {
+    if (!current) return []
+    const distractors = lesson.game.pairs
+      .filter((pair) => pair.left !== current.left && matches[pair.left] !== pair.right)
+      .map((pair) => pair.right)
+      .slice(0, 2)
+    return [current.right, ...distractors].sort((a, b) => a.localeCompare(b, 'ru'))
+  }, [current, lesson.game.pairs, matches])
+
+  function choose(option: string) {
+    if (!current) return
+    if (option === current.right) {
+      onChange({ ...matches, [current.left]: current.right })
+      setSelected(null)
+      setWrong(null)
+      celebrate([25, 30, 45], solved.length + 1 === lesson.game.pairs.length ? 'win' : 'coin')
+      return
+    }
+    setWrong(option)
+    playUiSound('wrong')
+    navigator.vibrate?.([30, 30, 30])
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div><span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{solved.length * 10} ball</span></div>
+      </Card>
+
+      <Card className="overflow-hidden p-3 sm:p-5">
+        <div className="rounded-2xl bg-[linear-gradient(145deg,#ddf3ff,#e6f7df_55%,#fff0c5)] p-3 sm:p-5">
+          <div className="mb-3 flex items-center justify-between text-xs font-black text-ink-muted"><span>Shahar xaritasi</span><span>{solved.length}/{lesson.game.pairs.length}</span></div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {lesson.game.pairs.map((pair) => {
+              const done = matches[pair.left] === pair.right
+              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink' : 'border-white bg-white/75 text-ink hover:border-signal')}><span className="text-3xl">{cityPlaceIcons[pair.left]}</span><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 text-[10px] font-black">+10 ✓</span>}</button>
+            })}
+          </div>
+        </div>
+      </Card>
+
+      {current && <Card className="p-3 sm:p-4"><p className="mb-3 text-sm font-black text-ink"><span className="mr-2 text-2xl">{cityPlaceIcons[current.left]}</span><RussianText text={current.left} /> haqida to‘g‘ri gapni tanlang:</p><div className="grid gap-2">{options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}</div></Card>}
+      {solved.length === lesson.game.pairs.length && <Card className="border-milestone bg-milestone-soft/50 p-5 text-center"><span className="text-5xl">🏙️</span><h4 className="mt-2 text-xl font-black text-milestone">Shahar xaritasi tayyor!</h4><p className="mt-1 text-sm text-ink-muted">10 ta sevimli joy haqida to‘g‘ri gap tuzdingiz — 100 ball!</p></Card>}
     </div>
   )
 }
@@ -1102,6 +1163,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
         {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
       </div>
+      {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} ↗</a>}
     </Card>
   )
 }

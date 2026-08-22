@@ -39,7 +39,7 @@ export type LessonData = {
   grammar: RuleBlock
   phrases: Phrase[]
   game: {
-    kind?: 'matching' | 'gender-houses' | 'family-crossword' | 'plural-puzzle' | 'room-builder' | 'missing-bag'
+    kind?: 'matching' | 'gender-houses' | 'family-crossword' | 'plural-puzzle' | 'room-builder' | 'missing-bag' | 'city-map'
     title: string
     instruction: string
     pairs: Array<{ left: string; right: string }>
@@ -58,6 +58,7 @@ export type LessonData = {
   outcomes: Array<{ title: string; translation: string; tone: 'yellow' | 'blue' | 'red' }>
   sceneImage?: string
   completionMessage?: string
+  completionAction?: { label: string; href: string }
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
@@ -851,6 +852,137 @@ const lesson9: LessonData = {
   completionMessage: 'Azizim, 9-dars muvaffaqiyatli tugadi! Endi siz kechikish, yo‘qolgan narsalar va pul yetishmasligi haqida rus tilida gapira olasiz. «У меня нет» konstruktsiyasi sizga har kuni kerak bo‘ladi. Men sizdan faxrlanaman! Keyingi darsda shahringiz haqida gaplashamiz. Yaxshi dam oling!',
 }
 
+const lesson10: LessonData = {
+  day: 10,
+  titleRu: 'Мой любимый город',
+  titleUz: 'Mening sevimli shahrim',
+  tests: [
+    {
+      question: 'Qaysi so‘zda В tovushi talaffuz qilinadi?',
+      options: ['фото', 'вода', 'футбол'],
+      correct: 1,
+      feedback: '«вода» so‘zida В — [вада]. «фото» va «футбол» so‘zlarida Ф tovushi aytiladi.',
+    },
+    {
+      question: 'Qaysi jumla to‘g‘ri?',
+      options: ['Я люблю город.', 'Я люблю городу.', 'Я люблю города.'],
+      correct: 0,
+      feedback: '«город» — мужской родdagi jonsiz ot, shuning uchun винительный падежda o‘zgarmaydi: «Я люблю город».',
+    },
+  ],
+  phonetics: {
+    title: 'В va Ф tovushlari',
+    mascot: 'pero',
+    lead: 'Ф — «фа», В — «ва». «Вода» — [вада], «фото» — [фота]. Bu tovushlarni almashtirmang.',
+    body: [
+      'В tovushida ovoz paychalari ishlaydi, Ф tovushida esa faqat havo chiqadi. Kaftingizni tomog‘ingizga qo‘yib farqni his qiling.',
+      'Juftliklarni sekin, keyin tabiiy tezlikda ayting. «вкус» so‘zida В jarangsizlanib [фкус] kabi eshitiladi.',
+    ],
+    examples: ['ва — фа', 'во — фо', 'ву — фу', 'вы — фы', 'ве — фе', 'вода', 'фото', 'вид', 'фильм', 'вкус', 'Фёдор'],
+  },
+  grammar: {
+    title: '«Вижу кого? что?»',
+    mascot: 'penguin',
+    lead: 'Shahardagi narsalarni tasvirlashda «вижу»dan keyin кого? yoki что? savolini bering.',
+    body: [
+      'Jonsiz мужской род otlari o‘zgarmaydi: вижу дом, люблю город. Jonli мужской род otlari -а/-я oladi: вижу друга, люблю папу.',
+      'Женский родdagi -а/-я bilan tugagan otlar -у/-ю ga o‘zgaradi: вижу книгу, люблю улицу. Средний род o‘zgarmaydi: вижу окно, люблю море.',
+      'Jonli mavjudot uchun «кого?», jonsiz narsa uchun «что?» savolini ishlating.',
+    ],
+    examples: ['Я вижу дом.', 'Я люблю город.', 'Я вижу друга.', 'Я люблю папу.', 'Я вижу книгу.', 'Я люблю улицу.', 'Я вижу окно.', 'Я люблю море.'],
+  },
+  phrases: [
+    p('Я люблю свой город.', 'Men o‘z shahrimni sevaman.', '🏙️'),
+    p('Я вижу красивые улицы.', 'Men chiroyli ko‘chalarni ko‘ryapman.', '🛣️'),
+    p('Я знаю этот парк.', 'Men bu bog‘ni bilaman.', '🌳'),
+    p('Я помню этот дом.', 'Men bu uyni eslayman.', '🏠'),
+    p('Я встречаю друзей.', 'Men do‘stlarimni uchratyapman.', '🫂'),
+    p('Я слышу шум города.', 'Men shahar shovqinini eshityapman.', '🔊'),
+    p('Я вижу детей в парке.', 'Men parkdagi bolalarni ko‘ryapman.', '🧒'),
+    p('Мы любим нашу улицу.', 'Biz ko‘chamizni sevamiz.', '🛣️'),
+    p('Я помню своё детство.', 'Men bolaligimni eslayman.', '🧸'),
+    p('Я вижу старые здания.', 'Men eski binolarni ko‘ryapman.', '🏛️'),
+    p('Мы знаем все магазины.', 'Biz barcha do‘konlarni bilamiz.', '🏬'),
+    p('Я люблю пить кофе в этом кафе.', 'Men bu kafeda kofe ichishni sevaman.', '☕'),
+    p('Я вижу фонтаны.', 'Men favvoralarni ko‘ryapman.', '⛲'),
+    p('Мы встречаемся у метро.', 'Biz metroda uchrashamiz.', '🚇'),
+    p('Какой красивый город!', 'Qanday go‘zal shahar!', '✨'),
+  ],
+  game: {
+    kind: 'city-map',
+    title: 'Mening sevimli shahrim',
+    instruction: 'Xaritadagi joyni tanlang va u haqidagi to‘g‘ri gapni toping. Har bir to‘g‘ri gap uchun 10 ball olasiz.',
+    pairs: [
+      { left: 'парк', right: 'Я люблю этот парк.' },
+      { left: 'музей', right: 'Я вижу музей.' },
+      { left: 'кафе', right: 'Я люблю пить кофе в этом кафе.' },
+      { left: 'улица', right: 'Я вижу красивую улицу.' },
+      { left: 'мост', right: 'Я знаю этот мост.' },
+      { left: 'фонтан', right: 'Я вижу фонтан.' },
+      { left: 'магазин', right: 'Я знаю этот магазин.' },
+      { left: 'школа', right: 'Я помню эту школу.' },
+      { left: 'вокзал', right: 'Я вижу вокзал.' },
+      { left: 'театр', right: 'Я люблю этот театр.' },
+    ],
+  },
+  dialogue: [
+    'Пингвин: Привет! Ты любишь свой город?',
+    'Панда: Да, я люблю свой город. Он красивый и зелёный.',
+    'Пингвин: Что ты любишь делать в городе?',
+    'Панда: Я люблю гулять в парке и пить кофе в кафе.',
+    'Пингвин: Что ты видишь на улице?',
+    'Панда: Я вижу красивые старые здания, фонтаны и людей.',
+    'Пингвин: Ты знаешь все магазины?',
+    'Панда: Да, я знаю все магазины в центре.',
+    'Пингвин: Ты помнишь своё детство в этом городе?',
+    'Панда: Да, я помню своё детство. Мы часто гуляли в парке.',
+    'Пингвин: Где ты встречаешь друзей?',
+    'Панда: Мы встречаемся у метро.',
+  ],
+  questions: [
+    { question: 'Ты любишь свой город?', answer: 'Да, я люблю свой город.' },
+    { question: 'Что ты любишь делать?', answer: 'Я люблю гулять в парке и пить кофе в кафе.' },
+    { question: 'Что ты видишь на улице?', answer: 'Я вижу красивые старые здания, фонтаны и людей.' },
+    { question: 'Ты знаешь магазины?', answer: 'Да, я знаю все магазины в центре.' },
+    { question: 'Ты помнишь своё детство?', answer: 'Да, я помню своё детство.' },
+    { question: 'Где ты встречаешь друзей?', answer: 'Мы встречаемся у метро.' },
+  ],
+  vocabulary: [
+    v('любить город', 'shaharni sevmoq', '🏙️', 'Я люблю свой город.'),
+    v('видеть улицу', 'ko‘chani ko‘rmoq', '🛣️', 'Я вижу красивую улицу.'),
+    v('знать парк', 'bog‘ni bilmoq', '🌳', 'Я знаю этот парк.'),
+    v('помнить дом', 'uyni eslamoq', '🏠', 'Я помню этот дом.'),
+    v('встречать друзей', 'do‘stlarni uchratmoq', '🫂', 'Я встречаю друзей.'),
+    v('слышать шум', 'shovqinni eshitmoq', '🔊', 'Я слышу шум города.'),
+    v('видеть детей', 'bolalarni ko‘rmoq', '🧒', 'Я вижу детей в парке.'),
+    v('любить улицу', 'ko‘chani sevmoq', '🛣️', 'Мы любим нашу улицу.'),
+    v('помнить детство', 'bolalikni eslamoq', '🧸', 'Я помню своё детство.'),
+    v('видеть здание', 'binoni ko‘rmoq', '🏛️', 'Я вижу старое здание.'),
+    v('знать магазины', 'do‘konlarni bilmoq', '🏬', 'Мы знаем все магазины.'),
+    v('любить кафе', 'kafeni sevmoq', '☕', 'Я люблю это кафе.'),
+    v('видеть фонтан', 'favvorani ko‘rmoq', '⛲', 'Я вижу фонтан.'),
+    v('знать метро', 'metroni bilmoq', '🚇', 'Я знаю это метро.'),
+    v('встречать родителей', 'ota-onani uchratmoq', '👨‍👩‍👧', 'Я встречаю родителей.'),
+    v('помнить школу', 'maktabni eslamoq', '🏫', 'Я помню эту школу.'),
+    v('видеть реку', 'daryoni ko‘rmoq', '🏞️', 'Я вижу реку.'),
+    v('любить мост', 'ko‘prikni sevmoq', '🌉', 'Я люблю этот мост.'),
+    v('знать площадь', 'maydonni bilmoq', '🏟️', 'Я знаю эту площадь.'),
+    v('помнить события', 'voqealarni eslamoq', '📅', 'Я помню эти события.'),
+  ],
+  exercise: {
+    title: 'Mening sevimli shahrim',
+    instruction: 'Sevimli shahringiz haqida rus tilida 7–8 gap yozing. любить, видеть, знать, помнить, встречать, слышать hamda парк, улица, здание, фонтан, друзья, детство, кафе so‘zlaridan foydalaning.',
+    starter: 'Я люблю свой город. Он большой и красивый. Я вижу высокие здания и зелёные парки. Я знаю каждую улицу в центре. Я помню своё детство, когда мы гуляли в парке. Я встречаю друзей в кафе. Мы пьём кофе и говорим о жизни. Какой красивый город!',
+  },
+  outcomes: [
+    { title: 'Мой город', translation: 'mening shahrim', tone: 'blue' },
+    { title: 'Вижу и знаю', translation: 'ko‘raman va bilaman', tone: 'yellow' },
+    { title: 'Любимые места', translation: 'sevimli joylar', tone: 'red' },
+  ],
+  completionMessage: '10-dars muvaffaqiyatli tugadi! Endi siz o‘z shahringiz haqida rus tilida mehr bilan gapira olasiz. Siz «вижу», «знаю», «помню», «люблю» fe’llarini ishlata olasiz. Bu A2 darajasi uchun muhim. Siz 10 ta darsni bosib o‘tdingiz — juda betakror natija! Endi Telegram botda o‘z taassurotlaringiz bilan o‘rtoqlashing. Sizning fikringiz — bizning rivojimiz!',
+  completionAction: { label: 'Telegram botda fikr bildirish', href: 'https://t.me/russian_gg_bot' },
+}
+
 export const foundationLessons: Record<number, LessonData> = {
   1: lesson1,
   2: lesson2,
@@ -861,4 +993,5 @@ export const foundationLessons: Record<number, LessonData> = {
   7: lesson7,
   8: lesson8,
   9: lesson9,
+  10: lesson10,
 }
