@@ -20,6 +20,7 @@ import { MissionResult } from './routes/MissionResult'
 import { Onboarding } from './routes/Onboarding'
 import { BillingReturn, Paywall } from './routes/Paywall'
 import { Games } from './routes/games/Games'
+import { GenderRunnerGame } from './routes/games/GenderRunnerGame'
 import { SawGame } from './routes/games/SawGame'
 import { Practice } from './routes/Practice'
 import { Progress } from './routes/Progress'
@@ -71,6 +72,7 @@ export function App() {
         {/* Full screen, outside the shell: a blade rolling at you should not share a page
             with navigation. */}
         <Route path="/games/arra" element={<RequireAuth><SawGame /></RequireAuth>} />
+        <Route path="/games/rod-runner" element={<RequireAuth><GenderRunnerGame /></RequireAuth>} />
 
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>

@@ -13,6 +13,7 @@ import { cx } from '../../lib/cx'
 /** Everything the app can draw, keyed by the slug the server switches on. */
 const ART: Record<string, { emoji: string; tint: string; to?: string }> = {
   arra: { emoji: '🪚', tint: 'from-signal/25 to-signal/5', to: '/games/arra' },
+  'rod-runner': { emoji: '🏃', tint: 'from-caution/30 to-signal/10', to: '/games/rod-runner' },
   'soz-ovi': { emoji: '🎯', tint: 'from-milestone/25 to-milestone/5' },
   'tez-javob': { emoji: '⚡️', tint: 'from-caution/25 to-caution/5' },
   dialog: { emoji: '💬', tint: 'from-signal/25 to-signal/5' },
