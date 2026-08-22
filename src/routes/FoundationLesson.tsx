@@ -79,7 +79,7 @@ export function FoundationLesson() {
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
 
-  if (!lesson || day < 1 || day > 6) return <Navigate to="/path" replace />
+  if (!lesson || day < 1 || day > 8) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)
@@ -141,7 +141,15 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'game' && (
-          lesson.game.kind === 'family-crossword'
+          lesson.game.kind === 'plural-puzzle'
+            ? <PluralPuzzle lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                setState((current) => ({ ...current, gameMatches }))
+              }} />
+            : lesson.game.kind === 'room-builder'
+              ? <RoomBuilder lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                  setState((current) => ({ ...current, gameMatches }))
+                }} />
+            : lesson.game.kind === 'family-crossword'
             ? <FamilyCrossword lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
@@ -531,6 +539,170 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
   )
 }
 
+function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [wrong, setWrong] = useState<string | null>(null)
+  const solved = lesson.game.pairs.filter((pair) => matches[pair.left] === pair.right).length
+  const options = useMemo(
+    () => lesson.game.pairs.map((pair) => pair.right).sort((a, b) => a.localeCompare(b, 'ru')),
+    [lesson.game.pairs],
+  )
+
+  function choosePlural(plural: string) {
+    if (!selected) return
+    const expected = lesson.game.pairs.find((pair) => pair.left === selected)?.right
+    if (expected === plural) {
+      onChange({ ...matches, [selected]: plural })
+      setSelected(null)
+      setWrong(null)
+      celebrate([30, 35, 55], 'coin')
+      return
+    }
+    setWrong(plural)
+    playUiSound('wrong')
+    navigator.vibrate?.([30, 30, 30])
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
+          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{solved}/{lesson.game.pairs.length}</span>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-3 sm:p-4">
+        <div className="relative mx-auto aspect-[4/3] max-w-xl overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#fff7dc,#dff3ff)]">
+          {lesson.sceneImage
+            ? <img src={lesson.sceneImage} alt="Mehmonlar va oila bir xonada" className="h-full w-full object-cover" />
+            : <div className="flex h-full items-center justify-center text-7xl">👨‍👩‍👧‍👦</div>}
+          <div className="absolute inset-0 grid grid-cols-3 grid-rows-2" aria-hidden="true">
+            {lesson.game.pairs.map((pair) => (
+              <span key={pair.left} className={cx('flex items-center justify-center border border-white/30 bg-ink/85 text-2xl font-black text-white transition-all duration-500', matches[pair.left] === pair.right && 'scale-0 opacity-0')}>
+                ?
+              </span>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {lesson.game.pairs.map((pair) => {
+          const done = matches[pair.left] === pair.right
+          return (
+            <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('rounded-xl border-2 px-3 py-2.5 text-left text-sm font-black transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>
+              <RussianText text={pair.left} /> {done ? '✓' : '→ ?'}
+            </button>
+          )
+        })}
+      </div>
+
+      {selected && (
+        <Card className="p-3 sm:p-4">
+          <p className="mb-2 text-xs font-black text-ink-muted"><RussianText text={selected} /> so‘zining ko‘pligini tanlang:</p>
+          <div className="flex flex-wrap gap-2">
+            {options.map((option) => (
+              <button key={option} type="button" onClick={() => choosePlural(option)} className={cx('rounded-full border-2 px-3 py-2 text-sm font-black', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}>
+                <RussianText text={option} />
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+const roomSlots = [
+  { id: 'picture-wall', label: 'devorda', icon: '🖼️', gridColumn: '1', gridRow: '1' },
+  { id: 'tv-wall', label: 'devorda', icon: '📺', gridColumn: '2 / span 2', gridRow: '1' },
+  { id: 'near-window', label: 'deraza yonida', icon: '💐', gridColumn: '4', gridRow: '1' },
+  { id: 'corner', label: 'burchakda', icon: '🚪', gridColumn: '1', gridRow: '2' },
+  { id: 'room-centre', label: 'xona o‘rtasida', icon: '🪑', gridColumn: '2 / span 2', gridRow: '2' },
+  { id: 'beside-wall', label: 'devor yonida', icon: '🛏️', gridColumn: '4', gridRow: '2' },
+  { id: 'beside-table', label: 'stol yonida', icon: '🪑', gridColumn: '1', gridRow: '3' },
+  { id: 'on-desk', label: 'stol ustida', icon: '💡', gridColumn: '2', gridRow: '3' },
+  { id: 'computer-desk', label: 'stol ustida', icon: '💻', gridColumn: '3', gridRow: '3' },
+  { id: 'on-floor', label: 'polda', icon: '🧶', gridColumn: '4', gridRow: '3' },
+] as const
+
+const roomObjectIcons: Record<string, string> = {
+  стол: '🪑', стул: '🪑', кровать: '🛏️', лампа: '💡', шкаф: '🚪',
+  телевизор: '📺', ковёр: '🧶', картина: '🖼️', цветы: '💐', компьютер: '💻',
+}
+
+function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [wrongSlot, setWrongSlot] = useState<string | null>(null)
+  const remaining = lesson.game.pairs.filter((pair) => matches[pair.left] !== pair.right)
+  const placed = lesson.game.pairs.length - remaining.length
+
+  function place(slot: string) {
+    if (!selected) return
+    const expected = lesson.game.pairs.find((pair) => pair.left === selected)?.right
+    if (expected === slot) {
+      onChange({ ...matches, [selected]: slot })
+      setSelected(null)
+      setWrongSlot(null)
+      celebrate([25, 30, 45], 'coin')
+      return
+    }
+    setWrongSlot(slot)
+    playUiSound('wrong')
+    navigator.vibrate?.([30, 30, 30])
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
+          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{placed}/{lesson.game.pairs.length}</span>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-3 sm:p-4">
+        <div className="mb-2 flex items-center justify-between gap-2 text-xs font-black text-ink-muted"><span>Buyumlar</span><span>Yon tomonga suring →</span></div>
+        <div className="-mx-3 overflow-x-auto px-3 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
+          <div className="flex w-max min-w-full gap-2">
+            {remaining.length > 0 ? remaining.map((pair) => (
+              <button key={pair.left} type="button" onClick={() => { setSelected(pair.left); setWrongSlot(null); playUiSound('select') }} className={cx('shrink-0 rounded-xl border-2 px-3 py-2.5 text-sm font-black transition', selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>
+                <span className="mr-1.5">{roomObjectIcons[pair.left]}</span><RussianText text={pair.left} />
+              </button>
+            )) : <p className="w-full py-2 text-center text-sm font-black text-milestone">Xona tayyor! ✓</p>}
+          </div>
+        </div>
+      </Card>
+
+      <RoomScene matches={matches} selected={selected} wrongSlot={wrongSlot} onSlot={place} />
+      {wrongSlot && <p role="status" className="rounded-xl bg-danger-soft px-3 py-2 text-center text-sm font-black text-danger">Bu buyumning joyi boshqa. Yana urinib ko‘ring.</p>}
+      {selected && <p className="text-center text-xs font-bold text-signal-ink"><RussianText text={selected} /> uchun xonadagi mos joyni bosing.</p>}
+    </div>
+  )
+}
+
+function RoomScene({ matches = {}, selected = null, wrongSlot = null, onSlot }: { matches?: Record<string, string>; selected?: string | null; wrongSlot?: string | null; onSlot?: (slot: string) => void }) {
+  return (
+    <Card className="overflow-hidden p-3 sm:p-4">
+      <div className="relative mx-auto aspect-[4/3] max-w-2xl overflow-hidden rounded-2xl border border-signal/25 bg-[linear-gradient(to_bottom,#dff3ff_0_63%,#d8bd98_63%_100%)] p-2 sm:p-4">
+        <div className="absolute top-2 right-3 h-16 w-20 rounded-lg border-4 border-white bg-[#bfe6ff] shadow-inner sm:h-24 sm:w-32"><span className="absolute inset-x-0 top-1/2 border-t-2 border-white" /><span className="absolute inset-y-0 left-1/2 border-l-2 border-white" /></div>
+        <div className="relative z-10 grid h-full grid-cols-4 grid-rows-3 gap-1.5 sm:gap-3">
+          {roomSlots.map((slot) => {
+            const word = Object.entries(matches).find(([, value]) => value === slot.id)?.[0]
+            return (
+              <button key={slot.id} type="button" disabled={!onSlot} onClick={() => onSlot?.(slot.id)} style={{ gridColumn: slot.gridColumn, gridRow: slot.gridRow }} className={cx('flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed bg-white/72 p-1 text-center shadow-sm transition sm:p-2', selected && 'hover:border-signal hover:bg-white', wrongSlot === slot.id ? 'animate-pulse border-danger bg-danger-soft' : word ? 'border-milestone bg-milestone-soft/90' : 'border-white/90')}>
+                <span className="text-lg sm:text-2xl">{word ? roomObjectIcons[word] : slot.icon}</span>
+                <span className={cx('mt-0.5 text-[9px] font-black leading-tight sm:text-xs', word ? 'text-milestone' : 'text-ink-muted')}>{word ? <RussianText text={word} /> : slot.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
   const clues = lesson.game.clues ?? []
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -801,6 +973,7 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
   return (
     <Card className="p-4 sm:p-5">
       {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
+      {lesson.game.kind === 'room-builder' && <div className="mb-4"><RoomScene /></div>}
       <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><div><h3 className="font-black text-ink">{lesson.exercise.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div></div>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
