@@ -45,7 +45,7 @@ export function Games() {
         {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
           const art = ART[game.slug]
 
-          if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} title={game.titleUz} body={game.bodyUz} />
+          if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} body={game.bodyUz} />
 
           return (
             <Link
@@ -75,7 +75,7 @@ export function Games() {
   )
 }
 
-function RunnerCard({ title, body }: { title: string; body: string }) {
+function RunnerCard({ body }: { body: string }) {
   let highScore = 0
   try {
     const saved = Number(localStorage.getItem('rgg_gender_runner_highscore'))
@@ -87,7 +87,7 @@ function RunnerCard({ title, body }: { title: string; body: string }) {
   return (
     <Link
       to="/games/rod-runner"
-      className="group relative overflow-hidden rounded-[32px] border border-slate-700 bg-gradient-to-br from-[#111827] via-[#1e293b] to-[#0f172a] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:col-span-2 sm:p-7"
+      className="group relative overflow-hidden rounded-[32px] border border-cyan-300/25 bg-gradient-to-br from-[#071c4a] via-[#0c4a6e] to-[#082f49] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:col-span-2 sm:p-7"
     >
       <span className="pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-amber-500/10 blur-3xl transition group-hover:bg-amber-500/20" />
       <span className="pointer-events-none absolute -bottom-20 -left-20 size-64 rounded-full bg-blue-500/10 blur-3xl" />
@@ -100,8 +100,8 @@ function RunnerCard({ title, body }: { title: string; body: string }) {
       </span>
 
       <span className="relative mt-4 grid gap-5 md:grid-cols-[1.25fr_1fr] md:items-center">
-        <span className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-blue-900 via-slate-900 to-black">
-          <span className="absolute inset-x-[18%] bottom-0 h-32 origin-bottom bg-gradient-to-t from-amber-800 to-amber-600/30 [clip-path:polygon(43%_0,57%_0,100%_100%,0_100%)]" />
+        <span className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/20 bg-gradient-to-b from-blue-950 via-sky-700 to-cyan-100">
+          <span className="absolute inset-x-[18%] bottom-0 h-32 origin-bottom bg-gradient-to-t from-cyan-100 to-sky-300/60 [clip-path:polygon(43%_0,57%_0,100%_100%,0_100%)]" />
           <span className="relative z-10 flex flex-col items-center gap-3 transition duration-300 group-hover:scale-105">
             <span className="rounded-xl border-2 border-amber-600 bg-amber-100 px-4 py-1.5 text-sm font-black text-amber-950 shadow-xl">«ПЕРСИК»</span>
             <span className="flex gap-1.5 text-[9px] font-black uppercase min-[370px]:text-[10px]">
@@ -109,18 +109,18 @@ function RunnerCard({ title, body }: { title: string; body: string }) {
               <span className="rounded border border-rose-400 bg-rose-600/90 px-2 py-1">Женский</span>
               <span className="rounded border border-amber-300 bg-amber-500/90 px-2 py-1 text-amber-950">Средний</span>
             </span>
-            <span className="text-4xl drop-shadow-xl" aria-hidden>🐼</span>
+            <img src="/lesson-mascots/penguin.png" alt="" loading="lazy" decoding="async" className="h-14 w-14 object-contain drop-shadow-xl" />
           </span>
         </span>
 
         <span>
-          <strong className="block text-2xl font-black sm:text-3xl">{title || 'Gender Runner'}</strong>
+          <strong className="block text-2xl font-black sm:text-3xl">Penguin Ice Runner</strong>
           <span className="mt-2 block text-sm leading-relaxed text-slate-300">{body}</span>
-          <span className="mt-2 block text-xs leading-relaxed text-slate-400">Pandani uch yo‘lakda boshqaring, tangalarni yig‘ing, yog‘ochlardan sakrang va ruscha otlarning rodini toping.</span>
+          <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">Pingvinni uchta muz yo‘lakda boshqaring, Z-shakldagi tangalarni yig‘ing, muzlardan sakrang va ruscha otlarning rodini toping.</span>
           <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 text-sm font-black shadow-lg shadow-rose-500/20 transition group-hover:scale-105">
             ▶ O‘ynash
           </span>
-          <span className="ml-3 text-xs font-bold text-slate-400">3D o‘rmon yugurishi</span>
+          <span className="ml-3 text-xs font-bold text-cyan-100/60">3D muzlik yugurishi</span>
         </span>
       </span>
     </Link>
