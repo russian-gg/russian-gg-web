@@ -39,7 +39,7 @@ export type LessonData = {
   grammar: RuleBlock
   phrases: Phrase[]
   game: {
-    kind?: 'matching' | 'gender-houses' | 'family-crossword' | 'plural-puzzle' | 'room-builder'
+    kind?: 'matching' | 'gender-houses' | 'family-crossword' | 'plural-puzzle' | 'room-builder' | 'missing-bag'
     title: string
     instruction: string
     pairs: Array<{ left: string; right: string }>
@@ -48,9 +48,16 @@ export type LessonData = {
   dialogue: string[]
   questions: Array<{ question: string; answer: string }>
   vocabulary: Vocab[]
-  exercise: { title: string; instruction: string; starter: string }
+  exercise: {
+    kind?: 'writing' | 'remove-clutter'
+    title: string
+    instruction: string
+    starter: string
+    items?: Array<{ item: string; phrase: string; icon: string }>
+  }
   outcomes: Array<{ title: string; translation: string; tone: 'yellow' | 'blue' | 'red' }>
   sceneImage?: string
+  completionMessage?: string
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
@@ -706,6 +713,144 @@ const lesson8: LessonData = {
   ],
 }
 
+const lesson9: LessonData = {
+  day: 9,
+  titleRu: 'Опоздал! Чего нет?',
+  titleUz: 'Kechikdim! Nima yo‘q?',
+  tests: [
+    {
+      question: 'Qaysi so‘zda С yumshoq talaffuz qilinadi?',
+      options: ['суп', 'синий', 'сад'],
+      correct: 1,
+      feedback: '«синий» so‘zida С yumshoq aytiladi, chunki undan keyin и keladi. «суп» va «сад» so‘zlarida С qattiq.',
+    },
+    {
+      question: 'Qaysi jumla to‘g‘ri?',
+      options: ['У меня нет время.', 'У меня нет времени.', 'У меня нет времяни.'],
+      correct: 1,
+      feedback: '«время» istisno: нет чего? — времени. To‘g‘ri shakl: «У меня нет времени».',
+    },
+  ],
+  phonetics: {
+    title: 'Qattiq С va yumshoq С’',
+    mascot: 'pero',
+    lead: 'Qattiq С — «са», yumshoq С’ — «ся». O‘zbek tilida bunday farq yo‘q, shuning uchun tovushni diqqat bilan tinglang.',
+    body: [
+      'е, ё, ю, я, и va ь harflari o‘zidan oldingi С tovushini yumshatadi. «сад» so‘zida С qattiq, «синий» so‘zida esa yumshoq aytiladi.',
+      '«синий» so‘zini «сыний» deb aytmang. Juftliklarni avval sekin, keyin tabiiy tezlikda takrorlang.',
+    ],
+    examples: ['са — ся', 'со — сё', 'су — сю', 'сы — си', 'сэ — се', 'сад', 'синий', 'суп', 'семья', 'сосед'],
+  },
+  grammar: {
+    title: '«У меня нет» — menda yo‘q',
+    mascot: 'penguin',
+    lead: 'Yo‘qlikni ifodalash uchun «у меня нет …» ishlatiladi. «Нет»dan keyin нет кого? yoki нет чего? savolini bering.',
+    body: [
+      'Jonli mavjudot uchun «кого?», jonsiz narsa uchun «чего?» so‘raladi. «Нет»dan keyin ot родительный падеж shakliga o‘tadi: книга — книги, стол — стола.',
+      'Undosh bilan tugagan so‘zlar ko‘pincha -а/-я oladi; -а/-я esa -ы/-и ga, -о/-е esa -а/-я ga o‘zgaradi. Ko‘plikda -ов, -ей yoki nol tugash kelishi mumkin.',
+      'Muhim istisnolarni yodda tuting: время — нет времени; имя — нет имени.',
+    ],
+    examples: ['У меня нет книги.', 'У меня нет стола.', 'У меня нет брата.', 'У меня нет ключей.', 'У меня нет времени.', 'У меня нет имени.'],
+  },
+  phrases: [
+    p('Я опаздываю!', 'Men kechikyapman!', '⏰'),
+    p('У меня нет ключей.', 'Mening kalitlarim yo‘q.', '🔑'),
+    p('У меня нет телефона.', 'Mening telefonim yo‘q.', '📱'),
+    p('У меня нет зарядки.', 'Mening zaryadkam yo‘q.', '🔌'),
+    p('У меня нет интернета.', 'Mening internetim yo‘q.', '📶'),
+    p('У меня нет денег.', 'Mening pulim yo‘q.', '💵'),
+    p('У меня нет времени.', 'Mening vaqtim yo‘q.', '⌛'),
+    p('У меня нет зонта.', 'Mening soyabonim yo‘q.', '☂️'),
+    p('У меня нет друга.', 'Mening do‘stim yo‘q.', '🧑‍🤝‍🧑'),
+    p('В машине нет бензина.', 'Mashinada benzin yo‘q.', '⛽'),
+    p('В доме нет света.', 'Uyda yorug‘lik yo‘q.', '💡'),
+    p('В холодильнике нет еды.', 'Muzlatgichda ovqat yo‘q.', '🍽️'),
+    p('У меня нет идей.', 'Mening g‘oyam yo‘q.', '💭'),
+    p('У меня нет работы.', 'Mening ishim yo‘q.', '💼'),
+    p('Что делать? Не знаю.', 'Nima qilish kerak? Bilmayman.', '🤷'),
+  ],
+  game: {
+    kind: 'missing-bag',
+    title: 'Kechikdim! Nima yo‘q?',
+    instruction: 'Ishga ketish uchun sumkani yig‘ing. Har safar yo‘qolgan buyum haqida to‘g‘ri gapni tanlang. Har bir javob — 10 ball, to‘liq sumka — yana 30 bonus ball.',
+    pairs: [
+      { left: 'ключи', right: 'У меня нет ключей.' },
+      { left: 'телефон', right: 'У меня нет телефона.' },
+      { left: 'зарядник', right: 'У меня нет зарядника.' },
+      { left: 'кошелёк', right: 'У меня нет кошелька.' },
+      { left: 'деньги', right: 'У меня нет денег.' },
+      { left: 'зонт', right: 'У меня нет зонта.' },
+      { left: 'очки', right: 'У меня нет очков.' },
+      { left: 'наушники', right: 'У меня нет наушников.' },
+    ],
+  },
+  dialogue: [
+    'Пингвин: Ты опять опаздываешь! Что случилось?',
+    'Панда: Извини! У меня нет ключей. Я не могу выйти из дома.',
+    'Пингвин: У тебя нет запасных ключей?',
+    'Панда: Нет, у меня нет запасных ключей.',
+    'Пингвин: У тебя есть телефон? Позвони соседям.',
+    'Панда: Телефон есть, но у меня нет зарядника. Он разрядился.',
+    'Пингвин: У тебя есть деньги на такси?',
+    'Панда: Нет, у меня нет денег.',
+    'Пингвин: У меня есть ключи и деньги. Приходи ко мне.',
+    'Панда: Спасибо! У тебя есть время?',
+    'Пингвин: Да, у меня есть время. Жду!',
+  ],
+  questions: [
+    { question: 'Что случилось?', answer: 'У меня нет ключей.' },
+    { question: 'У тебя есть запасные ключи?', answer: 'Нет, у меня нет запасных ключей.' },
+    { question: 'У тебя есть телефон?', answer: 'Телефон есть, но у меня нет зарядки.' },
+    { question: 'У тебя есть деньги на такси?', answer: 'Нет, у меня нет денег.' },
+    { question: 'У тебя есть время?', answer: 'Да, у меня есть время.' },
+    { question: 'Что у тебя есть?', answer: 'У меня есть ключи и деньги.' },
+  ],
+  vocabulary: [
+    v('нет ключей', 'kalitlar yo‘q', '🔑', 'У меня нет ключей.'),
+    v('нет телефона', 'telefon yo‘q', '📱', 'У меня нет телефона.'),
+    v('нет зарядки', 'zaryadka yo‘q', '🔌', 'У меня нет зарядки.'),
+    v('нет интернета', 'internet yo‘q', '📶', 'У меня нет интернета.'),
+    v('нет денег', 'pul yo‘q', '💵', 'У меня нет денег.'),
+    v('нет времени', 'vaqt yo‘q', '⌛', 'У меня нет времени.'),
+    v('нет зонта', 'soyabon yo‘q', '☂️', 'У меня нет зонта.'),
+    v('нет друга', 'do‘st yo‘q', '🧑‍🤝‍🧑', 'У меня нет друга.'),
+    v('нет бензина', 'benzin yo‘q', '⛽', 'В машине нет бензина.'),
+    v('нет света', 'yorug‘lik yo‘q', '💡', 'В доме нет света.'),
+    v('нет еды', 'ovqat yo‘q', '🍽️', 'В холодильнике нет еды.'),
+    v('нет идей', 'g‘oya yo‘q', '💭', 'У меня нет идей.'),
+    v('нет работы', 'ish yo‘q', '💼', 'У меня нет работы.'),
+    v('нет документов', 'hujjatlar yo‘q', '📄', 'У меня нет документов.'),
+    v('нет проездного', 'yo‘l chiptasi yo‘q', '🎫', 'У меня нет проездного.'),
+    v('нет очков', 'ko‘zoynak yo‘q', '👓', 'У меня нет очков.'),
+    v('нет наушников', 'quloqchin yo‘q', '🎧', 'У меня нет наушников.'),
+    v('нет учебника', 'darslik yo‘q', '📘', 'У меня нет учебника.'),
+    v('нет ручки', 'ruchka yo‘q', '🖊️', 'У меня нет ручки.'),
+    v('нет тетради', 'daftar yo‘q', '📓', 'У меня нет тетради.'),
+  ],
+  exercise: {
+    kind: 'remove-clutter',
+    title: 'Yotoqxonani tartibga keltiring',
+    instruction: 'Xonadagi ortiqcha buyumlarni bosing. Buyum yo‘qoladi va uning yo‘qligini bildiradigan ruscha gap chiqadi.',
+    starter: 'В комнате нет …',
+    items: [
+      { item: 'чашка', phrase: 'Нет чашки.', icon: '☕' },
+      { item: 'зонт', phrase: 'Нет зонта.', icon: '☂️' },
+      { item: 'телефон', phrase: 'Нет телефона.', icon: '📱' },
+      { item: 'ключи', phrase: 'Нет ключей.', icon: '🔑' },
+      { item: 'очки', phrase: 'Нет очков.', icon: '👓' },
+      { item: 'наушники', phrase: 'Нет наушников.', icon: '🎧' },
+      { item: 'учебник', phrase: 'Нет учебника.', icon: '📘' },
+      { item: 'тетрадь', phrase: 'Нет тетради.', icon: '📓' },
+    ],
+  },
+  outcomes: [
+    { title: 'У меня нет', translation: 'menda yo‘q', tone: 'blue' },
+    { title: 'Кого? Чего?', translation: 'yo‘qlik savollari', tone: 'red' },
+    { title: 'Опоздал!', translation: 'kechikdim', tone: 'yellow' },
+  ],
+  completionMessage: 'Azizim, 9-dars muvaffaqiyatli tugadi! Endi siz kechikish, yo‘qolgan narsalar va pul yetishmasligi haqida rus tilida gapira olasiz. «У меня нет» konstruktsiyasi sizga har kuni kerak bo‘ladi. Men sizdan faxrlanaman! Keyingi darsda shahringiz haqida gaplashamiz. Yaxshi dam oling!',
+}
+
 export const foundationLessons: Record<number, LessonData> = {
   1: lesson1,
   2: lesson2,
@@ -715,4 +860,5 @@ export const foundationLessons: Record<number, LessonData> = {
   6: lesson6,
   7: lesson7,
   8: lesson8,
+  9: lesson9,
 }

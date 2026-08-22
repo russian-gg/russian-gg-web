@@ -79,7 +79,7 @@ export function FoundationLesson() {
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
 
-  if (!lesson || day < 1 || day > 8) return <Navigate to="/path" replace />
+  if (!lesson || day < 1 || day > 9) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)
@@ -141,7 +141,11 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'game' && (
-          lesson.game.kind === 'plural-puzzle'
+          lesson.game.kind === 'missing-bag'
+            ? <MissingBagGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                setState((current) => ({ ...current, gameMatches }))
+              }} />
+            : lesson.game.kind === 'plural-puzzle'
             ? <PluralPuzzle lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
@@ -533,6 +537,74 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
               }} className={cx('min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
             })}
           </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+const bagItemIcons: Record<string, string> = {
+  ключи: '🔑', телефон: '📱', зарядник: '🔌', кошелёк: '👛',
+  деньги: '💵', зонт: '☂️', очки: '👓', наушники: '🎧',
+}
+
+function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const [wrong, setWrong] = useState<string | null>(null)
+  const solved = lesson.game.pairs.filter((pair) => matches[pair.left] === pair.right)
+  const current = lesson.game.pairs[solved.length]
+  const score = solved.length * 10 + (solved.length === lesson.game.pairs.length ? 30 : 0)
+  const options = useMemo(() => {
+    if (!current) return []
+    const distractors = lesson.game.pairs
+      .filter((pair) => pair.left !== current.left && matches[pair.left] !== pair.right)
+      .map((pair) => pair.right)
+      .slice(0, 2)
+    return [current.right, ...distractors].sort((a, b) => a.localeCompare(b, 'ru'))
+  }, [current, lesson.game.pairs, matches])
+
+  function choose(option: string) {
+    if (!current) return
+    if (option === current.right) {
+      onChange({ ...matches, [current.left]: current.right })
+      setWrong(null)
+      celebrate([25, 30, 50], solved.length + 1 === lesson.game.pairs.length ? 'win' : 'coin')
+      return
+    }
+    setWrong(option)
+    playUiSound('wrong')
+    navigator.vibrate?.([30, 30, 30])
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
+          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{score} ball</span>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-3 sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] sm:items-center">
+          <div className="relative mx-auto flex aspect-square w-full max-w-56 items-center justify-center rounded-[2rem] bg-[linear-gradient(145deg,#dff3ff,#fff2c9)]">
+            <span className="text-8xl" aria-hidden="true">👜</span>
+            <span className="absolute right-3 bottom-3 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-ink">{solved.length}/{lesson.game.pairs.length}</span>
+          </div>
+          <div>
+            {current ? <>
+              <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">Sumkada nima yo‘q?</p>
+              <div className="my-3 flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
+                <span className="text-4xl">{bagItemIcons[current.left] ?? '🎒'}</span>
+                <span className="text-xl font-black text-ink"><RussianText text={current.left} /></span>
+              </div>
+              <div className="grid gap-2">
+                {options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}
+              </div>
+            </> : <div className="rounded-2xl bg-milestone-soft p-5 text-center"><span className="text-5xl">🏃‍♂️</span><h4 className="mt-2 text-xl font-black text-milestone">Sumka tayyor!</h4><p className="mt-1 text-sm text-ink-muted">Ishga o‘z vaqtida yetib keldingiz. +30 bonus ball!</p></div>}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {solved.map((pair) => <span key={pair.left} className="rounded-full bg-milestone-soft px-2.5 py-1 text-xs font-black text-milestone">{bagItemIcons[pair.left]} <RussianText text={pair.left} /> ✓</span>)}
         </div>
       </Card>
     </div>
@@ -970,6 +1042,7 @@ function VocabularyDeck({ words, onClose }: { words: Vocab[]; onClose: () => voi
 
 function ExerciseSection({ lesson }: { lesson: LessonData }) {
   const [answer, setAnswer] = useState('')
+  if (lesson.exercise.kind === 'remove-clutter') return <RemoveClutterExercise lesson={lesson} />
   return (
     <Card className="p-4 sm:p-5">
       {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
@@ -981,6 +1054,42 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
   )
 }
 
+function RemoveClutterExercise({ lesson }: { lesson: LessonData }) {
+  const items = lesson.exercise.items ?? []
+  const [removed, setRemoved] = useState<string[]>([])
+  const [message, setMessage] = useState('')
+
+  function remove(item: (typeof items)[number]) {
+    if (removed.includes(item.item)) return
+    setRemoved((current) => [...current, item.item])
+    setMessage(item.phrase)
+    celebrate([20, 25, 35], removed.length + 1 === items.length ? 'win' : 'coin')
+    void speak(item.phrase, 'ru-RU')
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="p-4 sm:p-5">
+        <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🧹</span><div><h3 className="font-black text-ink">{lesson.exercise.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div></div>
+      </Card>
+      <Card className="overflow-hidden p-3 sm:p-5">
+        <div className="relative mx-auto aspect-[4/3] max-w-2xl overflow-hidden rounded-2xl border border-signal/25 bg-[linear-gradient(to_bottom,#e4f3ff_0_62%,#d8bd98_62%_100%)] p-3">
+          <div className="absolute top-3 right-4 h-16 w-24 rounded-lg border-4 border-white bg-[#bfe6ff] shadow-inner sm:h-24 sm:w-36"><span className="absolute inset-x-0 top-1/2 border-t-2 border-white" /><span className="absolute inset-y-0 left-1/2 border-l-2 border-white" /></div>
+          <div className="absolute right-6 bottom-5 h-20 w-40 rounded-t-3xl bg-[#8f6b50] sm:h-28 sm:w-64" />
+          <div className="absolute bottom-4 left-4 h-14 w-28 rounded-lg bg-[#a77a55] sm:h-20 sm:w-44" />
+          <div className="relative z-10 grid h-full grid-cols-4 grid-rows-2 gap-2 pt-10 sm:gap-4 sm:pt-16">
+            {items.map((item) => {
+              const isRemoved = removed.includes(item.item)
+              return <button key={item.item} type="button" disabled={isRemoved} onClick={() => remove(item)} className={cx('flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/90 bg-white/80 p-1 shadow-sm transition duration-300 hover:border-signal hover:bg-white sm:p-2', isRemoved && 'pointer-events-none scale-50 opacity-0')}><span className="text-2xl sm:text-4xl">{item.icon}</span><span className="mt-1 text-[9px] font-black text-ink sm:text-xs"><RussianText text={item.item} /></span></button>
+            })}
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-ground-sunken px-3 py-2 text-sm"><span className="font-bold text-ink-muted">Olib tashlandi: {removed.length}/{items.length}</span>{message && <span role="status" className="font-black text-signal-ink"><RussianText text={message} /></span>}</div>
+      </Card>
+    </div>
+  )
+}
+
 function CompleteSection({ lesson }: { lesson: LessonData }) {
   useEffect(() => { celebrate([45, 45, 80], 'win') }, [])
   return (
@@ -989,7 +1098,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
       <MascotImage mascot="penguin" className="mx-auto h-28 w-28 object-contain" />
       <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{lesson.day}-dars muvaffaqiyatli tugadi</span>
       <h3 className="mt-3 text-3xl font-black text-ink">Ajoyib!</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.</p>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage ?? 'Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.'}</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
         {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
       </div>
