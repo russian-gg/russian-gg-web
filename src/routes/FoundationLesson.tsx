@@ -316,7 +316,7 @@ const genderHouses: Array<{
   background: string
 }> = [
   { name: 'Мужской род', label: 'Ko‘k uy', mascot: 'penguin', color: '#0000FF', background: '#e7f0ff' },
-  { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', image: '/lesson-mascots/panda-girl.png', color: '#FF2400', background: '#fff0ef' },
+  { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', image: '/lesson-mascots/panda-girl-pin.jpg', color: '#FF2400', background: '#fff0ef' },
   { name: 'Средний род', label: 'Sariq uy', mascot: 'pero', color: '#8a6500', background: '#fff6d9' },
 ]
 
@@ -467,7 +467,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
               aria-label={`${house.label}: ${house.name}`}
             >
               {house.image
-                ? <img src={house.image} alt="Qiz bola Panda" className="h-12 w-12 object-contain object-left sm:h-16 sm:w-16" />
+                ? <img src={house.image} alt="Qiz bola Panda" className="h-12 w-12 object-cover object-[center_47%] mix-blend-multiply sm:h-16 sm:w-16" />
                 : <MascotImage mascot={house.mascot} className="h-12 w-12 object-contain object-left sm:h-16 sm:w-16" />}
               <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.color }}>{house.label}</span>
               <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.color }}><RussianText text={house.name} /></span>
