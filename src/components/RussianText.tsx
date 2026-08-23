@@ -21,7 +21,14 @@ const nounStems: Array<{ stem: string; gender: Gender }> = [
 const personalEndingOverrides: Record<string, string> = { 'живёте': 'ёте', 'живу': 'у' }
 const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон']
 const blackWords = new Set(['а', 'и', 'немного', 'русский', 'каждый', 'стул', 'панда'])
-const fullGenderWords: Record<string, Gender> = { 'мужской': 'masculine', 'женский': 'feminine', 'средний': 'neuter' }
+const fullGenderWords: Record<string, Gender> = {
+  'мужской': 'masculine',
+  'синий': 'masculine',
+  'женский': 'feminine',
+  'красный': 'feminine',
+  'средний': 'neuter',
+  'жёлтый': 'neuter',
+}
 
 const adjectiveEndings: Array<{ ending: string; gender: Gender | null; caseName?: CaseName }> = [
   { ending: 'ыми', gender: null, caseName: 'instrumental' }, { ending: 'ими', gender: null, caseName: 'instrumental' },

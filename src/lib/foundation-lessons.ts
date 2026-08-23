@@ -99,11 +99,13 @@ const lesson1: LessonData = {
   grammar: {
     title: 'Rodlar haqida ertak',
     mascot: 'penguin',
-    lead: 'Rodlar qirolliklariga hush kelibsiz!',
+    lead: 'Rodlar qirolliklariga xush kelibsiz!',
     body: [
-      'Bir bor ekan, bir yo‘q ekan, so‘zlar yashaydigan uch qirollik bor ekan. Pingvin ko‘k Мужской род qirolligini, Panda qizil Женский род qirolligini, Pero esa sariq Средний род qirolligini asrar ekan.',
-      'Мужской род — ko‘k, Женский род — alvon qizil, Средний род — sariq. Har bir so‘z o‘z qirolligining rangini boshidan oxirigacha olib yuradi.',
-      'Undosh bilan tugagan otlar ko‘pincha мужской род; -а/-я bilan tugaganlar женский род; -о/-е bilan tugaganlar средний род bo‘ladi.',
+      'Olis zamonlarda OT (имя существительное) nomli katta qirollik bo‘lgan. Uning ichiga “kim?” hamda “nima?” savollariga javob bo‘ladigan barcha so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.',
+      '🐧 Pingvin qirolligi (Мужской род — Синий / 🐧) undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: друг, день, папа. Ular faxr bilan: «он мой», deyishadi.',
+      '🐼 Panda qirolligi (Женский род — Красный / 🐼) esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, земля, фамилия. Ular ohista: «она моя», deb shivirlashadi.',
+      '🪶 Pat qirolligi (Средний род — Жёлтый / 🪶) -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: утро, имя, здание. Ular ishonch bilan: «оно моё», deb aytadi.',
+      'Pingvin, Panda va Pat qirolliklari hozirgi kunda ham rus tilini o‘rganishingizning asosi bo‘lib kelmoqda.',
     ],
     examples: ['дом', 'стол', 'папа', 'мама', 'квартира', 'окно', 'море'],
   },

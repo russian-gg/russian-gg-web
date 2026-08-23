@@ -267,14 +267,20 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
       {genderStory && (
         <div className="mt-4 grid grid-cols-3 gap-2">
           {([
-            ['penguin', 'Мужской род', 'Ko‘k qirollik'],
-            ['panda', 'Женский род', 'Qizil qirollik'],
-            ['pero', 'Средний род', 'Sariq qirollik'],
-          ] as const).map(([mascot, title, subtitle]) => (
+            ['penguin', 'Pingvin qirolligi', 'Мужской род', 'Синий', '#0000FF'],
+            ['panda', 'Panda qirolligi', 'Женский род', 'Красный', '#FF2400'],
+            ['pero', 'Pat qirolligi', 'Средний род', 'Жёлтый', '#FFFF00'],
+          ] as const).map(([mascot, kingdom, title, colorName, color]) => (
             <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
               <MascotImage mascot={mascot} className="mx-auto size-14 sm:size-20" />
-              <p className="mt-1 text-xs font-black sm:text-sm"><RussianText text={title} /></p>
-              <p className="mt-0.5 text-[10px] font-bold text-ink-muted sm:text-xs">{subtitle}</p>
+              <p className="mt-1 text-[10px] font-bold text-ink sm:text-xs">{kingdom}</p>
+              <p
+                className="mt-0.5 text-xs font-black sm:text-sm"
+                style={{ color, WebkitTextStroke: color === '#FFFF00' ? '0.35px #8a7600' : undefined }}
+              >
+                {title}
+              </p>
+              <p className="mt-0.5 text-[10px] font-bold sm:text-xs" style={{ color }}>{colorName}</p>
             </div>
           ))}
         </div>
