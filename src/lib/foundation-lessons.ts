@@ -62,11 +62,17 @@ export type LessonData = {
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
-  ru: ru.replace(/[а-яё]/u, (letter) => letter.toLocaleUpperCase('ru-RU')),
+  ru: capitalizeFirstRussianLetter(ru),
   uz, icon, example, pronunciation,
 })
 
 const v = (ru: string, uz: string, icon: string, example: string): Vocab => ({ ru, uz, icon, example })
+
+function capitalizeFirstRussianLetter(text: string) {
+  return text.replace(/^([^А-ЯЁа-яё]*)([а-яё])/u, (_match, prefix: string, letter: string) => (
+    `${prefix}${letter.toLocaleUpperCase('ru-RU')}`
+  ))
+}
 
 const lesson1: LessonData = {
   day: 1,
