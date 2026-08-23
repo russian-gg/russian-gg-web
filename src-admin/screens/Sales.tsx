@@ -489,15 +489,29 @@ function Inbox({ waiting }: { waiting: number }) {
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span
-                className={cx(
-                  'min-w-0 truncate text-sm text-ink',
-                  // Unread is heavier as well as counted, so the row reads as waiting at a
-                  // glance rather than only under the number.
-                  chat.unread > 0 ? 'font-black' : 'font-extrabold',
-                )}
-              >
-                {chat.displayName}
+              {/*
+                The name and the handle on one line, because height is what this column is
+                short of. The handle is what an operator actually needs — it is how they find
+                the person in Telegram, and a first name alone is not an address.
+              */}
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span
+                  className={cx(
+                    'truncate text-sm text-ink',
+                    // Unread is heavier as well as counted, so the row reads as waiting at a
+                    // glance rather than only under the number.
+                    chat.unread > 0 ? 'font-black' : 'font-extrabold',
+                  )}
+                >
+                  {chat.displayName}
+                </span>
+                {/*
+                  Not everybody has one. The numeric id is what is left, and it is still the
+                  thing that identifies them — better than a blank where an address should be.
+                */}
+                <span className="shrink truncate text-xs text-ink-faint">
+                  {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
+                </span>
               </span>
               <span className="flex shrink-0 items-center gap-1.5">
                 {!chat.aiAutoReply && <Badge>Qo'lda</Badge>}
@@ -727,9 +741,19 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
           <div className="min-w-0">
             <h2 className="truncate text-base font-extrabold text-ink">{chat.displayName}</h2>
             <div className="mt-0.5 flex flex-wrap items-center gap-2">
-              <p className="text-xs text-ink-faint">
-                {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
-              </p>
+              {/* A handle an operator can act on: this opens the person in Telegram. */}
+              {chat.username ? (
+                <a
+                  href={`https://t.me/${chat.username}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-signal-ink underline underline-offset-2"
+                >
+                  @{chat.username}
+                </a>
+              ) : (
+                <p className="text-xs text-ink-faint">#{chat.chatId}</p>
+              )}
               {/* Kept when the card is not shown, because "have they signed up" is the one
                   thing about them that changes how this conversation should go. */}
               <Badge tone={statusTone[user.status]}>{statusLabel[user.status]}</Badge>
