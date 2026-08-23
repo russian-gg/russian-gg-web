@@ -15,7 +15,7 @@ import {
   MissionCardAction,
   MissionProgress,
 } from '../components/MissionCard'
-import { Badge, Button, Card, LinkButton, SectionHeading, Spinner } from '../components/ui'
+import { Badge, Button, Card, LinkButton, Spinner } from '../components/ui'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -198,12 +198,12 @@ export function CoursePath() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <header className="relative flex items-start justify-between gap-3 pr-20 sm:pr-0">
+        <div className="min-w-0">
           <h1 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">{t.path.title}</h1>
           <p className="mt-0.5 text-sm text-ink-muted sm:mt-1 sm:text-base">{t.path.subtitle}</p>
         </div>
-        <Badge tone="milestone">{completedDays}/90</Badge>
+        <span className="absolute top-0 right-0 sm:static"><Badge tone="milestone">{completedDays}/90</Badge></span>
       </header>
 
       <div className="hidden flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex sm:flex-row sm:items-center sm:justify-between">
@@ -247,11 +247,7 @@ export function CoursePath() {
         if (phaseDays.length === 0) return null
 
         return (
-          <section key={phase}>
-            <SectionHeading>
-              {t.labels.phase[phase]} · {range}
-            </SectionHeading>
-
+          <section key={`${phase}-${range}`}>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {phaseDays.map(({ day, lockKind }) => (
                 <DayCard
@@ -329,10 +325,10 @@ function DayPreviewDrawer({
   const hasProgress = completed > 0 && !isDone
   const restart = isDone || !hasProgress
   const description = locale === 'ru'
-    ? `На уроке «${focus}» вы изучите новые правила и фразы, а затем закрепите их в интерактивных заданиях.`
+    ? 'На этом уроке вы изучите новые правила и фразы, а затем закрепите их в интерактивных заданиях.'
     : locale === 'en'
-      ? `In “${focus}” you will learn new rules and phrases, then practise them in interactive activities.`
-      : `«${focus}» darsida yangi qoida va iboralarni o‘rganib, ularni interaktiv mashqlarda mustahkamlaysiz.`
+      ? 'In this lesson you will learn new rules and phrases, then practise them in interactive activities.'
+      : 'Bu darsda yangi qoida va iboralarni o‘rganib, ularni interaktiv mashqlarda mustahkamlaysiz.'
   const action = locale === 'ru'
     ? isDone ? 'Повторить урок' : hasProgress ? 'Продолжить урок' : 'Начать урок'
     : locale === 'en'
@@ -370,10 +366,7 @@ function DayPreviewDrawer({
       >
         <div className="flex items-start justify-between gap-5">
           <div>
-            <p className="text-xs font-black tracking-[.14em] text-ink-muted uppercase">
-              {locale === 'ru' ? 'Программа обучения' : locale === 'en' ? 'Learning programme' : 'O‘quv dasturi'}
-            </p>
-            <h2 id="day-preview-title" className="mt-1 text-3xl font-black text-ink">
+            <h2 id="day-preview-title" className="text-3xl font-black text-ink">
               {locale === 'ru' ? `Урок ${day.day}` : locale === 'en' ? `Lesson ${day.day}` : `${day.day}-dars`}
             </h2>
           </div>

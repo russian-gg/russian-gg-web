@@ -31,7 +31,7 @@
   --color-ground-sunken: #f2f4f7;
 
   --color-ink: #16181d;
-  --color-ink-muted: #868d99;
+  --color-ink-muted: #747d8a;
   --color-ink-faint: #a7adb8;
   --color-hairline: #e7e9ed;
 
@@ -304,6 +304,12 @@
   }
 }
 
+@keyframes answerCelebrationRise {
+  0% { opacity: 0; transform: translate3d(0, 12vh, 0) scale(.7); }
+  12%, 78% { opacity: .95; }
+  100% { opacity: 0; transform: translate3d(14px, -112vh, 0) scale(1.08); }
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -359,6 +365,28 @@
     width: 8px;
     height: 25px;
     border-radius: 2px;
+  }
+
+  .answer-celebration__balloon {
+    position: absolute;
+    bottom: -42px;
+    left: var(--balloon-x);
+    width: 22px;
+    height: 29px;
+    border-radius: 52% 52% 48% 48%;
+    background: var(--fall-color);
+    box-shadow: inset -4px -5px 0 rgb(0 0 0 / 0.08);
+    animation: answerCelebrationRise 2.8s ease-out var(--balloon-delay) both;
+  }
+
+  .answer-celebration__balloon::after {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: 10px;
+    width: 1px;
+    height: 34px;
+    background: rgb(22 24 29 / .35);
   }
 
   .telegram-fab {

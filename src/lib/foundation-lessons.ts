@@ -62,7 +62,8 @@ export type LessonData = {
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
-  ru, uz, icon, example, pronunciation,
+  ru: ru.replace(/[а-яё]/u, (letter) => letter.toLocaleUpperCase('ru-RU')),
+  uz, icon, example, pronunciation,
 })
 
 const v = (ru: string, uz: string, icon: string, example: string): Vocab => ({ ru, uz, icon, example })
@@ -93,14 +94,15 @@ const lesson1: LessonData = {
       'А tovushida og‘iz keng ochiladi; О tovushida lablar dumaloqlanadi; У tovushida lablar oldinga cho‘ziladi.',
       'Audio tugmasini bosing, qoidani eshiting va misollarni birga takrorlang.',
     ],
-    examples: ['А', 'И', 'У', 'ма́ма', 'па́па', 'па́нда', 'до́м', 'сто́л', 'по́рт', 'сту́л', 'му́ж'],
+    examples: ['А', 'О', 'У', 'ма́ма', 'па́па', 'па́нда', 'до́м', 'сто́л', 'по́рт', 'сту́л', 'му́ж'],
   },
   grammar: {
     title: 'Rodlar haqida ertak',
     mascot: 'penguin',
     lead: 'Rodlar qirolliklariga hush kelibsiz!',
     body: [
-      'Мужской род — ko‘k, женский род — alvon qizil, средний род — sariq. So‘zning o‘zagi shu rangda ko‘rsatiladi.',
+      'Bir bor ekan, bir yo‘q ekan, so‘zlar yashaydigan uch qirollik bor ekan. Pingvin ko‘k Мужской род qirolligini, Panda qizil Женский род qirolligini, Pero esa sariq Средний род qirolligini asrar ekan.',
+      'Мужской род — ko‘k, Женский род — alvon qizil, Средний род — sariq. Har bir so‘z o‘z qirolligining rangini boshidan oxirigacha olib yuradi.',
       'Undosh bilan tugagan otlar ko‘pincha мужской род; -а/-я bilan tugaganlar женский род; -о/-е bilan tugaganlar средний род bo‘ladi.',
     ],
     examples: ['дом', 'стол', 'папа', 'мама', 'квартира', 'окно', 'море'],
@@ -163,6 +165,16 @@ const lesson1: LessonData = {
     v('чай', 'choy', '🍵', 'Приглашаю вас на чай.'),
     v('добро пожаловать', 'xush kelibsiz', '🚪', 'Добро пожаловать в мой дом!'),
     v('с удовольствием', 'mamnuniyat bilan', '✨', 'С удовольствием!'),
+    v('очень приятно', 'tanishganimdan xursandman', '🤝', 'Очень приятно!'),
+    v('как вас зовут', 'ismingiz nima', '❓', 'А как вас зовут?'),
+    v('где', 'qayerda', '📍', 'Где вы живёте?'),
+    v('жить', 'yashamoq', '🏘️', 'Я живу на пятом этаже.'),
+    v('пятый', 'beshinchi', '5️⃣', 'Я живу на пятом этаже.'),
+    v('второй', 'ikkinchi', '2️⃣', 'А я на втором.'),
+    v('пригласить', 'taklif qilmoq', '🫖', 'Я хочу пригласить вас на чай.'),
+    v('мой', 'mening', '🙋', 'Это мой дом.'),
+    v('ваш', 'sizning', '👉', 'Это ваш ключ?'),
+    v('рядом', 'yaqinida', '📌', 'Мой сосед живёт рядом.'),
   ],
   exercise: {
     title: 'Rasmli mashq',

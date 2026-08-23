@@ -20,7 +20,7 @@ const sections = [
   { id: 'tests', title: 'Yengil test' },
   { id: 'phonetics', title: 'Fonetik qoida' },
   { id: 'grammar', title: 'Grammatik qoida' },
-  { id: 'phrases', title: '15 ta asosiy ibora' },
+  { id: 'phrases', title: 'Kun frazalari' },
   { id: 'game', title: 'Kreativ o‘yin' },
   { id: 'missions', title: 'Dialog va AI savollari' },
   { id: 'vocabulary', title: 'Словарь' },
@@ -78,6 +78,7 @@ export function FoundationLesson() {
 
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
+  const canContinue = active.id !== 'phrases' || !lesson || Object.keys(state.phraseRatings).length >= lesson.phrases.length
 
   if (!lesson || day < 1 || day > 10) return <Navigate to="/path" replace />
 
@@ -114,13 +115,13 @@ export function FoundationLesson() {
 
   return (
     <div className="foundation-lesson mx-auto max-w-4xl space-y-4 pb-5 sm:space-y-6">
-      <LessonHero lesson={lesson} progress={progress} />
+      <LessonHero lesson={lesson} progress={progress} compact={state.sectionIndex > 0} />
 
       <section aria-labelledby={`section-${active.id}`}>
         <div className="mb-3 flex items-baseline gap-2 sm:mb-4">
           <span className="text-sm font-black text-signal-ink">{state.sectionIndex + 1}</span>
           <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-3xl">
-            {active.id === 'grammar' && day === 1 ? 'Rodlar haqida ertak' : active.title}
+            {active.id === 'grammar' && day === 1 ? 'Rodlar haqida ertak' : active.id === 'missions' ? 'Dialog' : active.title}
           </h2>
         </div>
 
@@ -134,7 +135,7 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'phonetics' && <RuleSection rule={lesson.phonetics} />}
-        {active.id === 'grammar' && <RuleSection rule={lesson.grammar} />}
+        {active.id === 'grammar' && <RuleSection rule={lesson.grammar} genderStory={day === 1} />}
         {active.id === 'phrases' && (
           <PhrasesSection phrases={lesson.phrases} ratings={state.phraseRatings} onRate={(index, rating) => {
             setState((current) => ({ ...current, phraseRatings: { ...current.phraseRatings, [index]: rating } }))
@@ -177,7 +178,7 @@ export function FoundationLesson() {
 
       <div className="flex items-center gap-2 border-t border-hairline pt-4">
         {state.sectionIndex > 0 && <Button variant="ghost" onClick={goBack}>← Orqaga</Button>}
-        <Button className="ml-auto" onClick={() => void finishCurrent()}>
+        <Button className="ml-auto" disabled={!canContinue} onClick={() => void finishCurrent()}>
           {active.id === 'complete' ? 'Darsni yakunlash' : 'Davom etish →'}
         </Button>
       </div>
@@ -185,13 +186,15 @@ export function FoundationLesson() {
   )
 }
 
-function LessonHero({ lesson, progress }: { lesson: LessonData; progress: number }) {
+function LessonHero({ lesson, progress, compact }: { lesson: LessonData; progress: number; compact: boolean }) {
   return (
-    <Card className="lesson-hero p-4 sm:p-6">
-      <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{lesson.day}-dars · A1</p>
-      <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
-      <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
-      <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold sm:text-sm">
+    <Card className={cx('lesson-hero p-4 sm:p-6', compact && 'py-3 sm:py-4')}>
+      {!compact && <>
+        <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{lesson.day}-dars · A1</p>
+        <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
+        <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
+      </>}
+      <div className={cx('flex items-center justify-between gap-3 text-xs font-bold sm:text-sm', !compact && 'mt-4')}>
         <span className="text-ink">Dars progressi</span>
         <span className="text-ink-faint">{progress} / {sections.length} bo‘lim</span>
       </div>
@@ -241,15 +244,16 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
         ))}
       </div>
       {answer !== null && (
-        <p className={cx('mt-3 rounded-xl p-3 text-sm', correct ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger')}>
-          {correct ? quiz.feedback : 'Yana urinib ko‘ring.'}
-        </p>
+        <div className={cx('mt-3 flex items-start gap-2 rounded-xl p-3 text-sm', correct ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger')}>
+          <MascotImage mascot={number === 1 ? 'pero' : 'penguin'} className="size-9 shrink-0" />
+          <p>{correct ? quiz.feedback : 'Yana urinib ko‘ring.'}</p>
+        </div>
       )}
     </Card>
   )
 }
 
-function RuleSection({ rule }: { rule: LessonData['phonetics'] }) {
+function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetics']; genderStory?: boolean }) {
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-start gap-3 sm:gap-5">
@@ -260,12 +264,27 @@ function RuleSection({ rule }: { rule: LessonData['phonetics'] }) {
           <SpeechButton text={`${rule.title}. ${rule.lead} ${rule.body.join(' ')}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
         </div>
       </div>
+      {genderStory && (
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {([
+            ['penguin', 'Мужской род', 'Ko‘k qirollik'],
+            ['panda', 'Женский род', 'Qizil qirollik'],
+            ['pero', 'Средний род', 'Sariq qirollik'],
+          ] as const).map(([mascot, title, subtitle]) => (
+            <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
+              <MascotImage mascot={mascot} className="mx-auto size-14 sm:size-20" />
+              <p className="mt-1 text-xs font-black sm:text-sm"><RussianText text={title} /></p>
+              <p className="mt-0.5 text-[10px] font-bold text-ink-muted sm:text-xs">{subtitle}</p>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mt-4 grid gap-2 text-sm leading-relaxed text-ink-muted sm:text-base">
-        {rule.body.map((paragraph) => <p key={paragraph}><RussianText text={paragraph} /></p>)}
+        {rule.body.map((paragraph) => <p key={paragraph}><RussianText text={paragraph} phoneticVowels /></p>)}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {rule.examples.map((example) => (
-          <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АИУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
+          <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
             <RussianText text={example} />
           </SpeechButton>
         ))}
@@ -291,7 +310,11 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
           </button>
         ))}
       </div>
-      {open !== null && <StudyCard phrase={phrases[open]} onClose={() => setOpen(null)} onRate={(rating) => { onRate(open, rating); setOpen(null) }} />}
+      {open !== null && <StudyCard phrase={phrases[open]} onClose={() => setOpen(null)} onRate={(rating) => {
+        onRate(open, rating)
+        const next = phrases.findIndex((_, index) => index !== open && !ratings[index])
+        setOpen(next >= 0 ? next : null)
+      }} />}
     </>
   )
 }
@@ -333,7 +356,7 @@ const genderHouses: Array<{
 }> = [
   { name: 'Мужской род', label: 'Ko‘k uy', mascot: 'penguin', color: '#0000FF', background: '#e7f0ff' },
   { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', image: '/lesson-mascots/panda-girl-pin.jpg', color: '#FF2400', background: '#fff0ef' },
-  { name: 'Средний род', label: 'Sariq uy', mascot: 'pero', color: '#8a6500', background: '#fff6d9' },
+  { name: 'Средний род', label: 'Sariq uy', mascot: 'pero', color: '#d4b500', background: '#fff9d8' },
 ]
 
 function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
@@ -992,6 +1015,10 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
       form.set('attemptId', attempt.attemptId)
       form.set('stepIndex', String(stepIndex))
       form.set('isRetry', 'false')
+      if (mode === 'dialogue') {
+        form.set('practiceMode', 'full-dialogue')
+        form.set('expectedText', lesson.dialogue.join(' '))
+      }
       form.set('audio', audio, `foundation-answer.${recordingExtension(mimeType)}`)
       const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
       attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
@@ -999,9 +1026,11 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
         result.transcript ? `Siz aytdingiz: ${result.transcript}` : '',
         result.feedback.strengthNote,
         result.feedback.headlineCorrection,
+        result.feedback.pronunciationNote,
       ].filter(Boolean).join('. ')
       setFeedback(message)
-      await speak(message, 'uz-UZ')
+      const spokenFeedback = [result.feedback.strengthNote, result.feedback.headlineCorrection, result.feedback.pronunciationNote].filter(Boolean).join('. ')
+      await speak(spokenFeedback, 'uz-UZ')
       onDone?.()
     } catch (error) {
       setFeedback(error instanceof RequestError ? error.message : 'Ovozni tekshirib bo‘lmadi. Internetni tekshirib, yana urinib ko‘ring.')
@@ -1013,7 +1042,6 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
   if (!mode) {
     return (
       <Card className="p-4 sm:p-5">
-        <p className="mb-4 text-sm leading-relaxed text-ink-muted">Mashq turini tanlang. Har ikkala rejimda ham chat yo‘q — faqat matn, audio va mikrofon.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Button size="lg" block onClick={() => setMode('dialogue')}>🎭 Dialogni mashq qilish</Button>
           <Button size="lg" block variant="secondary" onClick={() => setMode('ai')}>🎙️ AI bilan suhbat</Button>
@@ -1024,12 +1052,11 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
 
   return (
     <Card className="p-4 sm:p-5">
-      <button type="button" className="mb-3 text-sm font-black text-ink-muted" onClick={() => { setMode(null); setFeedback('') }}>← Rejimlarni tanlash</button>
       {mode === 'dialogue' ? (
         <div>
           <div className="grid gap-2">
             {lesson.dialogue.map((line, index) => (
-              <div key={`${line}-${index}`} className={cx('rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}><RussianText text={line} /></div>
+              <div key={`${line}-${index}`} className={cx('rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}><DialogueLine line={line} /></div>
             ))}
           </div>
           <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording()} />
@@ -1044,6 +1071,12 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
       {feedback && <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={feedback} /></p>}
     </Card>
   )
+}
+
+function DialogueLine({ line }: { line: string }) {
+  const separator = line.indexOf(':')
+  if (separator < 0) return <RussianText text={line} />
+  return <><span className="text-ink">{line.slice(0, separator + 1)}</span><RussianText text={line.slice(separator + 1)} /></>
 }
 
 function MicButton({ listening, processing, onClick }: { listening: boolean; processing: boolean; onClick: () => void }) {
@@ -1106,12 +1139,26 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
   if (lesson.exercise.kind === 'remove-clutter') return <RemoveClutterExercise lesson={lesson} />
   return (
     <Card className="p-4 sm:p-5">
+      {lesson.day === 1 && <NeighborScene />}
       {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
       {lesson.game.kind === 'room-builder' && <div className="mb-4"><RoomScene /></div>}
-      <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><div><h3 className="font-black text-ink">{lesson.exercise.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div></div>
+      <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><p className="text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
     </Card>
+  )
+}
+
+function NeighborScene() {
+  return (
+    <div className="relative mb-4 aspect-[16/10] overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#dff1ff_0_62%,#d7c4a7_62%)]">
+      <div className="absolute top-5 left-1/2 h-24 w-28 -translate-x-1/2 rounded-t-full border-[10px] border-[#a66b43] bg-[#fff4d7] sm:h-36 sm:w-40" />
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-5 sm:gap-10">
+        <MascotImage mascot="penguin" className="h-32 w-28 sm:h-48 sm:w-40" />
+        <MascotImage mascot="panda" className="h-28 w-28 sm:h-44 sm:w-40" />
+      </div>
+      <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-signal-ink">Ikki qo‘shni suhbati</span>
+    </div>
   )
 }
 
@@ -1344,10 +1391,10 @@ function readState(storageKey: string | null): StoredState {
 
 const celebrationColors = ['#5b9bf5', '#ff2400', '#f4c84d', '#44944a', '#ed3cca']
 function Celebration() {
-  return createPortal(<span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">{Array.from({ length: 34 }, (_, index) => {
+  return createPortal(<span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">{Array.from({ length: 52 }, (_, index) => {
     const style = { '--fall-x': `${3 + ((index * 37) % 94)}vw`, '--fall-drift': `${(index % 2 ? -1 : 1) * (16 + (index % 5) * 8)}px`, '--fall-rotate': `${360 + index * 29}deg`, '--fall-delay': `${(index % 12) * 45}ms`, '--fall-duration': `${1900 + (index % 7) * 130}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties
     return <span key={index} className={cx('answer-celebration__piece', index % 3 === 0 ? 'answer-celebration__ball' : 'answer-celebration__ribbon')} style={style} />
-  })}</span>, document.body)
+  })}{Array.from({ length: 12 }, (_, index) => <span key={`balloon-${index}`} className="answer-celebration__balloon" style={{ '--balloon-x': `${5 + ((index * 41) % 90)}vw`, '--balloon-delay': `${index * 90}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties} />)}</span>, document.body)
 }
 
 function celebrate(pattern: number | number[] = 35, sound: UiSound = 'correct') {

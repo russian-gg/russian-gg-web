@@ -207,6 +207,7 @@ export interface TurnFeedback {
   score: number
   strengthNote: string
   headlineCorrection: string
+  pronunciationNote?: string | null
   canAdvance: boolean
   nextStepIndex: number
 }

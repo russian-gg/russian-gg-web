@@ -148,9 +148,11 @@ export function MissionProgress({
           style={{ width: `${percent}%` }}
         />
       </div>
-      <p className={`${compact ? 'mt-1' : 'mt-1.5'} text-right text-[11px] font-semibold text-ink-muted`}>
-        {completed ? t.path.done : `${safeValue}/${safeMax}`}
-      </p>
+      {!(compact && completed) && (
+        <p className={`${compact ? 'mt-1' : 'mt-1.5'} text-right text-[11px] font-semibold text-ink-muted`}>
+          {completed ? t.path.done : `${safeValue}/${safeMax}`}
+        </p>
+      )}
     </div>
   )
 }

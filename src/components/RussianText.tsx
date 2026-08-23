@@ -1,150 +1,110 @@
 import type { ReactNode } from 'react'
 
 export const RUSSIAN_COLOR_SYSTEM = {
-  gender: {
-    masculine: '#0000FF',
-    feminine: '#FF2400',
-    neuter: '#FFFF00',
-  },
+  gender: { masculine: '#0000FF', feminine: '#FF2400', neuter: '#FFFF00' },
   cases: {
-    genitive: '#8B00FF',
-    dative: '#964B00',
-    accusative: '#00BFFF',
-    instrumental: '#44944A',
-    prepositional: '#480607',
+    genitive: '#8B00FF', dative: '#964B00', accusative: '#00BFFF',
+    instrumental: '#44944A', prepositional: '#480607',
   },
-  verbs: {
-    personalEnding: '#ED3CCA',
-    pastSuffixAndEnding: '#F984E5',
-  },
+  verbs: { personalEnding: '#ED3CCA', pastSuffixAndEnding: '#F984E5' },
 } as const
 
 type Gender = keyof typeof RUSSIAN_COLOR_SYSTEM.gender
 type CaseName = keyof typeof RUSSIAN_COLOR_SYSTEM.cases
 
 const nounStems: Array<{ stem: string; gender: Gender }> = [
-  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,стул,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
-  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,панд,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
-  ...'упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
+  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
+  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
+  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
-const personalEndings = [
-  'аетесь', 'яетесь', 'итесь', 'аешь', 'яешь', 'аьют', 'яют', 'уют', 'аете', 'яете',
-  'ишь', 'ешь', 'ете', 'ите', 'ает', 'яет', 'ует', 'ют', 'ут', 'ят', 'ат', 'ем', 'им', 'ю', 'у',
-]
-
-const verbStems = [
-  'работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас',
-  'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон',
-]
+const personalEndingOverrides: Record<string, string> = { 'живёте': 'ёте', 'живу': 'у' }
+const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон']
+const blackWords = new Set(['а', 'и', 'немного', 'русский', 'каждый', 'стул', 'панда'])
+const fullGenderWords: Record<string, Gender> = { 'мужской': 'masculine', 'женский': 'feminine', 'средний': 'neuter' }
 
 const adjectiveEndings: Array<{ ending: string; gender: Gender | null; caseName?: CaseName }> = [
-  { ending: 'ыми', gender: null, caseName: 'instrumental' },
-  { ending: 'ими', gender: null, caseName: 'instrumental' },
-  { ending: 'ого', gender: 'masculine', caseName: 'genitive' },
-  { ending: 'его', gender: 'masculine', caseName: 'genitive' },
-  { ending: 'ому', gender: 'masculine', caseName: 'dative' },
-  { ending: 'ему', gender: 'masculine', caseName: 'dative' },
-  { ending: 'ую', gender: 'feminine', caseName: 'accusative' },
-  { ending: 'юю', gender: 'feminine', caseName: 'accusative' },
-  { ending: 'ой', gender: 'feminine', caseName: 'instrumental' },
-  { ending: 'ей', gender: 'feminine', caseName: 'instrumental' },
-  { ending: 'ым', gender: 'masculine', caseName: 'instrumental' },
-  { ending: 'им', gender: 'masculine', caseName: 'instrumental' },
-  { ending: 'ом', gender: 'masculine', caseName: 'prepositional' },
-  { ending: 'ем', gender: 'masculine', caseName: 'prepositional' },
-  { ending: 'ая', gender: 'feminine' },
-  { ending: 'яя', gender: 'feminine' },
-  { ending: 'ое', gender: 'neuter' },
-  { ending: 'ее', gender: 'neuter' },
-  { ending: 'ый', gender: 'masculine' },
-  { ending: 'ий', gender: 'masculine' },
-  { ending: 'ой', gender: 'masculine' },
-  { ending: 'ые', gender: null },
-  { ending: 'ие', gender: null },
+  { ending: 'ыми', gender: null, caseName: 'instrumental' }, { ending: 'ими', gender: null, caseName: 'instrumental' },
+  { ending: 'ого', gender: 'masculine', caseName: 'genitive' }, { ending: 'его', gender: 'masculine', caseName: 'genitive' },
+  { ending: 'ому', gender: 'masculine', caseName: 'dative' }, { ending: 'ему', gender: 'masculine', caseName: 'dative' },
+  { ending: 'ую', gender: 'feminine', caseName: 'accusative' }, { ending: 'юю', gender: 'feminine', caseName: 'accusative' },
+  { ending: 'ой', gender: 'feminine', caseName: 'instrumental' }, { ending: 'ей', gender: 'feminine', caseName: 'instrumental' },
+  { ending: 'ым', gender: 'masculine', caseName: 'instrumental' }, { ending: 'им', gender: 'masculine', caseName: 'instrumental' },
+  { ending: 'ом', gender: 'masculine', caseName: 'prepositional' }, { ending: 'ем', gender: 'masculine', caseName: 'prepositional' },
+  { ending: 'ая', gender: 'feminine' }, { ending: 'яя', gender: 'feminine' }, { ending: 'ое', gender: 'neuter' },
+  { ending: 'ее', gender: 'neuter' }, { ending: 'ый', gender: 'masculine' }, { ending: 'ий', gender: 'masculine' },
+  { ending: 'ой', gender: 'masculine' }, { ending: 'ые', gender: null }, { ending: 'ие', gender: null },
 ]
 
-export function RussianText({ text }: { text: string }) {
-  const pieces = text.split(/([А-Яа-яЁё]+)/g)
+export function RussianText({ text, phoneticVowels = false }: { text: string; phoneticVowels?: boolean }) {
+  const pieces = text.split(/([\p{Script=Cyrillic}][\p{Script=Cyrillic}\p{M}]*)/gu)
   const words = pieces.filter((piece) => /[А-Яа-яЁё]/u.test(piece))
+  const singleVowel = /^[АОУ]$/u.test(text.trim())
   let wordIndex = 0
   let previousWord = ''
+  let previousPreviousWord = ''
 
   return <>{pieces.map((piece, index) => {
     if (!/[А-Яа-яЁё]/u.test(piece)) return <span key={index}>{piece}</span>
-    const lower = piece.toLocaleLowerCase('ru-RU')
-    const nextWord = words[wordIndex + 1]?.toLocaleLowerCase('ru-RU') ?? ''
-    const rendered = colorRussianWord(piece, lower, previousWord, nextWord)
+    const lower = normalizeWord(piece)
+    const nextWord = normalizeWord(words[wordIndex + 1] ?? '')
+    const rendered = singleVowel || (phoneticVowels && /^[аоу]$/u.test(lower))
+      ? <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender.feminine)}>{piece}</span>
+      : colorRussianWord(piece, lower, previousWord, previousPreviousWord, nextWord)
+    previousPreviousWord = previousWord
     previousWord = lower
     wordIndex += 1
     return <span key={index}>{rendered}</span>
   })}</>
 }
 
-function colorRussianWord(original: string, lower: string, previousWord: string, nextWord: string): ReactNode {
-  if (/^[аиу]$/u.test(lower)) return <span style={styleFor('#FF2400')}>{original}</span>
+function normalizeWord(word: string) {
+  return word.toLocaleLowerCase('ru-RU').normalize('NFD').replace(/\p{M}/gu, '')
+}
 
-  const personalEnding = personalEndings.find((ending) => lower.endsWith(ending) && lower.length > ending.length + 1)
-  if (personalEnding && verbStems.some((stem) => lower.startsWith(stem))) return <>
-    <span>{original.slice(0, -personalEnding.length)}</span>
-    <span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-personalEnding.length)}</span>
-  </>
+function colorRussianWord(original: string, lower: string, previousWord: string, previousPreviousWord: string, nextWord: string): ReactNode {
+  if (blackWords.has(lower)) return original
+  if (lower === 'с' || lower === 'со') return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases.instrumental)}>{original}</span>
+  if (lower === 'на') return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases.prepositional)}>{original}</span>
+
+  const fullGender = fullGenderWords[lower]
+  if (fullGender) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[fullGender])}>{original}</span>
+  if (lower === 'род' && fullGenderWords[previousWord]) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[fullGenderWords[previousWord]])}>{original}</span>
+
+  const explicitEnding = personalEndingOverrides[lower]
+  if (explicitEnding) return <><span>{original.slice(0, -explicitEnding.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-explicitEnding.length)}</span></>
 
   const knownPast = lower.match(/л[аои]?$/u)
   if (knownPast && (verbStems.some((stem) => lower.startsWith(stem)) || lower.startsWith('бы'))) {
-    return <>
-      <span>{original.slice(0, -knownPast[0].length)}</span>
-      <span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.pastSuffixAndEnding)}>{original.slice(-knownPast[0].length)}</span>
-    </>
+    return <><span>{original.slice(0, -knownPast[0].length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.pastSuffixAndEnding)}>{original.slice(-knownPast[0].length)}</span></>
   }
 
   const noun = findNoun(lower)
   if (noun) {
-    const caseName = inferCase(previousWord, lower)
+    const caseName = inferCase(previousWord, previousPreviousWord, lower)
+    if (!caseName) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[noun.gender])}>{original}</span>
     const root = original.slice(0, noun.stem.length)
     const ending = original.slice(noun.stem.length)
-    return <>
-      <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[noun.gender])}>{root}</span>
-      {ending && (caseName
-        ? <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[caseName])}>{ending}</span>
-        : <span>{ending}</span>)}
-    </>
+    return <><span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[noun.gender])}>{root}</span>{ending && <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[caseName])}>{ending}</span>}</>
   }
 
   const adjective = adjectiveEndings.find(({ ending }) => lower.endsWith(ending) && lower.length > ending.length + 1)
   if (adjective) {
-    const nextNounGender = findNoun(nextWord)?.gender
-    const gender = nextNounGender ?? adjective.gender
+    const gender = findNoun(nextWord)?.gender ?? adjective.gender
     if (!gender) return original
     const genderColor = RUSSIAN_COLOR_SYSTEM.gender[gender]
     if (!adjective.caseName) return <span style={styleFor(genderColor)}>{original}</span>
-    return <>
-      <span style={styleFor(genderColor)}>{original.slice(0, -adjective.ending.length)}</span>
-      <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[adjective.caseName])}>{original.slice(-adjective.ending.length)}</span>
-    </>
+    return <><span style={styleFor(genderColor)}>{original.slice(0, -adjective.ending.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[adjective.caseName])}>{original.slice(-adjective.ending.length)}</span></>
   }
 
   const past = lower.match(/л[аои]?$/u)
-  if (past && lower.length > past[0].length + 1) {
-    return <>
-      <span>{original.slice(0, -past[0].length)}</span>
-      <span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.pastSuffixAndEnding)}>{original.slice(-past[0].length)}</span>
-    </>
-  }
-
-  if (personalEnding) return <>
-    <span>{original.slice(0, -personalEnding.length)}</span>
-    <span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-personalEnding.length)}</span>
-  </>
-
+  if (past && lower.length > past[0].length + 1) return <><span>{original.slice(0, -past[0].length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.pastSuffixAndEnding)}>{original.slice(-past[0].length)}</span></>
   return original
 }
 
-function findNoun(word: string) {
-  return nounStems.find(({ stem }) => word.startsWith(stem))
-}
+function findNoun(word: string) { return nounStems.find(({ stem }) => word.startsWith(stem)) }
 
-function inferCase(previousWord: string, word: string): CaseName | null {
+function inferCase(previousWord: string, previousPreviousWord: string, word: string): CaseName | null {
   if (/^(виж|люб|зна|помн|встреч|слыш)/u.test(previousWord)) return 'accusative'
   if (previousWord === 'нет') return 'genitive'
   if (previousWord === 'к') return 'dative'
@@ -153,11 +113,10 @@ function inferCase(previousWord: string, word: string): CaseName | null {
   if (['через', 'про'].includes(previousWord)) return 'accusative'
   if (['о', 'об', 'при'].includes(previousWord)) return 'prepositional'
   if (['в', 'на'].includes(previousWord)) return /[ую]$/u.test(word) ? 'accusative' : 'prepositional'
+  if (['в', 'на'].includes(previousPreviousWord)) return 'prepositional'
   return null
 }
 
 function styleFor(color: string) {
-  return color === '#FFFF00'
-    ? { color, textShadow: '0 0 1px #695900, 0 0 2px #695900' }
-    : { color }
+  return color === '#FFFF00' ? { color, WebkitTextStroke: '0.35px #8a7600' } : { color }
 }
