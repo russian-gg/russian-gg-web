@@ -272,7 +272,9 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
             ['pero', 'Pat qirolligi', 'Средний род', 'Жёлтый', '#FFFF00'],
           ] as const).map(([mascot, kingdom, title, colorName, color]) => (
             <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
-              <MascotImage mascot={mascot} className="mx-auto size-14 sm:size-20" />
+              {mascot === 'panda'
+                ? <GirlPandaImage className="mx-auto size-14 sm:size-20" />
+                : <MascotImage mascot={mascot} className="mx-auto size-14 sm:size-20" />}
               <p className="mt-1 text-[10px] font-bold text-ink sm:text-xs">{kingdom}</p>
               <p
                 className="mt-0.5 text-xs font-black sm:text-sm"
@@ -517,7 +519,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
               <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.color }}>{house.label}</span>
               <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.color }}><RussianText text={house.name} /></span>
               <span className="mt-3 flex flex-wrap gap-1">
-                {placed.map((pair) => <span key={pair.left} className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-ink shadow-sm sm:text-xs"><RussianText text={pair.left} /> ✓</span>)}
+                {placed.map((pair) => <span key={pair.left} className="rounded-full bg-white px-2 py-1 text-[11px] font-black shadow-sm sm:text-xs" style={{ color: house.color }}><RussianText text={pair.left} /> ✓</span>)}
               </span>
             </button>
           )
@@ -1161,7 +1163,7 @@ function NeighborScene() {
       <div className="absolute top-5 left-1/2 h-24 w-28 -translate-x-1/2 rounded-t-full border-[10px] border-[#a66b43] bg-[#fff4d7] sm:h-36 sm:w-40" />
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-5 sm:gap-10">
         <MascotImage mascot="penguin" className="h-32 w-28 sm:h-48 sm:w-40" />
-        <MascotImage mascot="panda" className="h-28 w-28 sm:h-44 sm:w-40" />
+        <GirlPandaImage className="h-28 w-28 sm:h-44 sm:w-40" />
       </div>
       <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-signal-ink">Ikki qo‘shni suhbati</span>
     </div>
@@ -1223,6 +1225,10 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
 
 function MascotImage({ mascot, className }: { mascot: Mascot; className?: string }) {
   return <img src={`/lesson-mascots/${mascot}.png`} alt={mascot === 'penguin' ? 'Pingvin ustoz' : mascot === 'panda' ? 'Panda murabbiy' : 'Pero yordamchi'} className={cx('object-contain', className)} />
+}
+
+function GirlPandaImage({ className }: { className?: string }) {
+  return <img src="/lesson-mascots/panda-girl-pin.jpg" alt="Ko‘zi qisiq qiz bola Panda" className={cx('object-cover object-[center_46%] mix-blend-multiply', className)} />
 }
 
 function preferredRecordingMimeType() {
