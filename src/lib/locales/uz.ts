@@ -357,7 +357,7 @@ export const uz = {
     lockedFallback: 'Bu mashq hozir yopiq.',
     lockedProTitle: '{day}-kun Pro tarkibida',
     lockedProBody:
-      'Bepul rejada birinchi 7 kun ochiq. Qolgan 83 kunni va mashq kutubxonasini Pro ochadi.',
+      'Bepul rejada birinchi 3 kun ochiq. Qolgan 87 kunni va mashq kutubxonasini Pro ochadi.',
     lockedProgressTitle: 'Bu kun hali yopiq',
     lockedProgressBody:
       "Avval oldingi kunlarni yakunlang — shundan keyin {day}-kun o'zi ochiladi.",
@@ -541,10 +541,10 @@ export const uz = {
       "To'liq progress va daraja tarixi",
       "\"Bugun mashq\" kutubxonasi",
     ],
-    freeLimitItems: ['Daraja testi', 'Birinchi 7 kun', 'Cheklangan namuna mashqlari'],
+    freeLimitItems: ['Daraja testi', 'Birinchi 3 kun', 'Cheklangan namuna mashqlari'],
     title: "Pro bilan to'liq yo'l",
     subtitle:
-      "Bepul rejada daraja testi va birinchi 7 kun ochiq. Keyingi kunlarni davom ettirish uchun " +
+      "Bepul rejada daraja testi va birinchi 3 kun ochiq. Keyingi kunlarni davom ettirish uchun " +
       "Pro obuna kerak bo'ladi.",
     processing: "To'lov tekshirilmoqda",
     processingBody: "To'lovingiz qabul qilindi va tasdiqlanmoqda. Tasdiqlangach Pro avtomatik ochiladi.",
@@ -555,7 +555,7 @@ export const uz = {
     payWithClick: "Click orqali to'lash - {amount}",
     opening: 'Ochilmoqda...',
     freeNote:
-      "Bepul rejada daraja testi va yo'lning birinchi 7 kuni ochiq. Keyingi kunlar Click orqali " +
+      "Bepul rejada daraja testi va yo'lning birinchi 3 kuni ochiq. Keyingi kunlar Click orqali " +
       "Pro obuna bilan ochiladi.",
     proUnlocks: 'Pro nimani ochadi',
     freeLimits: 'Bepul rejada',

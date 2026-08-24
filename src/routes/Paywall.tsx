@@ -48,11 +48,6 @@ function perMonthAmountTiyin(amountTiyin: number, period: BillingPeriod) {
   return Math.max(1, Math.round(amountTiyin / monthsForPeriod(period)))
 }
 
-const futureListPriceTiyin: Partial<Record<BillingPeriod, number>> = {
-  Monthly: 11_900_000,
-  NinetyDay: 29_900_000,
-}
-
 export function Paywall() {
   const t = useT()
   const { locale } = useLocale()
@@ -224,16 +219,12 @@ export function Paywall() {
                     : option.amountTiyin
                 const shownAmount = discountedAmount
                 const shownCurrency = promoDiscounted && !giftDiscounted ? promoPreview.currency : option.currency
-                const futurePrice = futureListPriceTiyin[option.period]
                 const perDayPrice = formatPrice(
                   perDayAmountTiyin(shownAmount, option.period),
                   shownCurrency,
                   locale,
                 )
                 const currentPrice = formatPrice(option.amountTiyin, option.currency, locale)
-                const futurePriceText = futurePrice
-                  ? formatPrice(futurePrice, option.currency, locale)
-                  : null
 
                 return (
                   <button
@@ -266,11 +257,6 @@ export function Paywall() {
                     ) : (
                       <div className="mt-2">
                         <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
-                          {futurePriceText ? (
-                            <span className="text-base font-semibold text-ink-muted line-through decoration-2">
-                              {futurePriceText}
-                            </span>
-                          ) : null}
                           <span className="text-2xl font-semibold tracking-tight text-ink">{currentPrice}</span>
                         </div>
                         <div className="mt-4 border-t border-hairline pt-4">
@@ -278,15 +264,6 @@ export function Paywall() {
                             <span className="text-3xl font-extrabold tracking-tight text-ink">{perDayPrice}</span>
                             <span className="pb-1 text-lg font-semibold text-ink-muted">/kun</span>
                           </div>
-                          {futurePrice !== undefined ? (
-                            <div className="mt-1 text-base font-semibold text-ink-faint line-through decoration-2">
-                              {formatPrice(
-                                perDayAmountTiyin(futurePrice, option.period),
-                                option.currency,
-                                locale,
-                              )}
-                            </div>
-                          ) : null}
                         </div>
                       </div>
                     )}
