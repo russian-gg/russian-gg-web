@@ -5,7 +5,7 @@ import { api, tokenStore } from './api'
 import { AuthContext, type AuthState } from './auth-context'
 import { disableGoogleAutoSelect } from './google-auth'
 import { useLocale } from './i18n'
-import type { AuthResponse, UserProfile } from './types'
+import type { AuthResponse, PhoneCodeChallenge, UserProfile } from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -83,24 +83,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(true)
         return auth.user
       },
-      async signInWithGoogle(credential, displayName, options) {
+      async signInWithGoogle(credential, displayName) {
         const auth = await api.post<AuthResponse>('/auth/google', {
           credential,
           displayName,
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
           uiLanguage: locale,
         })
-        if (options?.pendingOnboarding && !auth.user.hasCompletedDiagnostic) {
-          tokenStore.setPending(auth)
-          setPendingOnboarding(true)
-        } else {
-          tokenStore.set(auth)
-          setPendingOnboarding(false)
-        }
+        // Real tokens even for a brand-new account: a learner who abandons onboarding is sent
+        // back to it by the public-route redirect, so nothing is lost by committing the session.
+        tokenStore.set(auth)
         resetCache()
         adoptAccountLocale(auth.user.uiLanguage)
         setUser(auth.user)
+        setPendingOnboarding(false)
         return auth.user
+      },
+      requestPhoneCode(phoneNumber) {
+        return api.post<PhoneCodeChallenge>('/auth/otp/request', {
+          phoneNumber,
+          timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          uiLanguage: locale,
+        })
+      },
+      async verifyPhoneCode(phoneNumber, code, displayName) {
+        const auth = await api.post<AuthResponse>('/auth/otp/verify', {
+          phoneNumber,
+          code,
+          displayName,
+          timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          uiLanguage: locale,
+        })
+        tokenStore.set(auth)
+        resetCache()
+        adoptAccountLocale(auth.user.uiLanguage)
+        setUser(auth.user)
+        setPendingOnboarding(false)
+        return auth.user
+      },
+      requestPhoneLink(phoneNumber) {
+        return api.post<PhoneCodeChallenge>('/auth/phone/link/request', { phoneNumber })
+      },
+      // Confirms the phone for the account already signed in. The caller signs out straight
+      // after — the learner then comes back in through the phone door — so the session is left
+      // untouched here rather than refreshed.
+      verifyPhoneLink(phoneNumber, code) {
+        return api.post<UserProfile>('/auth/phone/link/verify', { phoneNumber, code })
       },
       async signOut() {
         const refreshToken = tokenStore.refresh()

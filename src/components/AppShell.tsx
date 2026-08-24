@@ -248,7 +248,8 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
     retry: false,
   })
 
-  const name = user?.displayName?.trim() || user?.email?.split('@')[0] || t.account.learner
+  const name =
+    user?.displayName?.trim() || user?.email?.split('@')[0] || user?.phoneNumber || t.account.learner
   // The plan, not the level: this row is the account, and the level already has a home on
   // the profile and progress screens.
   const subtitle = planLabel(entitlement, t)

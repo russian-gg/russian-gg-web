@@ -8,6 +8,7 @@ import { WelcomeGiftGate } from './components/WelcomeGiftGate'
 import { Spinner } from './components/ui'
 import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
+import { needsPhone } from './lib/country'
 import { playUiSound, type UiSound } from './lib/ui-sounds'
 import { AdminContent } from './routes/AdminContent'
 import { CoursePath } from './routes/CoursePath'
@@ -25,7 +26,7 @@ import { SawGame } from './routes/games/SawGame'
 import { Practice } from './routes/Practice'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
-import { SignIn, SignUp } from './routes/SignIn'
+import { LinkPhonePage, SignIn, SignUp } from './routes/SignIn'
 
 export function App() {
   useVisitBeacon()
@@ -47,6 +48,13 @@ export function App() {
           server by a hard per-address limit rather than by a sign-up form here.
         */}
         <Route path="/onboarding" element={<Onboarding />} />
+
+        {/*
+          Mandatory phone linking for a signed-in learner who has no confirmed phone (the Google
+          → phone migration). Full screen and outside the shell: it ends in a sign-out, so there
+          is nothing to navigate to from here.
+        */}
+        <Route path="/link-phone" element={<RequireAuth><LinkPhonePage /></RequireAuth>} />
 
 
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
@@ -113,6 +121,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (isLoading) return <Spinner />
   if (!user) return <Navigate to="/signin" replace state={{ from: location.pathname }} />
+  // A learner still owing a verified phone links one before reaching anything else.
+  if (needsPhone(user) && location.pathname !== '/link-phone') {
+    return <Navigate to="/link-phone" replace />
+  }
   if (isPendingOnboarding && location.pathname !== '/onboarding') {
     return <Navigate to="/signup" replace state={{ clearPendingOnboarding: true }} />
   }
@@ -144,7 +156,10 @@ function PublicOnly({ children }: { children: ReactNode }) {
 
   if (isLoading) return <Spinner />
   if (isPendingOnboarding) return <>{children}</>
-  if (user) return <Navigate to={user.hasCompletedDiagnostic ? '/home' : '/onboarding'} replace />
+  if (user) {
+    if (needsPhone(user)) return <Navigate to="/link-phone" replace />
+    return <Navigate to={user.hasCompletedDiagnostic ? '/home' : '/onboarding'} replace />
+  }
 
   return <>{children}</>
 }

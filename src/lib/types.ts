@@ -71,9 +71,10 @@ export type ConsentKind =
 
 export interface UserProfile {
   id: string
-  email: string
+  email?: string | null
   displayName?: string | null
   phoneNumber?: string | null
+  phoneNumberConfirmed: boolean
   role: UserRole
   uiLanguage: string
   voiceGender: VoiceGender
@@ -88,6 +89,12 @@ export interface AuthResponse {
   refreshToken: string
   accessTokenExpiresAt: string
   user: UserProfile
+}
+
+/** Server's answer to an OTP request: how long the code lives and when a resend is allowed. */
+export interface PhoneCodeChallenge {
+  expiresInSeconds: number
+  resendInSeconds: number
 }
 
 export interface ConsentState {

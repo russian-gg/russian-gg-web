@@ -1,191 +1,73 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import googleGIcon from '../assets/google-g-official.svg'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { isLikelyUzbekistan, needsPhone } from '../lib/country'
 import { onboardingDraft } from '../lib/onboardingDraft'
-import { useT } from '../lib/i18n'
+import { fill, useT } from '../lib/i18n'
 import {
   loadGoogleIdentityScript,
   renderGoogleButton,
   type GoogleCredentialResponse,
 } from '../lib/google-auth'
-import { Button, ErrorNote, Field } from '../components/ui'
+import { OtpInput } from '../components/OtpInput'
+import { Button, ErrorNote } from '../components/ui'
+import type { UserProfile } from '../lib/types'
 
 const DEFAULT_GOOGLE_CLIENT_ID =
   '718388409500-ljra0b5j8j3dpubieljmd228gd1c55p3.apps.googleusercontent.com'
 
+const JUST_LINKED_KEY = 'rgg.justLinked'
+
 /**
- * Where to land after authenticating. A placement run taken while signed out outranks
- * everything: those answers are only held for this hop and must be spent immediately.
+ * Both /signin and /signup render the same thing now: sign-in and sign-up are one act with a
+ * one-time code. A returning phone is logged in; a new one gets an account.
  */
-function destinationAfterAuth(hasCompletedDiagnostic: boolean, from?: string) {
-  if (onboardingDraft.exists()) return '/onboarding'
-  if (!hasCompletedDiagnostic) return '/onboarding'
-
-  /*
-   * Back to the page that sent them here, but only once they have been placed. Somebody who
-   * followed a checkout link and had to sign in on the way should land on the checkout — and
-   * an unplaced learner still goes to placement first, because the rest of the product means
-   * nothing without it.
-   */
-  return from ?? '/home'
-}
-
 export function SignIn() {
-  const t = useT()
-  const { signIn, signInWithGoogle } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  // Set by RequireAuth when it turned somebody away from a page they asked for.
-  const returnTo = typeof location.state?.from === 'string' ? location.state.from : undefined
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [googleBusy, setGoogleBusy] = useState(false)
-
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    setBusy(true)
-    setError(null)
-
-    try {
-      const user = await signIn(email, password)
-      navigate(destinationAfterAuth(user.hasCompletedDiagnostic, returnTo), { replace: true })
-    } catch (caught) {
-      setError(
-        caught instanceof RequestError ? caught.message : t.auth.signInFailed,
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleGoogleCredential(response: GoogleCredentialResponse) {
-    if (!response.credential) {
-      setError(t.auth.googleNoToken)
-      return
-    }
-
-    setGoogleBusy(true)
-    setError(null)
-
-    try {
-      const user = await signInWithGoogle(response.credential)
-      navigate(destinationAfterAuth(user.hasCompletedDiagnostic, returnTo), { replace: true })
-    } catch (caught) {
-      setError(
-        caught instanceof RequestError
-          ? caught.message
-          : t.auth.googleFailed,
-      )
-    } finally {
-      setGoogleBusy(false)
-    }
-  }
-
-  return (
-    <AuthLayout
-      title={t.auth.signInTitle}
-      footer={
-        <>
-          {t.auth.noAccount}{' '}
-          <Link to="/signup" className="font-semibold text-signal-ink">
-            {t.auth.goSignUp}
-          </Link>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="space-y-4">
-        {error && <ErrorNote>{error}</ErrorNote>}
-
-        <GoogleContinueButton
-          busy={googleBusy}
-          text="continue_with"
-          onCredential={handleGoogleCredential}
-        />
-
-        <Divider />
-
-        <Field
-          label={t.auth.email}
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <PasswordField
-          label={t.auth.password}
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          showPassword={showPassword}
-          onTogglePassword={() => setShowPassword((value) => !value)}
-        />
-
-        <Button type="submit" size="lg" block disabled={busy}>
-          {busy ? t.auth.signingIn : t.auth.signInAction}
-        </Button>
-      </form>
-    </AuthLayout>
-  )
+  return <AuthPage />
 }
 
 export function SignUp() {
+  return <AuthPage />
+}
+
+/**
+ * Where to land after authenticating. A learner who still owes a verified phone is sent to link
+ * one before anything else; a placement run taken while signed out outranks the rest.
+ */
+function postAuthDestination(user: UserProfile, from?: string) {
+  if (needsPhone(user)) return '/link-phone'
+  if (onboardingDraft.exists()) return '/onboarding'
+  if (!user.hasCompletedDiagnostic) return '/onboarding'
+  return from ?? '/home'
+}
+
+function AuthPage() {
   const t = useT()
-  const { abandonPendingOnboarding, isPendingOnboarding, signInWithGoogle, signUp } = useAuth()
-  const location = useLocation()
+  const tp = t.auth.phone
+  const { requestPhoneCode, verifyPhoneCode, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [displayName, setDisplayName] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [googleBusy, setGoogleBusy] = useState(false)
-  const didClearPendingRef = useRef(false)
+  const location = useLocation()
+  const returnTo = typeof location.state?.from === 'string' ? location.state.from : undefined
 
-  useEffect(() => {
-    if (didClearPendingRef.current) {
-      return
-    }
-
-    if (isPendingOnboarding && location.state?.clearPendingOnboarding === true) {
-      didClearPendingRef.current = true
-      abandonPendingOnboarding()
-      navigate('/signup', { replace: true })
-    }
-  }, [abandonPendingOnboarding, isPendingOnboarding, location.state, navigate])
-
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    setBusy(true)
-    setError(null)
-
+  // Set by the phone-link step after it signs the learner out; survives the redirect.
+  const [justLinked] = useState(() => {
     try {
-      await signUp(email, password, displayName || undefined)
-      track('signup_completed')
-      navigate('/onboarding')
-    } catch (caught) {
-      setError(
-        caught instanceof RequestError
-          ? caught.message
-          : t.auth.signUpFailed,
-      )
-    } finally {
-      setBusy(false)
+      if (sessionStorage.getItem(JUST_LINKED_KEY)) {
+        sessionStorage.removeItem(JUST_LINKED_KEY)
+        return true
+      }
+    } catch {
+      // no-op
     }
-  }
+    return false
+  })
+
+  const [googleBusy, setGoogleBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const uz = isLikelyUzbekistan()
 
   async function handleGoogleCredential(response: GoogleCredentialResponse) {
     if (!response.credential) {
@@ -195,165 +77,285 @@ export function SignUp() {
 
     setGoogleBusy(true)
     setError(null)
-
     try {
-      const user = await signInWithGoogle(response.credential, displayName || undefined, {
-        pendingOnboarding: true,
-      })
-      track('signup_completed')
-      navigate(destinationAfterAuth(user.hasCompletedDiagnostic))
+      const user = await signInWithGoogle(response.credential)
+      navigate(postAuthDestination(user, returnTo), { replace: true })
     } catch (caught) {
-      setError(
-        caught instanceof RequestError
-          ? caught.message
-          : t.auth.googleFailed,
-      )
+      setError(errorText(caught, t.auth.googleFailed, tp.errors))
     } finally {
       setGoogleBusy(false)
     }
   }
 
+  const google = (
+    <GoogleContinueButton busy={googleBusy} text="continue_with" onCredential={handleGoogleCredential} />
+  )
+
   return (
-    <AuthLayout
-      title={t.auth.signUpTitle}
-      footer={
-        <>
-          {t.auth.haveAccount}{' '}
-          <Link to="/signin" className="font-semibold text-signal-ink">
-            {t.auth.goSignIn}
-          </Link>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="space-y-4">
-        {error && <ErrorNote>{error}</ErrorNote>}
+    <AuthLayout title={tp.title}>
+      {justLinked && (
+        <p className="mb-5 rounded-xl bg-milestone-soft px-4 py-3 text-sm font-medium text-milestone">
+          {tp.linkedBanner}
+        </p>
+      )}
+      {error && (
+        <div className="mb-4">
+          <ErrorNote>{error}</ErrorNote>
+        </div>
+      )}
 
-        <GoogleContinueButton
-          busy={googleBusy}
-          text="signup_with"
-          onCredential={handleGoogleCredential}
-        />
-
-        <Divider />
-
-        <Field
-          label={t.auth.displayName}
-          name="displayName"
-          autoComplete="given-name"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          hint={t.auth.displayNameHint}
-        />
-
-        <Field
-          label={t.auth.email}
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <PasswordField
-          label={t.auth.password}
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          hint={t.auth.passwordHint}
-          showPassword={showPassword}
-          onTogglePassword={() => setShowPassword((value) => !value)}
-        />
-
-        <Button type="submit" size="lg" block disabled={busy}>
-          {busy ? t.auth.signingUp : t.auth.signUpAction}
-        </Button>
-      </form>
+      <PhoneCodeFlow
+        subtitle={tp.subtitle}
+        requestCode={requestPhoneCode}
+        onVerified={async (phone, code) => {
+          const user = await verifyPhoneCode(phone, code)
+          if (!user.hasCompletedDiagnostic && !needsPhone(user)) track('signup_completed')
+          navigate(postAuthDestination(user, returnTo), { replace: true })
+        }}
+        secondary={
+          // Abroad, Google leads; in Uzbekistan the phone leads and Google is the fallback.
+          <>
+            <Divider />
+            {!uz && <p className="text-support mb-3 text-center">{tp.googlePrimaryNote}</p>}
+            {google}
+          </>
+        }
+        secondaryFirst={!uz}
+      />
     </AuthLayout>
   )
 }
 
-function AuthLayout({
-  title,
-  children,
-  footer,
+/**
+ * The one-time migration for accounts that came in through Google: confirm a phone, then get
+ * signed out and sent to the phone door. Mounted behind RequireAuth, which forces every UZ
+ * learner without a confirmed phone here.
+ */
+export function LinkPhonePage() {
+  const t = useT()
+  const tp = t.auth.phone
+  const { requestPhoneLink, verifyPhoneLink, signOut } = useAuth()
+
+  async function finishAndLeave() {
+    try {
+      sessionStorage.setItem(JUST_LINKED_KEY, '1')
+    } catch {
+      // no-op; the banner is a nicety, not load-bearing
+    }
+    // Signing out drops the learner; RequireAuth then routes them to the phone sign-in, where
+    // the banner explains what happened.
+    await signOut()
+  }
+
+  return (
+    <AuthLayout title={tp.linkTitle}>
+      <PhoneCodeFlow
+        subtitle={tp.linkSubtitle}
+        requestCode={requestPhoneLink}
+        onVerified={async (phone, code) => {
+          await verifyPhoneLink(phone, code)
+          await finishAndLeave()
+        }}
+      />
+    </AuthLayout>
+  )
+}
+
+/* ------------------------------------------------------------------ phone + code flow */
+
+/**
+ * The shared two-step flow: enter a phone, then the code texted to it. The caller supplies how a
+ * code is requested and what a verified code means (sign in, or link), so this component owns
+ * only the form, the resend timer and the error copy.
+ */
+function PhoneCodeFlow({
+  subtitle,
+  requestCode,
+  onVerified,
+  secondary,
+  secondaryFirst = false,
 }: {
-  title: string
-  children: ReactNode
-  footer: ReactNode
+  subtitle: string
+  requestCode: (phoneE164: string) => Promise<{ resendInSeconds: number }>
+  onVerified: (phoneE164: string, code: string) => Promise<void>
+  secondary?: ReactNode
+  secondaryFirst?: boolean
 }) {
+  const t = useT()
+  const tp = t.auth.phone
+  const [step, setStep] = useState<'phone' | 'code'>('phone')
+  const [local, setLocal] = useState('')
+  const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [resendIn, setResendIn] = useState(0)
+
+  const e164 = '+998' + local
+  const canRequest = local.length >= 9
+
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const id = window.setTimeout(() => setResendIn(resendIn - 1), 1000)
+    return () => window.clearTimeout(id)
+  }, [resendIn])
+
+  async function sendCode(event?: FormEvent) {
+    event?.preventDefault()
+    if (!canRequest || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const challenge = await requestCode(e164)
+      setCode('')
+      setStep('code')
+      setResendIn(challenge.resendInSeconds)
+    } catch (caught) {
+      setError(errorText(caught, tp.errors.default, tp.errors))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function submitCode(finalCode: string) {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await onVerified(e164, finalCode)
+    } catch (caught) {
+      setError(errorText(caught, tp.errors.default, tp.errors))
+      setCode('')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (step === 'code') {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-base font-extrabold text-ink">{tp.codeTitle}</h2>
+          <p className="text-support mt-1">{fill(tp.codeSentTo, { phone: e164 })}</p>
+        </div>
+
+        {error && <ErrorNote>{error}</ErrorNote>}
+
+        <OtpInput
+          value={code}
+          onChange={setCode}
+          onComplete={submitCode}
+          disabled={busy}
+          ariaLabel={tp.codeTitle}
+        />
+
+        <Button size="lg" block disabled={busy || code.length < 4} onClick={() => submitCode(code)}>
+          {busy ? tp.verifying : tp.verify}
+        </Button>
+
+        <div className="flex items-center justify-between text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setStep('phone')
+              setCode('')
+              setError(null)
+            }}
+            className="font-semibold text-ink-muted transition-colors hover:text-ink"
+          >
+            {tp.changeNumber}
+          </button>
+          <button
+            type="button"
+            disabled={resendIn > 0 || busy}
+            onClick={() => sendCode()}
+            className="font-semibold text-signal-ink disabled:text-ink-faint"
+          >
+            {resendIn > 0 ? fill(tp.resendIn, { seconds: resendIn }) : tp.resend}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const phoneForm = (
+    <form onSubmit={sendCode} className="space-y-4">
+      {error && <ErrorNote>{error}</ErrorNote>}
+      <p className="text-support">{subtitle}</p>
+
+      <label className="block" htmlFor="phone">
+        <span className="mb-1.5 block text-sm font-medium text-ink">{tp.label}</span>
+        <div className="flex items-center gap-2 rounded-2xl border-2 border-hairline bg-ground-raised pl-4 transition-colors focus-within:border-signal">
+          <span className="text-base font-semibold text-ink-muted">+998</span>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            placeholder={tp.placeholder}
+            value={local}
+            onChange={(event) => setLocal(event.target.value.replace(/\D/g, '').slice(0, 9))}
+            className="h-12 w-full rounded-r-2xl bg-transparent pr-4 text-base text-ink placeholder:text-ink-faint focus:outline-none"
+          />
+        </div>
+      </label>
+
+      <Button type="submit" size="lg" block disabled={!canRequest || busy}>
+        {busy ? tp.sending : tp.getCode}
+      </Button>
+    </form>
+  )
+
+  return (
+    <div className="space-y-1">
+      {secondaryFirst ? (
+        <>
+          {secondary}
+          {phoneForm}
+        </>
+      ) : (
+        <>
+          {phoneForm}
+          {secondary}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* --------------------------------------------------------------------------- helpers */
+
+function errorText(
+  caught: unknown,
+  fallback: string,
+  errors: Record<string, string>,
+): string {
+  if (caught instanceof RequestError) {
+    return errors[caught.code] ?? caught.message ?? fallback
+  }
+  return fallback
+}
+
+function AuthLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-12">
       <Link to="/" className="text-sm font-medium text-ink-faint">
         ← russian.gg
       </Link>
-      <h1 className="mb-7 mt-6 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
+      <h1 className="mt-6 mb-7 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
       {children}
-      <p className="text-support mt-6">{footer}</p>
     </div>
   )
 }
 
-function PasswordField({
-  label,
-  hint,
-  showPassword,
-  onTogglePassword,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & {
-  label: string
-  hint?: string
-  showPassword: boolean
-  onTogglePassword: () => void
-}) {
+function Divider() {
   const t = useT()
-  const id = props.id ?? props.name ?? label
-
   return (
-    <label className="block" htmlFor={id}>
-      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
-      <div className="relative">
-        <input
-          {...props}
-          id={id}
-          className="h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 pr-14 text-base text-ink placeholder:text-ink-faint"
-        />
-        <button
-          type="button"
-          onClick={onTogglePassword}
-          className="absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-faint transition-colors hover:text-ink"
-          aria-label={showPassword ? t.auth.hidePassword : t.auth.showPassword}
-          aria-pressed={showPassword}
-        >
-          <EyeGlyph open={showPassword} />
-        </button>
-      </div>
-      {hint && <span className="text-support mt-1 block">{hint}</span>}
-    </label>
-  )
-}
-
-function EyeGlyph({ open }: { open: boolean }) {
-  if (open) {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-1.8">
-        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-1.8">
-      <path d="M3 4.5 20 19.5" />
-      <path d="M10.6 6.2A11.6 11.6 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-4.1 4.5" />
-      <path d="M6.7 8.1A17.2 17.2 0 0 0 2 12s3.5 6 10 6c1.4 0 2.6-.3 3.8-.7" />
-      <path d="M9.9 9.9A3 3 0 0 0 14 14" />
-    </svg>
+    <div className="flex items-center gap-3 py-4">
+      <div className="h-px flex-1 bg-hairline" />
+      <span className="text-support">{t.auth.or}</span>
+      <div className="h-px flex-1 bg-hairline" />
+    </div>
   )
 }
 
@@ -372,7 +374,7 @@ function GoogleContinueButton({
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const t = useT()
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
-  const buttonLabel = text === 'signup_with' ? t.auth.googleSignUp : t.auth.googleContinue
+  const buttonLabel = t.auth.phone.googleSecondary
 
   useEffect(() => {
     if (!clientId || !buttonRef.current || initializedRef.current) return
@@ -393,12 +395,6 @@ function GoogleContinueButton({
           text,
         )
 
-        /*
-         * Google refuses an unregistered origin *silently* — `renderButton` returns without
-         * throwing and simply leaves the container empty, which used to leave a handsome
-         * button on screen that could never do anything. Checking for the iframe is the only
-         * signal we get; the reason itself is only in the console, so it is logged there too.
-         */
         probe = setTimeout(() => {
           if (cancelled) return
           const rendered = (buttonRef.current?.childElementCount ?? 0) > 0
@@ -424,18 +420,8 @@ function GoogleContinueButton({
     }
   }, [clientId, onCredentialEvent, text])
 
-  if (!clientId) {
+  if (!clientId || status === 'unavailable') {
     return null
-  }
-
-  // A button that cannot work must not be shown as if it can: email sign-in still works, and
-  // saying so is better than letting the learner tap a dead control.
-  if (status === 'unavailable') {
-    return (
-      <p className="text-support rounded-xl bg-ground-sunken px-4 py-3">
-        {t.auth.googleUnavailable}
-      </p>
-    )
   }
 
   return (
@@ -451,18 +437,6 @@ function GoogleContinueButton({
         </div>
       </div>
       {busy && <p className="text-support text-center">{t.auth.googleWorking}</p>}
-    </div>
-  )
-}
-
-function Divider() {
-  const t = useT()
-
-  return (
-    <div className="flex items-center gap-3 py-1">
-      <div className="h-px flex-1 bg-hairline" />
-      <span className="text-support">{t.auth.or}</span>
-      <div className="h-px flex-1 bg-hairline" />
     </div>
   )
 }

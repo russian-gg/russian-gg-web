@@ -58,7 +58,7 @@ export function Settings() {
     <div className="space-y-8">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.settings.title}</h1>
-        <p className="text-support mt-1">{user?.email}</p>
+        <p className="text-support mt-1">{user?.email ?? user?.phoneNumber}</p>
       </header>
 
       <TabLinks tabs={tabs} active={active} />
@@ -103,7 +103,8 @@ function ProfileTab() {
 
   if (isLoading) return <Spinner />
 
-  const name = user?.displayName?.trim() || user?.email?.split('@')[0] || t.account.learner
+  const name =
+    user?.displayName?.trim() || user?.email?.split('@')[0] || user?.phoneNumber || t.account.learner
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   return (
@@ -119,7 +120,7 @@ function ProfileTab() {
         </span>
         <div className="min-w-0">
           <p className="truncate text-xl font-extrabold text-ink">{name}</p>
-          <p className="text-support truncate">{user?.email}</p>
+          <p className="text-support truncate">{user?.email ?? user?.phoneNumber}</p>
         </div>
       </div>
 
