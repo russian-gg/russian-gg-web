@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import googleGIcon from '../assets/google-g-official.svg'
+import googleGIcon from '../assets/google-g-dark.svg'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { isLikelyUzbekistan, needsPhone } from '../lib/country'
