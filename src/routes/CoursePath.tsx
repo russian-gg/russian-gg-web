@@ -66,7 +66,7 @@ export function CoursePath() {
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
   const foundationProgress = Object.fromEntries(
-    Array.from({ length: 10 }, (_, index) => {
+    Array.from({ length: 15 }, (_, index) => {
       const day = index + 1
       return [day, readFoundationLessonProgress(user?.id, day)]
     }),

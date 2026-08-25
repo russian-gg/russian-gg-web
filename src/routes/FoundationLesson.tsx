@@ -80,7 +80,7 @@ export function FoundationLesson() {
   const progress = state.completed.length
   const canContinue = active.id !== 'phrases' || !lesson || Object.keys(state.phraseRatings).length >= lesson.phrases.length
 
-  if (!lesson || day < 1 || day > 10) return <Navigate to="/path" replace />
+  if (!lesson || day < 1 || day > 15) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)
@@ -142,7 +142,11 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'game' && (
-          lesson.game.kind === 'city-map'
+          lesson.game.kind === 'picture-description'
+            ? <PictureDescriptionGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
+                setState((current) => ({ ...current, gameMatches }))
+              }} />
+          : lesson.game.kind === 'city-map'
             ? <CityMapGame lesson={lesson} matches={state.gameMatches} onChange={(gameMatches) => {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
@@ -641,6 +645,56 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
         <div className="mt-4 flex flex-wrap gap-2">
           {solved.map((pair) => <span key={pair.left} className="rounded-full bg-milestone-soft px-2.5 py-1 text-xs font-black text-milestone">{bagItemIcons[pair.left]} <RussianText text={pair.left} /> ✓</span>)}
         </div>
+      </Card>
+    </div>
+  )
+}
+
+const pictureDescriptionIcons: Record<string, string> = {
+  shahar: '🏙️', "bog'": '🌿', uy: '🏠', "ko'cha": '🛣️', "do'kon": '🏬', park: '🌳',
+}
+
+function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
+  const [selected, setSelected] = useState(lesson.game.pairs[0]?.left ?? '')
+  const [draft, setDraft] = useState(matches[selected] ?? '')
+  const completed = lesson.game.pairs.filter((pair) => Boolean(matches[pair.left]?.trim())).length
+
+  function selectPicture(place: string) {
+    setSelected(place)
+    setDraft(matches[place] ?? '')
+    playUiSound('select')
+  }
+
+  function saveDescription() {
+    const description = draft.trim()
+    if (!selected || !description) return
+    onChange({ ...matches, [selected]: description })
+    celebrate([25, 30, 45], completed + 1 === lesson.game.pairs.length ? 'win' : 'coin')
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
+          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{completed}/{lesson.game.pairs.length}</span>
+        </div>
+      </Card>
+
+      <Card className="p-3 sm:p-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {lesson.game.pairs.map((pair) => {
+            const done = Boolean(matches[pair.left]?.trim())
+            return <button key={pair.left} type="button" onClick={() => selectPicture(pair.left)} className={cx('flex min-h-28 flex-col items-center justify-center rounded-2xl border-2 p-3 transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><span className="text-4xl">{pictureDescriptionIcons[pair.left] ?? '🖼️'}</span><span className="mt-2 text-sm font-black">{pair.left}</span>{done && <span className="mt-1 text-xs font-black">✓</span>}</button>
+          })}
+        </div>
+      </Card>
+
+      {lesson.game.example && <Card className="border-hairline bg-ground-raised p-4 text-sm leading-relaxed text-ink"><RussianText text={lesson.game.example} /></Card>}
+
+      <Card className="p-3 sm:p-4">
+        <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={5} className="w-full resize-y rounded-2xl border border-hairline bg-ground-raised px-4 py-3 text-sm text-ink outline-none transition focus:border-signal" />
+        <Button className="mt-3" disabled={!draft.trim()} onClick={saveDescription}>Tayyor</Button>
       </Card>
     </div>
   )
