@@ -5,15 +5,25 @@ export interface AuthState {
   user: UserProfile | null
   isLoading: boolean
   isPendingOnboarding: boolean
-  signIn: (email: string, password: string) => Promise<UserProfile>
+  signIn: (identifier: string, password: string) => Promise<UserProfile>
   signUp: (email: string, password: string, displayName?: string) => Promise<UserProfile>
   signInWithGoogle: (credential: string, displayName?: string) => Promise<UserProfile>
-  /** Primary sign-in: send a one-time code to a phone, then verify it. */
+  /** One-time phone registration or legacy credential setup. */
   requestPhoneCode: (phoneNumber: string) => Promise<PhoneCodeChallenge>
-  verifyPhoneCode: (phoneNumber: string, code: string, displayName?: string) => Promise<UserProfile>
-  /** Attach a phone to the signed-in account (the Google → phone migration). */
+  verifyPhoneCode: (
+    phoneNumber: string,
+    code: string,
+    displayName: string,
+    password: string,
+  ) => Promise<UserProfile>
+  /** Attach a phone and reusable password to the signed-in account. */
   requestPhoneLink: (phoneNumber: string) => Promise<PhoneCodeChallenge>
-  verifyPhoneLink: (phoneNumber: string, code: string) => Promise<UserProfile>
+  verifyPhoneLink: (
+    phoneNumber: string,
+    code: string,
+    displayName: string,
+    password: string,
+  ) => Promise<UserProfile>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   completePendingOnboarding: () => Promise<void>

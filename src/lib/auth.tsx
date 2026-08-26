@@ -58,8 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       isPendingOnboarding,
-      async signIn(email, password) {
-        const auth = await api.post<AuthResponse>('/auth/login', { email, password })
+      async signIn(identifier, password) {
+        // Keep the existing API property for backward compatibility; the server now accepts
+        // either an email address or a verified phone number in it.
+        const auth = await api.post<AuthResponse>('/auth/login', { email: identifier, password })
         tokenStore.set(auth)
         resetCache()
         adoptAccountLocale(auth.user.uiLanguage)
@@ -106,11 +108,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uiLanguage: locale,
         })
       },
-      async verifyPhoneCode(phoneNumber, code, displayName) {
+      async verifyPhoneCode(phoneNumber, code, displayName, password) {
         const auth = await api.post<AuthResponse>('/auth/otp/verify', {
           phoneNumber,
           code,
           displayName,
+          password,
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
           uiLanguage: locale,
         })
@@ -124,11 +127,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPhoneLink(phoneNumber) {
         return api.post<PhoneCodeChallenge>('/auth/phone/link/request', { phoneNumber })
       },
-      // Confirms the phone for the account already signed in. The caller signs out straight
-      // after — the learner then comes back in through the phone door — so the session is left
-      // untouched here rather than refreshed.
-      verifyPhoneLink(phoneNumber, code) {
-        return api.post<UserProfile>('/auth/phone/link/verify', { phoneNumber, code })
+      // The OTP proves ownership once; the supplied password is what the learner uses on every
+      // later phone sign-in. The caller signs out after this credential change.
+      verifyPhoneLink(phoneNumber, code, displayName, password) {
+        return api.post<UserProfile>('/auth/phone/link/verify', {
+          phoneNumber,
+          code,
+          displayName,
+          password,
+        })
       },
       async signOut() {
         const refreshToken = tokenStore.refresh()
