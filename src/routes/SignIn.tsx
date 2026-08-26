@@ -147,11 +147,12 @@ export function SignUp() {
   const t = useT()
   const {
     abandonPendingOnboarding,
+    completePhoneRegistration,
+    confirmPhoneCode,
     isPendingOnboarding,
     requestPhoneCode,
     signInWithGoogle,
     signUp,
-    verifyPhoneCode,
   } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -246,8 +247,9 @@ export function SignUp() {
         <PhoneCredentialSetupFlow
           subtitle={t.auth.phone.registrationSubtitle}
           requestCode={requestPhoneCode}
-          onVerified={async (phone, code, name, newPassword) => {
-            const user = await verifyPhoneCode(phone, code, name, newPassword)
+          confirmCode={confirmPhoneCode}
+          completeSetup={async (verificationToken, name, newPassword) => {
+            const user = await completePhoneRegistration(verificationToken, name, newPassword)
             track('signup_completed')
             navigate(postAuthDestination(user), { replace: true })
           }}
@@ -302,7 +304,7 @@ export function SignUp() {
 /** Existing email/Google learners verify a phone once and set its reusable password. */
 export function LinkPhonePage() {
   const t = useT()
-  const { user, requestPhoneLink, verifyPhoneLink, signOut } = useAuth()
+  const { user, requestPhoneLink, confirmPhoneLinkCode, completePhoneLink, signOut } = useAuth()
 
   async function finishAndLeave() {
     try {
@@ -318,9 +320,10 @@ export function LinkPhonePage() {
       <PhoneCredentialSetupFlow
         subtitle={t.auth.phone.linkSubtitle}
         requestCode={requestPhoneLink}
+        confirmCode={confirmPhoneLinkCode}
         initialDisplayName={user?.displayName ?? ''}
-        onVerified={async (phone, code, name, newPassword) => {
-          await verifyPhoneLink(phone, code, name, newPassword)
+        completeSetup={async (verificationToken, name, newPassword) => {
+          await completePhoneLink(verificationToken, name, newPassword)
           await finishAndLeave()
         }}
         submitLabel={t.auth.phone.savePhonePassword}
@@ -332,21 +335,24 @@ export function LinkPhonePage() {
 function PhoneCredentialSetupFlow({
   subtitle,
   requestCode,
-  onVerified,
+  confirmCode,
+  completeSetup,
   initialDisplayName = '',
   submitLabel,
 }: {
   subtitle: string
   requestCode: (phoneE164: string) => Promise<{ resendInSeconds: number }>
-  onVerified: (phoneE164: string, code: string, displayName: string, password: string) => Promise<void>
+  confirmCode: (phoneE164: string, code: string) => Promise<{ verificationToken: string }>
+  completeSetup: (verificationToken: string, displayName: string, password: string) => Promise<void>
   initialDisplayName?: string
   submitLabel: string
 }) {
   const t = useT()
   const tp = t.auth.phone
-  const [step, setStep] = useState<'phone' | 'credentials'>('phone')
+  const [step, setStep] = useState<'phone' | 'code' | 'credentials'>('phone')
   const [local, setLocal] = useState('')
   const [code, setCode] = useState('')
+  const [verificationToken, setVerificationToken] = useState('')
   const [displayName, setDisplayName] = useState(initialDisplayName)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -371,7 +377,8 @@ function PhoneCredentialSetupFlow({
     try {
       const challenge = await requestCode(e164)
       setCode('')
-      setStep('credentials')
+      setVerificationToken('')
+      setStep('code')
       setResendIn(challenge.resendInSeconds)
     } catch (caught) {
       setError(errorText(caught, tp.errors.default, tp.errors))
@@ -380,28 +387,48 @@ function PhoneCredentialSetupFlow({
     }
   }
 
-  async function submitCredentials(event: FormEvent) {
+  async function submitCode(event: FormEvent) {
     event.preventDefault()
-    if (!canSubmit || busy) return
+    if (code.length !== 4 || busy) return
     setBusy(true)
     setError(null)
     try {
-      await onVerified(e164, code, displayName.trim(), password)
+      const confirmation = await confirmCode(e164, code)
+      setVerificationToken(confirmation.verificationToken)
+      setStep('credentials')
     } catch (caught) {
       setError(errorText(caught, tp.errors.default, tp.errors))
-      if (caught instanceof RequestError && caught.code.startsWith('otp_')) setCode('')
+      setCode('')
     } finally {
       setBusy(false)
     }
   }
 
-  if (step === 'credentials') {
+  async function submitCredentials(event: FormEvent) {
+    event.preventDefault()
+    if (!verificationToken || !canSubmit || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await completeSetup(verificationToken, displayName.trim(), password)
+    } catch (caught) {
+      setError(errorText(caught, tp.errors.default, tp.errors))
+      if (caught instanceof RequestError && caught.code === 'otp_verification_expired') {
+        setVerificationToken('')
+        setCode('')
+        setStep('phone')
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (step === 'code') {
     return (
-      <form onSubmit={submitCredentials} className="space-y-4">
+      <form onSubmit={submitCode} className="space-y-5">
         <div>
-          <h2 className="text-base font-extrabold text-ink">{tp.setupTitle}</h2>
+          <h2 className="text-base font-extrabold text-ink">{tp.codeTitle}</h2>
           <p className="text-support mt-1">{fill(tp.codeSentTo, { phone: e164 })}</p>
-          <p className="text-support mt-1">{tp.setupSubtitle}</p>
         </div>
         {error && <ErrorNote>{error}</ErrorNote>}
         <OtpInput
@@ -411,6 +438,51 @@ function PhoneCredentialSetupFlow({
           disabled={busy}
           ariaLabel={tp.codeTitle}
         />
+        <Button type="submit" size="lg" block disabled={busy || code.length !== 4}>
+          {busy ? tp.verifying : tp.verify}
+        </Button>
+        <div className="flex items-center justify-between gap-4 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setStep('phone')
+              setCode('')
+              setError(null)
+            }}
+            className="font-semibold text-ink-muted transition-colors hover:text-ink"
+          >
+            {tp.changeNumber}
+          </button>
+          <button
+            type="button"
+            disabled={resendIn > 0 || busy}
+            onClick={() => void sendCode()}
+            className="font-semibold text-signal-ink disabled:text-ink-faint"
+          >
+            {resendIn > 0 ? fill(tp.resendIn, { seconds: resendIn }) : tp.resend}
+          </button>
+        </div>
+      </form>
+    )
+  }
+
+  if (step === 'credentials') {
+    return (
+      <form onSubmit={submitCredentials} className="space-y-4">
+        <div>
+          <h2 className="text-base font-extrabold text-ink">{tp.setupTitle}</h2>
+          <p className="text-support mt-1">{tp.setupSubtitle}</p>
+        </div>
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <label className="block" htmlFor="verifiedPhone">
+          <span className="mb-1.5 block text-sm font-medium text-ink">{tp.label}</span>
+          <input
+            id="verifiedPhone"
+            value={e164}
+            disabled
+            className="h-12 w-full cursor-not-allowed rounded-xl border-2 border-hairline bg-ground-sunken px-4 text-base text-ink-faint opacity-70"
+          />
+        </label>
         <Field
           label={t.auth.displayName}
           name="phoneDisplayName"
@@ -435,27 +507,6 @@ function PhoneCredentialSetupFlow({
         <Button type="submit" size="lg" block disabled={busy || !canSubmit}>
           {busy ? tp.verifying : submitLabel}
         </Button>
-        <div className="flex items-center justify-between gap-4 text-sm">
-          <button
-            type="button"
-            onClick={() => {
-              setStep('phone')
-              setCode('')
-              setError(null)
-            }}
-            className="font-semibold text-ink-muted transition-colors hover:text-ink"
-          >
-            {tp.changeNumber}
-          </button>
-          <button
-            type="button"
-            disabled={resendIn > 0 || busy}
-            onClick={() => void sendCode()}
-            className="font-semibold text-signal-ink disabled:text-ink-faint"
-          >
-            {resendIn > 0 ? fill(tp.resendIn, { seconds: resendIn }) : tp.resend}
-          </button>
-        </div>
       </form>
     )
   }

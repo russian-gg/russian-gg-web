@@ -263,7 +263,7 @@ export const uz = {
       savePhonePassword: 'Saqlash va davom etish',
       setupTitle: 'Ism va parolni kiriting',
       setupSubtitle:
-        'Bu kod raqamni faqat bir marta tasdiqlaydi. Keyingi kirishlarda SMS emas, parolingiz ishlatiladi.',
+        "Telefon raqamingiz tasdiqlandi. Endi ism va keyingi kirishlar uchun parol o'rnating.",
       googleSecondary: 'Google bilan davom etish',
       googlePrimaryNote: 'Chet elda bo‘lsangiz, Google bilan kiring.',
       linkTitle: 'Telefon raqamingizni ulang',
@@ -280,6 +280,7 @@ export const uz = {
         otp_cooldown: 'Kod hozirgina yuborildi. Biroz kuting.',
         otp_too_many_attempts: "Juda ko‘p urinish. Yangi kod oling.",
         otp_rate_limited: "Juda ko‘p so‘rov. Birozdan so‘ng urinib ko‘ring.",
+        otp_verification_expired: 'Tasdiqlash muddati tugadi. Yangi kod oling.',
         sms_failed: "Kod yuborilmadi. Qayta urinib ko‘ring.",
         phone_taken: 'Bu raqam boshqa hisobga biriktirilgan.',
         phone_already_registered:

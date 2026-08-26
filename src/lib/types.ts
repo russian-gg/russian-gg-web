@@ -97,6 +97,12 @@ export interface PhoneCodeChallenge {
   resendInSeconds: number
 }
 
+/** One-time proof returned only after the SMS code has been confirmed. */
+export interface PhoneVerificationChallenge {
+  verificationToken: string
+  expiresInSeconds: number
+}
+
 export interface ConsentState {
   kind: ConsentKind
   granted: boolean

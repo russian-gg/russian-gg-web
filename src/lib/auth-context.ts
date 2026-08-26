@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { PhoneCodeChallenge, UserProfile } from './types'
+import type { PhoneCodeChallenge, PhoneVerificationChallenge, UserProfile } from './types'
 
 export interface AuthState {
   user: UserProfile | null
@@ -10,17 +10,17 @@ export interface AuthState {
   signInWithGoogle: (credential: string, displayName?: string) => Promise<UserProfile>
   /** One-time phone registration or legacy credential setup. */
   requestPhoneCode: (phoneNumber: string) => Promise<PhoneCodeChallenge>
-  verifyPhoneCode: (
-    phoneNumber: string,
-    code: string,
+  confirmPhoneCode: (phoneNumber: string, code: string) => Promise<PhoneVerificationChallenge>
+  completePhoneRegistration: (
+    verificationToken: string,
     displayName: string,
     password: string,
   ) => Promise<UserProfile>
   /** Attach a phone and reusable password to the signed-in account. */
   requestPhoneLink: (phoneNumber: string) => Promise<PhoneCodeChallenge>
-  verifyPhoneLink: (
-    phoneNumber: string,
-    code: string,
+  confirmPhoneLinkCode: (phoneNumber: string, code: string) => Promise<PhoneVerificationChallenge>
+  completePhoneLink: (
+    verificationToken: string,
     displayName: string,
     password: string,
   ) => Promise<UserProfile>

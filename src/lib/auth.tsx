@@ -5,7 +5,12 @@ import { api, tokenStore } from './api'
 import { AuthContext, type AuthState } from './auth-context'
 import { disableGoogleAutoSelect } from './google-auth'
 import { useLocale } from './i18n'
-import type { AuthResponse, PhoneCodeChallenge, UserProfile } from './types'
+import type {
+  AuthResponse,
+  PhoneCodeChallenge,
+  PhoneVerificationChallenge,
+  UserProfile,
+} from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -108,10 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uiLanguage: locale,
         })
       },
-      async verifyPhoneCode(phoneNumber, code, displayName, password) {
-        const auth = await api.post<AuthResponse>('/auth/otp/verify', {
-          phoneNumber,
-          code,
+      confirmPhoneCode(phoneNumber, code) {
+        return api.post<PhoneVerificationChallenge>('/auth/otp/confirm', { phoneNumber, code })
+      },
+      async completePhoneRegistration(verificationToken, displayName, password) {
+        const auth = await api.post<AuthResponse>('/auth/otp/complete', {
+          verificationToken,
           displayName,
           password,
           timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -127,12 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPhoneLink(phoneNumber) {
         return api.post<PhoneCodeChallenge>('/auth/phone/link/request', { phoneNumber })
       },
-      // The OTP proves ownership once; the supplied password is what the learner uses on every
-      // later phone sign-in. The caller signs out after this credential change.
-      verifyPhoneLink(phoneNumber, code, displayName, password) {
-        return api.post<UserProfile>('/auth/phone/link/verify', {
+      confirmPhoneLinkCode(phoneNumber, code) {
+        return api.post<PhoneVerificationChallenge>('/auth/phone/link/confirm', {
           phoneNumber,
           code,
+        })
+      },
+      // The OTP was already confirmed; this one-time token creates the reusable credential.
+      completePhoneLink(verificationToken, displayName, password) {
+        return api.post<UserProfile>('/auth/phone/link/complete', {
+          verificationToken,
           displayName,
           password,
         })

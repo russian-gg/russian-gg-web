@@ -258,7 +258,7 @@ export const en: Dictionary = {
       savePhonePassword: 'Save and continue',
       setupTitle: 'Enter your name and password',
       setupSubtitle:
-        'This code verifies your number once. Future sign-ins use your password instead of SMS.',
+        'Your phone number is verified. Now enter your name and a password for future sign-ins.',
       googleSecondary: 'Continue with Google',
       googlePrimaryNote: 'If you are abroad, sign in with Google.',
       linkTitle: 'Link your phone number',
@@ -275,6 +275,7 @@ export const en: Dictionary = {
         otp_cooldown: 'A code was just sent. Please wait a moment.',
         otp_too_many_attempts: 'Too many attempts. Request a new code.',
         otp_rate_limited: 'Too many requests. Try again later.',
+        otp_verification_expired: 'Phone verification expired. Request a new code.',
         sms_failed: 'Could not send the code. Please try again.',
         phone_taken: 'This phone number is already used by another account.',
         phone_already_registered:
