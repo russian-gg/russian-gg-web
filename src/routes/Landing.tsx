@@ -855,9 +855,6 @@ function Footer() {
               <SocialLink href={SUPPORT_INSTAGRAM_URL} label="Instagram">
                 <InstagramIcon />
               </SocialLink>
-              <SocialLink href="https://youtube.com/@russian_gg" label="YouTube">
-                <YouTubeIcon />
-              </SocialLink>
             </div>
           </div>
 
@@ -933,14 +930,6 @@ function InstagramIcon() {
       <rect x="3" y="3" width="18" height="18" rx="5" />
       <circle cx="12" cy="12" r="4" />
       <circle cx="17.3" cy="6.7" r="1.1" className="fill-current stroke-none" />
-    </svg>
-  )
-}
-
-function YouTubeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-current">
-      <path d="M23 12s0-3.3-.4-4.9a2.5 2.5 0 0 0-1.8-1.8C19.2 5 12 5 12 5s-7.2 0-8.8.3A2.5 2.5 0 0 0 1.4 7.1C1 8.7 1 12 1 12s0 3.3.4 4.9a2.5 2.5 0 0 0 1.8 1.8C4.8 19 12 19 12 19s7.2 0 8.8-.3a2.5 2.5 0 0 0 1.8-1.8C23 15.3 23 12 23 12ZM9.8 15.3V8.7l5.7 3.3-5.7 3.3Z" />
     </svg>
   )
 }
