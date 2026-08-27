@@ -128,12 +128,28 @@ jobs:
             set_env_value() {
               key="$1"
               value="$2"
+              updated_content="$(
+                awk -v key="$key" -v value="$value" '
+                  BEGIN { found = 0 }
+                  index($0, key "=") == 1 {
+                    if (!found) {
+                      print key "=" value
+                      found = 1
+                    }
+                    next
+                  }
+                  { print }
+                  END {
+                    if (!found) {
+                      print key "=" value
+                    }
+                  }
+                ' .env
+              )"
 
-              if grep -q "^${key}=" .env; then
-                sed -i "s#^${key}=.*#${key}=${value}#" .env
-              else
-                printf '%s=%s\n' "$key" "$value" >>.env
-              fi
+              # Write through the existing file descriptor. Unlike sed -i,
+              # this does not require write permission on APP_DIR itself.
+              printf '%s\n' "$updated_content" >.env
             }
 
             PREVIOUS_WEB_TAG="$(get_env_value WEB_IMAGE_TAG)"
