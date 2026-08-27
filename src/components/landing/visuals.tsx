@@ -65,7 +65,7 @@ export function ProductPreview({
         {/* The tutor turn. The Cyrillic here is the content being learned, not chrome. */}
         <div className="flex items-start gap-3">
           <img
-            src="/tutor-avatar.jpg"
+            src="/characters/pingvin-avatar.png"
             alt=""
             aria-hidden="true"
             className="size-9 shrink-0 rounded-full object-cover"

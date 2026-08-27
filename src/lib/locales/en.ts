@@ -123,12 +123,12 @@ export const en: Dictionary = {
       eyebrow: 'Games',
       title: 'Turn practice into a game',
       subtitle: 'Make speaking and grammar automatic through play.',
-      runnerTitle: 'Rod-runner',
+      runnerTitle: 'Род-раннер',
       runnerBody:
-        'Sort words by gender — as you run. Russian род becomes a reflex.',
-      sawTitle: 'The Saw',
+        'Sort words by gender as you run — Russian gender turns into a reflex.',
+      sawTitle: 'Лазер',
       sawBody:
-        'A question appears and a blade rolls toward you. Speak and it retreats. Last a minute.',
+        'A question drops and the laser slides toward you. Speak, and it backs off — hold out for a minute of talking.',
     },
 
     creators: {
@@ -184,6 +184,36 @@ export const en: Dictionary = {
       payNote: 'Uzcard and Humo — secure payment via Click.',
     },
 
+    characters: {
+      eyebrow: 'Sound familiar?',
+      title: 'Why most people struggle to speak Russian — and how we fixed it',
+      subtitle:
+        'School and courses teach dry rules but never train real conversation. The Russian.gg characters change that at the root:',
+      stage: 'Step {n}',
+      statusProblem: 'Problem',
+      statusSolution: 'Solution',
+      voicePrefix: 'Voice',
+      listen: 'Listen',
+      names: { panda: 'Panda', pingvin: 'Penguin', pero: 'Pero' },
+      panda: {
+        quote:
+          'I understand Russian words, but when it is time to speak in front of people I freeze up…',
+        caption: 'Many learners know the grammar but stay silent for fear of making a mistake.',
+      },
+      pingvin: {
+        quote:
+          'With Russian.gg you start your first dialogues within 2 weeks. Practise pronunciation without embarrassment!',
+        caption: 'The system shows mistakes instantly and lets you practise freely, without embarrassment.',
+      },
+      pero: {
+        quote: 'Play games and memorise words faster with gifs and pictures!',
+        caption: '20 minutes of interactive practice a day beats hours of boring lessons.',
+      },
+      ctaTitle: 'Ready to beat the fear and start speaking today?',
+      ctaBody: 'Sign up for your first free lesson and see the result.',
+      ctaButton: 'Start the first lesson',
+    },
+
     final: {
       title: '90 days. 15 minutes a day. Speak Russian.',
       body: 'Find your level free today.',
@@ -192,9 +222,23 @@ export const en: Dictionary = {
     },
 
     footer: {
-      tagline: 'A Russian speaking coach for Uzbek speakers.',
+      tagline: 'A Russian coach for Uzbek speakers. Made in Uzbekistan.',
       madeIn: 'Made in Uzbekistan.',
       rights: '© 2026 Russian.gg',
+      privacy: 'We protect your data and never share it with third parties.',
+      platform: 'Platform',
+      useful: 'Useful',
+      company: 'Company',
+      language: 'Language',
+      help: 'Help',
+      blog: 'Blog',
+      test: 'Russian test',
+      words: 'Word list',
+      grammar: 'Grammar',
+      about: 'About us',
+      contact: 'Contact',
+      privacyPolicy: 'Privacy policy',
+      terms: 'Terms of use',
     },
   },
 

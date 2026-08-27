@@ -28,14 +28,18 @@ function postAuthDestination(user: UserProfile, from?: string) {
   return from ?? '/home'
 }
 
-/** Returning learners use a password. An OTP is never part of routine sign-in. */
+/**
+ * Returning learners sign in by phone and password; Google is the alternative below. The
+ * password field is hidden until a full number is entered, then rises into view — so the first
+ * thing anyone sees is a single phone box.
+ */
 export function SignIn() {
   const t = useT()
   const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const returnTo = typeof location.state?.from === 'string' ? location.state.from : undefined
-  const [identifier, setIdentifier] = useState('')
+  const [local, setLocal] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -53,13 +57,15 @@ export function SignIn() {
     return false
   })
 
+  const phoneComplete = local.length === 9
+
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (busy) return
+    if (busy || !phoneComplete || !password) return
     setBusy(true)
     setError(null)
     try {
-      const user = await signIn(normalizeLoginIdentifier(identifier), password)
+      const user = await signIn('+998' + local, password)
       navigate(postAuthDestination(user, returnTo), { replace: true })
     } catch (caught) {
       setError(
@@ -111,38 +117,35 @@ export function SignIn() {
 
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNote>{error}</ErrorNote>}
-        <GoogleContinueButton busy={googleBusy} text="continue_with" onCredential={handleGoogleCredential} />
-        <Divider />
-        <Field
-          label={t.auth.loginIdentifier}
-          name="identifier"
-          autoComplete="username"
-          required
-          placeholder={t.auth.loginIdentifierPlaceholder}
-          value={identifier}
-          onChange={(event) => setIdentifier(event.target.value)}
-          hint={t.auth.loginIdentifierHint}
-        />
-        <PasswordField
-          label={t.auth.password}
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          showPassword={showPassword}
-          onTogglePassword={() => setShowPassword((value) => !value)}
-        />
-        <Button type="submit" size="lg" block disabled={busy || !identifier.trim() || !password}>
-          {busy ? t.auth.signingIn : t.auth.signInAction}
-        </Button>
+        <PhoneNumberInput label={t.auth.phone.label} value={local} onChange={setLocal} />
+
+        {phoneComplete && (
+          <div className="space-y-4" style={{ animation: 'var(--animate-rise)' }}>
+            <PasswordField
+              label={t.auth.password}
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((value) => !value)}
+            />
+            <Button type="submit" size="lg" block disabled={busy || !password}>
+              {busy ? t.auth.signingIn : t.auth.signInAction}
+            </Button>
+          </div>
+        )}
       </form>
+
+      <Divider />
+      <GoogleContinueButton busy={googleBusy} text="continue_with" onCredential={handleGoogleCredential} />
     </AuthLayout>
   )
 }
 
-/** New learners choose phone registration or the existing email registration path. */
+/** New learners register by phone. Google is the alternative below; there is no email path. */
 export function SignUp() {
   const t = useT()
   const {
@@ -152,16 +155,9 @@ export function SignUp() {
     isPendingOnboarding,
     requestPhoneCode,
     signInWithGoogle,
-    signUp,
   } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [mode, setMode] = useState<'phone' | 'email'>('phone')
-  const [email, setEmail] = useState('')
-  const [displayName, setDisplayName] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const didClearPendingRef = useRef(false)
@@ -174,28 +170,6 @@ export function SignUp() {
       navigate('/signup', { replace: true })
     }
   }, [abandonPendingOnboarding, isPendingOnboarding, location.state, navigate])
-
-  async function submitEmail(event: FormEvent) {
-    event.preventDefault()
-    if (busy) return
-    setBusy(true)
-    setError(null)
-    try {
-      await signUp(email, password, displayName.trim())
-      track('signup_completed')
-      navigate('/onboarding')
-    } catch (caught) {
-      setError(
-        authErrorText(caught, t.auth.signUpFailed, {
-          invalid_email: t.auth.invalidEmail,
-          email_taken: t.auth.emailTaken,
-          weak_password: t.auth.weakPassword,
-        }),
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
 
   async function handleGoogleCredential(response: GoogleCredentialResponse) {
     if (!response.credential) {
@@ -233,70 +207,21 @@ export function SignUp() {
           <ErrorNote>{error}</ErrorNote>
         </div>
       )}
-      <GoogleContinueButton busy={googleBusy} text="signup_with" onCredential={handleGoogleCredential} />
+
+      <PhoneCredentialSetupFlow
+        subtitle={t.auth.phone.registrationSubtitle}
+        requestCode={requestPhoneCode}
+        confirmCode={confirmPhoneCode}
+        completeSetup={async (verificationToken, name, newPassword) => {
+          const user = await completePhoneRegistration(verificationToken, name, newPassword)
+          track('signup_completed')
+          navigate(postAuthDestination(user), { replace: true })
+        }}
+        submitLabel={t.auth.phone.completeRegistration}
+      />
+
       <Divider />
-      <div className="mb-5 grid grid-cols-2 rounded-xl bg-ground-sunken p-1">
-        <AuthModeButton active={mode === 'phone'} onClick={() => setMode('phone')}>
-          {t.auth.phone.registerWithPhone}
-        </AuthModeButton>
-        <AuthModeButton active={mode === 'email'} onClick={() => setMode('email')}>
-          {t.auth.phone.registerWithEmail}
-        </AuthModeButton>
-      </div>
-      {mode === 'phone' ? (
-        <PhoneCredentialSetupFlow
-          subtitle={t.auth.phone.registrationSubtitle}
-          requestCode={requestPhoneCode}
-          confirmCode={confirmPhoneCode}
-          completeSetup={async (verificationToken, name, newPassword) => {
-            const user = await completePhoneRegistration(verificationToken, name, newPassword)
-            track('signup_completed')
-            navigate(postAuthDestination(user), { replace: true })
-          }}
-          submitLabel={t.auth.phone.completeRegistration}
-        />
-      ) : (
-        <form onSubmit={submitEmail} className="space-y-4">
-          <Field
-            label={t.auth.displayName}
-            name="displayName"
-            autoComplete="name"
-            required
-            value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-          />
-          <Field
-            label={t.auth.email}
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <PasswordField
-            label={t.auth.password}
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            hint={t.auth.passwordHint}
-            showPassword={showPassword}
-            onTogglePassword={() => setShowPassword((value) => !value)}
-          />
-          <Button
-            type="submit"
-            size="lg"
-            block
-            disabled={busy || displayName.trim().length < 2 || !email.trim() || !validPassword(password)}
-          >
-            {busy ? t.auth.signingUp : t.auth.signUpAction}
-          </Button>
-        </form>
-      )}
+      <GoogleContinueButton busy={googleBusy} text="signup_with" onCredential={handleGoogleCredential} />
     </AuthLayout>
   )
 }
@@ -515,41 +440,11 @@ function PhoneCredentialSetupFlow({
     <form onSubmit={sendCode} className="space-y-4">
       {error && <ErrorNote>{error}</ErrorNote>}
       <p className="text-support">{subtitle}</p>
-      <label className="block" htmlFor="phone">
-        <span className="mb-1.5 block text-sm font-medium text-ink">{tp.label}</span>
-        <div className="flex items-center gap-2 rounded-2xl border-2 border-hairline bg-ground-raised pl-4 transition-colors focus-within:border-signal">
-          <span className="text-base font-semibold text-ink-muted">+998</span>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            placeholder={tp.placeholder}
-            value={local}
-            onChange={(event) => setLocal(event.target.value.replace(/\D/g, '').slice(0, 9))}
-            className="h-12 w-full rounded-r-2xl bg-transparent pr-4 text-base text-ink placeholder:text-ink-faint focus:outline-none"
-          />
-        </div>
-      </label>
+      <PhoneNumberInput label={tp.label} value={local} onChange={setLocal} />
       <Button type="submit" size="lg" block disabled={!canRequest || busy}>
         {busy ? tp.sending : tp.getCode}
       </Button>
     </form>
-  )
-}
-
-function AuthModeButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-        active ? 'bg-ground-raised text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
-      }`}
-    >
-      {children}
-    </button>
   )
 }
 
@@ -716,13 +611,49 @@ function validPassword(value: string) {
   return value.length >= 8 && /[A-Za-zА-Яа-яЁё]/.test(value) && /\d/.test(value)
 }
 
-function normalizeLoginIdentifier(value: string) {
-  const trimmed = value.trim()
-  if (trimmed.includes('@')) return trimmed
-  const digits = trimmed.replace(/\D/g, '')
-  if (digits.length === 9) return `+998${digits}`
-  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`
-  return trimmed
+/** Groups the 9 local digits the way an Uzbek number is read: 90 123 45 67. */
+function formatUzPhone(digits: string) {
+  return [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)]
+    .filter(Boolean)
+    .join(' ')
+}
+
+/**
+ * The country code sits fixed to the left and the caller keeps the 9 raw local digits; the box
+ * shows them grouped as they are typed. Used everywhere a phone is entered so the shape is the
+ * same on every screen.
+ */
+function PhoneNumberInput({
+  label,
+  value,
+  onChange,
+  id = 'phone',
+}: {
+  label: string
+  value: string
+  onChange: (digits: string) => void
+  id?: string
+}) {
+  const t = useT()
+  return (
+    <label className="block" htmlFor={id}>
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
+      <div className="flex items-center gap-2 rounded-2xl border-2 border-hairline bg-ground-raised pl-4 transition-colors focus-within:border-signal">
+        <span className="text-base font-semibold text-ink-muted">+998</span>
+        <input
+          id={id}
+          name="phone"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          placeholder={t.auth.phone.placeholder}
+          value={formatUzPhone(value)}
+          onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, 9))}
+          className="h-12 w-full rounded-r-2xl bg-transparent pr-4 text-base tracking-[0.02em] text-ink placeholder:text-ink-faint focus:outline-none"
+        />
+      </div>
+    </label>
+  )
 }
 
 function authErrorText(caught: unknown, fallback: string, errors: Record<string, string>) {

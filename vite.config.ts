@@ -13,8 +13,8 @@ export default defineConfig({
     proxy: {
       // Same-origin API in development, so the browser never deals with CORS or
       // cross-site cookie rules while iterating.
-      '/api': { target: 'http://localhost:5080', changeOrigin: true },
-      '/media': { target: 'http://localhost:5080', changeOrigin: true },
+      '/api': { target: 'http://localhost:5081', changeOrigin: true },
+      '/media': { target: 'http://localhost:5081', changeOrigin: true },
     },
   },
   build: {

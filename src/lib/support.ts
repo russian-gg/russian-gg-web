@@ -9,3 +9,10 @@
  * between two places is one of them being wrong.
  */
 export const SUPPORT_TELEGRAM_URL = 'https://t.me/russian_gg_bot'
+
+/**
+ * The public feed. A learner checks this before trusting the product with their voice — a
+ * different job from the bot, which answers once they are already stuck. Constant for the same
+ * reason: a handle spelled two ways in two places is one of them being wrong.
+ */
+export const SUPPORT_INSTAGRAM_URL = 'https://instagram.com/russian_gg.app'

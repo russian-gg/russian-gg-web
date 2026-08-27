@@ -128,12 +128,12 @@ export const uz = {
       eyebrow: "O'yinlar",
       title: "Mashqni o'yinga aylantiring",
       subtitle: 'Gapirish va grammatikani o‘yin orqali refleksga aylantiring.',
-      runnerTitle: 'Rod-runner',
+      runnerTitle: 'Род-раннер',
       runnerBody:
         "So'zlarni jinsi bo'yicha ajrating — yugurib borarkansiz. Rus tilidagi род refleksga aylanadi.",
-      sawTitle: 'Arra',
+      sawTitle: 'Лазер',
       sawBody:
-        "Savol beriladi, arra sizga tomon suriladi. Gapirsangiz — orqaga chekinadi. Bir daqiqa gapirib qoling.",
+        'Savol beriladi, lazer sizga tomon suriladi. Gapirsangiz — orqaga chekinadi. Bir daqiqa gapirib qoling.',
     },
 
     creators: {
@@ -189,6 +189,36 @@ export const uz = {
       payNote: "Uzcard va Humo — Click orqali xavfsiz to'lov.",
     },
 
+    characters: {
+      eyebrow: 'Tanish holatmi?',
+      title: "Nega ko‘pchilik ruscha gapirishga qiynaladi — va biz buni qanday hal qildik?",
+      subtitle:
+        "Maktab va kurslarda quruq qoidalar o‘rgatiladi, ammo hayotda erkin suhbatlashish mashq qilinmaydi. Russian.gg qahramonlari buni tubdan o‘zgartiradi:",
+      stage: '{n}-bosqich',
+      statusProblem: 'Muammo',
+      statusSolution: 'Yechim',
+      voicePrefix: 'Ovoz',
+      listen: 'Tinglash',
+      names: { panda: 'Panda', pingvin: 'Pingvin', pero: 'Pero' },
+      panda: {
+        quote:
+          "Ruscha so‘zlarni tushunaman, lekin odamlar oldida gapirishga kelganda tortinib qolaman…",
+        caption: "Ko‘p o‘quvchilar grammatikani bilsa ham, xato qilishdan qo‘rqqani uchun gapirmaydi.",
+      },
+      pingvin: {
+        quote:
+          "Russian.gg bilan 2 haftadayoq birinchi dialoglarni boshlaysiz. Talaffuzni xijolatsiz mashq qiling!",
+        caption: "Tizim xatolarni darhol ko‘rsatadi va xijolatsiz erkin mashq qilish imkonini beradi.",
+      },
+      pero: {
+        quote: "O‘yinlar o‘ynang, giflar va rasmlar orqali so‘zlarni tez eslab qoling!",
+        caption: "Kuniga 20 daqiqa interaktiv mashg‘ulot zerikarli darslardan ko‘ra ancha samarali.",
+      },
+      ctaTitle: "Qo‘rquvni yengib, bugunoq gapirishni boshlashga tayyormisiz?",
+      ctaBody: "Birinchi bepul darsga yoziling va natijani ko‘ring.",
+      ctaButton: 'Birinchi darsni boshlash',
+    },
+
     final: {
       title: '90 kun. Har kuni 15 daqiqa. Rus tilida gapiring.',
       body: 'Bugun darajangizni bepul aniqlang.',
@@ -197,9 +227,23 @@ export const uz = {
     },
 
     footer: {
-      tagline: "O'zbeklar uchun rus tili gapirish murabbiysi.",
+      tagline: "O'zbeklar uchun rus tilini o'rganish murabbiysi. O'zbekistonda ishlab chiqilgan.",
       madeIn: "O'zbekistonda ishlab chiqilgan.",
       rights: '© 2026 Russian.gg',
+      privacy: "Biz sizning ma'lumotlaringizni himoya qilamiz va ularni uchinchi shaxslarga bermaymiz.",
+      platform: 'Platforma',
+      useful: 'Foydali',
+      company: 'Kompaniya',
+      language: 'Til',
+      help: 'Yordam',
+      blog: 'Blog',
+      test: 'Ruscha test',
+      words: "So'zlar ro'yxati",
+      grammar: 'Grammatika',
+      about: 'Biz haqimizda',
+      contact: 'Aloqa',
+      privacyPolicy: 'Maxfiylik siyosati',
+      terms: 'Foydalanish shartlari',
     },
   },
 
