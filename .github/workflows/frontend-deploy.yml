@@ -1,89 +1,228 @@
-name: Deploy Frontend
+name: Russian.gg Frontend CI/CD
 
 on:
   push:
-    branches: ["main"]
-  workflow_dispatch:
+    branches:
+      - main
 
-permissions:
-  contents: read
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy images to the new production server
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: russian-gg-frontend-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  WEB_IMAGE_REPOSITORY: ghcr.io/russian-gg/russian-gg-web
+  ADMIN_WEB_IMAGE_REPOSITORY: ghcr.io/russian-gg/russian-gg-admin-web
+  APP_DIR: /srv/apps/russian-gg
+  DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+  DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+  DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '7256' }}
+  VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID || '718388409500-ljra0b5j8j3dpubieljmd228gd1c55p3.apps.googleusercontent.com' }}
 
 jobs:
-  deploy:
+  build_and_push:
+    name: Build and push frontend images
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-      DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
-      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
-          node-version: 22
-          cache: npm
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.WEB_IMAGE_REPOSITORY }}:${{ github.sha }}
+            ${{ env.WEB_IMAGE_REPOSITORY }}:latest
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ env.VITE_GOOGLE_CLIENT_ID }}
+          cache-from: type=gha,scope=russian-gg-web
+          cache-to: type=gha,mode=max,scope=russian-gg-web
 
-      - name: Build
-        run: npm run build
+      - name: Build and push admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.admin
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.ADMIN_WEB_IMAGE_REPOSITORY }}:${{ github.sha }}
+            ${{ env.ADMIN_WEB_IMAGE_REPOSITORY }}:latest
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ env.VITE_GOOGLE_CLIENT_ID }}
+          cache-from: type=gha,scope=russian-gg-admin-web
+          cache-to: type=gha,mode=max,scope=russian-gg-admin-web
 
-      - name: Build Admin
-        run: npm run build:admin
+  deploy:
+    name: Deploy frontend manually
+    needs:
+      - build_and_push
 
-      - name: Package release
-        run: |
-          git archive --format=tar.gz --output=frontend-release.tgz HEAD
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
 
-      - name: Install SSH tools
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+    runs-on: ubuntu-latest
 
-      - name: Ensure release directory exists
-        run: |
-          PORT="${DEPLOY_PORT:-22}"
-          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            '
-            set -euo pipefail
-            mkdir -p /opt/russian-gg/releases
-            '
+    permissions:
+      contents: read
+      packages: read
 
-      - name: Upload release bundle
-        run: |
-          PORT="${DEPLOY_PORT:-22}"
-          sshpass -p "$DEPLOY_PASSWORD" scp -O -o StrictHostKeyChecking=no -P "$PORT" \
-            frontend-release.tgz "$DEPLOY_USER@$DEPLOY_HOST:/opt/russian-gg/releases/frontend-release.tgz"
+    steps:
+      - name: Deploy through SSH
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEB_IMAGE_REPOSITORY: ${{ env.WEB_IMAGE_REPOSITORY }}
+          ADMIN_WEB_IMAGE_REPOSITORY: ${{ env.ADMIN_WEB_IMAGE_REPOSITORY }}
+          RELEASE_TAG: ${{ github.sha }}
+          APP_DIR: ${{ env.APP_DIR }}
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ env.DEPLOY_PORT }}
+          command_timeout: 15m
+          envs: GHCR_USER,GHCR_TOKEN,WEB_IMAGE_REPOSITORY,ADMIN_WEB_IMAGE_REPOSITORY,RELEASE_TAG,APP_DIR
 
-      - name: Deploy on server
-        run: |
-          PORT="${DEPLOY_PORT:-22}"
-          sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            '
-            set -euo pipefail
-            mkdir -p /opt/russian-gg/russian-gg-web
-            find /opt/russian-gg/russian-gg-web -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-            tar -xzf /opt/russian-gg/releases/frontend-release.tgz -C /opt/russian-gg/russian-gg-web
+          script: |
+            set -Eeuo pipefail
 
-            # The stack is defined in the *backend* checkout, which a backend deploy replaces
-            # while this may be running. Read once, tolerantly: a chmod that fails because the
-            # file is being swapped used to abort the whole frontend release under `set -e`,
-            # and `bash script.sh` never needed the executable bit anyway.
-            COMPOSE=/opt/russian-gg/russian-gg-server/deploy/docker-compose.prod.yml
-            STACK=/opt/russian-gg/russian-gg-server/deploy/manage-stack.sh
+            cd "$APP_DIR"
 
-            for attempt in 1 2 3 4 5 6; do
-              [ -f "$STACK" ] && [ -f "$COMPOSE" ] && break
-              echo "Waiting for the backend checkout to settle ($attempt)"
-              sleep 10
-            done
+            test -f docker-compose.yml
+            test -f .env
+            docker network inspect edge >/dev/null
 
-            if grep -q "admin-web:" "$COMPOSE"; then
-              bash "$STACK" up -d --build web admin-web caddy
-            else
-              bash "$STACK" up -d --build web caddy
+            get_env_value() {
+              key="$1"
+              sed -n "s/^${key}=//p" .env | tail -n 1
+            }
+
+            set_env_value() {
+              key="$1"
+              value="$2"
+
+              if grep -q "^${key}=" .env; then
+                sed -i "s#^${key}=.*#${key}=${value}#" .env
+              else
+                printf '%s=%s\n' "$key" "$value" >>.env
+              fi
+            }
+
+            PREVIOUS_WEB_TAG="$(get_env_value WEB_IMAGE_TAG)"
+            PREVIOUS_ADMIN_TAG="$(get_env_value ADMIN_WEB_IMAGE_TAG)"
+
+            # Shell variables override .env for this release. Persist the new
+            # tags only after both routes pass their checks.
+            export WEB_IMAGE_REPOSITORY
+            export WEB_IMAGE_TAG="$RELEASE_TAG"
+            export ADMIN_WEB_IMAGE_REPOSITORY
+            export ADMIN_WEB_IMAGE_TAG="$RELEASE_TAG"
+
+            WEB_HOST="$(get_env_value WEB_HOST)"
+            ADMIN_HOST="$(get_env_value ADMIN_HOST)"
+
+            test -n "$WEB_HOST"
+            test -n "$ADMIN_HOST"
+
+            compose() {
+              docker compose --env-file .env "$@"
+            }
+
+            DOCKER_CONFIG_DIR="$(mktemp -d /tmp/russian-gg-frontend-docker.XXXXXX)"
+            chmod 700 "$DOCKER_CONFIG_DIR"
+            export DOCKER_CONFIG="$DOCKER_CONFIG_DIR"
+
+            cleanup() {
+              rm -f "$DOCKER_CONFIG_DIR/config.json"
+              rmdir "$DOCKER_CONFIG_DIR" 2>/dev/null || true
+            }
+
+            trap cleanup EXIT
+
+            echo "$GHCR_TOKEN" |
+              docker login \
+                --username "$GHCR_USER" \
+                --password-stdin \
+                ghcr.io
+
+            compose config --quiet
+            compose pull web admin-web
+            compose up -d --no-deps web admin-web
+
+            check_route() {
+              host="$1"
+
+              for attempt in $(seq 1 30); do
+                if curl \
+                  --insecure \
+                  --resolve "${host}:443:127.0.0.1" \
+                  --fail \
+                  --silent \
+                  --show-error \
+                  --max-time 10 \
+                  "https://${host}/" \
+                  >/dev/null; then
+                  return 0
+                fi
+
+                echo "Route check ${attempt}/30 failed for ${host}; retrying..."
+                sleep 3
+              done
+
+              return 1
+            }
+
+            if ! check_route "$WEB_HOST" || ! check_route "$ADMIN_HOST"; then
+              echo "Frontend route check failed."
+              compose logs --tail=150 web admin-web || true
+
+              if [ -n "$PREVIOUS_WEB_TAG" ] && [ -n "$PREVIOUS_ADMIN_TAG" ]; then
+                echo "Rolling back frontend images."
+                export WEB_IMAGE_TAG="$PREVIOUS_WEB_TAG"
+                export ADMIN_WEB_IMAGE_TAG="$PREVIOUS_ADMIN_TAG"
+                compose pull web admin-web
+                compose up -d --no-deps web admin-web
+              else
+                echo "Previous frontend tags were not found; automatic rollback is unavailable."
+              fi
+
+              exit 1
             fi
-            '
+
+            set_env_value WEB_IMAGE_REPOSITORY "$WEB_IMAGE_REPOSITORY"
+            set_env_value WEB_IMAGE_TAG "$RELEASE_TAG"
+            set_env_value ADMIN_WEB_IMAGE_REPOSITORY "$ADMIN_WEB_IMAGE_REPOSITORY"
+            set_env_value ADMIN_WEB_IMAGE_TAG "$RELEASE_TAG"
+
+            docker image prune --force --filter "until=168h" >/dev/null
+            compose ps web admin-web
+
+            echo "Russian.gg frontend deployed successfully."
