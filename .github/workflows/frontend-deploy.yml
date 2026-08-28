@@ -6,12 +6,6 @@ on:
       - main
 
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: Deploy images to the new production server
-        required: true
-        default: false
-        type: boolean
 
 concurrency:
   group: russian-gg-frontend-${{ github.ref }}
@@ -81,11 +75,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=russian-gg-admin-web
 
   deploy:
-    name: Deploy frontend manually
+    name: Deploy Production
     needs:
       - build_and_push
-
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
 
     runs-on: ubuntu-latest
 
