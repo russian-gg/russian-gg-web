@@ -9,14 +9,14 @@ import { readAudioPreferences } from '../lib/audio-preferences'
 import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData, type Mascot, type Phrase, type Quiz, type Vocab } from '../lib/foundation-lessons'
-import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
+import { foundationLessonStorageKey, LESSON_ONE_SECTIONS } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
 import { pausePromptAudio, playPromptAudio, resumePromptAudio } from '../lib/liveVoice'
 import { playUiSound, type UiSound } from '../lib/ui-sounds'
 import type { StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
 
-const sections = [
+const defaultSections = [
   { id: 'tests', title: 'Yengil test' },
   { id: 'phonetics', title: 'Fonetik qoida' },
   { id: 'grammar', title: 'Grammatik qoida' },
@@ -28,13 +28,16 @@ const sections = [
   { id: 'complete', title: 'Dars yakuni' },
 ] as const
 
-type SectionId = (typeof sections)[number]['id']
+type SectionId = (typeof defaultSections)[number]['id']
 type StoredState = {
   sectionIndex: number
   completed: SectionId[]
   answers: Array<number | null>
+  grammarAnswers: Array<number | null>
+  reflectionAnswers: Array<number | null>
   phraseRatings: Record<number, Rating>
   gameMatches: Record<string, string>
+  exerciseAnswer: string
 }
 type Rating = 'known' | 'unknown' | 'repeat'
 
@@ -42,14 +45,18 @@ const emptyState: StoredState = {
   sectionIndex: 0,
   completed: [],
   answers: [null, null],
+  grammarAnswers: [null, null],
+  reflectionAnswers: [null, null],
   phraseRatings: {},
   gameMatches: {},
+  exerciseAnswer: '',
 }
 
 export function FoundationLesson() {
   const { day: dayParam, missionId } = useParams<{ day: string; missionId: string }>()
   const day = Number(dayParam)
   const lesson = foundationLessons[day]
+  const activeSections = day === 1 ? LESSON_ONE_SECTIONS : defaultSections
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -76,9 +83,14 @@ export function FoundationLesson() {
     if (storageKey) localStorage.setItem(storageKey, JSON.stringify(state))
   }, [state, storageKey])
 
-  const active = sections[state.sectionIndex] ?? sections[0]
+  const active = activeSections[state.sectionIndex] ?? activeSections[0]
   const progress = state.completed.length
-  const canContinue = active.id !== 'phrases' || !lesson || Object.keys(state.phraseRatings).length >= lesson.phrases.length
+  const canContinue = !lesson
+    || (active.id === 'phrases'
+      ? Object.keys(state.phraseRatings).length >= lesson.phrases.length
+      : active.id === 'complete' && lesson.reflection
+        ? state.reflectionAnswers.filter((answer) => answer !== null).length >= lesson.reflection.questions.length
+        : true)
 
   if (!lesson || day < 1 || day > 15) return <Navigate to="/path" replace />
 
@@ -86,7 +98,7 @@ export function FoundationLesson() {
     const completed = state.completed.includes(active.id)
       ? state.completed
       : [...state.completed, active.id]
-    const nextIndex = Math.min(state.sectionIndex + 1, sections.length - 1)
+    const nextIndex = Math.min(state.sectionIndex + 1, activeSections.length - 1)
     setState((current) => ({ ...current, completed, sectionIndex: nextIndex }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
@@ -115,13 +127,13 @@ export function FoundationLesson() {
 
   return (
     <div className="foundation-lesson mx-auto max-w-4xl space-y-4 pb-5 sm:space-y-6">
-      <LessonHero lesson={lesson} progress={progress} compact={state.sectionIndex > 0} />
+      <LessonHero lesson={lesson} progress={progress} compact={state.sectionIndex > 0} sectionCount={activeSections.length} />
 
       <section aria-labelledby={`section-${active.id}`}>
         <div className="mb-3 flex items-baseline gap-2 sm:mb-4">
           <span className="text-sm font-black text-signal-ink">{state.sectionIndex + 1}</span>
           <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-3xl">
-            {active.id === 'grammar' && day === 1 ? 'Rodlar haqida ertak' : active.id === 'missions' ? 'Dialog' : active.title}
+            {active.title}
           </h2>
         </div>
 
@@ -135,7 +147,13 @@ export function FoundationLesson() {
           }} />
         )}
         {active.id === 'phonetics' && <RuleSection rule={lesson.phonetics} />}
-        {active.id === 'grammar' && <RuleSection rule={lesson.grammar} genderStory={day === 1} />}
+        {active.id === 'grammar' && <RuleSection rule={lesson.grammar} genderStory={day === 1} answers={state.grammarAnswers} onAnswer={(index, answer) => {
+          setState((current) => {
+            const grammarAnswers = [...current.grammarAnswers]
+            grammarAnswers[index] = answer
+            return { ...current, grammarAnswers }
+          })
+        }} />}
         {active.id === 'phrases' && (
           <PhrasesSection phrases={lesson.phrases} ratings={state.phraseRatings} onRate={(index, rating) => {
             setState((current) => ({ ...current, phraseRatings: { ...current.phraseRatings, [index]: rating } }))
@@ -176,8 +194,14 @@ export function FoundationLesson() {
         )}
         {active.id === 'missions' && <MissionModes lesson={lesson} missionId={missionId} />}
         {active.id === 'vocabulary' && <VocabularySection words={lesson.vocabulary} />}
-        {active.id === 'picture' && <ExerciseSection lesson={lesson} />}
-        {active.id === 'complete' && <CompleteSection lesson={lesson} />}
+        {active.id === 'picture' && <ExerciseSection lesson={lesson} answer={state.exerciseAnswer} onAnswer={(exerciseAnswer) => setState((current) => ({ ...current, exerciseAnswer }))} />}
+        {active.id === 'complete' && <CompleteSection lesson={lesson} answers={state.reflectionAnswers} onAnswer={(index, answer) => {
+          setState((current) => {
+            const reflectionAnswers = [...current.reflectionAnswers]
+            reflectionAnswers[index] = answer
+            return { ...current, reflectionAnswers }
+          })
+        }} />}
       </section>
 
       <div className="flex items-center gap-2 border-t border-hairline pt-4">
@@ -190,30 +214,54 @@ export function FoundationLesson() {
   )
 }
 
-function LessonHero({ lesson, progress, compact }: { lesson: LessonData; progress: number; compact: boolean }) {
+function LessonHero({ lesson, progress, compact, sectionCount }: { lesson: LessonData; progress: number; compact: boolean; sectionCount: number }) {
   return (
     <Card className={cx('lesson-hero p-4 sm:p-6', compact && 'py-3 sm:py-4')}>
       {!compact && <>
-        <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{lesson.day}-dars · A1</p>
+        <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{lesson.day}-dars · A1{lesson.durationMinutes ? ` · ${lesson.durationMinutes} daqiqa` : ''}</p>
         <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
         <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
       </>}
       <div className={cx('flex items-center justify-between gap-3 text-xs font-bold sm:text-sm', !compact && 'mt-4')}>
         <span className="text-ink">Dars progressi</span>
-        <span className="text-ink-faint">{progress} / {sections.length} bo‘lim</span>
+        <span className="text-ink-faint">{progress} / {sectionCount} bo‘lim</span>
       </div>
-      <div className="mt-2"><ProgressBar value={progress} max={sections.length} label="Dars progressi" /></div>
+      <div className="mt-2"><ProgressBar value={progress} max={sectionCount} label="Dars progressi" /></div>
     </Card>
   )
 }
 
 function TestsSection({ lesson, answers, onAnswer }: { lesson: LessonData; answers: Array<number | null>; onAnswer: (index: number, answer: number) => void }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {lesson.tests.map((quiz, index) => (
-        <QuizCard key={quiz.question} quiz={quiz} number={index + 1} answer={answers[index] ?? null} onAnswer={(answer) => onAnswer(index, answer)} />
-      ))}
+    <div className="space-y-3">
+      {lesson.wakeUp && <WakeUpDialogue lesson={lesson} />}
+      <div className="grid gap-3 md:grid-cols-2">
+        {lesson.tests.map((quiz, index) => (
+          <QuizCard key={quiz.question} quiz={quiz} number={index + 1} answer={answers[index] ?? null} onAnswer={(answer) => onAnswer(index, answer)} />
+        ))}
+      </div>
     </div>
+  )
+}
+
+function WakeUpDialogue({ lesson }: { lesson: LessonData }) {
+  const wakeUp = lesson.wakeUp
+  if (!wakeUp) return null
+  return (
+    <Card className="overflow-hidden p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div><p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">Kirish dialogi</p><h3 className="mt-1 text-lg font-black text-ink">{wakeUp.title}</h3></div>
+        <SpeechButton text={wakeUp.lines.map((line) => line.ru).join(' ')} lang="ru-RU" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-signal-soft text-signal-ink"><span className="sr-only">Dialogni tinglash</span></SpeechButton>
+      </div>
+      <div className="grid gap-2">
+        {wakeUp.lines.map((line, index) => (
+          <div key={`${line.ru}-${index}`} className={cx('flex items-start gap-3 rounded-2xl p-3', index % 2 === 0 ? 'mr-4 bg-ground-sunken sm:mr-16' : 'ml-4 bg-signal-soft sm:ml-16')}>
+            <MascotImage mascot={line.mascot} className="size-11 shrink-0" />
+            <div className="min-w-0"><p className="font-bold leading-relaxed text-ink">{line.uz}</p><p className="mt-1 text-sm leading-relaxed text-ink-muted"><RussianText text={line.ru} /></p></div>
+          </div>
+        ))}
+      </div>
+    </Card>
   )
 }
 
@@ -249,15 +297,15 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
       </div>
       {answer !== null && (
         <div className={cx('mt-3 flex items-start gap-2 rounded-xl p-3 text-sm', correct ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger')}>
-          <MascotImage mascot={number === 1 ? 'pero' : 'penguin'} className="size-9 shrink-0" />
-          <p>{correct ? quiz.feedback : 'Yana urinib ko‘ring.'}</p>
+          <MascotImage mascot={quiz.mascot ?? (number === 1 ? 'pero' : 'penguin')} className="size-9 shrink-0" />
+          <p>{correct ? quiz.feedback : quiz.incorrectFeedback ?? 'Yana urinib ko‘ring.'}</p>
         </div>
       )}
     </Card>
   )
 }
 
-function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetics']; genderStory?: boolean }) {
+function RuleSection({ rule, genderStory = false, answers = [], onAnswer }: { rule: LessonData['phonetics']; genderStory?: boolean; answers?: Array<number | null>; onAnswer?: (index: number, answer: number) => void }) {
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-start gap-3 sm:gap-5">
@@ -294,6 +342,16 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
       <div className="mt-4 grid gap-2 text-sm leading-relaxed text-ink-muted sm:text-base">
         {rule.body.map((paragraph) => <p key={paragraph}><RussianText text={paragraph} phoneticVowels /></p>)}
       </div>
+      {rule.characterNotes && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {rule.characterNotes.map((note) => (
+            <div key={`${note.mascot}-${note.text}`} className="flex items-start gap-3 rounded-2xl bg-ground-sunken p-3">
+              <MascotImage mascot={note.mascot} className="size-12 shrink-0" />
+              <p className="text-sm leading-relaxed text-ink-muted"><RussianText text={note.text} phoneticVowels /></p>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         {rule.examples.map((example) => (
           <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
@@ -301,6 +359,23 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
           </SpeechButton>
         ))}
       </div>
+      {rule.drill && (
+        <div className="mt-5 rounded-2xl border border-signal/30 bg-signal-soft/45 p-4">
+          <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">Tez aytish</p>
+          <p className="mt-2 text-xl font-black text-ink"><RussianText text={rule.drill.ru} /></p>
+          <p className="mt-1 text-sm text-ink-muted">{rule.drill.uz}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <SpeechButton text={rule.drill.ru} lang="ru-RU" rate={0.7} className="rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink">Sekin</SpeechButton>
+            <SpeechButton text={rule.drill.ru} lang="ru-RU" rate={1} className="rounded-full bg-signal px-3 py-2 text-sm font-black text-on-signal">Odatiy</SpeechButton>
+            <SpeechButton text={rule.drill.ru} lang="ru-RU" rate={1.25} className="rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink">Tez</SpeechButton>
+          </div>
+        </div>
+      )}
+      {rule.quizzes && (
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {rule.quizzes.map((quiz, index) => <QuizCard key={quiz.question} quiz={quiz} number={index + 1} answer={answers[index] ?? null} onAnswer={(answer) => onAnswer?.(index, answer)} />)}
+        </div>
+      )}
     </Card>
   )
 }
@@ -375,6 +450,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<WordDrag | null>(null)
   const [error, setError] = useState<{ word: string; house: string } | null>(null)
+  const [success, setSuccess] = useState('')
   const pointerRef = useRef<{ pointerId: number; word: string; x: number; y: number } | null>(null)
   const draggingRef = useRef<WordDrag | null>(null)
   const didDragRef = useRef<string | null>(null)
@@ -387,6 +463,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   }, [])
 
   function showError(word: string, house: string) {
+    setSuccess('')
     setError({ word, house })
     playUiSound('wrong')
     navigator.vibrate?.([35, 35, 35])
@@ -400,6 +477,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     const expected = lesson.game.pairs.find((pair) => pair.left === word)?.right
     if (expected === house) {
       setError(null)
+      setSuccess(lesson.game.correctFeedback ?? '')
       onChange({ ...matches, [word]: house })
       celebrate([25, 35, 60], 'coin')
       return
@@ -492,16 +570,17 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
                   <span className="sr-only">{pair.left} so‘zini tinglash</span>
                 </SpeechButton>
               </div>
-            )) : <p className="w-full py-2 text-center text-sm font-black text-milestone">Barcha so‘zlar joylashtirildi! ✓</p>}
+            )) : <p className="w-full py-2 text-center text-sm font-black text-milestone">{lesson.game.completionFeedback ?? 'Barcha so‘zlar joylashtirildi! ✓'}</p>}
           </div>
         </div>
       </Card>
 
       {error && (
         <p role="status" className="rounded-xl bg-danger-soft px-3 py-2 text-center text-sm font-black text-danger">
-          <RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring
+          {lesson.game.incorrectFeedback ?? <><RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring</>}
         </p>
       )}
+      {!error && success && remaining.length > 0 && <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">{success}</p>}
 
       <div className="grid grid-cols-3 gap-2">
         {genderHouses.map((house) => {
@@ -1118,7 +1197,10 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
         <div>
           <div className="grid gap-2">
             {lesson.dialogue.map((line, index) => (
-              <div key={`${line}-${index}`} className={cx('rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}><DialogueLine line={line} /></div>
+              <div key={`${line}-${index}`} className={cx('rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}>
+                <DialogueLine line={line} />
+                {lesson.dialogueUz?.[index] && <p className="mt-1 text-xs leading-relaxed text-ink-muted">{lesson.dialogueUz[index]}</p>}
+              </div>
             ))}
           </div>
           <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording()} />
@@ -1196,8 +1278,7 @@ function VocabularyDeck({ words, onClose }: { words: Vocab[]; onClose: () => voi
   )
 }
 
-function ExerciseSection({ lesson }: { lesson: LessonData }) {
-  const [answer, setAnswer] = useState('')
+function ExerciseSection({ lesson, answer, onAnswer }: { lesson: LessonData; answer: string; onAnswer: (answer: string) => void }) {
   if (lesson.exercise.kind === 'remove-clutter') return <RemoveClutterExercise lesson={lesson} />
   return (
     <Card className="p-4 sm:p-5">
@@ -1205,7 +1286,8 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
       {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
       {lesson.game.kind === 'room-builder' && <div className="mb-4"><RoomScene /></div>}
       <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><p className="text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div>
-      <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
+      <textarea value={answer} onChange={(event) => onAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
+      {lesson.exercise.example && <div className="mt-3 rounded-2xl bg-ground-sunken p-3"><p className="text-xs font-black tracking-[.12em] text-ink-faint uppercase">Namuna</p><p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.example} /></p></div>}
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
     </Card>
   )
@@ -1260,20 +1342,37 @@ function RemoveClutterExercise({ lesson }: { lesson: LessonData }) {
   )
 }
 
-function CompleteSection({ lesson }: { lesson: LessonData }) {
+function CompleteSection({ lesson, answers, onAnswer }: { lesson: LessonData; answers: Array<number | null>; onAnswer: (index: number, answer: number) => void }) {
   useEffect(() => { celebrate([45, 45, 80], 'win') }, [])
   return (
-    <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
-      <Celebration />
-      <MascotImage mascot="penguin" className="mx-auto h-28 w-28 object-contain" />
-      <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{lesson.day}-dars muvaffaqiyatli tugadi</span>
-      <h3 className="mt-3 text-3xl font-black text-ink">Ajoyib!</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage ?? 'Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.'}</p>
-      <div className="mt-5 grid gap-2 sm:grid-cols-3">
-        {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
-      </div>
-      {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} ↗</a>}
-    </Card>
+    <div className="space-y-3">
+      {lesson.reflection && (
+        <Card className="p-4 text-left sm:p-5">
+          <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">Refleksiya</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {lesson.reflection.questions.map((question, index) => (
+              <div key={question.question} className="rounded-2xl bg-ground-sunken p-3">
+                <p className="font-black leading-relaxed text-ink">{question.question}</p>
+                <div className="mt-3 grid gap-2">
+                  {question.options.map((option, optionIndex) => <button key={option} type="button" onClick={() => onAnswer(index, optionIndex)} className={cx('rounded-xl border px-3 py-2 text-left text-sm font-bold transition', answers[index] === optionIndex ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>{option}</button>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+      <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
+        <Celebration />
+        <MascotImage mascot="penguin" className="mx-auto h-28 w-28 object-contain" />
+        <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{lesson.day}-dars muvaffaqiyatli tugadi</span>
+        <h3 className="mt-3 text-3xl font-black text-ink">Ajoyib!</h3>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage ?? 'Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.'}</p>
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
+        </div>
+        {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} ↗</a>}
+      </Card>
+    </div>
   )
 }
 
@@ -1312,13 +1411,14 @@ async function speak(text: string, lang: string) {
   }
 }
 
-function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken }: {
+function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken, rate }: {
   text: string
   lang: string
   children: ReactNode
   className?: string
   stopPropagation?: boolean
   autoPlayToken?: string
+  rate?: number
 }) {
   const id = useId()
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle')
@@ -1327,6 +1427,11 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
     if (readAudioPreferences().muted) return
     window.speechSynthesis?.cancel()
     window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id } }))
+    if (rate !== undefined) {
+      setStatus('playing')
+      speakWithBrowser(text, lang, () => setStatus('idle'), rate)
+      return
+    }
     try {
       await playPromptAudio(cleanSpeechText(text), {
         onStateChange: (next) => setStatus(next),
@@ -1378,7 +1483,7 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   )
 }
 
-function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void) {
+function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void, rateMultiplier = 1) {
   if (!('speechSynthesis' in window)) {
     onEnd?.()
     return
@@ -1395,7 +1500,7 @@ function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void)
     }
     const utterance = new SpeechSynthesisUtterance(segment.text)
     utterance.lang = segment.lang
-    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
+    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed * rateMultiplier
     utterance.voice = pickVoice(voices, segment.lang)
     utterance.onend = () => play(index + 1)
     utterance.onerror = () => play(index + 1)
@@ -1442,15 +1547,18 @@ function readState(storageKey: string | null): StoredState {
     const raw = localStorage.getItem(storageKey)
     if (!raw) return emptyState
     const parsed = JSON.parse(raw) as Partial<StoredState>
-    const completed = Array.isArray(parsed.completed) ? parsed.completed.filter((id): id is SectionId => sections.some((section) => section.id === id)) : []
+    const completed = Array.isArray(parsed.completed) ? parsed.completed.filter((id): id is SectionId => defaultSections.some((section) => section.id === id)) : []
     return {
       ...emptyState,
       ...parsed,
       completed,
-      sectionIndex: Math.min(Math.max(parsed.sectionIndex ?? 0, 0), sections.length - 1),
+      sectionIndex: Math.min(Math.max(parsed.sectionIndex ?? 0, 0), defaultSections.length - 1),
       answers: Array.isArray(parsed.answers) ? parsed.answers : [null, null],
+      grammarAnswers: Array.isArray(parsed.grammarAnswers) ? parsed.grammarAnswers : [null, null],
+      reflectionAnswers: Array.isArray(parsed.reflectionAnswers) ? parsed.reflectionAnswers : [null, null],
       phraseRatings: parsed.phraseRatings ?? {},
       gameMatches: parsed.gameMatches ?? {},
+      exerciseAnswer: typeof parsed.exerciseAnswer === 'string' ? parsed.exerciseAnswer : '',
     }
   } catch { return emptyState }
 }

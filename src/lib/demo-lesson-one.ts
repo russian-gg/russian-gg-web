@@ -1,4 +1,4 @@
-const LESSON_ONE_STORAGE_PREFIX = 'rgg.demostage.lesson-one.v3'
+const LESSON_ONE_STORAGE_PREFIX = 'rgg.demostage.lesson-one.v4'
 
 /**
  * Lesson one is currently a client-side demo lesson, so its draft progress lives in the
@@ -17,15 +17,15 @@ export function foundationLessonStorageKey(userId: string, day: number): string 
 }
 
 export const LESSON_ONE_SECTIONS = [
-  { id: 'tests', eyebrow: '1', title: 'Yengil test', progressTitle: 'Yengil test' },
-  { id: 'phonetics', eyebrow: '2', title: 'Fonetik qoida', progressTitle: 'Fonetik qoida' },
-  { id: 'grammar', eyebrow: '3', title: 'Rodlar haqida ertak', progressTitle: 'Rodlar haqida ertak' },
-  { id: 'phrases', eyebrow: '4', title: '15 ta asosiy ibora', progressTitle: '15 ta ibora' },
-  { id: 'game', eyebrow: '5', title: 'Rangli uy', progressTitle: 'Rangli uy o‘yini' },
-  { id: 'missions', eyebrow: '6', title: 'Dialog va AI savollari', progressTitle: 'AI missiyasi' },
-  { id: 'vocabulary', eyebrow: '7', title: 'Словарь', progressTitle: 'Словарь' },
-  { id: 'picture', eyebrow: '8', title: 'Rasmli mashq', progressTitle: 'Rasmli mashq' },
-  { id: 'complete', eyebrow: '9', title: 'Dars yakuni', progressTitle: 'Dars yakuni' },
+  { id: 'tests', eyebrow: '1', title: 'Uyg‘oning!', progressTitle: 'Kirish dialogi va test' },
+  { id: 'phonetics', eyebrow: '2', title: 'Aniq gapiring!', progressTitle: 'А, О, У talaffuzi' },
+  { id: 'phrases', eyebrow: '3', title: 'Taqlid qiling!', progressTitle: '15 ta asosiy ibora' },
+  { id: 'grammar', eyebrow: '4', title: 'To‘g‘ri gapiring!', progressTitle: 'Otlar jinsi' },
+  { id: 'game', eyebrow: '5', title: 'O‘ynang!', progressTitle: 'Rangli uy o‘yini' },
+  { id: 'missions', eyebrow: '6', title: 'Mashq qiling!', progressTitle: 'Dialog va AI savollari' },
+  { id: 'vocabulary', eyebrow: '7', title: 'So‘zlarni o‘rganing!', progressTitle: '20 ta lug‘at kartasi' },
+  { id: 'picture', eyebrow: '8', title: 'Sinab ko‘ring!', progressTitle: 'Ijodiy topshiriq' },
+  { id: 'complete', eyebrow: '9', title: 'Maqtaning!', progressTitle: 'Refleksiya va yakun' },
 ] as const
 
 export type LessonOneSection = (typeof LESSON_ONE_SECTIONS)[number]['id']
