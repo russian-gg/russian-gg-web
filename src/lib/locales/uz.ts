@@ -325,6 +325,7 @@ export const uz = {
         otp_too_many_attempts: "Juda ko‘p urinish. Yangi kod oling.",
         otp_rate_limited: "Juda ko‘p so‘rov. Birozdan so‘ng urinib ko‘ring.",
         otp_verification_expired: 'Tasdiqlash muddati tugadi. Yangi kod oling.',
+        otp_unavailable: "Kodni hozir tekshira olmadik. Bir oz o'tib qayta urinib ko'ring.",
         sms_failed: "Kod yuborilmadi. Qayta urinib ko‘ring.",
         phone_taken: 'Bu raqam boshqa hisobga biriktirilgan.',
         phone_already_registered:

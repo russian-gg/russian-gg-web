@@ -320,6 +320,7 @@ export const en: Dictionary = {
         otp_too_many_attempts: 'Too many attempts. Request a new code.',
         otp_rate_limited: 'Too many requests. Try again later.',
         otp_verification_expired: 'Phone verification expired. Request a new code.',
+        otp_unavailable: 'We could not check the code right now. Please try again in a moment.',
         sms_failed: 'Could not send the code. Please try again.',
         phone_taken: 'This phone number is already used by another account.',
         phone_already_registered:
