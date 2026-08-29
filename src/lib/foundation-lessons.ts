@@ -85,41 +85,16 @@ const lesson1: LessonData = {
   titleUz: 'Qo‘shni bilan tanishuv',
   tests: [
     {
-      context: '🐧 Пингвин: «Здравствуйте! Я ваш сосед.» 🐼 Панда: «Очень приятно! Меня зовут Панда. А как вас зовут?» 🐧 Пингвин: «Меня зовут Пингвин.»',
-      question: 'Кто пришёл к Панде?',
-      options: ['Друг', 'Сосед', 'Коллега'],
-      correct: 1,
-      feedback: 'Qo‘shni — bu sizning yoningizda yashaydigan odam.',
-    },
-    {
-      question: '«Сосед» so‘zi qaysi rangda?',
-      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
+      question: 'Qaysi variantda «мама» so‘zi to‘g‘ri talaffuz qilingan?',
+      options: ['ма́ма — urg‘u birinchi bo‘g‘inda', 'мама́ — urg‘u ikkinchi bo‘g‘inda'],
       correct: 0,
-      feedback: '«Сосед» — мужской род, undosh bilan tugaydi.',
+      feedback: '«мама» so‘zida urg‘u birinchi bo‘g‘inga tushadi: ма́ма.',
     },
     {
-      question: '«Квартира» so‘zi qaysi rangda?',
-      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
-      correct: 1,
-      feedback: '«Квартира» — женский род, -а bilan tugaydi.',
-    },
-    {
-      question: '«Дом» so‘zi qaysi rangda?',
-      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
+      question: 'Quyidagi so‘zlardan qaysi biri мужской родga kiradi?',
+      options: ['🟦 дом', '🟥 квартира', '🟨 окно'],
       correct: 0,
-      feedback: '«Дом» — мужской род, undosh bilan tugaydi.',
-    },
-    {
-      question: '«Имя» so‘zi qaysi rangda?',
-      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
-      correct: 2,
-      feedback: '«Имя» — средний род (-я bilan tugasa ham istisno so‘z).',
-    },
-    {
-      question: '«Ключ» so‘zi qaysi rangda?',
-      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
-      correct: 0,
-      feedback: '«Ключ» — мужской род, undosh bilan tugaydi.',
+      feedback: '«Дом» — мужской род, shuning uchun u ko‘k rangda.',
     },
   ],
   phonetics: {
