@@ -222,6 +222,7 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
   return (
     <Card className={cx('relative overflow-hidden p-4 sm:p-5', correct && 'border-milestone')}>
       {correct && <Celebration />}
+      {quiz.context && <p className="mb-3 text-sm leading-relaxed text-ink-muted"><RussianText text={quiz.context} /></p>}
       <div className="flex items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-sm font-black text-ink-muted">{number}</span>
         <h3 className="font-black leading-snug text-ink"><RussianText text={quiz.question} /></h3>
@@ -1205,6 +1206,7 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
       {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
       {lesson.game.kind === 'room-builder' && <div className="mb-4"><RoomScene /></div>}
       <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><p className="text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div>
+      <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.starter} /></p>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
     </Card>

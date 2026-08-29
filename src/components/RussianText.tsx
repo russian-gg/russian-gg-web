@@ -13,14 +13,15 @@ type Gender = keyof typeof RUSSIAN_COLOR_SYSTEM.gender
 type CaseName = keyof typeof RUSSIAN_COLOR_SYSTEM.cases
 
 const nounStems: Array<{ stem: string; gender: Gender }> = [
-  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
-  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
-  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
+  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
+  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,панд'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
+  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
 const personalEndingOverrides: Record<string, string> = { 'живёте': 'ёте', 'живу': 'у' }
+const pastTenseWordOverrides: Record<string, string> = { 'мыла': 'ла' }
 const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон']
-const blackWords = new Set(['а', 'и', 'немного', 'русский', 'каждый', 'стул', 'панда'])
+const blackWords = new Set(['а', 'и', 'немного', 'русский', 'каждый'])
 const fullGenderWords: Record<string, Gender> = {
   'мужской': 'masculine',
   'синий': 'masculine',
@@ -66,7 +67,7 @@ export function RussianText({ text, phoneticVowels = false }: { text: string; ph
 }
 
 function normalizeWord(word: string) {
-  return word.toLocaleLowerCase('ru-RU').normalize('NFD').replace(/\p{M}/gu, '')
+  return word.toLocaleLowerCase('ru-RU').replace(/[̀́]/gu, '')
 }
 
 function colorRussianWord(original: string, lower: string, previousWord: string, previousPreviousWord: string, nextWord: string): ReactNode {
@@ -80,6 +81,9 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
 
   const explicitEnding = personalEndingOverrides[lower]
   if (explicitEnding) return <><span>{original.slice(0, -explicitEnding.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-explicitEnding.length)}</span></>
+
+  const pastTenseOverride = pastTenseWordOverrides[lower]
+  if (pastTenseOverride) return <><span>{original.slice(0, -pastTenseOverride.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.pastSuffixAndEnding)}>{original.slice(-pastTenseOverride.length)}</span></>
 
   const knownPast = lower.match(/л[аои]?$/u)
   if (knownPast && (verbStems.some((stem) => lower.startsWith(stem)) || lower.startsWith('бы'))) {
