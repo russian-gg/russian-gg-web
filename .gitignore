@@ -8,3 +8,6 @@ coverage/
 *.log
 .DS_Store
 *.tsbuildinfo
+
+# Local Claude Code project memory - not shared via version control
+CLAUDE.md
