@@ -46,6 +46,7 @@ export type LessonData = {
     pairs: Array<{ left: string; right: string }>
     clues?: Array<{ clue: string; answer: string }>
     example?: string
+    feedback?: { correct: string; incorrect: string; allDone: string }
   }
   dialogue: string[]
   questions: Array<{ question: string; answer: string }>
@@ -55,12 +56,14 @@ export type LessonData = {
     title: string
     instruction: string
     starter: string
+    example?: string
     items?: Array<{ item: string; phrase: string; icon: string }>
   }
   outcomes: Array<{ title: string; translation: string; tone: 'yellow' | 'blue' | 'red' }>
   sceneImage?: string
   completionMessage?: string
   completionAction?: { label: string; href: string }
+  reflection?: { questions: Array<{ question: string; options: string[] }> }
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
@@ -82,16 +85,41 @@ const lesson1: LessonData = {
   titleUz: 'Qo‘shni bilan tanishuv',
   tests: [
     {
-      question: 'Qaysi variantda «мама» so‘zi to‘g‘ri talaffuz qilingan?',
-      options: ['ма́ма — urg‘u birinchi bo‘g‘inda', 'мама́ — urg‘u ikkinchi bo‘g‘inda'],
-      correct: 0,
-      feedback: '«мама» so‘zida urg‘u birinchi bo‘g‘inga tushadi: ма́ма.',
+      context: '🐧 Пингвин: «Здравствуйте! Я ваш сосед.» 🐼 Панда: «Очень приятно! Меня зовут Панда. А как вас зовут?» 🐧 Пингвин: «Меня зовут Пингвин.»',
+      question: 'Кто пришёл к Панде?',
+      options: ['Друг', 'Сосед', 'Коллега'],
+      correct: 1,
+      feedback: 'Qo‘shni — bu sizning yoningizda yashaydigan odam.',
     },
     {
-      question: '«квартира» so‘zi qaysi rodga kiradi?',
-      options: ['Мужской род', 'Женский род', 'Средний род'],
+      question: '«Сосед» so‘zi qaysi rangda?',
+      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
+      correct: 0,
+      feedback: '«Сосед» — мужской род, undosh bilan tugaydi.',
+    },
+    {
+      question: '«Квартира» so‘zi qaysi rangda?',
+      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
       correct: 1,
-      feedback: '«квартира» — женский род. Uning o‘zagi qizil rang bilan belgilanadi.',
+      feedback: '«Квартира» — женский род, -а bilan tugaydi.',
+    },
+    {
+      question: '«Дом» so‘zi qaysi rangda?',
+      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
+      correct: 0,
+      feedback: '«Дом» — мужской род, undosh bilan tugaydi.',
+    },
+    {
+      question: '«Имя» so‘zi qaysi rangda?',
+      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
+      correct: 2,
+      feedback: '«Имя» — средний род (-я bilan tugasa ham istisno so‘z).',
+    },
+    {
+      question: '«Ключ» so‘zi qaysi rangda?',
+      options: ['🟦 Ko‘k (erkak jinsi)', '🟥 Qizil (ayol jinsi)', '🟨 Sariq (o‘rta jins)'],
+      correct: 0,
+      feedback: '«Ключ» — мужской род, undosh bilan tugaydi.',
     },
   ],
   phonetics: {
@@ -99,11 +127,12 @@ const lesson1: LessonData = {
     mascot: 'pero',
     lead: 'Rus tilida urg‘uli unli kuchliroq va aniqroq eshitiladi.',
     body: [
-      'А tovushida og‘iz keng ochiladi; О tovushida lablar dumaloqlanadi; У tovushida lablar oldinga cho‘ziladi.',
+      '🐼 Panda: A — og‘iz keng ochiladi, xuddi hayron qolgandek. O — lablar dumaloq, simit kabi. U — lablar naycha kabi, xuddi hushtak chalayotgandek.',
       'Audio tugmasini bosing, qoidani eshiting va misollarni birga takrorlang.',
+      '🪶 Pero: Agar «мама» ni U bilan aytsangiz, «муму» bo‘lib chiqadi — bu endi ona emas, sigir bo‘ladi! Shuning uchun diqqatli bo‘ling.',
       '🪶 Pero: Tez aytish mashqi — «Ма́ма мы́ла ра́му» («Onam romni yuvdi»). Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
     ],
-    examples: ['А', 'О', 'У', 'ма́ма', 'па́па', 'па́нда', 'до́м', 'сто́л', 'по́рт', 'сту́л', 'му́ж', 'ра́му', 'мы́ла'],
+    examples: ['А', 'О', 'У', 'ма́ма', 'па́па', 'до́м'],
   },
   grammar: {
     title: 'Rodlar haqida ertak',
@@ -111,13 +140,13 @@ const lesson1: LessonData = {
     lead: 'Rodlar qirolliklariga xush kelibsiz!',
     body: [
       'Olis zamonlarda OT nomli katta qirollik bo‘lgan. Uning ichiga “kim?” hamda “nima?” savollariga javob bo‘ladigan barcha so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.',
-      '🐧 Pingvin qirolligi undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: друг, день, дом. Ular faxr bilan: «он мой», deyishadi.',
-      '🐼 Panda qirolligi esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, земля, фамилия. Ular ohista: «она моя», deb shivirlashadi.',
-      '🪶 Pat qirolligi -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: утро, имя, здание. Ular ishonch bilan: «оно моё», deb aytadi.',
+      '🐧 Pingvin qirolligi undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: дом, сосед, ключ. Ular faxr bilan: «он мой», deyishadi.',
+      '🐼 Panda qirolligi esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, квартира, сестра. Ular ohista: «она моя», deb shivirlashadi.',
+      '🪶 Pat qirolligi -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: окно, имя, письмо. Ular ishonch bilan: «оно моё», deb aytadi.',
       '🪶 Pat: Lekin diqqat, istisnolar ham bor! «Папа» va «дядя» -а bilan tugasa-da, ular Pingvin qirolligiga (erkak jinsiga) tegishli — chunki bu so‘zlar erkak kishini bildiradi. Ma’noni har doim shakldan afzal ko‘ring!',
       'Pingvin, Panda va Pat qirolliklari hozirgi kunda ham rus tilini o‘rganishingizning asosi bo‘lib kelmoqda.',
     ],
-    examples: ['дом', 'стол', 'папа', 'дядя', 'мама', 'квартира', 'окно', 'море'],
+    examples: ['дом', 'сосед', 'ключ', 'папа', 'дядя', 'мама', 'квартира', 'сестра', 'окно', 'имя', 'письмо'],
   },
   phrases: [
     p('Здравствуйте!', 'Assalomu alaykum!', '👋', 'Здравствуйте! Я ваш сосед.', 'zdrástvuyte'),
@@ -141,12 +170,17 @@ const lesson1: LessonData = {
     title: 'Rangli uy',
     instruction: 'So‘zni pastdagi mos rangli uyga sudrang. Telefonda xohlasangiz so‘zni, keyin uyni bosishingiz ham mumkin.',
     pairs: [
-      { left: 'дом', right: 'Мужской род' }, { left: 'квартира', right: 'Женский род' },
-      { left: 'окно', right: 'Средний род' }, { left: 'сосед', right: 'Мужской род' },
-      { left: 'ключ', right: 'Мужской род' }, { left: 'чай', right: 'Мужской род' },
-      { left: 'этаж', right: 'Мужской род' }, { left: 'лестница', right: 'Женский род' },
-      { left: 'дверь', right: 'Женский род' }, { left: 'комната', right: 'Женский род' },
+      { left: 'сосед', right: 'Мужской род' }, { left: 'квартира', right: 'Женский род' },
+      { left: 'дом', right: 'Мужской род' }, { left: 'этаж', right: 'Мужской род' },
+      { left: 'ключ', right: 'Мужской род' }, { left: 'имя', right: 'Средний род' },
+      { left: 'книга', right: 'Женский род' }, { left: 'письмо', right: 'Средний род' },
+      { left: 'папа', right: 'Мужской род' }, { left: 'дядя', right: 'Мужской род' },
     ],
+    feedback: {
+      correct: '🐼 Панда: «Ajoyib! To‘g‘ri topdingiz!»',
+      incorrect: '🐧 Пингвин: «Noto‘g‘ri uy! Oxiriga qarang!»',
+      allDone: '🎉 Barcha personajlar: «Tabriklaymiz! Siz jinslarni biluvchisiz!»',
+    },
   },
   dialogue: [
     'Пингвин: Здравствуйте! Меня зовут Пингвин. Я ваш сосед.',
@@ -159,39 +193,39 @@ const lesson1: LessonData = {
     'Панда: С удовольствием!',
   ],
   questions: [
-    { question: 'Как вас зовут?', answer: 'Меня зовут… (ismingiz)' },
-    { question: 'Кто вы?', answer: 'Я сосед. / Я ваш сосед.' },
-    { question: 'Где вы живёте?', answer: 'Я живу на пятом этаже.' },
-    { question: 'Это ваш ключ?', answer: 'Да, это мой ключ.' },
-    { question: 'Что вы хотите?', answer: 'Я хочу пригласить вас на чай.' },
-    { question: 'Вы согласны?', answer: 'С удовольствием!' },
+    { question: 'Как зовут соседа?', answer: 'Пингвин.' },
+    { question: 'Где живёт Пингвин?', answer: 'На пятом этаже.' },
+    { question: 'Что сказала Панда в конце?', answer: 'С удовольствием!' },
+    { question: 'Что предложил Пингвин?', answer: 'Чай.' },
+    { question: 'Как сказать «меня зовут» по-русски?', answer: 'Меня зовут…' },
   ],
   vocabulary: [
     v('мой сосед', 'mening qo‘shnim', '🧑', 'Мой сосед приветливый.'),
     v('моя квартира', 'mening kvartiram', '🏢', 'Моя квартира на пятом этаже.'),
-    v('мой дом', 'mening uyim', '🏠', 'А это мой дом.'),
-    v('твой ключ', 'sening kaliting', '🔑', 'Это твой ключ?'),
-    v('ваш этаж', 'sizning qavatingiz', '🏬', 'Какой ваш этаж?'),
+    v('твой дом', 'sening uying', '🏠', 'Твой дом очень красивый.'),
     v('пятый этаж', 'beshinchi qavat', '5️⃣', 'Я живу на пятом этаже.'),
-    v('второй этаж', 'ikkinchi qavat', '2️⃣', 'А я живу на втором этаже.'),
     v('новый сосед', 'yangi qo‘shni', '👋', 'У меня новый сосед.'),
     v('большая квартира', 'katta kvartira', '🏙️', 'У нас большая квартира.'),
     v('красивый дом', 'chiroyli uy', '🏡', 'Это красивый дом.'),
+    v('моё имя', 'mening ismim', '🙋', 'Моё имя Али.'),
+    v('ваш ключ', 'sizning kalitingiz', '🔑', 'Это ваш ключ?'),
+    v('доброе утро', 'xayrli tong', '🌅', 'Доброе утро, сосед!'),
     v('старый ключ', 'eski kalit', '🗝️', 'У меня старый ключ.'),
+    v('второй этаж', 'ikkinchi qavat', '2️⃣', 'А я живу на втором этаже.'),
     v('пригласить на чай', 'choyga taklif qilmoq', '🫖', 'Я хочу пригласить вас на чай.'),
     v('горячий чай', 'issiq choy', '🍵', 'Это горячий чай.'),
-    v('доброе утро', 'xayrli tong', '🌅', 'Доброе утро, сосед!'),
-    v('ваше имя', 'sizning ismingiz', '🙋', 'Как ваше имя?'),
-    v('моё имя', 'mening ismim', '🪪', 'Моё имя Али.'),
-    v('как вас зовут?', 'ismingiz nima?', '❓', 'Здравствуйте! Как вас зовут?'),
-    v('меня зовут…', 'mening ismim…', '🗣️', 'Меня зовут Али.'),
-    v('очень приятно', 'tanishganimdan xursandman', '🤝', 'Очень приятно! Я ваш сосед.'),
-    v('добро пожаловать', 'xush kelibsiz', '🚪', 'Добро пожаловать в мой дом!'),
+    v('ваша квартира', 'sizning kvartirangiz', '🏢', 'Ваша квартира светлая.'),
+    v('новый дом', 'yangi uy', '🏠', 'Это новый дом.'),
+    v('моя семья', 'mening oilam', '👨‍👩‍👧‍👦', 'Это моя семья.'),
+    v('дружная семья', 'do‘stona oila', '💞', 'У нас дружная семья.'),
+    v('хороший сосед', 'yaxshi qo‘shni', '🤝', 'Он хороший сосед.'),
+    v('светлая квартира', 'yorug‘ kvartira', '✨', 'У меня светлая квартира.'),
   ],
   exercise: {
     title: 'Yozma mashq: yangi qo‘shni',
     instruction: 'Bo‘sh joylarni to‘ldiring, so‘ng yana 1–2 gap qo‘shing.',
     starter: 'Я — новый _________. Меня зовут _________. Я живу на _________ этаже. Моя квартира _________.',
+    example: 'Я — новый сосед. Меня зовут Али. Я живу на пятом этаже. Моя квартира большая и светлая.',
   },
   outcomes: [
     { title: 'Знакомство', translation: 'tanishuv', tone: 'yellow' },
@@ -199,6 +233,12 @@ const lesson1: LessonData = {
     { title: 'Приглашение', translation: 'taklif', tone: 'yellow' },
   ],
   completionMessage: 'Ajoyib! Siz birinchi qadamni tashladingiz. Endi siz yangi qo‘shningiz yoki hamkasbingiz bilan tanisha olasiz. Ertaga biz oila haqida gaplashamiz. Ko‘rishguncha!',
+  reflection: {
+    questions: [
+      { question: 'Bugun qanday yangi narsalarni o‘rgandingiz?', options: ['Otlar jinsi', 'Qanday tanishtirish', 'Ikkala variant'] },
+      { question: 'Qaysi so‘z eng qiyin edi?', options: ['Assalomu alaykum', 'Qo‘shni', 'Kvartira'] },
+    ],
+  },
 }
 
 const lesson2: LessonData = {

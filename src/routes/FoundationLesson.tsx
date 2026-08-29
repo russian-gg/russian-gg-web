@@ -376,15 +376,18 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<WordDrag | null>(null)
   const [error, setError] = useState<{ word: string; house: string } | null>(null)
+  const [success, setSuccess] = useState(false)
   const pointerRef = useRef<{ pointerId: number; word: string; x: number; y: number } | null>(null)
   const draggingRef = useRef<WordDrag | null>(null)
   const didDragRef = useRef<string | null>(null)
   const errorTimerRef = useRef<number | null>(null)
+  const successTimerRef = useRef<number | null>(null)
   const remaining = lesson.game.pairs.filter((pair) => matches[pair.left] !== pair.right)
   const matchedCount = lesson.game.pairs.length - remaining.length
 
   useEffect(() => () => {
     if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current)
+    if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
   }, [])
 
   function showError(word: string, house: string) {
@@ -395,6 +398,12 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     errorTimerRef.current = window.setTimeout(() => setError(null), 1_800)
   }
 
+  function showSuccess() {
+    setSuccess(true)
+    if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
+    successTimerRef.current = window.setTimeout(() => setSuccess(false), 1_800)
+  }
+
   function placeWord(word: string, house: string | undefined) {
     setSelected(null)
     if (!house) return
@@ -403,6 +412,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
       setError(null)
       onChange({ ...matches, [word]: house })
       celebrate([25, 35, 60], 'coin')
+      if (lesson.game.feedback) showSuccess()
       return
     }
     showError(word, house)
@@ -498,9 +508,23 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
         </div>
       </Card>
 
+      {remaining.length === 0 && lesson.game.feedback && (
+        <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">
+          {lesson.game.feedback.allDone}
+        </p>
+      )}
+
       {error && (
         <p role="status" className="rounded-xl bg-danger-soft px-3 py-2 text-center text-sm font-black text-danger">
-          <RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring
+          {lesson.game.feedback
+            ? lesson.game.feedback.incorrect
+            : <><RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring</>}
+        </p>
+      )}
+
+      {success && lesson.game.feedback && (
+        <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">
+          {lesson.game.feedback.correct}
         </p>
       )}
 
@@ -1209,6 +1233,12 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
       <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.starter} /></p>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
+      {lesson.exercise.example && (
+        <div className="mt-4 rounded-xl border border-hairline bg-ground-sunken p-3">
+          <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">Namuna</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.example} /></p>
+        </div>
+      )}
     </Card>
   )
 }
@@ -1274,8 +1304,37 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
         {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
       </div>
+      {lesson.reflection && <ReflectionQuestions reflection={lesson.reflection} />}
       {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} ↗</a>}
     </Card>
+  )
+}
+
+function ReflectionQuestions({ reflection }: { reflection: NonNullable<LessonData['reflection']> }) {
+  const [picked, setPicked] = useState<Record<number, number>>({})
+  return (
+    <div className="mt-5 space-y-3 text-left">
+      {reflection.questions.map((item, questionIndex) => (
+        <div key={item.question} className="rounded-2xl bg-ground-raised p-3 sm:p-4">
+          <p className="text-sm font-black text-ink">{item.question}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.options.map((option, optionIndex) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => { setPicked((current) => ({ ...current, [questionIndex]: optionIndex })); playUiSound('select') }}
+                className={cx(
+                  'rounded-full border-2 px-3 py-1.5 text-xs font-black transition',
+                  picked[questionIndex] === optionIndex ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground text-ink-muted hover:border-signal',
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
