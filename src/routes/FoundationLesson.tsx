@@ -259,14 +259,16 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
 }
 
 function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetics']; genderStory?: boolean }) {
+  const bodyForSpeech = rule.body.map((paragraph) => typeof paragraph === 'string' ? paragraph : `${speakerNames[paragraph.speaker]}: ${paragraph.text}`).join(' ')
+  const hasSpeakerLines = rule.body.some((paragraph) => typeof paragraph !== 'string')
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-start gap-3 sm:gap-5">
-        <MascotImage mascot={rule.mascot} className="size-16 shrink-0 sm:size-24" />
+        {!hasSpeakerLines && <MascotImage mascot={rule.mascot} className="size-16 shrink-0 sm:size-24" />}
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
           <p className="mt-2 font-semibold leading-relaxed text-ink-muted"><RussianText text={rule.lead} /></p>
-          <SpeechButton text={`${rule.title}. ${rule.lead} ${rule.body.join(' ')}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
+          <SpeechButton text={`${rule.title}. ${rule.lead} ${bodyForSpeech}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
         </div>
       </div>
       {genderStory && (
@@ -278,8 +280,8 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
           ] as const).map(([mascot, kingdom, title, colorName, color]) => (
             <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
               {mascot === 'panda'
-                ? <GirlPandaImage className="mx-auto size-14 sm:size-20" />
-                : <MascotImage mascot={mascot} className="mx-auto size-14 sm:size-20" />}
+                ? <GirlPandaImage className="mx-auto size-20 sm:size-28" />
+                : <MascotImage mascot={mascot} className="mx-auto size-20 sm:size-28" />}
               <p className="mt-1 text-[10px] font-bold text-ink sm:text-xs">{kingdom}</p>
               <p
                 className="mt-0.5 text-xs font-black sm:text-sm"
@@ -293,7 +295,9 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
         </div>
       )}
       <div className="mt-4 grid gap-2 text-sm leading-relaxed text-ink-muted sm:text-base">
-        {rule.body.map((paragraph) => <p key={paragraph}><RussianText text={paragraph} phoneticVowels /></p>)}
+        {rule.body.map((paragraph, index) => typeof paragraph === 'string'
+          ? <p key={index}><RussianText text={paragraph} phoneticVowels /></p>
+          : <SpeakerLine key={index} speaker={paragraph.speaker} text={paragraph.text} />)}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {rule.examples.map((example) => (
@@ -303,6 +307,21 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
         ))}
       </div>
     </Card>
+  )
+}
+
+const speakerNames: Record<Mascot, string> = { penguin: 'Пингвин', panda: 'Панда', pero: 'Перо' }
+
+function SpeakerLine({ speaker, text }: { speaker: Mascot; text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
+      {speaker === 'panda'
+        ? <GirlPandaImage className="size-16 shrink-0 rounded-full object-cover sm:size-20" />
+        : <MascotImage mascot={speaker} className="size-16 shrink-0 sm:size-20" />}
+      <p className="min-w-0 flex-1 text-ink">
+        <RussianText text={text} phoneticVowels />
+      </p>
+    </div>
   )
 }
 
@@ -1434,7 +1453,7 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   return (
     <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? 'Pauza' : 'Tinglash'}>
       {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
-      {children}
+      <span>{children}</span>
     </button>
   )
 }

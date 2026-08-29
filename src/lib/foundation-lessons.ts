@@ -12,7 +12,7 @@ export type RuleBlock = {
   title: string
   mascot: Mascot
   lead: string
-  body: string[]
+  body: Array<string | { speaker: Mascot; text: string }>
   examples: string[]
 }
 
@@ -127,10 +127,10 @@ const lesson1: LessonData = {
     mascot: 'pero',
     lead: 'Rus tilida urg‘uli unli kuchliroq va aniqroq eshitiladi.',
     body: [
-      '🐼 Panda: A — og‘iz keng ochiladi, xuddi hayron qolgandek. O — lablar dumaloq, simit kabi. U — lablar naycha kabi, xuddi hushtak chalayotgandek.',
-      'Audio tugmasini bosing, qoidani eshiting va misollarni birga takrorlang.',
-      '🪶 Pero: Agar «мама» ni U bilan aytsangiz, «муму» bo‘lib chiqadi — bu endi ona emas, sigir bo‘ladi! Shuning uchun diqqatli bo‘ling.',
-      '🪶 Pero: Tez aytish mashqi — «Ма́ма мы́ла ра́му» («Onam romni yuvdi»). Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
+      { speaker: 'penguin', text: 'Rus tilida unlilar turlicha talaffuz qilinadi. Bugun biz A, O, U tovushlarini o‘rganamiz. Qarang va takrorlang!' },
+      { speaker: 'panda', text: 'A — og‘iz keng ochiladi, xuddi hayron qolgandek. O — lablar dumaloq, simit kabi. U — lablar naycha kabi, xuddi hushtak chalayotgandek.' },
+      { speaker: 'pero', text: 'Agar «мама» ni U bilan aytsangiz, «муму» bo‘lib chiqadi — bu endi ona emas, sigir bo‘ladi! Shuning uchun diqqatli bo‘ling.' },
+      'Tez aytish mashqi — «Ма́ма мы́ла ра́му» («Onam romni yuvdi»). Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
     ],
     examples: ['А', 'О', 'У', 'ма́ма', 'па́па', 'до́м'],
   },
@@ -140,13 +140,29 @@ const lesson1: LessonData = {
     lead: 'Rodlar qirolliklariga xush kelibsiz!',
     body: [
       'Olis zamonlarda OT nomli katta qirollik bo‘lgan. Uning ichiga “kim?” hamda “nima?” savollariga javob bo‘ladigan barcha so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.',
-      '🐧 Pingvin qirolligi undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: дом, сосед, ключ. Ular faxr bilan: «он мой», deyishadi.',
-      '🐼 Panda qirolligi esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, квартира, сестра. Ular ohista: «она моя», deb shivirlashadi.',
-      '🪶 Pat qirolligi -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: окно, имя, письмо. Ular ishonch bilan: «оно моё», deb aytadi.',
-      '🪶 Pat: Lekin diqqat, istisnolar ham bor! «Папа» va «дядя» -а bilan tugasa-da, ular Pingvin qirolligiga (erkak jinsiga) tegishli — chunki bu so‘zlar erkak kishini bildiradi. Ma’noni har doim shakldan afzal ko‘ring!',
+      { speaker: 'penguin', text: 'Pingvin qirolligi undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: дом, сосед, ключ. Ular faxr bilan: «он мой», deyishadi.' },
+      { speaker: 'panda', text: 'Panda qirolligi esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, квартира, сестра. Ular ohista: «она моя», deb shivirlashadi.' },
+      { speaker: 'pero', text: 'Pat qirolligi -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: окно, имя, письмо. Ular ishonch bilan: «оно моё», deb aytadi.' },
+      { speaker: 'pero', text: 'Lekin diqqat, istisnolar ham bor! «Папа» va «дядя» -а bilan tugasa-da, ular Pingvin qirolligiga (erkak jinsiga) tegishli — chunki bu so‘zlar erkak kishini bildiradi. Ma’noni har doim shakldan afzal ko‘ring!' },
       'Pingvin, Panda va Pat qirolliklari hozirgi kunda ham rus tilini o‘rganishingizning asosi bo‘lib kelmoqda.',
     ],
-    examples: ['дом', 'сосед', 'ключ', 'папа', 'дядя', 'мама', 'квартира', 'сестра', 'окно', 'имя', 'письмо'],
+    examples: [
+      'Здравствуйте!',
+      'Меня зовут Али.',
+      'А как вас зовут?',
+      'Я ваш сосед.',
+      'Это моя квартира.',
+      'А это мой дом.',
+      'Очень приятно!',
+      'Где вы живёте?',
+      'Я живу на пятом этаже.',
+      'А вы? А я на втором.',
+      'Это ваш ключ?',
+      'Да, это мой ключ.',
+      'Добро пожаловать!',
+      'Я хочу пригласить вас на чай.',
+      'С удовольствием!',
+    ],
   },
   phrases: [
     p('Здравствуйте!', 'Assalomu alaykum!', '👋', 'Здравствуйте! Я ваш сосед.', 'zdrástvuyte'),
@@ -175,6 +191,8 @@ const lesson1: LessonData = {
       { left: 'ключ', right: 'Мужской род' }, { left: 'имя', right: 'Средний род' },
       { left: 'книга', right: 'Женский род' }, { left: 'письмо', right: 'Средний род' },
       { left: 'папа', right: 'Мужской род' }, { left: 'дядя', right: 'Мужской род' },
+      { left: 'мама', right: 'Женский род' }, { left: 'сестра', right: 'Женский род' },
+      { left: 'окно', right: 'Средний род' },
     ],
     feedback: {
       correct: '🐼 Панда: «Ajoyib! To‘g‘ri topdingiz!»',
