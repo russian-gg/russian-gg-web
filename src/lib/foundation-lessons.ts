@@ -12,7 +12,7 @@ export type RuleBlock = {
   title: string
   mascot: Mascot
   lead: string
-  body: Array<string | { speaker: Mascot; text: string }>
+  body: Array<string | { speaker: Mascot; text: string } | { table: { headers: string[]; rows: string[][] } }>
   examples: string[]
   /** Скороговорка: played back slowly, then normally, then fast. */
   tongueTwister?: {
@@ -279,7 +279,15 @@ const lesson2: LessonData = {
       { speaker: 'penguin', text: 'Rus tilida «mening» deyishning bir necha usuli bor: МОЙ, МОЯ, МОЁ, МОИ. Qaysi birini ishlatish so‘zning jinsiga bog‘liq.' },
       { speaker: 'panda', text: 'Qanday aniqlash mumkin? Savol bering: Чей? — javob мой (erkak jinsi). Чья? — моя (ayol jinsi). Чьё? — моё (o‘rta jins). Чьи? — мои (ko‘plik).' },
       { speaker: 'pero', text: '«Мой папа» — to‘g‘ri, «моя папа» — noto‘g‘ri! «Моя мама» — to‘g‘ri, «мой мама» — noto‘g‘ri. Buni eslab qoling, aks holda sizni tushunishmaydi!' },
-      'Jadval: Чей? → мой (папа, брат, дедушка). Чья? → моя (мама, сестра, бабушка). Чьё? → моё (имя, окно, письмо). Чьи? → мои (родители, друзья).',
+      { table: {
+        headers: ['Savol', 'Olmosh', 'Rod', 'Misol'],
+        rows: [
+          ['Чей?', 'мой', 'мужской', 'папа, брат, дедушка'],
+          ['Чья?', 'моя', 'женский', 'мама, сестра, бабушка'],
+          ['Чьё?', 'моё', 'средний', 'имя, окно, письмо'],
+          ['Чьи?', 'мои', 'ko‘plik', 'родители, друзья'],
+        ],
+      } },
     ],
     examples: [],
   },
@@ -563,7 +571,17 @@ const lesson4: LessonData = {
       { speaker: 'penguin', text: 'Rus tilida fe’llar shaxsga qarab o‘zgaradi. 1-guruh fe’llari -ать, -ять, -еть bilan tugaydi. Masalan: читать, работать, думать, писать, слушать.' },
       { speaker: 'panda', text: 'Qanday o‘zgaradi? Qarang: я читаю, ты читаешь, он читает, мы читаем, вы читаете, они читают. Bu xuddi aks-sado kabi — kim gapirsa, shunga mos keladi.' },
       { speaker: 'pero', text: 'Eslab qoling: «я» bilan — -ю/-у, «ты» bilan — -ешь, «он/она» bilan — -ет, «мы» bilan — -ем, «вы» bilan — -ете, «они» bilan — -ют/-ут. Buni yod oling, aks holda xato qilasiz!' },
-      'Jadval: я → -ю/-у (читаю), ты → -ешь (читаешь), он/она → -ет (читает), мы → -ем (читаем), вы → -ете (читаете), они → -ют/-ут (читают).',
+      { table: {
+        headers: ['Shaxs', 'Qo‘shimcha', 'Misol'],
+        rows: [
+          ['я', '-ю/-у', 'читаю'],
+          ['ты', '-ешь', 'читаешь'],
+          ['он/она', '-ет', 'читает'],
+          ['мы', '-ем', 'читаем'],
+          ['вы', '-ете', 'читаете'],
+          ['они', '-ют/-ут', 'читают'],
+        ],
+      } },
     ],
     examples: [],
   },
@@ -631,7 +649,15 @@ const lesson5: LessonData = {
       { speaker: 'penguin', text: 'Rus tilida inkor qilish uchun «не» yuklamasi ishlatiladi. U fe’l oldiga qo‘yiladi. Masalan: «говорю» → «не говорю». Bu juda oddiy qoida!' },
       { speaker: 'panda', text: 'Savollar ikki xil usulda beriladi: 1) Ovozni ko‘tarib (intonatsiya bilan): «Ты говоришь?» 2) Yoki «ли» yuklamasi bilan: «Говоришь ли ты?» Ikkinchisi rasmiyroq.' },
       { speaker: 'pero', text: '«Не» ni fe’ldan ajratib yozishni unutmang: «не говорю», «не понимаю». Agar «не» ni «ни» bilan adashtirsangiz, bu boshqa gap. Men buni ko‘p eshitganman!' },
-      'Jadval: Tasdiq — Я говорю. Inkor — Я не говорю. Savol — Ты говоришь? / Говоришь ли ты?',
+      { table: {
+        headers: ['Tasdiq', 'Inkor', 'Savol'],
+        rows: [
+          ['Я говорю.', 'Я не говорю.', 'Ты говоришь?'],
+          ['Я понимаю.', 'Я не понимаю.', 'Ты понимаешь?'],
+          ['Я учу.', 'Я не учу.', 'Ты учишь?'],
+          ['Я хочу.', 'Я не хочу.', 'Ты хочешь?'],
+        ],
+      } },
     ],
     examples: [],
   },

@@ -18,7 +18,15 @@ const nounStems: Array<{ stem: string; gender: Gender }> = [
   ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр,правил'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
-const personalEndingOverrides: Record<string, string> = { 'живёте': 'ёте', 'живу': 'у' }
+const personalEndingOverrides: Record<string, string> = {
+  'живёте': 'ёте', 'живу': 'у',
+  // "работаю" collides with the noun "работа" (findNoun claims it first), so the я-form needs
+  // its own override — "работаешь"/"работает"/etc. already work via presentTenseLongEndings.
+  'работаю': 'аю',
+  // "спать" is irregular (спл- appears only in conjugation, not the infinitive), so it never
+  // matches a verbStems prefix and falls through the regular present-tense detection.
+  'сплю': 'ю', 'спишь': 'ишь', 'спит': 'ит', 'спим': 'им', 'спите': 'ите', 'спят': 'ят',
+}
 const pastTenseWordOverrides: Record<string, string> = { 'мыла': 'ла' }
 const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон', 'дума', 'отдых', 'гуля', 'объясня', 'исправля', 'помога', 'заним']
 // Present-tense personal endings. The longer ones (≥2 letters: -ешь/-ете/-ют…) are distinctive
@@ -117,6 +125,14 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
 
   const noun = findNoun(lower)
   if (noun) {
+    // Bare -ы/-и (студенты), the substantivised-adjective plural -ие/-ые (рабочие), and the
+    // irregular -ья plural (друзья, братья) are all unambiguous masculine plural markers — no
+    // singular case of these nouns ends that way. Russian plurals don't carry gender at all
+    // (unlike the singular forms this whole system teaches), so colouring one by its dictionary
+    // gender would teach the wrong lesson; leave it uncoloured, like plural possessives already are.
+    const rawEnding = lower.slice(noun.stem.length)
+    if (noun.gender === 'masculine' && ['ы', 'и', 'ые', 'ие', 'ья'].includes(rawEnding)) return original
+
     const caseName = inferCase(previousWord, previousPreviousWord, lower)
     if (!caseName) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[noun.gender])}>{original}</span>
     const root = original.slice(0, noun.stem.length)
@@ -163,7 +179,7 @@ function findVerbEnding(word: string, endings: string[]) {
 }
 
 function inferCase(previousWord: string, previousPreviousWord: string, word: string): CaseName | null {
-  if (/^(виж|люб|зна|помн|встреч|слыш)/u.test(previousWord)) return 'accusative'
+  if (/^(виж|люб|зна|помн|встреч|слыш|чит|пиш|слуш|смотр|уч|понима|объясня|исправля|дела)/u.test(previousWord)) return 'accusative'
   if (previousWord === 'нет') return 'genitive'
   if (previousWord === 'к') return 'dative'
   if (['с', 'со', 'над', 'под', 'между'].includes(previousWord)) return 'instrumental'
