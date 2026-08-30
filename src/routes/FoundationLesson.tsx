@@ -30,6 +30,57 @@ const sections = [
 ] as const
 
 type SectionId = (typeof sections)[number]['id']
+
+/**
+ * Every section that sets a task has to be finished before the lesson moves on — clicking past
+ * the work was how a learner could reach the closing card having done none of it.
+ *
+ * Two sections deliberately stay open. The phonetics and grammar blocks are reading, with no
+ * answer to check. The dialogue block only asks that a mode be opened: its recording needs a
+ * microphone and the voice backend, and a learner whose mic is refused must still be able to
+ * finish the day rather than be sealed in mid-lesson.
+ */
+function sectionBlockReason(sectionId: SectionId, lesson: LessonData, state: StoredState): string | null {
+  switch (sectionId) {
+    case 'tests':
+      return lesson.tests.every((quiz, index) => state.answers[index] === quiz.correct)
+        ? null
+        : 'Davom etish uchun barcha testlarga to‘g‘ri javob bering.'
+    case 'phrases':
+      return Object.keys(state.phraseRatings).length >= lesson.phrases.length
+        ? null
+        : 'Davom etish uchun barcha iboralarni ochib, baholang.'
+    case 'game':
+      return isGameSolved(lesson, state.gameMatches)
+        ? null
+        : 'Davom etish uchun o‘yinni oxirigacha yeching.'
+    case 'missions':
+      return state.missionModeOpened
+        ? null
+        : 'Davom etish uchun dialog yoki AI suhbatini oching.'
+    case 'vocabulary':
+      return state.vocabularyReviewed >= vocabularyTarget(lesson.vocabulary.length)
+        ? null
+        : `Davom etish uchun kamida ${vocabularyTarget(lesson.vocabulary.length)} ta kartani ko‘rib chiqing.`
+    case 'picture':
+      return state.exerciseAnswer.trim()
+        ? null
+        : 'Davom etish uchun mashq javobini yozing.'
+    default:
+      return null
+  }
+}
+
+function isGameSolved(lesson: LessonData, matches: Record<string, string>): boolean {
+  if (lesson.game.kind === 'family-crossword') {
+    return (lesson.game.clues ?? []).every((clue) => matches[clue.answer] === clue.answer)
+  }
+  // The picture game stores a free-text description rather than a fixed right-hand value.
+  if (lesson.game.kind === 'picture-description') {
+    return lesson.game.pairs.every((pair) => Boolean(matches[pair.left]?.trim()))
+  }
+  return lesson.game.pairs.every((pair) => matches[pair.left] === pair.right)
+}
 type StoredState = {
   sectionIndex: number
   completed: SectionId[]
@@ -37,6 +88,9 @@ type StoredState = {
   phraseRatings: Record<number, Rating>
   gameMatches: Record<string, string>
   exerciseAnswer: string
+  missionModeOpened: boolean
+  /** How far into the word deck the learner has got — also where reopening resumes. */
+  vocabularyReviewed: number
 }
 type Rating = 'known' | 'unknown' | 'repeat'
 
@@ -47,6 +101,15 @@ const emptyState: StoredState = {
   phraseRatings: {},
   gameMatches: {},
   exerciseAnswer: '',
+  missionModeOpened: false,
+  vocabularyReviewed: 0,
+}
+
+/** Enough cards to have actually studied, without forcing the whole deck in one sitting. */
+const VOCABULARY_REVIEW_TARGET = 5
+
+function vocabularyTarget(wordCount: number) {
+  return Math.min(VOCABULARY_REVIEW_TARGET, wordCount)
 }
 
 export function FoundationLesson() {
@@ -81,7 +144,8 @@ export function FoundationLesson() {
 
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
-  const canContinue = active.id !== 'phrases' || !lesson || Object.keys(state.phraseRatings).length >= lesson.phrases.length
+  const blockReason = lesson ? sectionBlockReason(active.id, lesson, state) : null
+  const canContinue = blockReason === null
 
   if (!lesson || day < 1 || day > 15) return <Navigate to="/path" replace />
 
@@ -183,8 +247,24 @@ export function FoundationLesson() {
                 setState((current) => ({ ...current, gameMatches }))
               }} />
         )}
-        {active.id === 'missions' && <MissionModes lesson={lesson} missionId={missionId} />}
-        {active.id === 'vocabulary' && <VocabularySection words={lesson.vocabulary} />}
+        {active.id === 'missions' && (
+          <MissionModes
+            lesson={lesson}
+            missionId={missionId}
+            onModeOpened={() => setState((current) => ({ ...current, missionModeOpened: true }))}
+          />
+        )}
+        {active.id === 'vocabulary' && (
+          <VocabularySection
+            words={lesson.vocabulary}
+            reviewed={state.vocabularyReviewed}
+            onReviewed={(count) => setState((current) => ({
+              ...current,
+              // A second pass through the deck must never walk the count backwards.
+              vocabularyReviewed: Math.max(current.vocabularyReviewed, count),
+            }))}
+          />
+        )}
         {active.id === 'picture' && (
           <ExerciseSection
             lesson={lesson}
@@ -195,11 +275,15 @@ export function FoundationLesson() {
         {active.id === 'complete' && <CompleteSection lesson={lesson} />}
       </section>
 
-      <div className="flex items-center gap-2 border-t border-hairline pt-4">
-        {state.sectionIndex > 0 && <Button variant="ghost" onClick={goBack}>← Orqaga</Button>}
-        <Button className="ml-auto" disabled={!canContinue} onClick={() => void finishCurrent()}>
-          {active.id === 'complete' ? 'Darsni yakunlash' : 'Davom etish →'}
-        </Button>
+      <div className="border-t border-hairline pt-4">
+        <div className="flex items-center gap-2">
+          {state.sectionIndex > 0 && <Button variant="ghost" onClick={goBack}>← Orqaga</Button>}
+          <Button className="ml-auto" disabled={!canContinue} onClick={() => void finishCurrent()}>
+            {active.id === 'complete' ? 'Darsni yakunlash' : 'Davom etish →'}
+          </Button>
+        </div>
+        {/* A disabled button with no reason next to it reads as a broken page. */}
+        {blockReason && <p className="mt-2 text-right text-xs font-bold text-ink-muted">{blockReason}</p>}
       </div>
     </div>
   )
@@ -653,6 +737,11 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
   const shuffledRight = useMemo(() => [...lesson.game.pairs].sort((a, b) => a.right.localeCompare(b.right)), [lesson])
   const matchedCount = Object.keys(matches).length
   const solved = matchedCount === lesson.game.pairs.length
+  const matchedPerRight = new Map<string, number>()
+  for (const value of Object.values(matches)) {
+    matchedPerRight.set(value, (matchedPerRight.get(value) ?? 0) + 1)
+  }
+  const rightOccurrences = new Map<string, number>()
 
   useEffect(() => () => {
     if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
@@ -682,8 +771,13 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
           </div>
           <div className="grid content-start gap-2">
             {shuffledRight.map((pair) => {
-              const used = Object.values(matches).includes(pair.right)
-              return <button key={pair.right} type="button" disabled={used} onClick={() => {
+              // A right-hand answer legitimately repeats (several nouns take the same ending),
+              // so a button is spent per occurrence, not per value. Disabling by value alone
+              // greyed out every duplicate at once and left the game unsolvable.
+              const occurrence = rightOccurrences.get(pair.right) ?? 0
+              rightOccurrences.set(pair.right, occurrence + 1)
+              const used = occurrence < (matchedPerRight.get(pair.right) ?? 0)
+              return <button key={`${pair.left}→${pair.right}`} type="button" disabled={used} onClick={() => {
                 if (!selected) return
                 const expected = lesson.game.pairs.find((candidate) => candidate.left === selected)?.right
                 if (expected === pair.right) {
@@ -1121,8 +1215,14 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
   )
 }
 
-function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: string }) {
+function MissionModes({ lesson, missionId, onModeOpened }: { lesson: LessonData; missionId?: string; onModeOpened: () => void }) {
   const [mode, setMode] = useState<'dialogue' | 'ai' | null>(null)
+
+  function openMode(next: 'dialogue' | 'ai') {
+    setMode(next)
+    onModeOpened()
+  }
+
   const [questionIndex, setQuestionIndex] = useState(0)
   const [feedback, setFeedback] = useState('')
   const [listening, setListening] = useState(false)
@@ -1246,8 +1346,8 @@ function MissionModes({ lesson, missionId }: { lesson: LessonData; missionId?: s
     return (
       <Card className="p-4 sm:p-5">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Button size="lg" block onClick={() => setMode('dialogue')}>🎭 Dialogni mashq qilish</Button>
-          <Button size="lg" block variant="secondary" onClick={() => setMode('ai')}>🎙️ AI bilan suhbat</Button>
+          <Button size="lg" block onClick={() => openMode('dialogue')}>🎭 Dialogni mashq qilish</Button>
+          <Button size="lg" block variant="secondary" onClick={() => openMode('ai')}>🎙️ AI bilan suhbat</Button>
         </div>
       </Card>
     )
@@ -1286,26 +1386,57 @@ function MicButton({ listening, processing, onClick }: { listening: boolean; pro
   return <button type="button" onClick={onClick} disabled={processing} className={cx('mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white shadow-lg disabled:opacity-60', listening ? 'animate-pulse bg-danger' : 'bg-signal')} aria-label={listening ? 'Yozishni to‘xtatish' : 'Mikrofon'}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening ? '■' : '🎙️'}</button>
 }
 
-function VocabularySection({ words }: { words: Vocab[] }) {
+function VocabularySection({ words, reviewed, onReviewed }: {
+  words: Vocab[]
+  reviewed: number
+  onReviewed: (count: number) => void
+}) {
   const [open, setOpen] = useState(false)
+  const target = vocabularyTarget(words.length)
+  const finishedDeck = reviewed >= words.length
+  // Reopening picks up where the learner stopped; a finished deck starts a fresh pass.
+  const startIndex = finishedDeck ? 0 : reviewed
+
   return (
     <>
       <Card className="flex items-center gap-4 p-4 sm:p-5">
         <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-signal-soft text-4xl">🗂️</div>
-        <div className="min-w-0 flex-1"><p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{words.length} ta karta</p><h3 className="mt-1 text-xl font-black text-ink">Yangi so‘zlar kolodasi</h3></div>
-        <Button onClick={() => setOpen(true)}>Ochish</Button>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{words.length} ta karta</p>
+          <h3 className="mt-1 text-xl font-black text-ink">Yangi so‘zlar kolodasi</h3>
+          <p className="mt-1 text-sm font-bold text-ink-muted">
+            {reviewed === 0
+              ? `Kamida ${target} ta kartani ko‘ring`
+              : `Ko‘rildi: ${Math.min(reviewed, words.length)} / ${words.length}${reviewed >= target ? ' ✓' : ` (kamida ${target})`}`}
+          </p>
+        </div>
+        <Button onClick={() => setOpen(true)}>{reviewed > 0 && !finishedDeck ? 'Davom ettirish' : 'Ochish'}</Button>
       </Card>
-      {open && <VocabularyDeck words={words} onClose={() => setOpen(false)} />}
+      {open && (
+        <VocabularyDeck
+          words={words}
+          startIndex={startIndex}
+          onClose={() => setOpen(false)}
+          onReviewed={onReviewed}
+        />
+      )}
     </>
   )
 }
 
-function VocabularyDeck({ words, onClose }: { words: Vocab[]; onClose: () => void }) {
-  const [index, setIndex] = useState(0)
+function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
+  words: Vocab[]
+  startIndex: number
+  onClose: () => void
+  onReviewed: (count: number) => void
+}) {
+  const [index, setIndex] = useState(startIndex)
   const [flipped, setFlipped] = useState(false)
   const word = words[index]
   function rate(sound: UiSound) {
     playUiSound(sound)
+    // Rating a card banks it, so closing early keeps everything seen up to this point.
+    onReviewed(index + 1)
     if (index === words.length - 1) { onClose(); return }
     setIndex((current) => current + 1)
     setFlipped(false)
@@ -1442,7 +1573,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
   useEffect(() => { celebrate([45, 45, 80], 'win') }, [])
   return (
     <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
-      <Celebration />
+      <Celebration pieces={180} balloons={34} />
       <MascotImage mascot="penguin" className="mx-auto h-28 w-28 object-contain" />
       <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{lesson.day}-dars muvaffaqiyatli tugadi</span>
       <h3 className="mt-3 text-3xl font-black text-ink">Ajoyib!</h3>
@@ -1657,16 +1788,24 @@ function readState(storageKey: string | null): StoredState {
       phraseRatings: parsed.phraseRatings ?? {},
       gameMatches: parsed.gameMatches ?? {},
       exerciseAnswer: typeof parsed.exerciseAnswer === 'string' ? parsed.exerciseAnswer : '',
+      missionModeOpened: parsed.missionModeOpened === true,
+      vocabularyReviewed: typeof parsed.vocabularyReviewed === 'number' && parsed.vocabularyReviewed > 0
+        ? parsed.vocabularyReviewed
+        : 0,
     }
   } catch { return emptyState }
 }
 
 const celebrationColors = ['#5b9bf5', '#ff2400', '#f4c84d', '#44944a', '#ed3cca']
-function Celebration() {
-  return createPortal(<span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">{Array.from({ length: 52 }, (_, index) => {
+/**
+ * Defaults are the small burst a correct answer earns. The end-of-lesson card asks for more —
+ * finishing a whole day should not look the same as getting one quiz right.
+ */
+function Celebration({ pieces = 52, balloons = 12 }: { pieces?: number; balloons?: number }) {
+  return createPortal(<span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">{Array.from({ length: pieces }, (_, index) => {
     const style = { '--fall-x': `${3 + ((index * 37) % 94)}vw`, '--fall-drift': `${(index % 2 ? -1 : 1) * (16 + (index % 5) * 8)}px`, '--fall-rotate': `${360 + index * 29}deg`, '--fall-delay': `${(index % 12) * 45}ms`, '--fall-duration': `${1900 + (index % 7) * 130}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties
     return <span key={index} className={cx('answer-celebration__piece', index % 3 === 0 ? 'answer-celebration__ball' : 'answer-celebration__ribbon')} style={style} />
-  })}{Array.from({ length: 12 }, (_, index) => <span key={`balloon-${index}`} className="answer-celebration__balloon" style={{ '--balloon-x': `${5 + ((index * 41) % 90)}vw`, '--balloon-delay': `${index * 90}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties} />)}</span>, document.body)
+  })}{Array.from({ length: balloons }, (_, index) => <span key={`balloon-${index}`} className="answer-celebration__balloon" style={{ '--balloon-x': `${5 + ((index * 41) % 90)}vw`, '--balloon-delay': `${index * 90}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties} />)}</span>, document.body)
 }
 
 function celebrate(pattern: number | number[] = 35, sound: UiSound = 'correct') {
