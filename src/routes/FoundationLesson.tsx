@@ -306,7 +306,51 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
           </SpeechButton>
         ))}
       </div>
+      {rule.tongueTwister && <TongueTwister twister={rule.tongueTwister} />}
     </Card>
+  )
+}
+
+const tongueTwisterSpeeds = [
+  { label: '🐢 Sekin', rate: 0.7 },
+  { label: '▶️ Oddiy', rate: 1 },
+  { label: '⚡ Tez', rate: 1.35 },
+] as const
+
+function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics']['tongueTwister']> }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-caution bg-caution-soft/40 p-4">
+      <p className="text-xs font-black tracking-[.12em] text-caution uppercase">Скороговорка · tez aytish mashqi</p>
+      <p className="mt-2 text-xl font-black text-ink sm:text-2xl"><RussianText text={twister.ru} /></p>
+      <p className="mt-1 text-sm font-semibold text-ink-muted">{twister.uz}</p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {tongueTwisterSpeeds.map((speed) => (
+          <SpeechButton
+            key={speed.label}
+            text={twister.ru}
+            lang="ru-RU"
+            rate={speed.rate}
+            className="rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink shadow-sm"
+          >
+            {speed.label}
+          </SpeechButton>
+        ))}
+      </div>
+      <p className="mt-2 text-xs font-bold text-ink-faint">Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.</p>
+
+      {twister.breakdown && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {twister.breakdown.map((item) => (
+            <div key={item.word} className="rounded-xl bg-ground-raised p-3">
+              <p className="font-black text-ink"><RussianText text={item.word} /></p>
+              <p className="mt-0.5 text-sm font-bold text-ink-muted">{item.transcription}</p>
+              <p className="mt-0.5 text-xs font-black text-signal-ink">{item.sound}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -586,8 +630,23 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
 
 function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
   const [selected, setSelected] = useState<string | null>(null)
+  const [note, setNote] = useState<'correct' | 'incorrect' | null>(null)
+  const noteTimerRef = useRef<number | null>(null)
   const shuffledRight = useMemo(() => [...lesson.game.pairs].sort((a, b) => a.right.localeCompare(b.right)), [lesson])
   const matchedCount = Object.keys(matches).length
+  const solved = matchedCount === lesson.game.pairs.length
+
+  useEffect(() => () => {
+    if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
+  }, [])
+
+  function showNote(kind: 'correct' | 'incorrect') {
+    if (!lesson.game.feedback) return
+    setNote(kind)
+    if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
+    noteTimerRef.current = window.setTimeout(() => setNote(null), 1_800)
+  }
+
   return (
     <div className="space-y-3">
       <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
@@ -613,15 +672,35 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
                   onChange({ ...matches, [selected]: pair.right })
                   setSelected(null)
                   celebrate()
+                  showNote('correct')
                 } else {
                   navigator.vibrate?.([30, 30, 30])
                   playUiSound('wrong')
+                  showNote('incorrect')
                 }
               }} className={cx('min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
             })}
           </div>
         </div>
       </Card>
+
+      {lesson.game.feedback && solved && (
+        <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">
+          {lesson.game.feedback.allDone}
+        </p>
+      )}
+
+      {lesson.game.feedback && note && !solved && (
+        <p
+          role="status"
+          className={cx(
+            'rounded-xl px-3 py-2 text-center text-sm font-black',
+            note === 'correct' ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger',
+          )}
+        >
+          {note === 'correct' ? lesson.game.feedback.correct : lesson.game.feedback.incorrect}
+        </p>
+      )}
     </div>
   )
 }
@@ -1392,13 +1471,14 @@ async function speak(text: string, lang: string) {
   }
 }
 
-function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken }: {
+function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken, rate }: {
   text: string
   lang: string
   children: ReactNode
   className?: string
   stopPropagation?: boolean
   autoPlayToken?: string
+  rate?: number
 }) {
   const id = useId()
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle')
@@ -1410,10 +1490,11 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
     try {
       await playPromptAudio(cleanSpeechText(text), {
         onStateChange: (next) => setStatus(next),
+        rate,
       })
     } catch {
       setStatus('playing')
-      speakWithBrowser(text, lang, () => setStatus('idle'))
+      speakWithBrowser(text, lang, () => setStatus('idle'), rate)
     }
   }
 
@@ -1458,7 +1539,7 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   )
 }
 
-function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void) {
+function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void, rate = 1) {
   if (!('speechSynthesis' in window)) {
     onEnd?.()
     return
@@ -1475,7 +1556,7 @@ function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void)
     }
     const utterance = new SpeechSynthesisUtterance(segment.text)
     utterance.lang = segment.lang
-    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
+    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed * rate
     utterance.voice = pickVoice(voices, segment.lang)
     utterance.onend = () => play(index + 1)
     utterance.onerror = () => play(index + 1)

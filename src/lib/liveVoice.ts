@@ -819,6 +819,11 @@ const promptAudioCache = new Map<string, Blob>()
 type PromptAudioState = 'idle' | 'loading' | 'playing'
 type PromptAudioCallbacks = {
   onStateChange?: (state: PromptAudioState) => void
+  /**
+   * Multiplies the learner's saved speed preference for this one playback. Drills that offer
+   * the same line slowly, then at speed, pass it; everything else keeps the preference as-is.
+   */
+  rate?: number
 }
 
 function setCachedPromptAudio(text: string, blob: Blob) {
@@ -862,7 +867,7 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
   const audioUrl = URL.createObjectURL(audioBlob)
   const audio = new Audio(audioUrl)
   const preferences = readAudioPreferences()
-  audio.playbackRate = preferences.speed
+  audio.playbackRate = preferences.speed * (callbacks?.rate ?? 1)
   audio.muted = preferences.muted
   promptAudio = audio
   promptAudioUrl = audioUrl
