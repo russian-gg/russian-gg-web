@@ -5,6 +5,7 @@ import { Button } from '../../components/ui'
 import { readAudioPreferences, storeAudioPreferences } from '../../lib/audio-preferences'
 import { playUiSound } from '../../lib/ui-sounds'
 import { cx } from '../../lib/cx'
+import { mascotImage } from '../../lib/mascot-images'
 
 type Gender = 'masculine' | 'feminine' | 'neuter'
 type Phase = 'ready' | 'playing' | 'paused' | 'falling' | 'gameover'
@@ -891,7 +892,7 @@ function getProjectPenguin() {
   if (!projectPenguinImage && typeof Image !== 'undefined') {
     projectPenguinImage = new Image()
     projectPenguinImage.decoding = 'async'
-    projectPenguinImage.src = '/lesson-mascots/penguin.png'
+    projectPenguinImage.src = mascotImage('penguin')
   }
   return projectPenguinImage
 }
