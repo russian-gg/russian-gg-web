@@ -535,18 +535,37 @@ const lesson4: LessonData = {
   titleRu: 'Что ты делаешь?',
   titleUz: 'Hozir nima qilyapsan?',
   tests: [
-    { question: '«мяч» so‘zi qanday tovush bilan boshlanadi?', options: ['qattiq М', 'yumshoq М’'], correct: 1, feedback: '«я» harfi oldingi М tovushini yumshatadi: [м’ач].' },
-    { question: '«Я читать книгу» gapi to‘g‘rimi?', options: ['Ha, to‘g‘ri', 'Yo‘q, fe’l shakli o‘zgarishi kerak'], correct: 1, feedback: 'To‘g‘risi: «Я читаю книгу».' },
+    { context: 'Ertalab soat 9. Пингвин ish stolida o‘tiribdi, oldida noutbuk va hujjatlar — u band.', question: 'Rus tilida «Что вы делаете сейчас?» savoliga eng mos javobni tanlang.', options: ['Я читаю', 'Я работаю', 'Я сплю'], correct: 1, feedback: 'To‘g‘ri! Siz hozir ishlayapsiz. Bugun biz aynan shu haqda gaplashamiz — hozirgi zamondagi harakatlar haqida.' },
+    { question: 'Rus tilida «Men o‘qiyman» qanday aytiladi?', options: ['Я читаю', 'Я читать', 'Я читает'], correct: 0, feedback: 'Ajoyib! «Я читаю» — to‘g‘ri. Bugun biz aynan shu fe’llarni o‘rganamiz.' },
   ],
   phonetics: {
     title: 'Qattiq va yumshoq М', mascot: 'pero', lead: 'Keyingi unli harf М tovushining qattiq yoki yumshoq aytilishini ko‘rsatadi.',
-    body: ['а, о, у, ы, э oldidan М qattiq; я, ё, ю, и, е yoki ь oldidan М yumshoq aytiladi.', 'Juftlarni sekin ayting va til o‘rtasining tanglayga ko‘tarilishini his qiling.'],
-    examples: ['ма́ма — мя́ч', 'мы́ло — ми́р', 'му́ка — мю́сли', 'мост — мёд', 'мал — мял', 'мыл — мил'],
+    body: [
+      { speaker: 'penguin', text: 'Rus tilida M harfi ikki xil talaffuz qilinadi: qattiq va yumshoq. Qattiq M — lablar bir-biriga tegadi, ovoz burundan chiqadi. Yumshoq Mь — lablar bir-biriga tegadi, lekin til o‘rtasi tanglayga ko‘tariladi.' },
+      { speaker: 'panda', text: 'Qattiq M — xuddi sigirning «moo» degan ovoziga o‘xshaydi. Yumshoq Mь — xuddi mushukning «myau» degan ovoziga o‘xshaydi. Farqni sezdingizmi?' },
+      { speaker: 'pero', text: 'Agar «мама» (ona) ni yumshoq Mь bilan aytsangiz, «мямя» bo‘lib chiqadi. Bu endi ona emas, bu kulgili eshitiladi. Shuning uchun qattiq va yumshoqni adashtirmang!' },
+    ],
+    examples: ['мама', 'мяч', 'мыло', 'милый', 'мука', 'мюсли'],
+    tongueTwister: {
+      ru: 'Ма́ма мы́ла Ми́лу мы́лом.',
+      uz: 'Onam Milani sovun bilan yuvdi.',
+      breakdown: [
+        { word: 'Ма́ма', transcription: '[мама]', sound: 'M (qattiq)' },
+        { word: 'мы́ла', transcription: '[мыла]', sound: 'M (qattiq)' },
+        { word: 'Ми́лу', transcription: '[м’илу]', sound: 'Мь (yumshoq)' },
+        { word: 'мы́лом', transcription: '[мылам]', sound: 'M (qattiq)' },
+      ],
+    },
   },
   grammar: {
-    title: '1-guruh fe’llari', mascot: 'penguin', lead: 'Fe’l shaxsga qarab o‘zgaradi; 1-tuslanishda shaxsiy qo‘shimchalar alvon rangda ajratiladi.',
-    body: ['читать: я читаю, ты читаешь, он читает, мы читаем, вы читаете, они читают.', 'Xuddi shu qolip работать, думать, слушать, отдыхать va понимать fe’llarida ham ishlaydi.'],
-    examples: ['я читаю', 'ты читаешь', 'он читает', 'мы читаем', 'вы читаете', 'они читают'],
+    title: '1-guruh fe’llari', mascot: 'penguin', lead: 'Fe’l shaxsga qarab o‘zgaradi — bugun 1-guruh fe’llarining shaxsiy qo‘shimchalarini o‘rganamiz.',
+    body: [
+      { speaker: 'penguin', text: 'Rus tilida fe’llar shaxsga qarab o‘zgaradi. 1-guruh fe’llari -ать, -ять, -еть bilan tugaydi. Masalan: читать, работать, думать, писать, слушать.' },
+      { speaker: 'panda', text: 'Qanday o‘zgaradi? Qarang: я читаю, ты читаешь, он читает, мы читаем, вы читаете, они читают. Bu xuddi aks-sado kabi — kim gapirsa, shunga mos keladi.' },
+      { speaker: 'pero', text: 'Eslab qoling: «я» bilan — -ю/-у, «ты» bilan — -ешь, «он/она» bilan — -ет, «мы» bilan — -ем, «вы» bilan — -ете, «они» bilan — -ют/-ут. Buni yod oling, aks holda xato qilasiz!' },
+      'Jadval: я → -ю/-у (читаю), ты → -ешь (читаешь), он/она → -ет (читает), мы → -ем (читаем), вы → -ете (читаете), они → -ют/-ут (читают).',
+    ],
+    examples: [],
   },
   phrases: [
     p('Что ты делаешь?', 'Nima qilyapsan?', '❓'), p('Я читаю книгу.', 'Men kitob o‘qiyapman.', '📖'), p('А ты? Я работаю.', 'Senda-chi? Men ishlayapman.', '💼'),
@@ -555,18 +574,30 @@ const lesson4: LessonData = {
     p('Ты не слышишь?', 'Eshitmayapsanmi?', '👂'), p('Я всё понимаю.', 'Men hammasini tushunaman.', '💡'), p('Мы уже идём.', 'Biz allaqachon ketyapmiz.', '🚶'),
     p('Вы работаете сейчас?', 'Siz hozir ishlayapsizmi?', '⏱️'), p('Да, я работаю.', 'Ha, men ishlayapman.', '✅'), p('Подождите минуту!', 'Bir daqiqa kuting!', '☝️'),
   ],
-  game: { title: 'Fe’l domino', instruction: 'Olmoshni bosing, keyin unga mos fe’l shaklini tanlang.', pairs: [{ left: 'я', right: 'читаю' }, { left: 'ты', right: 'работаешь' }, { left: 'он', right: 'думает' }, { left: 'мы', right: 'слушаем' }, { left: 'вы', right: 'отдыхаете' }, { left: 'они', right: 'понимают' }] },
-  dialogue: ['Панда: Что ты делаешь, Пингвин?', 'Пингвин: Я читаю книгу. А ты?', 'Панда: Я тоже читаю. Вечером мы смотрим фильм.', 'Пингвин: Он пишет письмо? Она слушает музыку?', 'Панда: Да. Мы думаем о завтраке.', 'Пингвин: А они отдыхают. Ты не слышишь?', 'Панда: Я всё понимаю. Мы уже идём.', 'Пингвин: Вы работаете сейчас?', 'Панда: Да, работаю. Подождите минуту!'],
-  questions: [{ question: 'Что ты делаешь?', answer: 'Я читаю книгу. / Я работаю.' }, { question: 'Что он делает?', answer: 'Он пишет письмо.' }, { question: 'Что она делает?', answer: 'Она слушает музыку.' }, { question: 'Что вы делаете?', answer: 'Мы работаем.' }, { question: 'Что они делают?', answer: 'Они отдыхают.' }, { question: 'Ты понимаешь?', answer: 'Я всё понимаю.' }],
+  game: { title: 'Fe’l domino', instruction: 'Olmoshni bosing, keyin unga mos fe’l shaklini tanlang.', pairs: [{ left: 'я', right: 'читаю' }, { left: 'ты', right: 'читаешь' }, { left: 'он', right: 'читает' }, { left: 'мы', right: 'читаем' }, { left: 'вы', right: 'читаете' }, { left: 'они', right: 'читают' }] },
+  dialogue: ['Пингвин: Что ты делаешь?', 'Панда: Я читаю книгу. А ты?', 'Пингвин: Я работаю. Мы вечером смотрим фильм.', 'Панда: А что он пишет?', 'Пингвин: Он пишет письмо. Она слушает музыку.', 'Панда: Мы думаем о завтраке. Они отдыхают.', 'Пингвин: Я не сплю, ты не слышишь?', 'Панда: Я всё понимаю. Мы уже идём.'],
+  questions: [{ question: 'Что делает Пингвин?', answer: 'Работает.' }, { question: 'Что делает Панда?', answer: 'Читает книгу.' }, { question: 'Что они делают вечером?', answer: 'Смотрят фильм.' }, { question: 'Что делают они?', answer: 'Отдыхают.' }, { question: 'Пингвин спит?', answer: 'Нет, не спит.' }],
   vocabulary: [
     v('читать книгу', 'kitob o‘qimoq', '📖', 'Я читаю книгу.'), v('работать в офисе', 'ofisda ishlamoq', '💼', 'Он работает в офисе.'),
     v('писать письмо', 'xat yozmoq', '✉️', 'Она пишет письмо.'), v('слушать музыку', 'musiqa tinglamoq', '🎵', 'Мы слушаем музыку.'),
-    v('отдыхать в парке', 'parkda dam olmoq', '🌳', 'Они отдыхают в парке.'), v('думать о работе', 'ish haqida o‘ylamoq', '💭', 'Я думаю о работе.'),
-    v('смотреть фильм', 'film ko‘rmoq', '🎬', 'Мы смотрим фильм.'), v('пить чай', 'choy ichmoq', '🍵', 'Она пьёт чай.'),
-    v('писать статью', 'maqola yozmoq', '📝', 'Я пишу статью.'), v('играть на гитаре', 'gitara chalmoq', '🎸', 'Он играет на гитаре.'),
+    v('смотреть фильм', 'film ko‘rmoq', '🎬', 'Мы смотрим фильм.'), v('отдыхать в парке', 'parkda dam olmoq', '🌳', 'Они отдыхают в парке.'),
+    v('думать о работе', 'ish haqida o‘ylamoq', '💭', 'Я думаю о работе.'), v('понимать друга', 'do‘stni tushunmoq', '🤝', 'Я понимаю друга.'),
+    v('читать газету', 'gazeta o‘qimoq', '📰', 'Он читает газету.'), v('пить чай', 'choy ichmoq', '🍵', 'Она пьёт чай.'),
+    v('слушать радио', 'radio tinglamoq', '📻', 'Мы слушаем радио.'), v('есть хлеб', 'non yemoq', '🍞', 'Я ем хлеб.'),
+    v('смотреть телевизор', 'televizor ko‘rmoq', '📺', 'Он смотрит телевизор.'), v('играть в футбол', 'futbol o‘ynamoq', '⚽', 'Они играют в футбол.'),
+    v('писать статью', 'maqola yozmoq', '📝', 'Я пишу статью.'), v('отдыхать на диване', 'divanda dam olmoq', '🛋️', 'Я отдыхаю на диване.'),
+    v('понимать учителя', 'o‘qituvchini tushunmoq', '🍎', 'Мы понимаем учителя.'), v('читать стихи', 'she’r o‘qimoq', '📜', 'Она читает стихи.'),
+    v('ждать друга', 'do‘stni kutmoq', '⏳', 'Я жду друга.'), v('гулять в парке', 'parkda sayr qilmoq', '🚶', 'Мы гуляем в парке.'),
   ],
-  exercise: { title: 'Bugungi kunim', instruction: 'Nima qilayotganingizni 5–6 gapda yozing. читать, работать, слушать, писать, отдыхать fe’llaridan foydalaning.', starter: 'Сейчас я читаю … Я работаю …' },
+  exercise: { title: 'Bugungi kunim', instruction: 'Hozir nima qilayotganingiz haqida 3–4 ta gap yozing (rus tilida, darsdagi iboralardan foydalanib).', starter: 'Сейчас я _________. Я _________. Мой друг _________. Мы _________.', example: 'Сейчас я читаю книгу. Я слушаю музыку. Мой друг работает. Мы думаем о завтраке. Я не сплю.' },
   outcomes: [{ title: 'Действия', translation: 'harakatlar', tone: 'yellow' }, { title: 'Глаголы', translation: 'fe’llar', tone: 'blue' }, { title: 'Сейчас', translation: 'hozir', tone: 'yellow' }],
+  completionMessage: 'Ajoyib! Endi siz hozirgi vaqtda nima qilayotganingiz haqida rus tilida gapira olasiz. «Я читаю», «Я работаю» — bularni eslab qoling. Ertaga biz «Я говорю по-русски» mavzusida gaplashamiz. Ko‘rishguncha, azizim!',
+  reflection: {
+    questions: [
+      { question: 'Bugun qanday yangi narsalarni o‘rgandingiz?', options: ['Hozirgi zamondagi fe’llar', '«Я читаю» deyish', 'Ikkala variant'] },
+      { question: 'Qaysi so‘z eng qiyin edi?', options: ['Читаю', 'Работаю', 'Понимаю'] },
+    ],
+  },
 }
 
 const lesson5: LessonData = {
