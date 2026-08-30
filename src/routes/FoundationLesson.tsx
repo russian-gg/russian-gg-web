@@ -9,6 +9,7 @@ import { readAudioPreferences } from '../lib/audio-preferences'
 import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData, type Mascot, type Phrase, type Quiz, type Vocab } from '../lib/foundation-lessons'
+import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
@@ -279,9 +280,7 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
             ['pero', 'Pat qirolligi', 'Средний род', 'Жёлтый', '#FFFF00'],
           ] as const).map(([mascot, kingdom, title, colorName, color]) => (
             <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
-              {mascot === 'panda'
-                ? <GirlPandaImage className="mx-auto size-20 sm:size-28" />
-                : <MascotImage mascot={mascot} className="mx-auto size-20 sm:size-28" />}
+              <MascotImage mascot={mascot} className="mx-auto size-20 sm:size-28" />
               <p className="mt-1 text-[10px] font-bold text-ink sm:text-xs">{kingdom}</p>
               <p
                 className="mt-0.5 text-xs font-black sm:text-sm"
@@ -359,9 +358,7 @@ const speakerNames: Record<Mascot, string> = { penguin: 'Пингвин', panda:
 function SpeakerLine({ speaker, text }: { speaker: Mascot; text: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
-      {speaker === 'panda'
-        ? <GirlPandaImage className="size-16 shrink-0 rounded-full object-cover sm:size-20" />
-        : <MascotImage mascot={speaker} className="size-16 shrink-0 sm:size-20" />}
+      <MascotImage mascot={speaker} className="size-16 shrink-0 sm:size-20" />
       <p className="min-w-0 flex-1 text-ink">
         <RussianText text={text} phoneticVowels />
       </p>
@@ -426,12 +423,11 @@ const genderHouses: Array<{
   name: GenderHouseName
   label: string
   mascot: Mascot
-  image?: string
   color: string
   background: string
 }> = [
   { name: 'Мужской род', label: 'Ko‘k uy', mascot: 'penguin', color: '#0000FF', background: '#e7f0ff' },
-  { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', image: '/lesson-mascots/panda-girl-pin.jpg', color: '#FF2400', background: '#fff0ef' },
+  { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', color: '#FF2400', background: '#fff0ef' },
   { name: 'Средний род', label: 'Sariq uy', mascot: 'pero', color: '#d4b500', background: '#fff9d8' },
 ]
 
@@ -605,9 +601,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
               style={{ borderColor: isWrongTarget ? '#dc2626' : house.color, background: house.background }}
               aria-label={`${house.label}: ${house.name}`}
             >
-              {house.image
-                ? <img src={house.image} alt="Qiz bola Panda" className="h-12 w-12 object-cover object-[center_47%] mix-blend-multiply sm:h-16 sm:w-16" />
-                : <MascotImage mascot={house.mascot} className="h-12 w-12 object-contain object-left sm:h-16 sm:w-16" />}
+              <MascotImage mascot={house.mascot} className="h-12 w-12 object-contain object-left sm:h-16 sm:w-16" />
               <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.color }}>{house.label}</span>
               <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.color }}><RussianText text={house.name} /></span>
               <span className="mt-3 flex flex-wrap gap-1">
@@ -1347,7 +1341,7 @@ function NeighborScene() {
       <div className="absolute top-5 left-1/2 h-24 w-28 -translate-x-1/2 rounded-t-full border-[10px] border-[#a66b43] bg-[#fff4d7] sm:h-36 sm:w-40" />
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-5 sm:gap-10">
         <MascotImage mascot="penguin" className="h-32 w-28 sm:h-48 sm:w-40" />
-        <GirlPandaImage className="h-28 w-28 sm:h-44 sm:w-40" />
+        <MascotImage mascot="panda" className="h-28 w-28 sm:h-44 sm:w-40" />
       </div>
       <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-signal-ink">Ikki qo‘shni suhbati</span>
     </div>
@@ -1437,11 +1431,7 @@ function ReflectionQuestions({ reflection }: { reflection: NonNullable<LessonDat
 }
 
 function MascotImage({ mascot, className }: { mascot: Mascot; className?: string }) {
-  return <img src={`/lesson-mascots/${mascot}.png`} alt={mascot === 'penguin' ? 'Pingvin ustoz' : mascot === 'panda' ? 'Panda murabbiy' : 'Pero yordamchi'} className={cx('object-contain', className)} />
-}
-
-function GirlPandaImage({ className }: { className?: string }) {
-  return <img src="/lesson-mascots/panda-girl-pin.jpg" alt="Ko‘zi qisiq qiz bola Panda" className={cx('object-cover object-[center_46%] mix-blend-multiply', className)} />
+  return <img src={mascotImage(mascot)} alt={mascotAlt(mascot)} className={cx('object-contain', className)} />
 }
 
 function preferredRecordingMimeType() {

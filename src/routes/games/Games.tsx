@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useOpenGames } from '../../lib/games'
 import { Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
+import { mascotImage } from '../../lib/mascot-images'
 
 /**
  * The shelf. Built like a store rather than a menu: a grid of tiles, each with its own mark,
@@ -109,7 +110,7 @@ function RunnerCard({ body }: { body: string }) {
               <span className="rounded border border-rose-400 bg-rose-600/90 px-2 py-1">Женский</span>
               <span className="rounded border border-amber-300 bg-amber-500/90 px-2 py-1 text-amber-950">Средний</span>
             </span>
-            <img src="/lesson-mascots/penguin.png" alt="" loading="lazy" decoding="async" className="h-14 w-14 object-contain drop-shadow-xl" />
+            <img src={mascotImage('penguin')} alt="" loading="lazy" decoding="async" className="h-14 w-14 object-contain drop-shadow-xl" />
           </span>
         </span>
 
