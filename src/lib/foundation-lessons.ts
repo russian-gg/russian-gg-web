@@ -12,8 +12,14 @@ export type RuleBlock = {
   title: string
   mascot: Mascot
   lead: string
-  body: string[]
+  body: Array<string | { speaker: Mascot; text: string }>
   examples: string[]
+  /** Скороговорка: played back slowly, then normally, then fast. */
+  tongueTwister?: {
+    ru: string
+    uz: string
+    breakdown?: Array<{ word: string; transcription: string; sound: string }>
+  }
 }
 
 export type Phrase = {
@@ -46,6 +52,7 @@ export type LessonData = {
     pairs: Array<{ left: string; right: string }>
     clues?: Array<{ clue: string; answer: string }>
     example?: string
+    feedback?: { correct: string; incorrect: string; allDone: string }
   }
   dialogue: string[]
   questions: Array<{ question: string; answer: string }>
@@ -55,12 +62,14 @@ export type LessonData = {
     title: string
     instruction: string
     starter: string
+    example?: string
     items?: Array<{ item: string; phrase: string; icon: string }>
   }
   outcomes: Array<{ title: string; translation: string; tone: 'yellow' | 'blue' | 'red' }>
   sceneImage?: string
   completionMessage?: string
   completionAction?: { label: string; href: string }
+  reflection?: { questions: Array<{ question: string; options: string[] }> }
 }
 
 const p = (ru: string, uz: string, icon: string, example = ru, pronunciation?: string): Phrase => ({
@@ -88,10 +97,10 @@ const lesson1: LessonData = {
       feedback: '«мама» so‘zida urg‘u birinchi bo‘g‘inga tushadi: ма́ма.',
     },
     {
-      question: '«квартира» so‘zi qaysi rodga kiradi?',
-      options: ['Мужской род', 'Женский род', 'Средний род'],
-      correct: 1,
-      feedback: '«квартира» — женский род. Uning o‘zagi qizil rang bilan belgilanadi.',
+      question: 'Quyidagi so‘zlardan qaysi biri мужской родga kiradi?',
+      options: ['дом', 'квартира', 'окно'],
+      correct: 0,
+      feedback: '«Дом» — мужской род, shuning uchun u ko‘k rangda.',
     },
   ],
   phonetics: {
@@ -99,11 +108,15 @@ const lesson1: LessonData = {
     mascot: 'pero',
     lead: 'Rus tilida urg‘uli unli kuchliroq va aniqroq eshitiladi.',
     body: [
-      'А tovushida og‘iz keng ochiladi; О tovushida lablar dumaloqlanadi; У tovushida lablar oldinga cho‘ziladi.',
-      'Audio tugmasini bosing, qoidani eshiting va misollarni birga takrorlang.',
-      '🪶 Pero: Tez aytish mashqi — «Ма́ма мы́ла ра́му» («Onam romni yuvdi»). Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
+      { speaker: 'penguin', text: 'Rus tilida unlilar turlicha talaffuz qilinadi. Bugun biz A, O, U tovushlarini o‘rganamiz. Qarang va takrorlang!' },
+      { speaker: 'panda', text: 'A — og‘iz keng ochiladi, xuddi hayron qolgandek. O — lablar dumaloq, simit kabi. U — lablar naycha kabi, xuddi hushtak chalayotgandek.' },
+      { speaker: 'pero', text: 'Agar «мама» ni U bilan aytsangiz, «муму» bo‘lib chiqadi — bu endi ona emas, sigir bo‘ladi! Shuning uchun diqqatli bo‘ling.' },
     ],
-    examples: ['А', 'О', 'У', 'ма́ма', 'па́па', 'па́нда', 'до́м', 'сто́л', 'по́рт', 'сту́л', 'му́ж', 'ра́му', 'мы́ла'],
+    examples: ['А', 'О', 'У', 'ма́ма', 'па́па', 'до́м'],
+    tongueTwister: {
+      ru: 'Ма́ма мы́ла ра́му.',
+      uz: 'Onam romni yuvdi.',
+    },
   },
   grammar: {
     title: 'Rodlar haqida ertak',
@@ -111,13 +124,29 @@ const lesson1: LessonData = {
     lead: 'Rodlar qirolliklariga xush kelibsiz!',
     body: [
       'Olis zamonlarda OT nomli katta qirollik bo‘lgan. Uning ichiga “kim?” hamda “nima?” savollariga javob bo‘ladigan barcha so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.',
-      '🐧 Pingvin qirolligi undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: друг, день, дом. Ular faxr bilan: «он мой», deyishadi.',
-      '🐼 Panda qirolligi esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, земля, фамилия. Ular ohista: «она моя», deb shivirlashadi.',
-      '🪶 Pat qirolligi -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: утро, имя, здание. Ular ishonch bilan: «оно моё», deb aytadi.',
-      '🪶 Pat: Lekin diqqat, istisnolar ham bor! «Папа» va «дядя» -а bilan tugasa-da, ular Pingvin qirolligiga (erkak jinsiga) tegishli — chunki bu so‘zlar erkak kishini bildiradi. Ma’noni har doim shakldan afzal ko‘ring!',
+      { speaker: 'penguin', text: 'Pingvin qirolligi undosh harf va -ь bilan tugagan so‘zlarni o‘z hududiga tanlab olibdi: дом, сосед, ключ. Ular faxr bilan: «он мой», deyishadi.' },
+      { speaker: 'panda', text: 'Panda qirolligi esa -а, -я, -ь harflari bilan tugagan so‘zlarni o‘z hududiga kiritibdi: мама, квартира, сестра. Ular ohista: «она моя», deb shivirlashadi.' },
+      { speaker: 'pero', text: 'Pat qirolligi -о, -е, -ё harflari bilan tugagan jonsiz narsalarni saralab olibdi: окно, имя, письмо. Ular ishonch bilan: «оно моё», deb aytadi.' },
+      { speaker: 'pero', text: 'Lekin diqqat, istisnolar ham bor! «Папа» va «дядя» -а bilan tugasa-da, ular Pingvin qirolligiga (erkak jinsiga) tegishli — chunki bu so‘zlar erkak kishini bildiradi. Ma’noni har doim shakldan afzal ko‘ring!' },
       'Pingvin, Panda va Pat qirolliklari hozirgi kunda ham rus tilini o‘rganishingizning asosi bo‘lib kelmoqda.',
     ],
-    examples: ['дом', 'стол', 'папа', 'дядя', 'мама', 'квартира', 'окно', 'море'],
+    examples: [
+      'Здравствуйте!',
+      'Меня зовут Али.',
+      'А как вас зовут?',
+      'Я ваш сосед.',
+      'Это моя квартира.',
+      'А это мой дом.',
+      'Очень приятно!',
+      'Где вы живёте?',
+      'Я живу на пятом этаже.',
+      'А вы? А я на втором.',
+      'Это ваш ключ?',
+      'Да, это мой ключ.',
+      'Добро пожаловать!',
+      'Я хочу пригласить вас на чай.',
+      'С удовольствием!',
+    ],
   },
   phrases: [
     p('Здравствуйте!', 'Assalomu alaykum!', '👋', 'Здравствуйте! Я ваш сосед.', 'zdrástvuyte'),
@@ -141,12 +170,19 @@ const lesson1: LessonData = {
     title: 'Rangli uy',
     instruction: 'So‘zni pastdagi mos rangli uyga sudrang. Telefonda xohlasangiz so‘zni, keyin uyni bosishingiz ham mumkin.',
     pairs: [
-      { left: 'дом', right: 'Мужской род' }, { left: 'квартира', right: 'Женский род' },
-      { left: 'окно', right: 'Средний род' }, { left: 'сосед', right: 'Мужской род' },
-      { left: 'ключ', right: 'Мужской род' }, { left: 'чай', right: 'Мужской род' },
-      { left: 'этаж', right: 'Мужской род' }, { left: 'лестница', right: 'Женский род' },
-      { left: 'дверь', right: 'Женский род' }, { left: 'комната', right: 'Женский род' },
+      { left: 'сосед', right: 'Мужской род' }, { left: 'квартира', right: 'Женский род' },
+      { left: 'дом', right: 'Мужской род' }, { left: 'этаж', right: 'Мужской род' },
+      { left: 'ключ', right: 'Мужской род' }, { left: 'имя', right: 'Средний род' },
+      { left: 'книга', right: 'Женский род' }, { left: 'письмо', right: 'Средний род' },
+      { left: 'папа', right: 'Мужской род' }, { left: 'дядя', right: 'Мужской род' },
+      { left: 'мама', right: 'Женский род' }, { left: 'сестра', right: 'Женский род' },
+      { left: 'окно', right: 'Средний род' },
     ],
+    feedback: {
+      correct: '🐼 Панда: «Ajoyib! To‘g‘ri topdingiz!»',
+      incorrect: '🐧 Пингвин: «Noto‘g‘ri uy! Oxiriga qarang!»',
+      allDone: '🎉 Barcha personajlar: «Tabriklaymiz! Siz jinslarni biluvchisiz!»',
+    },
   },
   dialogue: [
     'Пингвин: Здравствуйте! Меня зовут Пингвин. Я ваш сосед.',
@@ -159,39 +195,39 @@ const lesson1: LessonData = {
     'Панда: С удовольствием!',
   ],
   questions: [
-    { question: 'Как вас зовут?', answer: 'Меня зовут… (ismingiz)' },
-    { question: 'Кто вы?', answer: 'Я сосед. / Я ваш сосед.' },
-    { question: 'Где вы живёте?', answer: 'Я живу на пятом этаже.' },
-    { question: 'Это ваш ключ?', answer: 'Да, это мой ключ.' },
-    { question: 'Что вы хотите?', answer: 'Я хочу пригласить вас на чай.' },
-    { question: 'Вы согласны?', answer: 'С удовольствием!' },
+    { question: 'Как зовут соседа?', answer: 'Пингвин.' },
+    { question: 'Где живёт Пингвин?', answer: 'На пятом этаже.' },
+    { question: 'Что сказала Панда в конце?', answer: 'С удовольствием!' },
+    { question: 'Что предложил Пингвин?', answer: 'Чай.' },
+    { question: 'Как сказать «меня зовут» по-русски?', answer: 'Меня зовут…' },
   ],
   vocabulary: [
     v('мой сосед', 'mening qo‘shnim', '🧑', 'Мой сосед приветливый.'),
     v('моя квартира', 'mening kvartiram', '🏢', 'Моя квартира на пятом этаже.'),
-    v('мой дом', 'mening uyim', '🏠', 'А это мой дом.'),
-    v('твой ключ', 'sening kaliting', '🔑', 'Это твой ключ?'),
-    v('ваш этаж', 'sizning qavatingiz', '🏬', 'Какой ваш этаж?'),
+    v('твой дом', 'sening uying', '🏠', 'Твой дом очень красивый.'),
     v('пятый этаж', 'beshinchi qavat', '5️⃣', 'Я живу на пятом этаже.'),
-    v('второй этаж', 'ikkinchi qavat', '2️⃣', 'А я живу на втором этаже.'),
     v('новый сосед', 'yangi qo‘shni', '👋', 'У меня новый сосед.'),
     v('большая квартира', 'katta kvartira', '🏙️', 'У нас большая квартира.'),
     v('красивый дом', 'chiroyli uy', '🏡', 'Это красивый дом.'),
+    v('моё имя', 'mening ismim', '🙋', 'Моё имя Али.'),
+    v('ваш ключ', 'sizning kalitingiz', '🔑', 'Это ваш ключ?'),
+    v('доброе утро', 'xayrli tong', '🌅', 'Доброе утро, сосед!'),
     v('старый ключ', 'eski kalit', '🗝️', 'У меня старый ключ.'),
+    v('второй этаж', 'ikkinchi qavat', '2️⃣', 'А я живу на втором этаже.'),
     v('пригласить на чай', 'choyga taklif qilmoq', '🫖', 'Я хочу пригласить вас на чай.'),
     v('горячий чай', 'issiq choy', '🍵', 'Это горячий чай.'),
-    v('доброе утро', 'xayrli tong', '🌅', 'Доброе утро, сосед!'),
-    v('ваше имя', 'sizning ismingiz', '🙋', 'Как ваше имя?'),
-    v('моё имя', 'mening ismim', '🪪', 'Моё имя Али.'),
-    v('как вас зовут?', 'ismingiz nima?', '❓', 'Здравствуйте! Как вас зовут?'),
-    v('меня зовут…', 'mening ismim…', '🗣️', 'Меня зовут Али.'),
-    v('очень приятно', 'tanishganimdan xursandman', '🤝', 'Очень приятно! Я ваш сосед.'),
-    v('добро пожаловать', 'xush kelibsiz', '🚪', 'Добро пожаловать в мой дом!'),
+    v('ваша квартира', 'sizning kvartirangiz', '🏢', 'Ваша квартира светлая.'),
+    v('новый дом', 'yangi uy', '🏠', 'Это новый дом.'),
+    v('моя семья', 'mening oilam', '👨‍👩‍👧‍👦', 'Это моя семья.'),
+    v('дружная семья', 'do‘stona oila', '💞', 'У нас дружная семья.'),
+    v('хороший сосед', 'yaxshi qo‘shni', '🤝', 'Он хороший сосед.'),
+    v('светлая квартира', 'yorug‘ kvartira', '✨', 'У меня светлая квартира.'),
   ],
   exercise: {
     title: 'Yozma mashq: yangi qo‘shni',
     instruction: 'Bo‘sh joylarni to‘ldiring, so‘ng yana 1–2 gap qo‘shing.',
     starter: 'Я — новый _________. Меня зовут _________. Я живу на _________ этаже. Моя квартира _________.',
+    example: 'Я — новый сосед. Меня зовут Али. Я живу на пятом этаже. Моя квартира большая и светлая.',
   },
   outcomes: [
     { title: 'Знакомство', translation: 'tanishuv', tone: 'yellow' },
@@ -199,56 +235,177 @@ const lesson1: LessonData = {
     { title: 'Приглашение', translation: 'taklif', tone: 'yellow' },
   ],
   completionMessage: 'Ajoyib! Siz birinchi qadamni tashladingiz. Endi siz yangi qo‘shningiz yoki hamkasbingiz bilan tanisha olasiz. Ertaga biz oila haqida gaplashamiz. Ko‘rishguncha!',
+  reflection: {
+    questions: [
+      { question: 'Bugun qanday yangi narsalarni o‘rgandingiz?', options: ['Otlar jinsi', 'Qanday tanishtirish', 'Ikkala variant'] },
+      { question: 'Qaysi so‘z eng qiyin edi?', options: ['Assalomu alaykum', 'Qo‘shni', 'Kvartira'] },
+    ],
+  },
 }
 
 const lesson2: LessonData = {
   day: 2,
-  titleRu: 'Как дела?',
-  titleUz: 'Telefon orqali suhbat',
+  titleRu: 'Моя семья',
+  titleUz: 'Mening oilam',
   tests: [
-    { question: 'Qaysi variantda «ты» to‘g‘ri talaffuz qilingan?', options: ['[ты] — qattiq Ы', '[ти] — yumshoq И'], correct: 0, feedback: '«ты» so‘zida qattiq, chuqur Ы aytiladi.' },
-    { question: '«Сосед живёт рядом» gapida «сосед» o‘rniga qaysi olmosh keladi?', options: ['Я', 'Он', 'Она'], correct: 1, feedback: '«сосед» — мужской род, shuning uchun «он» ishlatiladi.' },
+    {
+      question: 'Qaysi variantda «мы» (biz) to‘g‘ri talaffuz qilingan?',
+      options: ['[мы] — qattiq Ы, til orqada', '[ми] — yumshoq И, til oldinda'],
+      correct: 0,
+      feedback: '«мы» so‘zida qattiq, chuqur Ы aytiladi. «ми» desangiz — bu boshqa so‘z bo‘lib qoladi.',
+    },
+    {
+      question: '«Папа» so‘zi bilan qaysi so‘z ishlatiladi?',
+      options: ['МОЯ', 'МОЙ', 'МОЁ'],
+      correct: 1,
+      feedback: '«Папа» — мужской род, shuning uchun «мой папа».',
+    },
+    {
+      question: '«Имя» so‘zi bilan qaysi so‘z ishlatiladi?',
+      options: ['МОЯ', 'МОЙ', 'МОЁ'],
+      correct: 2,
+      feedback: '«Имя» — средний род, shuning uchun «моё имя».',
+    },
   ],
   phonetics: {
-    title: 'Ы va И tovushlari farqi', mascot: 'pero',
-    lead: 'И — til oldinda, Ы — til orqaroqda va tovush chuqurroq.',
-    body: ['И aytganda lablar biroz yoyiladi va til pastki tishlarga yaqinlashadi.', 'Ы aytganda til orqaga tortiladi. и — ы juftligini sekin, keyin tabiiy tezlikda takrorlang.'],
-    examples: ['мы', 'вы', 'ты', 'мир', 'лист', 'пить'],
+    title: 'Ы va И tovushlari farqi',
+    mascot: 'pero',
+    lead: 'Ы — til orqaga tortiladi, ovoz chuqur. И — til oldinga suriladi, ovoz yumshoq.',
+    body: [
+      { speaker: 'penguin', text: 'Rus tilida Ы va И tovushlari farq qiladi. Ы — til orqaga tortilgan, ovoz chuqur. И — til oldinga surilgan, ovoz yumshoq va tabassumli.' },
+      { speaker: 'panda', text: 'Ы — xuddi sigirning «moo» degan ovoziga o‘xshaydi: chuqur va qattiq. И — esa xuddi tabassum qilayotgandek: yumshoq va oldinga.' },
+      { speaker: 'pero', text: 'Agar «мы» (biz) o‘rniga «ми» desangiz, sizni tushunishmaydi. Yoki «сыр» (pishloq) o‘rniga «сир» desangiz — bu butunlay boshqa so‘z!' },
+    ],
+    examples: ['мы', 'вы', 'ты', 'мир', 'лист', 'пить', 'сыр', 'синий'],
+    tongueTwister: {
+      ru: 'Мы́ла Ми́ла мы́лом.',
+      uz: 'Mila sovun bilan yuvdi.',
+      breakdown: [
+        { word: 'Мы́ла', transcription: '[мыла]', sound: 'Ы — qattiq' },
+        { word: 'Ми́ла', transcription: '[м’ила]', sound: 'И — yumshoq' },
+        { word: 'мы́лом', transcription: '[мылам]', sound: 'Ы — qattiq' },
+      ],
+    },
   },
   grammar: {
-    title: 'Shaxs olmoshlari', mascot: 'penguin',
-    lead: 'Я, ты, он, она, оно, мы, вы, они — gapdagi shaxsni ko‘rsatadi.',
-    body: ['«Вы» bir necha kishiga yoki bir kishiga hurmat bilan aytiladi; do‘stga «ты» ishlatiladi.', 'Olmosh otning rodiga mos keladi: он — erkak/мужской, она — ayol/женский, оно — средний род.'],
-    examples: ['Я говорю.', 'Ты слышишь?', 'Он работает.', 'Она читает.', 'Мы понимаем.', 'Вы говорите?'],
+    title: 'Egalik olmoshlari: мой, моя, моё, мои',
+    mascot: 'penguin',
+    lead: '«Mening» so‘zining shakli o‘zidan keyingi otning jinsiga bog‘liq.',
+    body: [
+      { speaker: 'penguin', text: 'Rus tilida «mening» deyishning bir necha usuli bor: МОЙ, МОЯ, МОЁ, МОИ. Qaysi birini ishlatish so‘zning jinsiga bog‘liq.' },
+      { speaker: 'panda', text: 'Qanday aniqlash mumkin? Savol bering: Какой? — javob мой (erkak jinsi). Какая? — моя (ayol jinsi). Какое? — моё (o‘rta jins). Какие? — мои (ko‘plik).' },
+      { speaker: 'pero', text: '«Мой папа» — to‘g‘ri, «моя папа» — noto‘g‘ri! «Моя мама» — to‘g‘ri, «мой мама» — noto‘g‘ri. Buni eslab qoling, aks holda sizni tushunishmaydi!' },
+      'Jadval: Какой? → мой (папа, брат, дедушка). Какая? → моя (мама, сестра, бабушка). Какое? → моё (имя, окно, письмо). Какие? → мои (родители, друзья).',
+    ],
+    examples: [
+      'Это твоя семья?',
+      'Да, это моя семья.',
+      'Кто это?',
+      'Это моя мама.',
+      'А это твой папа?',
+      'Да, это мой папа.',
+      'Как зовут твоего брата?',
+      'Моего брата зовут Али.',
+      'У тебя есть сестра?',
+      'Да, у меня есть сестра.',
+      'Это моя бабушка.',
+      'Это мой дедушка.',
+      'Моя семья большая.',
+      'Мы все дружные.',
+      'Я люблю свою семью.',
+    ],
   },
   phrases: [
-    p('Алло!', 'Allo!', '📞'), p('Привет!', 'Salom!', '👋'), p('Как дела?', 'Ishlar qalay?', '❓'),
-    p('У меня всё хорошо.', 'Menda hammasi yaxshi.', '😊'), p('А у тебя?', 'Senda-chi?', '↩️'),
-    p('Тоже нормально.', 'Men ham yaxshiman.', '🙂'), p('Что ты делаешь?', 'Nima qilyapsan?', '💬'),
-    p('Я читаю книгу.', 'Men kitob o‘qiyapman.', '📖'), p('А ты? Я работаю.', 'Senda-chi? Men ishlayapman.', '💼'),
-    p('Ты говоришь по-русски?', 'Ruscha gapirasanmi?', '🗣️'), p('Да, немного.', 'Ha, ozgina.', '👌'),
-    p('Я тебя понимаю.', 'Men seni tushunaman.', '💡'), p('Ты меня слышишь?', 'Meni eshityapsanmi?', '👂'),
-    p('Перезвони позже.', 'Keyinroq qo‘ng‘iroq qil.', '🔁'), p('Пока! До связи!', 'Xayr! Bog‘lanamiz!', '👋'),
+    p('Это твоя семья?', 'Bu sening oilangmi?', '🖼️'),
+    p('Да, это моя семья.', 'Ha, bu mening oilam.', '👨‍👩‍👧‍👦'),
+    p('Кто это?', 'Bu kim?', '❓'),
+    p('Это моя мама.', 'Bu mening onam.', '👩'),
+    p('А это твой папа?', 'Bu sening dadangmi?', '👨'),
+    p('Да, это мой папа.', 'Ha, bu mening dadam.', '👨‍💼'),
+    p('Как зовут твоего брата?', 'Akangning ismi nima?', '🧑'),
+    p('Моего брата зовут Али.', 'Mening akamning ismi Ali.', '🪪'),
+    p('У тебя есть сестра?', 'Singling bormi?', '👧'),
+    p('Да, у меня есть сестра.', 'Ha, mening singlim bor.', '💁‍♀️'),
+    p('Это моя бабушка.', 'Bu mening buvim.', '👵'),
+    p('Это мой дедушка.', 'Bu mening bobom.', '👴'),
+    p('Моя семья большая.', 'Mening oilam katta.', '🏡'),
+    p('Мы все дружные.', 'Biz hammamiz do‘stona.', '🤗'),
+    p('Я люблю свою семью.', 'Men oilamni sevaman.', '❤️'),
   ],
   game: {
-    title: 'Tarjimasini top', instruction: 'Ruscha olmoshni bosing, keyin o‘zbekcha ma’nosini tanlang.',
-    pairs: [{ left: 'Я', right: 'men' }, { left: 'Ты', right: 'sen' }, { left: 'Он', right: 'u (erkak)' }, { left: 'Она', right: 'u (ayol)' }, { left: 'Мы', right: 'biz' }, { left: 'Вы', right: 'siz' }],
+    title: 'Oilani yig‘',
+    instruction: 'Oila a’zosini bosing, so‘ng unga mos sifatni tanlang.',
+    pairs: [
+      { left: 'мама', right: 'добрая' },
+      { left: 'папа', right: 'сильный' },
+      { left: 'брат', right: 'красивый' },
+      { left: 'сестра', right: 'умная' },
+      { left: 'бабушка', right: 'старая' },
+      { left: 'дедушка', right: 'мудрый' },
+    ],
+    feedback: {
+      correct: '🐼 Панда: «Ajoyib! Juda zo‘r!»',
+      incorrect: '🐧 Пингвин: «Noto‘g‘ri! Qayta urinib ko‘ring.»',
+      allDone: '🎉 Barcha personajlar: «Tabriklaymiz! Siz oilani yig‘dingiz!»',
+    },
   },
-  dialogue: ['Пингвин: Алло! Привет, Панда! Как дела?', 'Панда: Привет! У меня всё хорошо. А у тебя?', 'Пингвин: Тоже нормально. Что ты делаешь?', 'Панда: Я читаю книгу. А ты?', 'Пингвин: Я работаю. Ты говоришь по-русски?', 'Панда: Да, немного.', 'Пингвин: Я тебя понимаю. Ты меня слышишь?', 'Панда: Да, слышу хорошо.', 'Пингвин: Перезвони позже.', 'Панда: Хорошо, договорились. Пока!', 'Пингвин: Пока! До связи!'],
+  dialogue: [
+    'Пингвин: Это твоя семья?',
+    'Панда: Да, это моя семья. Это моя мама. Она добрая.',
+    'Пингвин: А это твой папа?',
+    'Панда: Да, это мой папа. Он сильный.',
+    'Пингвин: А это кто?',
+    'Панда: Это мой брат. Он красивый.',
+    'Пингвин: Твоя семья большая?',
+    'Панда: Да, моя семья большая и дружная.',
+  ],
   questions: [
-    { question: 'Как дела?', answer: 'У меня всё хорошо. / Тоже нормально.' }, { question: 'Что ты делаешь?', answer: 'Я читаю книгу. / Я работаю.' },
-    { question: 'Ты говоришь по-русски?', answer: 'Да, немного.' }, { question: 'Ты меня слышишь?', answer: 'Да, слышу хорошо.' },
-    { question: 'Ты понимаешь меня?', answer: 'Да, я тебя понимаю.' },
+    { question: 'Какая мама у Панды?', answer: 'Добрая.' },
+    { question: 'Какой папа у Панды?', answer: 'Сильный.' },
+    { question: 'Какой брат у Панды?', answer: 'Красивый.' },
+    { question: 'Семья Панды большая?', answer: 'Да, большая.' },
+    { question: 'Какая семья у Панды?', answer: 'Дружная.' },
   ],
   vocabulary: [
-    v('говорить по телефону', 'telefonda gaplashmoq', '📞', 'Я говорю по телефону.'), v('мой телефон', 'mening telefonim', '📱', 'Это мой телефон.'),
-    v('твой номер', 'sening raqaming', '🔢', 'Какой твой номер?'), v('ваш звонок', 'sizning qo‘ng‘irog‘ingiz', '🔔', 'Я жду ваш звонок.'),
-    v('как дела?', 'ishlar qalay?', '❓', 'Привет! Как дела?'), v('всё хорошо', 'hammasi yaxshi', '😊', 'У меня всё хорошо.'),
-    v('читать книгу', 'kitob o‘qimoq', '📖', 'Я читаю книгу.'), v('работать в офисе', 'ofisda ishlamoq', '💼', 'Я работаю в офисе.'),
-    v('слушать музыку', 'musiqa tinglamoq', '🎵', 'Она слушает музыку.'), v('до связи', 'bog‘lanamiz', '👋', 'Пока! До связи!'),
+    v('моя семья', 'mening oilam', '🖼️', 'Моя семья большая.'),
+    v('моя мама', 'mening onam', '💐', 'Это моя мама.'),
+    v('мой папа', 'mening dadam', '📰', 'Да, это мой папа.'),
+    v('мой брат', 'mening akam', '📗', 'Моего брата зовут Али.'),
+    v('моя сестра', 'mening singlim', '👧', 'Моя сестра умная.'),
+    v('моя бабушка', 'mening buvim', '👵', 'Это моя бабушка.'),
+    v('мой дедушка', 'mening bobom', '👴', 'Это мой дедушка.'),
+    v('твоя мама', 'sening onang', '👩', 'Это твоя мама?'),
+    v('твой папа', 'sening dadang', '🕴️', 'А это твой папа?'),
+    v('твой брат', 'sening akang', '🧑', 'Как зовут твоего брата?'),
+    v('твоя сестра', 'sening singling', '📚', 'У тебя есть сестра?'),
+    v('наша семья', 'bizning oilamiz', '🧺', 'Наша семья дружная.'),
+    v('ваша мама', 'sizning onangiz', '🌷', 'Ваша мама добрая.'),
+    v('ваш папа', 'sizning dadangiz', '💼', 'Ваш папа сильный.'),
+    v('красивая мама', 'chiroyli ona', '👗', 'У меня красивая мама.'),
+    v('сильный папа', 'kuchli dada', '💪', 'У меня сильный папа.'),
+    v('умная сестра', 'aqlli singil', '🤓', 'У меня умная сестра.'),
+    v('красивый брат', 'chiroyli aka', '🎸', 'У меня красивый брат.'),
+    v('добрая бабушка', 'mehribon buvi', '🧶', 'У меня добрая бабушка.'),
+    v('мудрый дедушка', 'dono bobo', '🧓', 'У меня мудрый дедушка.'),
   ],
-  exercise: { title: 'Telefon dialogi', instruction: 'Do‘stingiz bilan 5–6 replikali telefon suhbatini yozing: salomlashish, ahvol, nima qilayotganingiz va xayrlashish.', starter: 'Алло, привет! Как дела? …' },
-  outcomes: [{ title: 'Телефон', translation: 'telefon suhbati', tone: 'blue' }, { title: 'Как дела?', translation: 'hol-ahvol', tone: 'yellow' }, { title: 'Местоимения', translation: 'olmoshlar', tone: 'blue' }],
+  exercise: {
+    title: 'Yozma mashq: mening oilam',
+    instruction: 'O‘zingizning oilangiz haqida 4–5 ta gap yozing (darsdagi iboralardan foydalanib).',
+    starter: 'У меня есть _________. Моя мама _________. Мой папа _________. Моя семья _________.',
+    example: 'У меня большая семья. Моя мама добрая. Мой папа сильный. Мой брат красивый. Моя сестра умная. Мы все дружные.',
+  },
+  outcomes: [
+    { title: 'Моя семья', translation: 'mening oilam', tone: 'red' },
+    { title: 'Мой и моя', translation: 'egalik olmoshlari', tone: 'blue' },
+    { title: 'Ы и И', translation: 'tovushlar farqi', tone: 'yellow' },
+  ],
+  completionMessage: 'Ajoyib! Siz oilangiz haqida rus tilida gapira olasiz. Endi siz «мой», «моя», «моё», «мои» ni to‘g‘ri ishlata olasiz. Ertaga biz kasblar haqida gaplashamiz. Ko‘rishguncha, azizim!',
+  reflection: {
+    questions: [
+      { question: 'Bugun qanday yangi narsalarni o‘rgandingiz?', options: ['«Мой» va «моя» farqi', 'Oilani ruscha tasvirlash', 'Ikkala variant'] },
+      { question: 'Qaysi so‘z eng qiyin edi?', options: ['Бабушка', 'Дедушка', 'Сестра'] },
+    ],
+  },
 }
 
 const lesson3: LessonData = {
@@ -1286,9 +1443,12 @@ const lesson13: LessonData = {
     body: [
       'O‘zbek tilida G va X bor, lekin ruscha G yumshoqroq, X esa qattiqroq. Masalan: «гитара» – [г’итара], «хлеб» – [хл’эп].',
       'Ba’zi so‘zlarda G harfi o‘rniga X talaffuz qilinadi: Бог – [box], Мягкий – [m’axkiy], Лёгкий – [l’oxkiy].',
-      'Скороговорка: «Галка села на палку, а палка ударила галку.» Sekin o‘qing. O‘rtacha tezlikda o‘qing.',
     ],
     examples: ['га – гя', 'го – гё', 'гу – гю', 'гы – ги', 'гэ – ге', 'ха – хя', 'хо – хё', 'ху – хю', 'хы – хи', 'хэ – хе'],
+    tongueTwister: {
+      ru: 'Галка села на палку, а палка ударила галку.',
+      uz: 'Zog‘cha tayoqqa qo‘ndi, tayoq esa zog‘chani urdi.',
+    },
   },
   grammar: {
     title: '«О ком? О чём?»',

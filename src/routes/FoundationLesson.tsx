@@ -259,14 +259,16 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
 }
 
 function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetics']; genderStory?: boolean }) {
+  const bodyForSpeech = rule.body.map((paragraph) => typeof paragraph === 'string' ? paragraph : `${speakerNames[paragraph.speaker]}: ${paragraph.text}`).join(' ')
+  const hasSpeakerLines = rule.body.some((paragraph) => typeof paragraph !== 'string')
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-start gap-3 sm:gap-5">
-        <MascotImage mascot={rule.mascot} className="size-16 shrink-0 sm:size-24" />
+        {!hasSpeakerLines && <MascotImage mascot={rule.mascot} className="size-16 shrink-0 sm:size-24" />}
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
           <p className="mt-2 font-semibold leading-relaxed text-ink-muted"><RussianText text={rule.lead} /></p>
-          <SpeechButton text={`${rule.title}. ${rule.lead} ${rule.body.join(' ')}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
+          <SpeechButton text={`${rule.title}. ${rule.lead} ${bodyForSpeech}`} lang="uz-UZ" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">Qoidani tinglash</SpeechButton>
         </div>
       </div>
       {genderStory && (
@@ -278,8 +280,8 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
           ] as const).map(([mascot, kingdom, title, colorName, color]) => (
             <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
               {mascot === 'panda'
-                ? <GirlPandaImage className="mx-auto size-14 sm:size-20" />
-                : <MascotImage mascot={mascot} className="mx-auto size-14 sm:size-20" />}
+                ? <GirlPandaImage className="mx-auto size-20 sm:size-28" />
+                : <MascotImage mascot={mascot} className="mx-auto size-20 sm:size-28" />}
               <p className="mt-1 text-[10px] font-bold text-ink sm:text-xs">{kingdom}</p>
               <p
                 className="mt-0.5 text-xs font-black sm:text-sm"
@@ -293,7 +295,9 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
         </div>
       )}
       <div className="mt-4 grid gap-2 text-sm leading-relaxed text-ink-muted sm:text-base">
-        {rule.body.map((paragraph) => <p key={paragraph}><RussianText text={paragraph} phoneticVowels /></p>)}
+        {rule.body.map((paragraph, index) => typeof paragraph === 'string'
+          ? <p key={index}><RussianText text={paragraph} phoneticVowels /></p>
+          : <SpeakerLine key={index} speaker={paragraph.speaker} text={paragraph.text} />)}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {rule.examples.map((example) => (
@@ -302,7 +306,66 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
           </SpeechButton>
         ))}
       </div>
+      {rule.tongueTwister && <TongueTwister twister={rule.tongueTwister} />}
     </Card>
+  )
+}
+
+const tongueTwisterSpeeds = [
+  { label: '🐢 Sekin', rate: 0.7 },
+  { label: '▶️ Oddiy', rate: 1 },
+  { label: '⚡ Tez', rate: 1.35 },
+] as const
+
+function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics']['tongueTwister']> }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-caution bg-caution-soft/40 p-4">
+      <p className="text-xs font-black tracking-[.12em] text-caution uppercase">Скороговорка · tez aytish mashqi</p>
+      <p className="mt-2 text-xl font-black text-ink sm:text-2xl"><RussianText text={twister.ru} /></p>
+      <p className="mt-1 text-sm font-semibold text-ink-muted">{twister.uz}</p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {tongueTwisterSpeeds.map((speed) => (
+          <SpeechButton
+            key={speed.label}
+            text={twister.ru}
+            lang="ru-RU"
+            rate={speed.rate}
+            className="rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink shadow-sm"
+          >
+            {speed.label}
+          </SpeechButton>
+        ))}
+      </div>
+      <p className="mt-2 text-xs font-bold text-ink-faint">Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.</p>
+
+      {twister.breakdown && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {twister.breakdown.map((item) => (
+            <div key={item.word} className="rounded-xl bg-ground-raised p-3">
+              <p className="font-black text-ink"><RussianText text={item.word} /></p>
+              <p className="mt-0.5 text-sm font-bold text-ink-muted">{item.transcription}</p>
+              <p className="mt-0.5 text-xs font-black text-signal-ink">{item.sound}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const speakerNames: Record<Mascot, string> = { penguin: 'Пингвин', panda: 'Панда', pero: 'Перо' }
+
+function SpeakerLine({ speaker, text }: { speaker: Mascot; text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
+      {speaker === 'panda'
+        ? <GirlPandaImage className="size-16 shrink-0 rounded-full object-cover sm:size-20" />
+        : <MascotImage mascot={speaker} className="size-16 shrink-0 sm:size-20" />}
+      <p className="min-w-0 flex-1 text-ink">
+        <RussianText text={text} phoneticVowels />
+      </p>
+    </div>
   )
 }
 
@@ -376,15 +439,18 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<WordDrag | null>(null)
   const [error, setError] = useState<{ word: string; house: string } | null>(null)
+  const [success, setSuccess] = useState(false)
   const pointerRef = useRef<{ pointerId: number; word: string; x: number; y: number } | null>(null)
   const draggingRef = useRef<WordDrag | null>(null)
   const didDragRef = useRef<string | null>(null)
   const errorTimerRef = useRef<number | null>(null)
+  const successTimerRef = useRef<number | null>(null)
   const remaining = lesson.game.pairs.filter((pair) => matches[pair.left] !== pair.right)
   const matchedCount = lesson.game.pairs.length - remaining.length
 
   useEffect(() => () => {
     if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current)
+    if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
   }, [])
 
   function showError(word: string, house: string) {
@@ -395,6 +461,12 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     errorTimerRef.current = window.setTimeout(() => setError(null), 1_800)
   }
 
+  function showSuccess() {
+    setSuccess(true)
+    if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
+    successTimerRef.current = window.setTimeout(() => setSuccess(false), 1_800)
+  }
+
   function placeWord(word: string, house: string | undefined) {
     setSelected(null)
     if (!house) return
@@ -403,6 +475,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
       setError(null)
       onChange({ ...matches, [word]: house })
       celebrate([25, 35, 60], 'coin')
+      if (lesson.game.feedback) showSuccess()
       return
     }
     showError(word, house)
@@ -498,9 +571,23 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
         </div>
       </Card>
 
+      {remaining.length === 0 && lesson.game.feedback && (
+        <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">
+          {lesson.game.feedback.allDone}
+        </p>
+      )}
+
       {error && (
         <p role="status" className="rounded-xl bg-danger-soft px-3 py-2 text-center text-sm font-black text-danger">
-          <RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring
+          {lesson.game.feedback
+            ? lesson.game.feedback.incorrect
+            : <><RussianText text={error.word} /> — bu uyga mos emas, yana urinib ko‘ring</>}
+        </p>
+      )}
+
+      {success && lesson.game.feedback && (
+        <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">
+          {lesson.game.feedback.correct}
         </p>
       )}
 
@@ -543,8 +630,23 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
 
 function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
   const [selected, setSelected] = useState<string | null>(null)
+  const [note, setNote] = useState<'correct' | 'incorrect' | null>(null)
+  const noteTimerRef = useRef<number | null>(null)
   const shuffledRight = useMemo(() => [...lesson.game.pairs].sort((a, b) => a.right.localeCompare(b.right)), [lesson])
   const matchedCount = Object.keys(matches).length
+  const solved = matchedCount === lesson.game.pairs.length
+
+  useEffect(() => () => {
+    if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
+  }, [])
+
+  function showNote(kind: 'correct' | 'incorrect') {
+    if (!lesson.game.feedback) return
+    setNote(kind)
+    if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
+    noteTimerRef.current = window.setTimeout(() => setNote(null), 1_800)
+  }
+
   return (
     <div className="space-y-3">
       <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
@@ -570,15 +672,35 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
                   onChange({ ...matches, [selected]: pair.right })
                   setSelected(null)
                   celebrate()
+                  showNote('correct')
                 } else {
                   navigator.vibrate?.([30, 30, 30])
                   playUiSound('wrong')
+                  showNote('incorrect')
                 }
               }} className={cx('min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
             })}
           </div>
         </div>
       </Card>
+
+      {lesson.game.feedback && solved && (
+        <p role="status" className="rounded-xl bg-milestone-soft px-3 py-2 text-center text-sm font-black text-milestone">
+          {lesson.game.feedback.allDone}
+        </p>
+      )}
+
+      {lesson.game.feedback && note && !solved && (
+        <p
+          role="status"
+          className={cx(
+            'rounded-xl px-3 py-2 text-center text-sm font-black',
+            note === 'correct' ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger',
+          )}
+        >
+          {note === 'correct' ? lesson.game.feedback.correct : lesson.game.feedback.incorrect}
+        </p>
+      )}
     </div>
   )
 }
@@ -1209,6 +1331,12 @@ function ExerciseSection({ lesson }: { lesson: LessonData }) {
       <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.starter} /></p>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
       <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
+      {lesson.exercise.example && (
+        <div className="mt-4 rounded-xl border border-hairline bg-ground-sunken p-3">
+          <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">Namuna</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.example} /></p>
+        </div>
+      )}
     </Card>
   )
 }
@@ -1274,8 +1402,37 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
         {lesson.outcomes.map((outcome) => <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3"><h4 className={cx('font-black', outcome.tone === 'yellow' ? 'text-[#e5b600]' : outcome.tone === 'red' ? 'text-[#ff2400]' : 'text-[#0000ff]')}><RussianText text={outcome.title} /></h4><p className="text-sm text-ink-muted">{outcome.translation}</p></div>)}
       </div>
+      {lesson.reflection && <ReflectionQuestions reflection={lesson.reflection} />}
       {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} ↗</a>}
     </Card>
+  )
+}
+
+function ReflectionQuestions({ reflection }: { reflection: NonNullable<LessonData['reflection']> }) {
+  const [picked, setPicked] = useState<Record<number, number>>({})
+  return (
+    <div className="mt-5 space-y-3 text-left">
+      {reflection.questions.map((item, questionIndex) => (
+        <div key={item.question} className="rounded-2xl bg-ground-raised p-3 sm:p-4">
+          <p className="text-sm font-black text-ink">{item.question}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.options.map((option, optionIndex) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => { setPicked((current) => ({ ...current, [questionIndex]: optionIndex })); playUiSound('select') }}
+                className={cx(
+                  'rounded-full border-2 px-3 py-1.5 text-xs font-black transition',
+                  picked[questionIndex] === optionIndex ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground text-ink-muted hover:border-signal',
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1314,13 +1471,14 @@ async function speak(text: string, lang: string) {
   }
 }
 
-function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken }: {
+function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken, rate }: {
   text: string
   lang: string
   children: ReactNode
   className?: string
   stopPropagation?: boolean
   autoPlayToken?: string
+  rate?: number
 }) {
   const id = useId()
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle')
@@ -1332,10 +1490,11 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
     try {
       await playPromptAudio(cleanSpeechText(text), {
         onStateChange: (next) => setStatus(next),
+        rate,
       })
     } catch {
       setStatus('playing')
-      speakWithBrowser(text, lang, () => setStatus('idle'))
+      speakWithBrowser(text, lang, () => setStatus('idle'), rate)
     }
   }
 
@@ -1375,12 +1534,12 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   return (
     <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? 'Pauza' : 'Tinglash'}>
       {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
-      {children}
+      <span>{children}</span>
     </button>
   )
 }
 
-function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void) {
+function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void, rate = 1) {
   if (!('speechSynthesis' in window)) {
     onEnd?.()
     return
@@ -1397,7 +1556,7 @@ function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void)
     }
     const utterance = new SpeechSynthesisUtterance(segment.text)
     utterance.lang = segment.lang
-    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed
+    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed * rate
     utterance.voice = pickVoice(voices, segment.lang)
     utterance.onend = () => play(index + 1)
     utterance.onerror = () => play(index + 1)
