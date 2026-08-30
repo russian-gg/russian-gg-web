@@ -61,6 +61,15 @@ const fullGenderWords: Record<string, Gender> = {
   ),
 }
 
+// Adjectives with a *stressed* -ой ending in the masculine nominative (какой, молодой, большой…)
+// are spelled identically to the feminine instrumental -ой ending of any other adjective
+// (красивой, доброй…). Both are real, common forms, and bare suffix-matching can't tell them
+// apart — adjectiveEndings' feminine-instrumental 'ой' entry would otherwise win by array order
+// and split "какой"/"молодой" into a red root + green case-ending. This is a closed class in
+// Russian, so — like personalEndingOverrides/pastTenseWordOverrides — the ambiguous words are
+// listed explicitly and checked first, rather than trying to reorder the general suffix table.
+const masculineOyWords = new Set(['какой', 'такой', 'никакой', 'другой', 'большой', 'молодой', 'родной', 'дорогой', 'плохой'])
+
 const adjectiveEndings: Array<{ ending: string; gender: Gender | null; caseName?: CaseName }> = [
   { ending: 'ыми', gender: null, caseName: 'instrumental' }, { ending: 'ими', gender: null, caseName: 'instrumental' },
   { ending: 'ого', gender: 'masculine', caseName: 'genitive' }, { ending: 'его', gender: 'masculine', caseName: 'genitive' },
@@ -108,6 +117,8 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
   const fullGender = fullGenderWords[lower]
   if (fullGender) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[fullGender])}>{original}</span>
   if (lower === 'род' && fullGenderWords[previousWord]) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[fullGenderWords[previousWord]])}>{original}</span>
+
+  if (masculineOyWords.has(lower)) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender.masculine)}>{original}</span>
 
   const explicitEnding = personalEndingOverrides[lower]
   if (explicitEnding) return <><span>{original.slice(0, -explicitEnding.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-explicitEnding.length)}</span></>
