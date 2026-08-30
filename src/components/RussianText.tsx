@@ -14,14 +14,20 @@ type CaseName = keyof typeof RUSSIAN_COLOR_SYSTEM.cases
 
 const nounStems: Array<{ stem: string; gender: Gender }> = [
   ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
-  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,панд'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
+  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
   ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
 const personalEndingOverrides: Record<string, string> = { 'живёте': 'ёте', 'живу': 'у' }
 const pastTenseWordOverrides: Record<string, string> = { 'мыла': 'ла' }
 const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон']
-const blackWords = new Set(['а', 'и', 'немного', 'русский', 'каждый'])
+// The mascots are characters, not vocabulary. A name has no grammatical gender to teach, and
+// colouring "Панда" red made her read like a feminine-noun example inside the dialogues. Her
+// case forms are listed too, so "у Панды" / "к Панде" stay black as well.
+const blackWords = new Set([
+  'а', 'и', 'немного', 'русский', 'каждый',
+  'панда', 'панды', 'панде', 'панду', 'пандой',
+])
 const fullGenderWords: Record<string, Gender> = {
   'мужской': 'masculine',
   'синий': 'masculine',
@@ -31,11 +37,13 @@ const fullGenderWords: Record<string, Gender> = {
   'жёлтый': 'neuter',
   // Possessives carry the gender of the noun they agree with, so they take its colour —
   // the lesson documents spell this out ("моя + мама" both red, "твой + папа" both blue).
-  // The plural forms (мои, твои…) stay uncoloured: they span all three genders.
-  ...Object.fromEntries(['мой', 'твой', 'наш', 'ваш', 'свой'].map((word) => [word, 'masculine' as const])),
-  ...Object.fromEntries(['моя', 'твоя', 'наша', 'ваша', 'своя'].map((word) => [word, 'feminine' as const])),
+  // "чей/чья/чьё" is the question those answer, and it agrees the same way, so the drill reads
+  // as one coloured pair: Чья? → моя, both red.
+  // The plural forms (мои, твои, чьи…) stay uncoloured: they span all three genders.
+  ...Object.fromEntries(['мой', 'твой', 'наш', 'ваш', 'свой', 'чей'].map((word) => [word, 'masculine' as const])),
+  ...Object.fromEntries(['моя', 'твоя', 'наша', 'ваша', 'своя', 'чья'].map((word) => [word, 'feminine' as const])),
   ...Object.fromEntries(
-    ['моё', 'мое', 'твоё', 'твое', 'наше', 'ваше', 'своё', 'свое'].map((word) => [word, 'neuter' as const]),
+    ['моё', 'мое', 'твоё', 'твое', 'наше', 'ваше', 'своё', 'свое', 'чьё', 'чье'].map((word) => [word, 'neuter' as const]),
   ),
 }
 
