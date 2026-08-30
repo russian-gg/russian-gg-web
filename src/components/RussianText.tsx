@@ -13,14 +13,14 @@ type Gender = keyof typeof RUSSIAN_COLOR_SYSTEM.gender
 type CaseName = keyof typeof RUSSIAN_COLOR_SYSTEM.cases
 
 const nounStems: Array<{ stem: string; gender: Gender }> = [
-  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист,коллег,университет,завод,топор,футбол'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
-  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,мук'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
-  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
+  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист,коллег,университет,завод,топор,футбол,нос,ноль'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
+  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,мук,нян'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
+  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр,правил'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
 const personalEndingOverrides: Record<string, string> = { 'живёте': 'ёте', 'живу': 'у' }
 const pastTenseWordOverrides: Record<string, string> = { 'мыла': 'ла' }
-const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон', 'дума', 'отдых', 'гуля']
+const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон', 'дума', 'отдых', 'гуля', 'объясня', 'исправля', 'помога', 'заним']
 // Present-tense personal endings. The longer ones (≥2 letters: -ешь/-ете/-ют…) are distinctive
 // enough to check before nounStems — no Russian case ending looks like them. The bare я-form
 // -ю/-у is not: it collides with noun accusative endings (работу = "the work", not a verb), so
@@ -113,9 +113,7 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
   }
 
   const longPresentEnding = findVerbEnding(lower, presentTenseLongEndings)
-  if (longPresentEnding) {
-    return <><span>{original.slice(0, -longPresentEnding.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-longPresentEnding.length)}</span></>
-  }
+  if (longPresentEnding) return renderVerbEnding(original, longPresentEnding)
 
   const noun = findNoun(lower)
   if (noun) {
@@ -127,9 +125,7 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
   }
 
   const shortPresentEnding = findVerbEnding(lower, presentTenseShortEndings)
-  if (shortPresentEnding) {
-    return <><span>{original.slice(0, -shortPresentEnding.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(-shortPresentEnding.length)}</span></>
-  }
+  if (shortPresentEnding) return renderVerbEnding(original, shortPresentEnding)
 
   const adjective = adjectiveEndings.find(({ ending }) => lower.endsWith(ending) && lower.length > ending.length + 1)
   if (adjective) {
@@ -147,9 +143,23 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
 
 function findNoun(word: string) { return nounStems.find(({ stem }) => word.startsWith(stem)) }
 
+function renderVerbEnding(original: string, { ending, reflexive }: { ending: string; reflexive: string }): ReactNode {
+  const rootLength = original.length - ending.length - reflexive.length
+  return <>
+    <span>{original.slice(0, rootLength)}</span>
+    <span style={styleFor(RUSSIAN_COLOR_SYSTEM.verbs.personalEnding)}>{original.slice(rootLength, rootLength + ending.length)}</span>
+    {reflexive && <span>{original.slice(rootLength + ending.length)}</span>}
+  </>
+}
+
 function findVerbEnding(word: string, endings: string[]) {
   if (!verbStems.some((stem) => word.startsWith(stem))) return undefined
-  return endings.find((ending) => word.endsWith(ending) && word.length > ending.length + 1)
+  // Reflexive verbs (заниматься → занимаюсь) tack -ся/-сь onto the personal ending, so the
+  // ending pattern has to be matched before that suffix, not at the literal end of the word.
+  const reflexive = word.match(/(ся|сь)$/u)?.[0] ?? ''
+  const core = reflexive ? word.slice(0, -reflexive.length) : word
+  const ending = endings.find((candidate) => core.endsWith(candidate) && core.length > candidate.length + 1)
+  return ending ? { ending, reflexive } : undefined
 }
 
 function inferCase(previousWord: string, previousPreviousWord: string, word: string): CaseName | null {

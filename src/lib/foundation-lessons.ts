@@ -605,18 +605,35 @@ const lesson5: LessonData = {
   titleRu: 'Вы говорите по-русски?',
   titleUz: 'Ruscha gapirasizmi?',
   tests: [
-    { question: 'Qaysi gapda Н tovushi yumshoq aytiladi?', options: ['У меня длинный нос.', 'Он нёс сумку.'], correct: 1, feedback: '«нёс» so‘zida ё oldingi Н tovushini yumshatadi.' },
-    { question: 'Qaysi savol to‘g‘ri tuzilgan?', options: ['Ты говоришь по-русски?', 'Говоришь ли ты по-русски?', 'Ikkalasi ham to‘g‘ri'], correct: 2, feedback: 'Savol intonatsiya bilan ham, «ли» yordamida ham tuziladi.' },
+    { question: 'Rus tilida «gapirish» qanday aytiladi?', options: ['говорить', 'понимать', 'читать'], correct: 0, feedback: 'To‘g‘ri! «Говорить» — gapirish. Bugun biz aynan shu so‘z va uning ishlatilishi haqida gaplashamiz.' },
+    { question: 'Rus tilida «Yo‘q, tushunmayman» qanday aytiladi?', options: ['Нет, понимаю', 'Нет, не понимаю', 'Да, не понимаю'], correct: 1, feedback: 'Ajoyib! «Нет, не понимаю» — to‘g‘ri. Bugun biz inkor va so‘roq gaplarni o‘rganamiz.' },
   ],
   phonetics: {
     title: 'Qattiq Н va yumshoq Н’', mascot: 'pero', lead: 'Rus tilidagi undoshlar keyingi unliga qarab qattiq yoki yumshoq aytiladi.',
-    body: ['а, о, у, ы, э oldidan Н qattiq; я, ё, ю, и, е yoki ь oldidan Н yumshoq.', 'Til holatini sezib, juftlarni audio bilan ketma-ket takrorlang.'],
-    examples: ['нос — нёс', 'на — ня', 'но — нё', 'ну — ню'],
+    body: [
+      { speaker: 'penguin', text: 'Rus tilida N harfi ikki xil talaffuz qilinadi: qattiq va yumshoq. Qattiq N — tilning uchi yuqori tishlarga tegadi. Yumshoq Нь — tilning o‘rtasi tanglayga ko‘tariladi.' },
+      { speaker: 'panda', text: 'Qattiq N — xuddi qo‘ng‘iroq ovoziga o‘xshaydi: н-н-н. Yumshoq Нь — xuddi bolalarcha «нянь-нянь» degan ovozga o‘xshaydi. Farqni sezdingizmi?' },
+      { speaker: 'pero', text: 'Agar «нос» (burun) ni yumshoq Нь bilan aytsangiz, «нёс» (ko‘tardi) bo‘lib chiqadi — bu butunlay boshqa so‘z! Shuning uchun diqqatli bo‘ling!' },
+    ],
+    examples: ['нос', 'нёс', 'няня', 'ноль'],
+    tongueTwister: {
+      ru: 'Нёс корабль карамель, наскочил на мель.',
+      uz: 'Kema karamel olib ketayotib, qoyaga urildi.',
+      breakdown: [
+        { word: 'Нёс', transcription: '[н’ос]', sound: 'Нь (yumshoq)' },
+        { word: 'наскочил', transcription: '[наскач’ил]', sound: 'Н (qattiq)' },
+      ],
+    },
   },
   grammar: {
-    title: 'Inkor va so‘roq gaplar', mascot: 'penguin', lead: 'Inkor uchun fe’l oldiga «не» qo‘yiladi. Savol intonatsiya yoki «ли» bilan tuziladi.',
-    body: ['Я читаю → Я не читаю. Ты работаешь → Ты не работаешь.', 'Oddiy savol: «Ты говоришь по-русски?» Rasmiyroq savol: «Говоришь ли ты по-русски?»'],
-    examples: ['Я не читаю.', 'Он не говорит.', 'Ты понимаешь меня?', 'Понимаете ли вы меня?'],
+    title: 'Inkor va so‘roq gaplar', mascot: 'penguin', lead: 'Inkor uchun fe’l oldiga «не» qo‘yiladi — savol esa intonatsiya yoki «ли» bilan tuziladi.',
+    body: [
+      { speaker: 'penguin', text: 'Rus tilida inkor qilish uchun «не» yuklamasi ishlatiladi. U fe’l oldiga qo‘yiladi. Masalan: «говорю» → «не говорю». Bu juda oddiy qoida!' },
+      { speaker: 'panda', text: 'Savollar ikki xil usulda beriladi: 1) Ovozni ko‘tarib (intonatsiya bilan): «Ты говоришь?» 2) Yoki «ли» yuklamasi bilan: «Говоришь ли ты?» Ikkinchisi rasmiyroq.' },
+      { speaker: 'pero', text: '«Не» ni fe’ldan ajratib yozishni unutmang: «не говорю», «не понимаю». Agar «не» ni «ни» bilan adashtirsangiz, bu boshqa gap. Men buni ko‘p eshitganman!' },
+      'Jadval: Tasdiq — Я говорю. Inkor — Я не говорю. Savol — Ты говоришь? / Говоришь ли ты?',
+    ],
+    examples: [],
   },
   phrases: [
     p('Ты говоришь по-русски?', 'Ruscha gapirasanmi?', '🗣️'), p('Да, я говорю немного.', 'Ha, ozgina gapiraman.', '👌'), p('А ты? Нет, не говорю.', 'Senda-chi? Yo‘q, gapirmayman.', '🙅'),
@@ -626,17 +643,29 @@ const lesson5: LessonData = {
     p('Мы занимаемся каждый день.', 'Biz har kuni shug‘ullanamiz.', '📅'), p('Ты не хочешь помочь мне?', 'Menga yordam bermoqchimisan?', '🤝'), p('С удовольствием!', 'Mamnuniyat bilan!', '✨'),
   ],
   game: { title: 'So‘roq va inkor dueli', instruction: 'Tasdiq gapni bosing, keyin uning to‘g‘ri inkor shaklini tanlang.', pairs: [{ left: 'Я читаю.', right: 'Я не читаю.' }, { left: 'Ты работаешь.', right: 'Ты не работаешь.' }, { left: 'Он говорит.', right: 'Он не говорит.' }, { left: 'Мы понимаем.', right: 'Мы не понимаем.' }, { left: 'Вы учите.', right: 'Вы не учите.' }, { left: 'Они слушают.', right: 'Они не слушают.' }] },
-  dialogue: ['Панда: Привет, Пингвин! Ты говоришь по-русски?', 'Пингвин: Да, я говорю немного. А ты?', 'Панда: Да, я хорошо говорю. Ты понимаешь меня?', 'Пингвин: Да, понимаю. Ты учишь русский язык?', 'Панда: Да, учу. А вы говорите по-узбекски?', 'Пингвин: Нет, не говорю. Я хочу научиться.', 'Панда: Это трудно?', 'Пингвин: Нет, не очень. Мы занимаемся каждый день.', 'Панда: Ты не хочешь помочь мне?', 'Пингвин: С удовольствием!'],
-  questions: [{ question: 'Ты говоришь по-русски?', answer: 'Да, я говорю немного. / Нет, не говорю.' }, { question: 'Ты понимаешь меня?', answer: 'Да, понимаю. / Нет, не понимаю.' }, { question: 'Ты учишь русский язык?', answer: 'Да, учу.' }, { question: 'Вы говорите по-узбекски?', answer: 'Да, говорю.' }, { question: 'Это трудно?', answer: 'Нет, не очень.' }, { question: 'Ты хочешь помочь мне?', answer: 'С удовольствием!' }],
+  dialogue: ['Пингвин: Ты говоришь по-русски?', 'Панда: Да, я говорю немного. А ты?', 'Пингвин: Нет, не говорю. Ты понимаешь меня?', 'Панда: Да, понимаю. Ты учишь русский язык?', 'Пингвин: Да, учу. А вы говорите по-узбекски?', 'Панда: Да, говорю. Я хочу научиться.', 'Пингвин: Это трудно? Нет, не очень. Мы занимаемся каждый день.', 'Панда: Ты не хочешь помочь мне?', 'Пингвин: С удовольствием!'],
+  questions: [{ question: 'Пингвин говорит по-русски?', answer: 'Нет, не говорит.' }, { question: 'Панда говорит по-русски?', answer: 'Да, немного.' }, { question: 'Пингвин понимает Панду?', answer: 'Да, понимает.' }, { question: 'Что говорит Панда о русском языке?', answer: 'Нет, не очень трудно.' }, { question: 'Как сказать «я не понимаю»?', answer: 'Я не понимаю.' }],
   vocabulary: [
-    v('говорить по-русски', 'ruscha gapirmoq', '🗣️', 'Я говорю по-русски.'), v('понимать язык', 'tilni tushunmoq', '💡', 'Я понимаю русский язык.'),
-    v('учить русский', 'rus tilini o‘rganmoq', '📚', 'Я учу русский.'), v('знать слово', 'so‘zni bilmoq', '🔤', 'Я знаю это слово.'),
-    v('слышать фразу', 'iborani eshitmoq', '👂', 'Я слышу эту фразу.'), v('задать вопрос', 'savol bermoq', '❓', 'Можно задать вопрос?'),
-    v('дать ответ', 'javob bermoq', '✅', 'Я дам ответ.'), v('слушать диалог', 'dialogni tinglamoq', '🎧', 'Мы слушаем диалог.'),
-    v('читать текст', 'matnni o‘qimoq', '📄', 'Он читает текст.'), v('делать ошибку', 'xato qilmoq', '✏️', 'Не бойтесь делать ошибку.'),
+    v('говорить по-русски', 'ruscha gapirmoq', '🗣️', 'Я говорю по-русски.'), v('понимать по-русски', 'ruscha tushunmoq', '💡', 'Я понимаю по-русски.'),
+    v('учить русский язык', 'rus tilini o‘rganmoq', '📚', 'Я учу русский язык.'), v('говорить по-узбекски', 'o‘zbekcha gapirmoq', '🇺🇿', 'Я говорю по-узбекски.'),
+    v('понимать учителя', 'o‘qituvchini tushunmoq', '🍎', 'Я понимаю учителя.'), v('помогать другу', 'do‘stga yordam bermoq', '🤝', 'Я помогаю другу.'),
+    v('заниматься каждый день', 'har kuni shug‘ullanmoq', '📅', 'Я занимаюсь каждый день.'), v('трудный язык', 'qiyin til', '😅', 'Это трудный язык.'),
+    v('немного говорить', 'ozgina gapirmoq', '🤏', 'Я немного говорю.'), v('с удовольствием', 'mamnuniyat bilan', '✨', 'С удовольствием!'),
+    v('хотеть научиться', 'o‘rganishni xohlamoq', '🎯', 'Я хочу научиться.'), v('объяснять правило', 'qoidani tushuntirmoq', '📐', 'Учитель объясняет правило.'),
+    v('задавать вопрос', 'savol bermoq', '❓', 'Я задаю вопрос.'), v('давать ответ', 'javob bermoq', '✅', 'Я даю ответ.'),
+    v('учить слова', 'so‘zlarni o‘rganmoq', '🔤', 'Я учу слова.'), v('знать грамматику', 'grammatikani bilmoq', '📖', 'Я знаю грамматику.'),
+    v('читать текст', 'matnni o‘qimoq', '📄', 'Он читает текст.'), v('писать упражнение', 'mashqni yozmoq', '✍️', 'Я пишу упражнение.'),
+    v('делать ошибку', 'xato qilmoq', '✏️', 'Не бойтесь делать ошибку.'), v('исправлять ошибку', 'xatoni tuzatmoq', '🖊️', 'Я исправляю ошибку.'),
   ],
-  exercise: { title: 'Til haqida suhbat', instruction: 'Do‘stingiz bilan 5–6 replika yozing: gapirish, tushunish, o‘rganish, qiyinlik va yordam haqida so‘rang.', starter: 'Ты говоришь по-русски? Да, я …' },
+  exercise: { title: 'Til haqida gaplar', instruction: 'Rus tilini o‘rganishingiz haqida 3–4 ta gap yozing (rus tilida, darsdagi iboralardan foydalanib).', starter: 'Я учу русский язык. Я говорю _________. Я понимаю _________. Я занимаюсь _________. Это _________.', example: 'Я учу русский язык. Я говорю немного. Я понимаю учителя. Я занимаюсь каждый день. Это не очень трудно.' },
   outcomes: [{ title: 'Русский язык', translation: 'rus tili', tone: 'blue' }, { title: 'Вопрос', translation: 'savol', tone: 'yellow' }, { title: 'Отрицание', translation: 'inkor', tone: 'blue' }],
+  completionMessage: 'Nihoyat! Endi siz rus tilida «gapirmayman», «tushunmayman» deya olasiz. Bu — eng kerakli so‘zlar! Ertaga biz odamlarni tasvirlashni o‘rganamiz. Ko‘rishguncha, omad!',
+  reflection: {
+    questions: [
+      { question: 'Bugun qanday yangi narsalarni o‘rgandingiz?', options: ['Inkor qilish', 'Savol berish', 'Ikkala variant'] },
+      { question: 'Qaysi so‘z eng qiyin edi?', options: ['Говорить', 'Понимать', 'Заниматься'] },
+    ],
+  },
 }
 
 const lesson6: LessonData = {
