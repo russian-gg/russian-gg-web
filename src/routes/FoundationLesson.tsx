@@ -36,6 +36,7 @@ type StoredState = {
   answers: Array<number | null>
   phraseRatings: Record<number, Rating>
   gameMatches: Record<string, string>
+  exerciseAnswer: string
 }
 type Rating = 'known' | 'unknown' | 'repeat'
 
@@ -45,6 +46,7 @@ const emptyState: StoredState = {
   answers: [null, null],
   phraseRatings: {},
   gameMatches: {},
+  exerciseAnswer: '',
 }
 
 export function FoundationLesson() {
@@ -122,7 +124,13 @@ export function FoundationLesson() {
         <div className="mb-3 flex items-baseline gap-2 sm:mb-4">
           <span className="text-sm font-black text-signal-ink">{state.sectionIndex + 1}</span>
           <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-3xl">
-            {active.id === 'grammar' && day === 1 ? 'Rodlar haqida ertak' : active.id === 'missions' ? 'Dialog' : active.title}
+            {active.id === 'grammar' && day === 1
+              ? 'Rodlar haqida ertak'
+              : active.id === 'missions'
+                ? 'Dialog'
+                : active.id === 'picture'
+                  ? lesson.exercise.title
+                  : active.title}
           </h2>
         </div>
 
@@ -177,7 +185,13 @@ export function FoundationLesson() {
         )}
         {active.id === 'missions' && <MissionModes lesson={lesson} missionId={missionId} />}
         {active.id === 'vocabulary' && <VocabularySection words={lesson.vocabulary} />}
-        {active.id === 'picture' && <ExerciseSection lesson={lesson} />}
+        {active.id === 'picture' && (
+          <ExerciseSection
+            lesson={lesson}
+            answer={state.exerciseAnswer}
+            onAnswerChange={(exerciseAnswer) => setState((current) => ({ ...current, exerciseAnswer }))}
+          />
+        )}
         {active.id === 'complete' && <CompleteSection lesson={lesson} />}
       </section>
 
@@ -298,13 +312,15 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
           ? <p key={index}><RussianText text={paragraph} phoneticVowels /></p>
           : <SpeakerLine key={index} speaker={paragraph.speaker} text={paragraph.text} />)}
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {rule.examples.map((example) => (
-          <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
-            <RussianText text={example} />
-          </SpeechButton>
-        ))}
-      </div>
+      {rule.examples.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {rule.examples.map((example) => (
+            <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
+              <RussianText text={example} />
+            </SpeechButton>
+          ))}
+        </div>
+      )}
       {rule.tongueTwister && <TongueTwister twister={rule.tongueTwister} />}
     </Card>
   )
@@ -402,8 +418,16 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
         </div>
         <div className="p-5">
           <h3 className="text-2xl font-black text-ink"><RussianText text={phrase.ru} /></h3>
-          {phrase.pronunciation && <p className="mt-1 text-sm font-semibold text-ink-muted"><RussianText text={phrase.pronunciation} /></p>}
-          <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={phrase.example} /></p>
+          {phrase.pronunciation && <p className="mt-1 text-sm font-semibold text-ink-faint"><RussianText text={phrase.pronunciation} /></p>}
+          <p className="mt-2 text-lg font-bold text-ink-muted">{phrase.uz}</p>
+          {/* Most phrases stand on their own, and `example` then just repeats `ru` — only worth
+              its own box when the lesson actually supplied a different sentence. */}
+          {phrase.example !== phrase.ru && (
+            <div className="mt-3 rounded-xl bg-ground-sunken p-3">
+              <p className="text-xs font-black tracking-[.12em] text-ink-faint uppercase">Namuna gap</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={phrase.example} /></p>
+            </div>
+          )}
           <SpeechButton text={phrase.ru} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">Tinglang va takrorlang!</SpeechButton>
           <div className="mt-4 grid grid-cols-3 gap-2">
             <button type="button" onClick={() => { playUiSound('coin'); onRate('known') }} className="rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">выучил</button>
@@ -1313,18 +1337,48 @@ function VocabularyDeck({ words, onClose }: { words: Vocab[]; onClose: () => voi
   )
 }
 
-function ExerciseSection({ lesson }: { lesson: LessonData }) {
-  const [answer, setAnswer] = useState('')
+function ExerciseSection({ lesson, answer, onAnswerChange }: {
+  lesson: LessonData
+  answer: string
+  onAnswerChange: (answer: string) => void
+}) {
   if (lesson.exercise.kind === 'remove-clutter') return <RemoveClutterExercise lesson={lesson} />
+
+  // Only some days actually put a picture here; the rest are pure writing tasks, so the
+  // heading icon should not promise an illustration that never arrives.
+  const hasScene = lesson.day === 1 || Boolean(lesson.sceneImage) || lesson.game.kind === 'room-builder'
+
   return (
     <Card className="p-4 sm:p-5">
       {lesson.day === 1 && <NeighborScene />}
       {lesson.sceneImage && <img src={lesson.sceneImage} alt="Oila surati" className="mb-4 aspect-square w-full rounded-2xl object-cover sm:aspect-[16/10]" />}
       {lesson.game.kind === 'room-builder' && <div className="mb-4"><RoomScene /></div>}
-      <div className="flex items-start gap-3"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">🖼️</span><p className="text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p></div>
-      <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.starter} /></p>
-      <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={lesson.exercise.starter} className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal" />
-      <SpeechButton text={answer || lesson.exercise.starter} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">Matnni tinglash</SpeechButton>
+
+      <div className="flex items-start gap-3">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">{hasScene ? '🖼️' : '✍️'}</span>
+        <p className="min-w-0 flex-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-ground-sunken p-3">
+        <p className="text-xs font-black tracking-[.12em] text-ink-faint uppercase">Shablon</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.starter} /></p>
+      </div>
+
+      <textarea
+        value={answer}
+        onChange={(event) => onAnswerChange(event.target.value)}
+        placeholder="Javobingizni shu yerga yozing…"
+        lang="ru"
+        className="mt-4 min-h-32 w-full rounded-2xl border border-hairline bg-ground p-3 text-ink outline-none focus:border-signal"
+      />
+
+      {/* Reading the blank template aloud would just voice a row of underscores. */}
+      {answer.trim() && (
+        <SpeechButton text={answer} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">
+          Matnni tinglash
+        </SpeechButton>
+      )}
+
       {lesson.exercise.example && (
         <div className="mt-4 rounded-xl border border-hairline bg-ground-sunken p-3">
           <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">Namuna</p>
@@ -1602,6 +1656,7 @@ function readState(storageKey: string | null): StoredState {
       answers: Array.isArray(parsed.answers) ? parsed.answers : [null, null],
       phraseRatings: parsed.phraseRatings ?? {},
       gameMatches: parsed.gameMatches ?? {},
+      exerciseAnswer: typeof parsed.exerciseAnswer === 'string' ? parsed.exerciseAnswer : '',
     }
   } catch { return emptyState }
 }
