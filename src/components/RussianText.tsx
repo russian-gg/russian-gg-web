@@ -13,9 +13,9 @@ type Gender = keyof typeof RUSSIAN_COLOR_SYSTEM.gender
 type CaseName = keyof typeof RUSSIAN_COLOR_SYSTEM.cases
 
 const nounStems: Array<{ stem: string; gender: Gender }> = [
-  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист,коллег,университет,завод,топор,футбол,нос,ноль'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
-  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,мук,нян'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
-  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр,правил'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
+  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист,коллег,университет,завод,топор,футбол,нос,ноль,гост,шкаф,компьютер,ковёр'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
+  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,мук,нян,кроват,ламп,одежд,картин'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
+  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр,правил,зеркал'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
 const personalEndingOverrides: Record<string, string> = {
@@ -85,22 +85,18 @@ const adjectiveEndings: Array<{ ending: string; gender: Gender | null; caseName?
 
 export function RussianText({ text, phoneticVowels = false }: { text: string; phoneticVowels?: boolean }) {
   const pieces = text.split(/([\p{Script=Cyrillic}][\p{Script=Cyrillic}\p{M}]*)/gu)
-  const words = pieces.filter((piece) => /[А-Яа-яЁё]/u.test(piece))
   const singleVowel = /^[АОУ]$/u.test(text.trim())
-  let wordIndex = 0
   let previousWord = ''
   let previousPreviousWord = ''
 
   return <>{pieces.map((piece, index) => {
     if (!/[А-Яа-яЁё]/u.test(piece)) return <span key={index}>{piece}</span>
     const lower = normalizeWord(piece)
-    const nextWord = normalizeWord(words[wordIndex + 1] ?? '')
     const rendered = singleVowel || (phoneticVowels && /^[аоу]$/u.test(lower))
       ? <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender.feminine)}>{piece}</span>
-      : colorRussianWord(piece, lower, previousWord, previousPreviousWord, nextWord)
+      : colorRussianWord(piece, lower, previousWord, previousPreviousWord)
     previousPreviousWord = previousWord
     previousWord = lower
-    wordIndex += 1
     return <span key={index}>{rendered}</span>
   })}</>
 }
@@ -109,7 +105,7 @@ function normalizeWord(word: string) {
   return word.toLocaleLowerCase('ru-RU').replace(/[̀́]/gu, '')
 }
 
-function colorRussianWord(original: string, lower: string, previousWord: string, previousPreviousWord: string, nextWord: string): ReactNode {
+function colorRussianWord(original: string, lower: string, previousWord: string, previousPreviousWord: string): ReactNode {
   if (blackWords.has(lower)) return original
   if (lower === 'с' || lower === 'со') return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases.instrumental)}>{original}</span>
   if (lower === 'на') return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases.prepositional)}>{original}</span>
@@ -156,9 +152,14 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
 
   const adjective = adjectiveEndings.find(({ ending }) => lower.endsWith(ending) && lower.length > ending.length + 1)
   if (adjective) {
-    const gender = findNoun(nextWord)?.gender ?? adjective.gender
-    if (!gender) return original
-    const genderColor = RUSSIAN_COLOR_SYSTEM.gender[gender]
+    // Every gendered ending in adjectiveEndings already encodes its own gender correctly — the
+    // only entries with gender: null are -ые/-ие/-ыми/-ими, and those are exclusively plural in
+    // Russian. Plurals span all three genders (see the noun-plural check above and the plural
+    // possessives left uncoloured), so there is no single colour to borrow for them; guessing one
+    // from the next word's dictionary gender was wrong whenever that next word was itself plural
+    // (e.g. "большие столы" is not masculine — "столы" is plural too).
+    if (!adjective.gender) return original
+    const genderColor = RUSSIAN_COLOR_SYSTEM.gender[adjective.gender]
     if (!adjective.caseName) return <span style={styleFor(genderColor)}>{original}</span>
     return <><span style={styleFor(genderColor)}>{original.slice(0, -adjective.ending.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[adjective.caseName])}>{original.slice(-adjective.ending.length)}</span></>
   }
@@ -168,7 +169,13 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
   return original
 }
 
-function findNoun(word: string) { return nounStems.find(({ stem }) => word.startsWith(stem)) }
+// "свет" (noun, light) is a stem-prefix of "светлый/светлая/светлое/светлые" (adjective,
+// bright) — none of that adjective's actual forms exist for the noun "свет" itself, so a bare
+// prefix match would wrongly colour the whole adjective as a masculine noun instead of letting
+// it fall through to the adjective-ending branch.
+function findNoun(word: string) {
+  return nounStems.find(({ stem }) => word.startsWith(stem) && !(stem === 'свет' && word.startsWith('светл')))
+}
 
 function renderVerbEnding(original: string, { ending, reflexive }: { ending: string; reflexive: string }): ReactNode {
   const rootLength = original.length - ending.length - reflexive.length
