@@ -439,7 +439,7 @@ export const en: Dictionary = {
 
   path: {
     title: '90-day path',
-    subtitle: 'One clear task per day. The path opens up as you walk it.',
+    subtitle: 'One clear task per day — the path opens as you walk it.',
     today: 'Today',
     done: 'Done',
     locked: 'Locked',

@@ -201,7 +201,7 @@ export function CoursePath() {
       <header className="relative flex items-start justify-between gap-3 pr-20 sm:pr-0">
         <div className="min-w-0">
           <h1 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">{t.path.title}</h1>
-          <p className="mt-0.5 text-sm text-ink-muted sm:mt-1 sm:text-base">{t.path.subtitle}</p>
+          <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-ink-muted sm:mt-1 sm:text-base">{t.path.subtitle}</p>
         </div>
         <span className="absolute top-0 right-0 sm:static"><Badge tone="milestone">{completedDays}/90</Badge></span>
       </header>

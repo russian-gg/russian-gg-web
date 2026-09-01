@@ -52,7 +52,7 @@ export function AppShell() {
   const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-ground-sunken md:flex">
+    <div className="app-shell min-h-dvh overflow-x-clip bg-ground-sunken md:flex">
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
         <div className="flex items-center justify-between px-4 py-2">
