@@ -77,12 +77,20 @@ export function renderGoogleButton(
   })
 
   element.innerHTML = ''
+  /*
+    Google renders the button at exactly the width it is given and ignores CSS, so a hardcoded
+    360 was wider than the column it sits in on a 360px phone (the page's own padding leaves
+    ~320) and pushed the whole sign-in page into a horizontal scroll. Measured from the slot
+    instead, clamped to the 200–400 range the widget accepts; the 360 only stands in for the
+    frame where the element has not been laid out yet.
+  */
+  const slot = Math.round(element.getBoundingClientRect().width) || 360
   google.renderButton(element, {
     theme: 'outline',
     size: 'large',
     text,
     shape: 'pill',
-    width: 360,
+    width: Math.min(400, Math.max(200, slot)),
   })
 }
 

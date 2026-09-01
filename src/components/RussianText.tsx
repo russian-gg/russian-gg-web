@@ -13,9 +13,9 @@ type Gender = keyof typeof RUSSIAN_COLOR_SYSTEM.gender
 type CaseName = keyof typeof RUSSIAN_COLOR_SYSTEM.cases
 
 const nounStems: Array<{ stem: string; gender: Gender }> = [
-  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист,коллег,университет,завод,топор,футбол,нос,ноль'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
-  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,мук,нян'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
-  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр,правил'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
+  ...'учебник,зарядник,интернет,кошелёк,кошелек,документ,проездн,наушник,бензин,магазин,фонтан,вокзал,театр,город,музей,учител,инженер,студент,рабоч,начальник,директор,телефон,звонок,сосед,ключ,этаж,офис,друг,друз,люд,дет,голос,вопрос,ответ,язык,текст,диалог,фильм,хлеб,диван,телевизор,порт,стол,муж,дом,пап,врач,номер,чай,парк,мёд,мяч,мир,мост,брат,дедушк,дяд,отец,человек,ребёнок,ребенок,родител,сын,мальчик,зонт,свет,шум,день,стул,сыр,лист,коллег,университет,завод,топор,футбол,нос,ноль,гост,шкаф,компьютер,ковёр,паспорт,билет,выход,пример,урок,диктант,стих,вечер,центр,карман,смысл,шанс,рубл,угол'.split(',').map((stem) => ({ stem, gender: 'masculine' as const })),
+  ...'зарядк,деньг,иде,ручк,тетрад,улиц,площад,рек,ед,професси,квартир,лестниц,комнат,зарплат,больниц,компани,грамматик,музык,стать,гитар,ошибк,дорог,работ,школ,книг,газет,правд,фраз,двер,мам,семь,сестр,бабушк,тёт,тет,девушк,доч,жен,женщин,земл,фамил,рам,мук,нян,кроват,ламп,одежд,картин,машин,вод,дене,подруг,звезд,заметк,библиотек,сумк,полк,помощ,сил,надежд'.split(',').map((stem) => ({ stem, gender: 'feminine' as const })),
+  ...'удовольстви,упражнен,письм,радио,мюсл,здан,детств,событ,кафе,метр,окн,мор,слов,мыл,семейств,врем,им,утр,правил,зеркал,счасть,терпен'.split(',').map((stem) => ({ stem, gender: 'neuter' as const })),
 ].sort((a, b) => b.stem.length - a.stem.length)
 
 const personalEndingOverrides: Record<string, string> = {
@@ -28,7 +28,7 @@ const personalEndingOverrides: Record<string, string> = {
   'сплю': 'ю', 'спишь': 'ишь', 'спит': 'ит', 'спим': 'им', 'спите': 'ите', 'спят': 'ят',
 }
 const pastTenseWordOverrides: Record<string, string> = { 'мыла': 'ла' }
-const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон', 'дума', 'отдых', 'гуля', 'объясня', 'исправля', 'помога', 'заним']
+const verbStems = ['работ', 'говор', 'чит', 'понима', 'слыш', 'жив', 'зов', 'хоч', 'дела', 'приглас', 'люб', 'вид', 'зна', 'помн', 'встреч', 'уч', 'игра', 'смотр', 'слуш', 'повтор', 'отвеч', 'пиш', 'звон', 'перезвон', 'дума', 'отдых', 'гуля', 'объясня', 'исправля', 'помога', 'заним', 'счита', 'готов', 'виж']
 // Present-tense personal endings. The longer ones (≥2 letters: -ешь/-ете/-ют…) are distinctive
 // enough to check before nounStems — no Russian case ending looks like them. The bare я-form
 // -ю/-у is not: it collides with noun accusative endings (работу = "the work", not a verb), so
@@ -85,22 +85,18 @@ const adjectiveEndings: Array<{ ending: string; gender: Gender | null; caseName?
 
 export function RussianText({ text, phoneticVowels = false }: { text: string; phoneticVowels?: boolean }) {
   const pieces = text.split(/([\p{Script=Cyrillic}][\p{Script=Cyrillic}\p{M}]*)/gu)
-  const words = pieces.filter((piece) => /[А-Яа-яЁё]/u.test(piece))
   const singleVowel = /^[АОУ]$/u.test(text.trim())
-  let wordIndex = 0
   let previousWord = ''
   let previousPreviousWord = ''
 
   return <>{pieces.map((piece, index) => {
     if (!/[А-Яа-яЁё]/u.test(piece)) return <span key={index}>{piece}</span>
     const lower = normalizeWord(piece)
-    const nextWord = normalizeWord(words[wordIndex + 1] ?? '')
     const rendered = singleVowel || (phoneticVowels && /^[аоу]$/u.test(lower))
       ? <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender.feminine)}>{piece}</span>
-      : colorRussianWord(piece, lower, previousWord, previousPreviousWord, nextWord)
+      : colorRussianWord(piece, lower, previousWord, previousPreviousWord)
     previousPreviousWord = previousWord
     previousWord = lower
-    wordIndex += 1
     return <span key={index}>{rendered}</span>
   })}</>
 }
@@ -109,7 +105,7 @@ function normalizeWord(word: string) {
   return word.toLocaleLowerCase('ru-RU').replace(/[̀́]/gu, '')
 }
 
-function colorRussianWord(original: string, lower: string, previousWord: string, previousPreviousWord: string, nextWord: string): ReactNode {
+function colorRussianWord(original: string, lower: string, previousWord: string, previousPreviousWord: string): ReactNode {
   if (blackWords.has(lower)) return original
   if (lower === 'с' || lower === 'со') return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases.instrumental)}>{original}</span>
   if (lower === 'на') return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases.prepositional)}>{original}</span>
@@ -144,7 +140,10 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
     const rawEnding = lower.slice(noun.stem.length)
     if (noun.gender === 'masculine' && ['ы', 'и', 'ые', 'ие', 'ья'].includes(rawEnding)) return original
 
-    const caseName = inferCase(previousWord, previousPreviousWord, lower)
+    // A case-marked adjective in front carries the case of the whole phrase, so the noun it
+    // modifies takes the same ending colour: "моего брата" is one genitive pair, and colouring
+    // only the adjective's ending left the noun looking like a bare nominative.
+    const caseName = inferCase(previousWord, previousPreviousWord, lower) ?? adjectiveCase(previousWord)
     if (!caseName) return <span style={styleFor(RUSSIAN_COLOR_SYSTEM.gender[noun.gender])}>{original}</span>
     const root = original.slice(0, noun.stem.length)
     const ending = original.slice(noun.stem.length)
@@ -156,11 +155,20 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
 
   const adjective = adjectiveEndings.find(({ ending }) => lower.endsWith(ending) && lower.length > ending.length + 1)
   if (adjective) {
-    const gender = findNoun(nextWord)?.gender ?? adjective.gender
-    if (!gender) return original
-    const genderColor = RUSSIAN_COLOR_SYSTEM.gender[gender]
+    // Every gendered ending in adjectiveEndings already encodes its own gender correctly — the
+    // only entries with gender: null are -ые/-ие/-ыми/-ими, and those are exclusively plural in
+    // Russian. Plurals span all three genders (see the noun-plural check above and the plural
+    // possessives left uncoloured), so there is no single colour to borrow for them; guessing one
+    // from the next word's dictionary gender was wrong whenever that next word was itself plural
+    // (e.g. "большие столы" is not masculine — "столы" is plural too).
+    if (!adjective.gender) return original
+    const genderColor = RUSSIAN_COLOR_SYSTEM.gender[adjective.gender]
     if (!adjective.caseName) return <span style={styleFor(genderColor)}>{original}</span>
-    return <><span style={styleFor(genderColor)}>{original.slice(0, -adjective.ending.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[adjective.caseName])}>{original.slice(-adjective.ending.length)}</span></>
+    // Several adjective endings are shared between cases ("-ой" alone could be four of them), so
+    // where the context names a case it wins over the suffix table's default — otherwise the
+    // adjective and the noun after it end up flagged as two different cases in one phrase.
+    const caseName = inferCase(previousWord, previousPreviousWord, lower) ?? adjective.caseName
+    return <><span style={styleFor(genderColor)}>{original.slice(0, -adjective.ending.length)}</span><span style={styleFor(RUSSIAN_COLOR_SYSTEM.cases[caseName])}>{original.slice(-adjective.ending.length)}</span></>
   }
 
   const past = lower.match(/л[аои]?$/u)
@@ -168,7 +176,27 @@ function colorRussianWord(original: string, lower: string, previousWord: string,
   return original
 }
 
-function findNoun(word: string) { return nounStems.find(({ stem }) => word.startsWith(stem)) }
+/**
+ * Some noun stems are also the opening of an unrelated adjective, and a bare prefix match paints
+ * that adjective as a noun: "сильный" is not a form of "сила", "светлое" is not "свет". Each entry
+ * names the continuation that marks the other word, chosen so no real case form of the noun starts
+ * with it — "имени" still reaches "им", only "именительный" steps aside.
+ */
+const nounStemExceptions: Record<string, string> = {
+  'свет': 'светл',           // светлый, светлая, светлое, светлые
+  'сил': 'сильн',            // сильный, сильная, сильные
+  'выход': 'выходн',         // выходной, выходные
+  'им': 'именительн',        // именительный (падеж)
+  'родител': 'родительн',    // родительный (падеж)
+}
+
+function findNoun(word: string) {
+  return nounStems.find(({ stem }) => {
+    if (!word.startsWith(stem)) return false
+    const exception = nounStemExceptions[stem]
+    return !(exception && word.startsWith(exception))
+  })
+}
 
 function renderVerbEnding(original: string, { ending, reflexive }: { ending: string; reflexive: string }): ReactNode {
   const rootLength = original.length - ending.length - reflexive.length
@@ -187,6 +215,17 @@ function findVerbEnding(word: string, endings: string[]) {
   const core = reflexive ? word.slice(0, -reflexive.length) : word
   const ending = endings.find((candidate) => core.endsWith(candidate) && core.length > candidate.length + 1)
   return ending ? { ending, reflexive } : undefined
+}
+
+/**
+ * The case an adjective in front of a noun marks, if its ending carries one. Words that look like
+ * an adjective but hold no case — the possessives, the stressed -ой nominatives (какой, большой),
+ * the uncoloured function words — are skipped, so they never push a case onto the next noun.
+ */
+function adjectiveCase(word: string): CaseName | null {
+  if (!word || fullGenderWords[word] || masculineOyWords.has(word) || blackWords.has(word)) return null
+  const adjective = adjectiveEndings.find(({ ending }) => word.endsWith(ending) && word.length > ending.length + 1)
+  return adjective?.caseName ?? null
 }
 
 function inferCase(previousWord: string, previousPreviousWord: string, word: string): CaseName | null {

@@ -443,8 +443,7 @@ export const uz = {
 
   path: {
     title: "90 kunlik yo'l",
-    subtitle:
-      "Har bir kun bittadan aniq vazifa. Kunma-kun yurganingiz sari yo'l o'zi ochilib boradi.",
+    subtitle: "Har kuni bitta aniq vazifa — yurgan sari yo'l ochiladi.",
     today: 'Bugun',
     done: 'Bajarilgan',
     locked: 'Yopiq',

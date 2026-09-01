@@ -316,6 +316,19 @@
     background-color: var(--color-ground);
   }
 
+  /*
+    The canvas takes its colour from `html`, and the signed-in shell paints its grey on a div
+    inside it. Anything the div does not cover — iOS rubber-band overscroll, the gap a mobile
+    browser leaves while its address bar animates, a frame where the document is briefly taller
+    than the shell — fell through to white and read as a broken page. Painting the shell's own
+    surface on the canvas makes that gap the same colour as the app instead of a white band.
+    Public pages (landing, sign-in) keep the white ground: they never mount the shell.
+  */
+  html:has(.app-shell),
+  html:has(.app-shell) body {
+    background-color: var(--color-ground-sunken);
+  }
+
   body {
     background-color: var(--color-ground);
     color: var(--color-ink);
