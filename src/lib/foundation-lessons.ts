@@ -461,7 +461,7 @@ const lesson3: LessonData = {
     instruction: 'Tavsifni tanlang, so‘ng unga mos kasbni bosing.',
     pairs: [
       { left: 'Он лечит людей.', right: 'врач' },
-      { left: 'Она учит детей.', right: 'учитель' },
+      { left: 'Он учит детей.', right: 'учитель' },
       { left: 'Он строит дома.', right: 'инженер' },
       { left: 'Он учится в университете.', right: 'студент' },
       { left: 'Он работает на заводе.', right: 'рабочий' },
