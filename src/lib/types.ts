@@ -433,6 +433,22 @@ export interface WelcomeGiftStatus {
   isDiscountActive: boolean
 }
 
+/** The check-in after every third completed course day. */
+export interface LessonFeedbackStatus {
+  isDue: boolean
+  /** The checkpoint to answer (3, 6, 9, ...), or null when nothing is due. */
+  checkpointDay?: number | null
+  completedDays: number
+}
+
+/** Each score runs 1–5, 5 being the best answer. The note is optional. */
+export interface SubmitLessonFeedbackRequest {
+  satisfaction: number
+  recommendation: number
+  rating: number
+  note: string | null
+}
+
 export interface SubscriptionActionResponse {
   entitlement: EntitlementView
   messageUz: string

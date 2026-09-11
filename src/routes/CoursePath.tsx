@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
-import { LESSON_ONE_SECTIONS, readFoundationLessonProgress } from '../lib/demo-lesson-one'
+import { LESSON_ONE_SECTIONS, readFoundationLessonProgress, type LessonOneProgress } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
@@ -26,6 +26,8 @@ type DayNotice = { day: number; text: string }
 type PathFilter = 'all' | 'active' | 'done'
 type SelectedDay = { day: CourseDayView; lockKind: LockedDay['kind'] }
 
+const NO_LOCAL_PROGRESS: LessonOneProgress = { completed: [], isComplete: false }
+
 export function CoursePath() {
   const t = useT()
   const { locale } = useLocale()
@@ -38,7 +40,7 @@ export function CoursePath() {
   const [notice, setNotice] = useState<DayNotice | null>(null)
   const [filter, setFilter] = useState<PathFilter>('all')
   const [search, setSearch] = useState('')
-  const lessonOneSyncStarted = useRef(false)
+  const syncStartedDays = useRef(new Set<number>())
 
   const { data: days, isLoading } = useQuery({
     queryKey: ['course-map'],
@@ -65,45 +67,72 @@ export function CoursePath() {
     0,
   )
   const maxUnlockedDay = entitlement?.maxUnlockedDay ?? maxPreviewDay
+  /*
+   * Lesson progress saved in this browser only counts for days the server has opened. A day the
+   * server still locks cannot have been finished on this account, so whatever the browser holds
+   * for it is stale — left over from before a reset, for instance — and showing it as done made
+   * the map disagree with the course day and everything counted from it.
+   */
+  const serverUnlockedDays = new Set((days ?? []).filter((day) => day.isUnlocked).map((day) => day.day))
   const foundationProgress = Object.fromEntries(
     Array.from({ length: 15 }, (_, index) => {
       const day = index + 1
-      return [day, readFoundationLessonProgress(user?.id, day)]
+      return [day, serverUnlockedDays.has(day) ? readFoundationLessonProgress(user?.id, day) : NO_LOCAL_PROGRESS]
     }),
-  ) as Record<number, ReturnType<typeof readFoundationLessonProgress>>
-  const lessonOneProgress = foundationProgress[1]
-  const lessonOneComplete = lessonOneProgress.isComplete
+  ) as Record<number, LessonOneProgress>
+
+  /*
+   * Days finished in this browser that the server has not recorded: the completion call failed
+   * or the tab closed first. They are replayed here so the map, the course day and what is
+   * counted from them — the feedback checkpoints included — agree with what the learner did.
+   */
+  const unsyncedKey = (days ?? [])
+    .filter((day) => day.isUnlocked
+      && day.completedMissionCount < day.requiredMissionCount
+      && foundationProgress[day.day]?.isComplete === true)
+    .map((day) => day.day)
+    .join(',')
 
   useEffect(() => {
-    if (!lessonOneComplete
-      || !user?.id
-      || !progress
-      || progress.currentDay > 1
-      || lessonOneSyncStarted.current) {
-      return
-    }
+    if (!user?.id || !unsyncedKey) return
+    const pending = unsyncedKey
+      .split(',')
+      .map(Number)
+      .filter((day) => !syncStartedDays.current.has(day))
+    if (pending.length === 0) return
+    pending.forEach((day) => syncStartedDays.current.add(day))
 
-    lessonOneSyncStarted.current = true
     void (async () => {
-      const missions = await queryClient.fetchQuery({
-        queryKey: ['day-missions', 1],
-        queryFn: () => api.get<MissionSummary[]>('/course/days/1/missions'),
-      })
-      const mission = missions.find((candidate) => candidate.slug === 'work-introduce-yourself')
-        ?? missions[0]
-      if (!mission) return
+      // In order: finishing a day is what opens the next one on the server.
+      for (const day of pending) {
+        try {
+          const missions = await queryClient.fetchQuery({
+            queryKey: ['day-missions', day],
+            queryFn: () => api.get<MissionSummary[]>(`/course/days/${day}/missions`),
+          })
+          // The same mission the day opens (startDay below); day one keeps its named lesson.
+          const mission = (day === 1
+            ? missions.find((candidate) => candidate.slug === 'work-introduce-yourself')
+            : undefined)
+            ?? missions.find((candidate) => !candidate.isLocked)
+          if (!mission) continue
 
-      await syncLessonOneCompletion(mission.id)
+          await syncLessonOneCompletion(mission.id)
+        } catch {
+          // Tried again the next time the map opens.
+          syncStartedDays.current.delete(day)
+        }
+      }
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['course-map'] }),
         queryClient.invalidateQueries({ queryKey: ['day-missions'] }),
         queryClient.invalidateQueries({ queryKey: ['progress'] }),
         queryClient.invalidateQueries({ queryKey: ['home'] }),
+        queryClient.invalidateQueries({ queryKey: ['lesson-feedback'] }),
       ])
-    })().catch(() => {
-      lessonOneSyncStarted.current = false
-    })
-  }, [lessonOneComplete, progress, queryClient, user?.id])
+    })()
+  }, [queryClient, unsyncedKey, user?.id])
 
   if (isLoading || !days) return <Spinner />
 

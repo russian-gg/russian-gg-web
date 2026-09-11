@@ -829,6 +829,42 @@ export const en: Dictionary = {
     error: 'We could not open the gift. Please try again.',
   },
 
+  lessonFeedback: {
+    eyebrow: '{days} days of lessons done',
+    title: 'We would love your feedback',
+    body: 'Take a minute — your answers help us make the lessons even better.',
+    satisfactionQuestion: 'How satisfied are you with the lessons you have completed?',
+    satisfactionOptions: [
+      { title: 'Very satisfied', hint: 'The lessons were clear, useful and enjoyable' },
+      { title: 'Satisfied', hint: 'Mostly good, with a few things to improve' },
+      { title: 'Neutral', hint: 'Neither good nor bad' },
+      { title: 'Dissatisfied', hint: 'A few things got in the way of learning' },
+      { title: 'Very dissatisfied', hint: 'The lessons did not work for me' },
+    ],
+    recommendationQuestion: 'Would you recommend Russian.gg to a friend or colleague?',
+    recommendationOptions: [
+      { title: 'Definitely yes', hint: 'I would recommend it without hesitation' },
+      { title: 'Probably yes', hint: 'To the right person, yes' },
+      { title: 'Not sure yet', hint: 'I have not decided' },
+      { title: 'Probably not', hint: 'I would hesitate to recommend it' },
+      { title: 'Definitely not', hint: 'I would not recommend it' },
+    ],
+    ratingQuestion: 'Rate the platform out of 5 stars',
+    starLabel: '{count} stars',
+    ratingLabels: ['Poor', 'Fair', 'Good', 'Very good', 'Excellent'],
+    noteLabel: 'Note',
+    optional: 'optional',
+    notePlaceholder: 'What did you like? What should we improve?',
+    required: 'required',
+    requiredHint: 'Choose an answer to continue.',
+    stepLabel: 'Step {current} of {total}',
+    back: 'Back',
+    next: 'Next',
+    submit: 'Send feedback',
+    sending: 'Sending...',
+    error: 'We could not send your feedback. Please try again.',
+  },
+
   labels: {
     phase: {
       Foundation: 'Foundation',

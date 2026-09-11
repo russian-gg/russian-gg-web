@@ -845,6 +845,42 @@ export const uz = {
     error: "Sovg'ani ochib bo'lmadi. Qayta urinib ko'ring.",
   },
 
+  lessonFeedback: {
+    eyebrow: "{days} kunlik darslar ortda qoldi",
+    title: "Fikringiz biz uchun muhim",
+    body: "Bir daqiqa vaqt ajrating — javoblaringiz darslarni yanada yaxshilashga yordam beradi.",
+    satisfactionQuestion: "O'tgan darslardan qanchalik mamnunsiz?",
+    satisfactionOptions: [
+      { title: "Juda mamnunman", hint: "Darslar tushunarli, foydali va qiziqarli bo'ldi" },
+      { title: "Mamnunman", hint: "Umuman yaxshi, ba'zi joylarini yaxshilash mumkin" },
+      { title: "Betarafman", hint: "Na yaxshi, na yomon" },
+      { title: "Mamnun emasman", hint: "O'rganishga ba'zi narsalar xalaqit berdi" },
+      { title: "Umuman mamnun emasman", hint: "Darslar menga mos kelmadi" },
+    ],
+    recommendationQuestion: "Russian.gg'ni do'stlaringiz yoki hamkasblaringizga tavsiya qilasizmi?",
+    recommendationOptions: [
+      { title: "Albatta tavsiya qilaman", hint: "Hech ikkilanmasdan" },
+      { title: "Ehtimol, tavsiya qilaman", hint: "Kerakli odamga — albatta" },
+      { title: "Hali bilmayman", hint: "Hali qaror qilmadim" },
+      { title: "Ehtimol, yo'q", hint: "Tavsiya qilishga ikkilanaman" },
+      { title: "Yo'q, tavsiya qilmayman", hint: "Tavsiya qilmagan bo'lardim" },
+    ],
+    ratingQuestion: "Platformani 5 yulduzli shkalada baholang",
+    starLabel: "{count} yulduz",
+    ratingLabels: ["Yomon", "Qoniqarsiz", "O'rtacha", "Yaxshi", "A'lo"],
+    noteLabel: "Izoh",
+    optional: "ixtiyoriy",
+    notePlaceholder: "Nima yoqdi, nimani yaxshilash kerak?",
+    required: "majburiy",
+    requiredHint: "Davom etish uchun javoblardan birini tanlang.",
+    stepLabel: "{current}/{total}-qadam",
+    back: "Orqaga",
+    next: "Keyingi",
+    submit: "Fikrni yuborish",
+    sending: "Yuborilmoqda...",
+    error: "Fikringizni yuborib bo'lmadi. Qayta urinib ko'ring.",
+  },
+
   labels: {
     phase: {
       Foundation: "Boshlang'ich",

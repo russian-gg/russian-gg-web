@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { InstallPrompt } from './components/InstallPrompt'
+import { LessonFeedbackGate } from './components/LessonFeedbackGate'
 import { TelegramFloatingButton } from './components/TelegramFloatingButton'
 import { WelcomeGiftGate } from './components/WelcomeGiftGate'
 import { Spinner } from './components/ui'
@@ -86,6 +87,7 @@ export function App() {
       </Routes>
 
       <WelcomeGiftGate />
+      <LessonFeedbackGate />
 
       <TelegramFloatingButton />
       {/*
