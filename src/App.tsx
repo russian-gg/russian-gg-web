@@ -156,8 +156,7 @@ function PublicOnly({ children }: { children: ReactNode }) {
 
   if (isLoading) return <Spinner />
   if (isPendingOnboarding) return <>{children}</>
-  if (user) {
-    if (needsPhone(user)) return <Navigate to="/link-phone" replace />
+  if (user && !needsPhone(user)) {
     return <Navigate to={user.hasCompletedDiagnostic ? '/home' : '/onboarding'} replace />
   }
 
