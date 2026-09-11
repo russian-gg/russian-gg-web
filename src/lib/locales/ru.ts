@@ -828,6 +828,8 @@ export const ru: Dictionary = {
     yourPrize: 'Ваш приз',
     bonusPrize: '+{days} бесплатных дней',
     discountPrize: 'Скидка {percent}% на 90 дней',
+    badgeDiscount: 'скидка',
+    badgeDays: 'дней',
     discountRedirect: 'Скидка действует 10 минут. Открываем раздел подписки...',
     expiresIn: 'Осталось: {time}',
     continue: 'Начать занятие',

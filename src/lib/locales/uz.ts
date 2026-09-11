@@ -835,6 +835,8 @@ export const uz = {
     yourPrize: "Sizning sovriningiz",
     bonusPrize: "+{days} kun bepul",
     discountPrize: "90 kunlik uchun {percent}% chegirma",
+    badgeDiscount: "chegirma",
+    badgeDays: "kun bepul",
     discountRedirect: "Chegirma 10 daqiqa amal qiladi. Obuna bo'limi ochilmoqda...",
     expiresIn: "Qolgan vaqt: {time}",
     continue: "Mashqni boshlash",

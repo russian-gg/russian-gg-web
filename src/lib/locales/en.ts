@@ -819,6 +819,8 @@ export const en: Dictionary = {
     yourPrize: 'Your prize',
     bonusPrize: '+{days} free days',
     discountPrize: '{percent}% off the 90-day plan',
+    badgeDiscount: 'off',
+    badgeDays: 'free days',
     discountRedirect: 'Your discount lasts 10 minutes. Opening subscriptions...',
     expiresIn: 'Time left: {time}',
     continue: 'Start practising',
