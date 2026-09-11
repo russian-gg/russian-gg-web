@@ -14,8 +14,8 @@ type Phase = 'choosing' | 'opening' | 'revealed'
  * build-up is half of the reward. A slower request simply keeps it rumbling at full strength.
  */
 const MIN_OPENING_MS = 1400
-/** Long enough to take in the reveal before the discount hands over to the paywall. */
-const DISCOUNT_REDIRECT_MS = 3200
+// Pause between hover wiggles while the pointer stays on a box.
+const HOVER_SHAKE_PAUSE_MS = 700
 
 type Ribbon = { edge: string; shine: string; face: string; deep: string; line: string; fold: string; tail: string }
 type BoxWrap = {
@@ -136,12 +136,14 @@ export function WelcomeGiftGate() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const discountRedirectedRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('choosing')
   const [selectedBox, setSelectedBox] = useState<number | null>(null)
   const [reward, setReward] = useState<WelcomeGiftStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hidden, setHidden] = useState(false)
+  const [shakingBox, setShakingBox] = useState<number | null>(null)
+  const hoveredBoxRef = useRef<number | null>(null)
+  const shakeTimerRef = useRef<number | undefined>(undefined)
 
   const isProtectedPage = !['/', '/signin', '/signup', '/onboarding'].includes(location.pathname)
   const enabled = Boolean(user?.hasCompletedDiagnostic && isProtectedPage)
@@ -161,7 +163,6 @@ export function WelcomeGiftGate() {
     setSelectedBox(null)
     setReward(null)
     setError(null)
-    discountRedirectedRef.current = false
   }, [user?.id])
 
   useEffect(() => {
@@ -173,19 +174,7 @@ export function WelcomeGiftGate() {
     }
   }, [visible])
 
-  useEffect(() => {
-    if (phase !== 'revealed' || !reward || reward.discountPercent <= 0) return
-    if (discountRedirectedRef.current) return
-
-    const redirectTimer = window.setTimeout(() => {
-      if (discountRedirectedRef.current) return
-      discountRedirectedRef.current = true
-      setHidden(true)
-      navigate('/paywall')
-    }, DISCOUNT_REDIRECT_MS)
-
-    return () => window.clearTimeout(redirectTimer)
-  }, [navigate, phase, reward])
+  useEffect(() => () => window.clearTimeout(shakeTimerRef.current), [])
 
   const prizeText = useMemo(() => {
     if (!reward) return ''
@@ -206,6 +195,31 @@ export function WelcomeGiftGate() {
     : [selectedBox]
 
   if (!visible) return null
+
+  function startHoverShake(box: number) {
+    hoveredBoxRef.current = box
+    window.clearTimeout(shakeTimerRef.current)
+    setShakingBox(box)
+  }
+
+  function stopHoverShake() {
+    hoveredBoxRef.current = null
+    window.clearTimeout(shakeTimerRef.current)
+    setShakingBox(null)
+  }
+
+  // Each wiggle plays once; while the box is still hovered, queue the next one after a pause.
+  function queueNextShake(box: number) {
+    setShakingBox(null)
+    shakeTimerRef.current = window.setTimeout(() => {
+      if (hoveredBoxRef.current === box) setShakingBox(box)
+    }, HOVER_SHAKE_PAUSE_MS)
+  }
+
+  function openPlans() {
+    setHidden(true)
+    navigate('/paywall')
+  }
 
   async function choose(box: number) {
     if (phase !== 'choosing') return
@@ -273,10 +287,16 @@ export function WelcomeGiftGate() {
               <button
                 type="button"
                 key={box}
-                className={`welcome-box-wrap${isChosen ? ' is-selected' : ''}`}
+                style={{ '--light': BOX_WRAPS[box - 1].mid } as CSSProperties}
+                className={`welcome-box-wrap${isChosen ? ' is-selected' : ''}${shakingBox === box && phase === 'choosing' ? ' is-shaking' : ''}`}
                 disabled={phase !== 'choosing'}
                 aria-label={fill(t.welcomeGift.boxLabel, { number: box })}
                 onClick={() => void choose(box)}
+                onPointerEnter={() => startHoverShake(box)}
+                onPointerLeave={stopHoverShake}
+                onAnimationEnd={(event) => {
+                  if (event.animationName === 'welcome-wiggle') queueNextShake(box)
+                }}
               >
                 {isChosen && phase === 'revealed' && (
                   <span className="welcome-burst" aria-hidden="true">
@@ -285,6 +305,7 @@ export function WelcomeGiftGate() {
                     <span className="welcome-ring welcome-ring-late" />
                   </span>
                 )}
+                <span className="welcome-box-light" aria-hidden="true" />
                 <span className="welcome-box">
                   <GiftBoxArt wrap={BOX_WRAPS[box - 1]} />
                   {isChosen && phase === 'opening' && (
@@ -315,7 +336,17 @@ export function WelcomeGiftGate() {
           </div>
         )}
         {phase === 'revealed' && reward?.discountPercent ? (
-          <div className="welcome-gift-hint welcome-gift-timer">{t.welcomeGift.discountRedirect}</div>
+          <>
+            <div className="welcome-gift-hint welcome-gift-timer">{t.welcomeGift.discountExpiry}</div>
+            <div className="welcome-gift-actions">
+              <button className="welcome-gift-continue" type="button" onClick={openPlans}>
+                {t.welcomeGift.viewPlans}
+              </button>
+              <button className="welcome-gift-later" type="button" onClick={() => setHidden(true)}>
+                {t.welcomeGift.later}
+              </button>
+            </div>
+          </>
         ) : null}
         {phase === 'revealed' && reward?.bonusFreeDays ? (
           <button className="welcome-gift-continue" type="button" onClick={() => setHidden(true)}>
@@ -462,11 +493,17 @@ const welcomeGiftStyles = `
   .welcome-box-wrap{position:relative;width:150px;padding:0;border:0;background:transparent;cursor:pointer;transform-origin:50% 100%;animation:welcome-box-mix .9s cubic-bezier(.17,.86,.37,1.12) both}
   .welcome-box-wrap:nth-child(2){animation-delay:.12s}.welcome-box-wrap:nth-child(3){animation-delay:.24s}
   .welcome-box-wrap:focus-visible{outline:3px solid #2563eb;outline-offset:6px;border-radius:18px}
+  .welcome-box-light{position:absolute;left:50%;top:58%;z-index:0;width:135%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,var(--light) 0%,transparent 66%);opacity:.5;filter:blur(10px);transform:translate(-50%,-50%);pointer-events:none;transition:opacity .3s,scale .3s cubic-bezier(.3,1.4,.5,1);animation:welcome-light-pulse 2.8s ease-in-out infinite}
+  .welcome-box-wrap:nth-child(2) .welcome-box-light{animation-delay:-.9s}.welcome-box-wrap:nth-child(3) .welcome-box-light{animation-delay:-1.8s}
+  .welcome-box-wrap:not(:disabled):hover .welcome-box-light{opacity:.85;scale:1.12}
+  .welcome-gift-opening .is-selected .welcome-box-light{opacity:.9;scale:1.2}
+  .welcome-gift-revealed .welcome-box-light{opacity:0}
   .welcome-box{position:relative;z-index:1;display:block;transition:transform .3s cubic-bezier(.3,1.4,.5,1),filter .25s}
-  .welcome-box-wrap:not(:disabled):hover .welcome-box{transform:translateY(-10px);filter:drop-shadow(0 16px 18px rgba(37,99,235,.22))}
+  .welcome-box-wrap:not(:disabled):hover .welcome-box{transform:translateY(-10px);filter:drop-shadow(0 16px 18px color-mix(in srgb,var(--light) 40%,transparent))}
   .welcome-box-art{display:block;width:100%;height:auto;overflow:visible;transform-origin:50% 92%;animation:welcome-idle 2.8s ease-in-out infinite}
   .welcome-box-wrap:nth-child(2) .welcome-box-art{animation-delay:-.9s}.welcome-box-wrap:nth-child(3) .welcome-box-art{animation-delay:-1.8s}
-  .welcome-box-wrap:not(:disabled):hover .welcome-box-art{animation:welcome-wiggle .55s ease-in-out}
+  .welcome-box-wrap:not(:disabled):hover .welcome-box-art{animation:none}
+  .welcome-box-wrap.is-shaking:not(:disabled) .welcome-box-art{animation:welcome-wiggle .55s ease-in-out}
   .welcome-box-lid{transform-box:view-box;transform-origin:80px 90px}
   .welcome-box-glow,.welcome-box-seam{opacity:0}
   .welcome-box-twinkle{transform-box:fill-box;transform-origin:center;animation:welcome-twinkle 2.4s ease-in-out infinite}
@@ -503,6 +540,9 @@ const welcomeGiftStyles = `
   .welcome-gift-won strong{color:#0f172a;font-size:22px;font-weight:900;line-height:1.2}
   .welcome-gift-hint{position:relative;z-index:2;min-height:28px;margin-top:2px;color:#475569;font-size:14px;font-weight:800}.welcome-gift-timer{color:#dc2626}
   .welcome-gift-continue{position:relative;z-index:2;margin-top:8px;border:0;border-radius:999px;padding:13px 25px;background:#2563eb;color:white;font:800 15px inherit;box-shadow:0 8px 0 #1d4ed8;cursor:pointer}
+  .welcome-gift-actions{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .welcome-gift-later{border:0;padding:8px 14px;background:transparent;color:#64748b;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+  .welcome-gift-later:hover{color:#0f172a}
   .welcome-gift-error{position:relative;z-index:2;margin-top:12px;color:#b91c1c;font-size:14px;font-weight:700}
 
   .welcome-confetti{position:absolute;top:0;left:0;width:9px;height:16px;border-radius:2px}
@@ -518,6 +558,7 @@ const welcomeGiftStyles = `
   @keyframes welcome-flash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
   @keyframes welcome-box-mix{0%{opacity:0;transform:translate(100px,-70px) rotate(25deg) scale(.55)}55%{opacity:1;transform:translate(-20px,8px) rotate(-7deg) scale(1.06)}100%{opacity:1;transform:none}}
   @keyframes welcome-idle{0%,100%{transform:none}50%{transform:translateY(-5px) rotate(-1.2deg)}}
+  @keyframes welcome-light-pulse{0%,100%{transform:translate(-50%,-50%) scale(.92)}50%{transform:translate(-50%,-50%) scale(1.04)}}
   @keyframes welcome-wiggle{0%,100%{transform:none}25%{transform:rotate(-5deg) scale(1.03)}50%{transform:rotate(4deg) scale(1.05)}75%{transform:rotate(-2deg) scale(1.03)}}
   @keyframes welcome-charge{0%{transform:none}70%{transform:translateY(-6px) scale(1.06,1.03)}100%{transform:translateY(-10px) scale(1.1,1.05)}}
   @keyframes welcome-rumble-build{0%{transform:none}8%{transform:translate(-1px,0) rotate(-1.5deg)}16%{transform:translate(1px,-1px) rotate(1.5deg)}24%{transform:translate(-2px,0) rotate(-3deg)}32%{transform:translate(2px,-1px) rotate(3deg)}40%{transform:translate(-3px,0) rotate(-4.5deg)}48%{transform:translate(3px,-2px) rotate(4.5deg)}56%{transform:translate(-4px,0) rotate(-6deg)}64%{transform:translate(4px,-2px) rotate(6deg)}72%{transform:translate(-5px,-1px) rotate(-7.5deg)}80%{transform:translate(5px,-3px) rotate(7.5deg)}88%{transform:translate(-6px,-1px) rotate(-9deg)}94%{transform:translate(6px,-3px) rotate(9deg)}100%{transform:translate(0,-2px)}}
