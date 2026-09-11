@@ -66,7 +66,8 @@ export function SignIn() {
     setError(null)
     try {
       const user = await signIn('+998' + local, password)
-      navigate(postAuthDestination(user, returnTo), { replace: true })
+      const destination = postAuthDestination(user, returnTo)
+      navigate(destination, { replace: destination !== '/link-phone' })
     } catch (caught) {
       setError(
         authErrorText(caught, t.auth.signInFailed, {
@@ -89,7 +90,8 @@ export function SignIn() {
     setError(null)
     try {
       const user = await signInWithGoogle(response.credential)
-      navigate(postAuthDestination(user, returnTo), { replace: true })
+      const destination = postAuthDestination(user, returnTo)
+      navigate(destination, { replace: destination !== '/link-phone' })
     } catch (caught) {
       setError(authErrorText(caught, t.auth.googleFailed, {}))
     } finally {
@@ -182,7 +184,8 @@ export function SignUp() {
     try {
       const user = await signInWithGoogle(response.credential)
       track('signup_completed')
-      navigate(postAuthDestination(user), { replace: true })
+      const destination = postAuthDestination(user)
+      navigate(destination, { replace: destination !== '/link-phone' })
     } catch (caught) {
       setError(authErrorText(caught, t.auth.googleFailed, {}))
     } finally {
@@ -449,11 +452,19 @@ function PhoneCredentialSetupFlow({
 }
 
 function AuthLayout({ title, children, footer }: { title: string; children: ReactNode; footer?: ReactNode }) {
+  const navigate = useNavigate()
+  const t = useT()
+
+  function goBack() {
+    if (window.history.state?.idx > 0) navigate(-1)
+    else navigate('/', { replace: true })
+  }
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-12">
-      <Link to="/" className="text-sm font-medium text-ink-faint">
+      <button type="button" onClick={goBack} aria-label={t.common.back} className="self-start text-sm font-medium text-ink-faint">
         ← russian.gg
-      </Link>
+      </button>
       <h1 className="mt-6 mb-7 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
       {children}
       {footer && <p className="text-support mt-6">{footer}</p>}
