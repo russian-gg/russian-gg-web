@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui'
 import { readAudioPreferences, storeAudioPreferences } from '../../lib/audio-preferences'
@@ -149,7 +149,7 @@ export function GenderRunnerGame() {
   const navigate = useNavigate()
   const gameRootRef = useRef<HTMLElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
+  const pointerStartRef = useRef<{ pointerId: number; x: number; y: number } | null>(null)
   const worldRef = useRef<World>(makeWorld())
   const phaseRef = useRef<Phase>('ready')
   const difficultyRef = useRef<Difficulty>('normal')
@@ -170,6 +170,7 @@ export function GenderRunnerGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
 
   const changePhase = useCallback((next: Phase) => {
+    pointerStartRef.current = null
     phaseRef.current = next
     setPhase(next)
   }, [])
@@ -261,15 +262,36 @@ export function GenderRunnerGame() {
     else void gameRootRef.current?.requestFullscreen()
   }, [])
 
-  const finishGesture = useCallback((x: number, y: number) => {
+  const startGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (phaseRef.current !== 'playing' || !event.isPrimary || event.button !== 0) return
+    if (event.target instanceof Element && event.target.closest('button')) return
+    pointerStartRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const updateGesture = (event: ReactPointerEvent<HTMLElement>) => {
     const startAt = pointerStartRef.current
+    if (!startAt || startAt.pointerId !== event.pointerId) return
+    const horizontal = event.clientX - startAt.x
+    const vertical = event.clientY - startAt.y
+    if (Math.max(Math.abs(horizontal), Math.abs(vertical)) < 28) return
     pointerStartRef.current = null
-    if (!startAt) return
-    const horizontal = x - startAt.x
-    const vertical = y - startAt.y
-    if (Math.abs(horizontal) > 34 && Math.abs(horizontal) > Math.abs(vertical)) move(horizontal > 0 ? 1 : -1)
-    else if (vertical < -28 || Math.abs(horizontal) < 12 && Math.abs(vertical) < 12) jump()
-  }, [jump, move])
+    if (Math.abs(horizontal) > Math.abs(vertical)) move(horizontal > 0 ? 1 : -1)
+    else if (vertical < 0) jump()
+  }
+
+  const cancelGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (pointerStartRef.current?.pointerId === event.pointerId) pointerStartRef.current = null
+  }
+
+  const finishGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    updateGesture(event)
+    const startAt = pointerStartRef.current
+    if (event.pointerType === 'mouse' && startAt?.pointerId === event.pointerId
+      && Math.abs(event.clientX - startAt.x) < 12 && Math.abs(event.clientY - startAt.y) < 12) jump()
+    cancelGesture(event)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -444,12 +466,16 @@ export function GenderRunnerGame() {
           <span className="text-emerald-300">Rekord: {highScore}</span>
         </div>
 
-        <section className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black p-2 sm:p-4">
+        <section
+          onPointerDown={startGesture}
+          onPointerMove={updateGesture}
+          onPointerUp={finishGesture}
+          onPointerCancel={cancelGesture}
+          onLostPointerCapture={cancelGesture}
+          className="relative flex min-h-0 flex-1 touch-none items-center justify-center overflow-hidden bg-black p-2 select-none sm:p-4"
+        >
           <canvas
             ref={canvasRef}
-            onPointerDown={(event) => { pointerStartRef.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId) }}
-            onPointerUp={(event) => finishGesture(event.clientX, event.clientY)}
-            onPointerCancel={() => { pointerStartRef.current = null }}
             className="aspect-[4/3] max-h-[calc(100dvh-200px)] w-full max-w-5xl touch-none rounded-2xl bg-[#0b0f19] sm:aspect-[16/10] sm:max-h-[calc(100dvh-150px)]"
           />
 
@@ -482,6 +508,7 @@ export function GenderRunnerGame() {
                 <span className="block">• O‘rta yo‘lak = ekrandagi o‘rta rod</span>
                 <span className="block">• O‘ng yo‘lak = ekrandagi o‘ng rod</span>
                 <span className="block">• Z-shakldagi tangalarni yig‘ing, muzlardan sakrang</span>
+                <span className="mt-2 hidden text-cyan-200 [@media(pointer:coarse)]:block">Ekranni chapga yoki o‘ngga suring — yo‘lak almashadi. Tepaga suring — pingvin sakraydi.</span>
               </div>
               <Button block onClick={start}>O‘yinni boshlash</Button>
             </GameOverlay>
@@ -525,7 +552,10 @@ export function GenderRunnerGame() {
           )}
         </section>
 
-        <div className="grid grid-cols-3 gap-2 border-t border-white/10 bg-[#111827] p-3 sm:mx-auto sm:w-full sm:max-w-xl sm:rounded-t-2xl">
+        <p className="hidden border-t border-white/10 bg-[#111827] px-4 py-3 text-center text-xs font-bold text-cyan-100 [@media(pointer:coarse)]:block">
+          Chapga / o‘ngga suring — yo‘lak almashtirish · Tepaga suring — sakrash
+        </p>
+        <div className="grid grid-cols-3 gap-2 border-t border-white/10 bg-[#111827] p-3 sm:mx-auto sm:w-full sm:max-w-xl sm:rounded-t-2xl [@media(pointer:coarse)]:hidden">
           <ControlButton onClick={() => move(-1)} disabled={phase !== 'playing'} label="Chapga (A)" icon="←" />
           <ControlButton onClick={jump} disabled={phase !== 'playing'} label="Sakrash" icon="↑" accent />
           <ControlButton onClick={() => move(1)} disabled={phase !== 'playing'} label="O‘ngga (D)" icon="→" />
