@@ -848,6 +848,30 @@ export function isPromptAudioPlaying(text?: string) {
   return text ? promptAudioText === text.trim() : true
 }
 
+const promptAudioPrefetches = new Set<string>()
+
+/**
+ * Best-effort warmup so the "Listen" button usually finds the audio already cached instead of
+ * waiting on a live Gemini TTS round trip. Fire-and-forget: failures are swallowed here because
+ * playPromptAudio falls back to its own live fetch if the prefetch never lands.
+ */
+export function prefetchPromptAudio(text: string) {
+  const normalized = text.trim()
+  if (!normalized || promptAudioCache.has(normalized) || promptAudioPrefetches.has(normalized)) {
+    return
+  }
+
+  promptAudioPrefetches.add(normalized)
+
+  void api
+    .postBlob('/missions/voice/prompt-audio', { text: normalized })
+    .then((blob) => setCachedPromptAudio(normalized, blob))
+    .catch(() => {
+      // Best-effort: playPromptAudio will fetch live when the learner actually taps play.
+    })
+    .finally(() => promptAudioPrefetches.delete(normalized))
+}
+
 export async function playPromptAudio(text: string, callbacks?: PromptAudioCallbacks) {
   const normalized = text.trim()
   if (!normalized) {
