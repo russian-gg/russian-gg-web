@@ -824,14 +824,23 @@ type PromptAudioCallbacks = {
    * the same line slowly, then at speed, pass it; everything else keeps the preference as-is.
    */
   rate?: number
+  /**
+   * A lesson mascot ("penguin", "panda", "pero") narrating this line, so it comes back in that
+   * character's own voice instead of the learner's. Omit for ordinary, unattributed text.
+   */
+  character?: string
 }
 
-function setCachedPromptAudio(text: string, blob: Blob) {
-  if (promptAudioCache.has(text)) {
-    promptAudioCache.delete(text)
+function promptAudioCacheKey(text: string, character?: string) {
+  return character ? `${character}::${text}` : text
+}
+
+function setCachedPromptAudio(cacheKey: string, blob: Blob) {
+  if (promptAudioCache.has(cacheKey)) {
+    promptAudioCache.delete(cacheKey)
   }
 
-  promptAudioCache.set(text, blob)
+  promptAudioCache.set(cacheKey, blob)
 
   while (promptAudioCache.size > 12) {
     const oldestKey = promptAudioCache.keys().next().value
@@ -855,21 +864,22 @@ const promptAudioPrefetches = new Set<string>()
  * waiting on a live Gemini TTS round trip. Fire-and-forget: failures are swallowed here because
  * playPromptAudio falls back to its own live fetch if the prefetch never lands.
  */
-export function prefetchPromptAudio(text: string) {
+export function prefetchPromptAudio(text: string, character?: string) {
   const normalized = text.trim()
-  if (!normalized || promptAudioCache.has(normalized) || promptAudioPrefetches.has(normalized)) {
+  const cacheKey = promptAudioCacheKey(normalized, character)
+  if (!normalized || promptAudioCache.has(cacheKey) || promptAudioPrefetches.has(cacheKey)) {
     return
   }
 
-  promptAudioPrefetches.add(normalized)
+  promptAudioPrefetches.add(cacheKey)
 
   void api
-    .postBlob('/missions/voice/prompt-audio', { text: normalized })
-    .then((blob) => setCachedPromptAudio(normalized, blob))
+    .postBlob('/missions/voice/prompt-audio', { text: normalized, character })
+    .then((blob) => setCachedPromptAudio(cacheKey, blob))
     .catch(() => {
       // Best-effort: playPromptAudio will fetch live when the learner actually taps play.
     })
-    .finally(() => promptAudioPrefetches.delete(normalized))
+    .finally(() => promptAudioPrefetches.delete(cacheKey))
 }
 
 export async function playPromptAudio(text: string, callbacks?: PromptAudioCallbacks) {
@@ -878,14 +888,17 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
     return
   }
 
+  const cacheKey = promptAudioCacheKey(normalized, callbacks?.character)
+
   callbacks?.onStateChange?.('loading')
   stopPromptAudio()
 
   const audioBlob =
-    promptAudioCache.get(normalized) ?? await api.postBlob('/missions/voice/prompt-audio', { text: normalized })
+    promptAudioCache.get(cacheKey) ??
+    (await api.postBlob('/missions/voice/prompt-audio', { text: normalized, character: callbacks?.character }))
 
-  if (!promptAudioCache.has(normalized)) {
-    setCachedPromptAudio(normalized, audioBlob)
+  if (!promptAudioCache.has(cacheKey)) {
+    setCachedPromptAudio(cacheKey, audioBlob)
   }
 
   const audioUrl = URL.createObjectURL(audioBlob)
