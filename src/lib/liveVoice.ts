@@ -372,11 +372,13 @@ export class LiveVoiceSession {
                  * entirely. It was returning Devanagari for spoken Russian, which then scored
                  * as a failed turn and left the learner repeating themselves.
                  *
-                 * The learner speaks Russian and Russian is what gets scored, so the input is
-                 * pinned to it. The tutor's Uzbek support is generated text, not transcribed,
-                 * so it is unaffected.
+                 * Which language, though, is the server's call: it was written here as Russian
+                 * for every session, so an Uzbek-led lesson opened in Russian and spoke its
+                 * Uzbek with a Russian accent. The mission's language policy decides it now,
+                 * and the pronunciation rules in the system instruction carry the rest — this
+                 * model picks its own language as the conversation goes either way.
                  */
-                languageCode: 'ru-RU',
+                languageCode: this.ticket.languageCode || 'ru-RU',
                 voiceConfig: {
                   prebuiltVoiceConfig: {
                     // The learner's choice, decided on the server. It used to be one name

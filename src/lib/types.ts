@@ -412,6 +412,8 @@ export interface VoiceSessionTicket {
   openingCue: string
   /** The provider voice the learner chose. Decided on the server, opened by the browser. */
   voiceName: string
+  /** Which language the session opens in. Decided on the server from the mission's policy. */
+  languageCode: string
 }
 
 export interface VoiceUnavailable {
