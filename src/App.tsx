@@ -17,7 +17,8 @@ import { FeedbacksPage } from './routes/FeedbacksPage'
 import { Home } from './routes/Home'
 import { Landing } from './routes/Landing'
 import { FoundationLesson } from './routes/FoundationLesson'
-import { MissionPlayer } from './routes/MissionPlayer'
+import { MissionEntry } from './routes/MissionBrief'
+import { MissionLive } from './routes/MissionLive'
 import { MissionResult } from './routes/MissionResult'
 import { Onboarding } from './routes/Onboarding'
 import { BillingReturn, Paywall } from './routes/Paywall'
@@ -66,7 +67,8 @@ export function App() {
           <Route path="/progress" element={<Progress />} />
           <Route path="/feedbacks" element={<FeedbacksPage />} />
           <Route path="/lessons/:day/:missionId" element={<FoundationLesson />} />
-          <Route path="/missions/:missionId" element={<MissionPlayer />} />
+          {/* A converted mission shows its brief here; every other mission opens the player. */}
+          <Route path="/missions/:missionId" element={<MissionEntry />} />
           <Route path="/missions/attempts/:attemptId/result" element={<MissionResult />} />
           <Route path="/paywall" element={<Paywall />} />
           <Route path="/billing/return" element={<BillingReturn />} />
@@ -77,6 +79,9 @@ export function App() {
           <Route path="/settings/billing" element={<Settings />} />
           <Route path="/admin" element={<RequireStaff><AdminContent /></RequireStaff>} />
         </Route>
+
+        {/* The conversation is full screen: nothing should compete with the character. */}
+        <Route path="/missions/:missionId/live" element={<RequireAuth><MissionLive /></RequireAuth>} />
 
         {/* Full screen, outside the shell: a blade rolling at you should not share a page
             with navigation. */}

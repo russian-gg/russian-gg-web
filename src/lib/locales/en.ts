@@ -519,6 +519,45 @@ export const en: Dictionary = {
     mic_failed: 'Could not reach the microphone.',
   },
 
+  missionBrief: {
+    eyebrow: 'A conversation with {character}',
+    goalTitle: 'Goal',
+    timeTitle: 'Time',
+    timeValue: '{count} minutes',
+    passTitle: 'Pass mark',
+    passValue: 'At least {score}%',
+    phrasesTitle: 'Phrases you will need',
+    howTitle: 'How it works',
+    howBody:
+      'Your partner speaks and you answer out loud. The conversation ends when you reach the goal or the time runs out.',
+    start: 'Start the conversation',
+    retryLocked: 'Retry locked',
+    retriesLeft: '{count} attempts left',
+    cooldownTitle: 'A short wait',
+    cooldownBody:
+      'You can try this conversation again in {time}. Until then you can move on to the next mission.',
+    cooldownOk: 'Got it',
+    failedBody: 'You scored {score}%. You need at least {pass}% to pass.',
+  },
+
+  missionLive: {
+    connecting: 'Connecting…',
+    listening: 'Speak',
+    talking: 'Listen',
+    thinking: 'Thinking…',
+    goalReached: 'Goal reached!',
+    timeLeft: 'Time left: {time}',
+    beat: '{current}/{total}',
+    mute: 'Mute the microphone',
+    unmute: 'Unmute the microphone',
+    finish: 'Finish',
+    leave: 'Leave',
+    orbLabel: 'Voice conversation with {character}',
+    unavailable: 'Voice conversation is unavailable right now. Please try later.',
+    startFailed: 'We could not start the conversation. Please try again.',
+    characters: { Penguin: 'Penguin', Panda: 'Panda', Pero: 'Pero', None: 'AI tutor' },
+  },
+
   player: {
     missionLength: 'This exercise takes about {count} minutes.',
     voiceTimeLeft: 'Voice time: {time}',
@@ -602,6 +641,11 @@ export const en: Dictionary = {
   },
 
   result: {
+    notPassed: 'Not passed',
+    notPassedBody: 'You need at least 80% to finish the conversation. Give it another go.',
+    retryNow: 'Try again',
+    retryIn: 'You can retry in {time}',
+    nextMission: 'Next mission',
     preparing: 'Preparing your result',
     completed: 'Lesson complete',
     milestoneUnlocked: 'Day {day} milestone unlocked',

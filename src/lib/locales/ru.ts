@@ -525,6 +525,45 @@ export const ru: Dictionary = {
     mic_failed: 'Не удалось подключиться к микрофону.',
   },
 
+  missionBrief: {
+    eyebrow: 'Разговор с {character}',
+    goalTitle: 'Цель',
+    timeTitle: 'Время',
+    timeValue: '{count} минут',
+    passTitle: 'Проходной балл',
+    passValue: 'Не менее {score}%',
+    phrasesTitle: 'Фразы, которые понадобятся',
+    howTitle: 'Как это работает',
+    howBody:
+      'Собеседник говорит — вы отвечаете голосом. Разговор закончится, когда цель достигнута или время вышло.',
+    start: 'Начать разговор',
+    retryLocked: 'Повтор пока закрыт',
+    retriesLeft: 'Осталось попыток: {count}',
+    cooldownTitle: 'Нужно подождать',
+    cooldownBody:
+      'Повторить этот разговор можно через {time}. А пока можно перейти к следующей миссии.',
+    cooldownOk: 'Понятно',
+    failedBody: 'Ваш результат {score}%. Для прохождения нужно минимум {pass}%.',
+  },
+
+  missionLive: {
+    connecting: 'Соединяем…',
+    listening: 'Говорите',
+    talking: 'Слушайте',
+    thinking: 'Думает…',
+    goalReached: 'Цель достигнута!',
+    timeLeft: 'Осталось: {time}',
+    beat: '{current}/{total}',
+    mute: 'Выключить микрофон',
+    unmute: 'Включить микрофон',
+    finish: 'Завершить',
+    leave: 'Выйти',
+    orbLabel: 'Голосовой разговор с {character}',
+    unavailable: 'Голосовой разговор сейчас недоступен. Попробуйте позже.',
+    startFailed: 'Не удалось начать разговор. Попробуйте ещё раз.',
+    characters: { Penguin: 'Пингвин', Panda: 'Панда', Pero: 'Перо', None: 'ИИ-наставник' },
+  },
+
   player: {
     micPermissionTitle: 'Разрешите доступ к микрофону',
     micPermissionBody:
@@ -612,6 +651,11 @@ export const ru: Dictionary = {
   },
 
   result: {
+    notPassed: 'Не пройдено',
+    notPassedBody: 'Чтобы засчитать разговор, нужно минимум 80%. Попробуйте ещё раз.',
+    retryNow: 'Попробовать снова',
+    retryIn: 'Повтор через {time}',
+    nextMission: 'Следующая миссия',
     preparing: 'Готовим результат',
     completed: 'Занятие выполнено',
     milestoneUnlocked: 'Открыт этап дня {day}',

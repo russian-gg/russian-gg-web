@@ -903,20 +903,48 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
 
   const cacheKey = promptAudioCacheKey(normalized, callbacks?.character)
 
-  callbacks?.onStateChange?.('loading')
-  stopPromptAudio()
-
   // A parallel warmup (RuleSpeechButton fires every segment's request at once) may already be
   // in flight for this exact text+voice — wait on that instead of asking Gemini for it twice.
   const inFlight = promptAudioPrefetches.get(cacheKey)
-  if (inFlight) {
-    await inFlight
-  }
 
-  const audioBlob =
-    promptAudioCache.get(cacheKey) ??
-    (await api.postBlob('/missions/voice/prompt-audio', { text: normalized, character: callbacks?.character }))
+  await playCachedAudio(cacheKey, callbacks, async () => {
+    if (inFlight) {
+      await inFlight
+    }
 
+    return (
+      promptAudioCache.get(cacheKey) ??
+      (await api.postBlob('/missions/voice/prompt-audio', { text: normalized, character: callbacks?.character }))
+    )
+  })
+}
+
+/**
+ * Plays one of the landing page's three fixed character quotes in that mascot's own voice.
+ * Anonymous-safe: the request carries only the character key, never text — the server resolves
+ * which line to say (LandingVoiceService), so this can never become a free-form TTS call.
+ */
+export async function playLandingCharacterVoice(character: string, callbacks?: PromptAudioCallbacks) {
+  const cacheKey = `landing::${character}`
+
+  await playCachedAudio(
+    cacheKey,
+    callbacks,
+    async () => promptAudioCache.get(cacheKey) ?? (await api.postBlob('/landing/voice/prompt-audio', { character })),
+  )
+}
+
+/** Shared by playPromptAudio and playLandingCharacterVoice: resolve one cached audio blob, then
+ * own the single module-level Audio element (start/stop/pause/resume) that plays it. */
+async function playCachedAudio(
+  cacheKey: string,
+  callbacks: PromptAudioCallbacks | undefined,
+  resolveBlob: () => Promise<Blob>,
+) {
+  callbacks?.onStateChange?.('loading')
+  stopPromptAudio()
+
+  const audioBlob = await resolveBlob()
   if (!promptAudioCache.has(cacheKey)) {
     setCachedPromptAudio(cacheKey, audioBlob)
   }
@@ -928,7 +956,7 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
   audio.muted = preferences.muted
   promptAudio = audio
   promptAudioUrl = audioUrl
-  promptAudioText = normalized
+  promptAudioText = cacheKey
 
   audio.onended = () => {
     callbacks?.onStateChange?.('idle')

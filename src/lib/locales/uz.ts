@@ -527,6 +527,45 @@ export const uz = {
     mic_failed: "Mikrofonga ulanib bo'lmadi.",
   },
 
+  missionBrief: {
+    eyebrow: "{character} bilan suhbat",
+    goalTitle: "Maqsad",
+    timeTitle: "Vaqt",
+    timeValue: "{count} daqiqa",
+    passTitle: "O'tish bali",
+    passValue: "Kamida {score}%",
+    phrasesTitle: "Kerak bo'ladigan iboralar",
+    howTitle: "Qanday ishlaydi",
+    howBody:
+      "Sherigingiz gapiradi — siz ovoz bilan javob berasiz. Maqsadga yetganingizda yoki vaqt tugaganda suhbat yakunlanadi.",
+    start: "Suhbatni boshlash",
+    retryLocked: "Qayta urinish yopiq",
+    retriesLeft: "Yana {count} ta urinish qoldi",
+    cooldownTitle: "Biroz kuting",
+    cooldownBody:
+      "Bu suhbatni {time} dan so'ng qayta boshlashingiz mumkin. Shu vaqt ichida keyingi missiyaga o'tsangiz bo'ladi.",
+    cooldownOk: "Tushunarli",
+    failedBody: "Sizning balingiz {score}%. O'tish uchun kamida {pass}% kerak.",
+  },
+
+  missionLive: {
+    connecting: "Ulanmoqda…",
+    listening: "Gapiring",
+    talking: "Tinglang",
+    thinking: "O'ylanmoqda…",
+    goalReached: "Maqsadga yetdingiz!",
+    timeLeft: "Qolgan vaqt: {time}",
+    beat: "{current}/{total}",
+    mute: "Mikrofonni o'chirish",
+    unmute: "Mikrofonni yoqish",
+    finish: "Yakunlash",
+    leave: "Chiqish",
+    orbLabel: "{character} bilan ovozli suhbat",
+    unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
+    startFailed: "Suhbatni boshlab bo'lmadi. Qayta urinib ko'ring.",
+    characters: { Penguin: "Pingvin", Panda: "Panda", Pero: "Pero", None: "AI ustoz" },
+  },
+
   player: {
     missionLength: 'Bu mashq taxminan {count} daqiqa.',
     voiceTimeLeft: 'Ovozli vaqt: {time}',
@@ -613,6 +652,11 @@ export const uz = {
   },
 
   result: {
+    notPassed: "Yakunlanmadi",
+    notPassedBody: "Suhbatni yakunlash uchun kamida 80% kerak. Yana bir bor urinib ko'ring.",
+    retryNow: "Qayta urinish",
+    retryIn: "Qayta urinish {time} dan so'ng",
+    nextMission: "Keyingi missiya",
     preparing: 'Natija tayyorlanmoqda',
     completed: 'Mashq bajarildi',
     milestoneUnlocked: '{day}-kun bosqichi ochildi',

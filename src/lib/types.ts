@@ -148,6 +148,39 @@ export interface DiagnosticPreview {
   items: DiagnosticItemView[]
 }
 
+export type MissionCharacter = 'None' | 'Penguin' | 'Panda' | 'Pero'
+
+/** One exchange of a dialogue mission: the character's line and the answer it listens for. */
+export interface DialogueBeatView {
+  order: number
+  characterLine: string
+  expectedAnswer?: string | null
+  hintUz?: string | null
+}
+
+/**
+ * Why a mission cannot be opened right now. A learner gets one immediate retry after a failed
+ * conversation; the next one waits, because every attempt costs live voice minutes.
+ */
+export interface MissionRetryState {
+  canStart: boolean
+  retryAvailableAt?: string | null
+  failedAttempts: number
+  immediateRetriesLeft: number
+}
+
+/** Present only on dialogue missions; the older step-based ones leave it null. */
+export interface MissionDialogueView {
+  character: MissionCharacter
+  goalUz?: string | null
+  goalRu?: string | null
+  conversationSeconds: number
+  passScore: number
+  beats: DialogueBeatView[]
+  vocabulary: string[]
+  retry: MissionRetryState
+}
+
 export interface MissionSummary {
   id: string
   slug: string
@@ -173,6 +206,8 @@ export interface MissionSummary {
   /** What the learner will be able to say, taken from the target phrases themselves. */
   learningPointsUz: string[]
   hasVoiceStep: boolean
+  /** True when this mission is one continuous conversation rather than a list of steps. */
+  isDialogue?: boolean
 }
 
 export interface TargetPhraseView {
@@ -204,6 +239,8 @@ export interface MissionDetail {
   maxVoiceMinutes: number
   targetPhrases: TargetPhraseView[]
   steps: MissionStepView[]
+  /** Set only on converted missions; the step-based ones leave it null. */
+  dialogue?: MissionDialogueView | null
 }
 
 export interface StartAttemptResponse {
@@ -223,6 +260,10 @@ export interface TurnFeedback {
   pronunciationNote?: string | null
   canAdvance: boolean
   nextStepIndex: number
+  /** Running score across the whole conversation. Dialogue missions only. */
+  conversationScore?: number | null
+  /** True once every beat has been answered well enough to pass. */
+  goalReached?: boolean
 }
 
 export interface VoiceNoteTurnFeedback {
@@ -258,6 +299,8 @@ export interface MilestoneView {
 
 export interface MissionResult {
   attemptId: string
+  /** The mission this run belongs to, so a failed attempt can offer another go. */
+  missionId: string
   overallScore: number
   strengthNoteUz: string
   headlineFeedbackUz: string
@@ -267,6 +310,10 @@ export interface MissionResult {
   newCurrentDay?: number | null
   unlockedMilestone?: MilestoneView | null
   enrichmentPending: boolean
+  /** False when a dialogue mission fell short of its pass mark. */
+  passed?: boolean
+  /** Present on a run that did not pass: when the learner may try again. */
+  retry?: MissionRetryState | null
 }
 
 export interface RepairSuggestion {
