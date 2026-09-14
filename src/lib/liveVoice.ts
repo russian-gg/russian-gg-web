@@ -857,29 +857,42 @@ export function isPromptAudioPlaying(text?: string) {
   return text ? promptAudioText === text.trim() : true
 }
 
-const promptAudioPrefetches = new Set<string>()
+// Keyed by cache key, not just text: two segments can share text but not voice. Storing the
+// in-flight promise (not just a flag) lets playPromptAudio await the same request instead of
+// firing a duplicate one when a segment it was told to play is already being warmed up.
+const promptAudioPrefetches = new Map<string, Promise<void>>()
 
 /**
  * Best-effort warmup so the "Listen" button usually finds the audio already cached instead of
- * waiting on a live Gemini TTS round trip. Fire-and-forget: failures are swallowed here because
- * playPromptAudio falls back to its own live fetch if the prefetch never lands.
+ * waiting on a live Gemini TTS round trip. Failures are swallowed here because playPromptAudio
+ * falls back to its own live fetch if the prefetch never lands.
  */
-export function prefetchPromptAudio(text: string, character?: string) {
+export function prefetchPromptAudio(text: string, character?: string): Promise<void> {
   const normalized = text.trim()
-  const cacheKey = promptAudioCacheKey(normalized, character)
-  if (!normalized || promptAudioCache.has(cacheKey) || promptAudioPrefetches.has(cacheKey)) {
-    return
+  if (!normalized) {
+    return Promise.resolve()
   }
 
-  promptAudioPrefetches.add(cacheKey)
+  const cacheKey = promptAudioCacheKey(normalized, character)
+  const inFlight = promptAudioPrefetches.get(cacheKey)
+  if (inFlight) {
+    return inFlight
+  }
 
-  void api
+  if (promptAudioCache.has(cacheKey)) {
+    return Promise.resolve()
+  }
+
+  const request = api
     .postBlob('/missions/voice/prompt-audio', { text: normalized, character })
     .then((blob) => setCachedPromptAudio(cacheKey, blob))
     .catch(() => {
       // Best-effort: playPromptAudio will fetch live when the learner actually taps play.
     })
     .finally(() => promptAudioPrefetches.delete(cacheKey))
+
+  promptAudioPrefetches.set(cacheKey, request)
+  return request
 }
 
 export async function playPromptAudio(text: string, callbacks?: PromptAudioCallbacks) {
@@ -892,6 +905,13 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
 
   callbacks?.onStateChange?.('loading')
   stopPromptAudio()
+
+  // A parallel warmup (RuleSpeechButton fires every segment's request at once) may already be
+  // in flight for this exact text+voice — wait on that instead of asking Gemini for it twice.
+  const inFlight = promptAudioPrefetches.get(cacheKey)
+  if (inFlight) {
+    await inFlight
+  }
 
   const audioBlob =
     promptAudioCache.get(cacheKey) ??
