@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
-import { characterColors, characterName } from '../lib/character'
+import { characterColors, characterName, characterPalette } from '../lib/character'
 import { fill, useT } from '../lib/i18n'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { LiveVoiceStatus } from '../lib/liveVoice'
@@ -64,6 +64,7 @@ export function MissionLive() {
   const beats = mission?.dialogue?.beats ?? []
   const character = mission?.dialogue?.character ?? 'None'
   const colors = characterColors(character)
+  const palette = characterPalette(character)
   const name = characterName(character, t)
 
   /** Ends the conversation the same way whatever stopped it: time, goal, or the learner. */
@@ -263,53 +264,102 @@ export function MissionLive() {
           : status === 'listening'
             ? copy.listening
             : copy.talking
-        : copy.listening
+        : ''
+
+  const started = phase === 'live' || phase === 'connecting' || phase === 'finishing'
+  const lowOnTime = secondsLeft !== null && secondsLeft <= 30
 
   return (
-    <div className="flex min-h-dvh flex-col bg-ground-sunken px-4 py-5">
+    <div
+      className="flex min-h-dvh flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+      style={{
+        // The character's own light, thrown from behind the sphere.
+        background: `radial-gradient(115% 70% at 50% 18%, ${palette.light}24 0%, var(--color-ground-sunken) 58%)`,
+      }}
+    >
       <header className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => void finish()} className="text-sm font-semibold text-ink-muted">
+        <button
+          type="button"
+          onClick={() => void finish()}
+          className="-ml-1 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-2 text-sm font-semibold text-ink-muted transition-colors hover:text-ink"
+        >
+          <BackGlyph />
           {copy.leave}
         </button>
-        {secondsLeft !== null && (
-          <span className="text-sm font-bold tabular-nums text-ink">
-            {fill(copy.timeLeft, { time: formatClock(secondsLeft) })}
+
+        {secondsLeft !== null && started && (
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border px-3 py-1.5 text-sm font-extrabold tabular-nums transition-colors ${
+              lowOnTime
+                ? 'border-caution/40 bg-caution-soft text-caution'
+                : 'border-hairline bg-ground-raised/80 text-ink'
+            }`}
+            aria-label={fill(copy.timeLeft, { time: formatClock(secondsLeft) })}
+          >
+            <ClockGlyph />
+            {formatClock(secondsLeft)}
           </span>
         )}
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <CharacterOrb
-          colors={colors}
-          agentState={orbState}
-          manualInput={orbState === 'listening' ? 0.5 : 0.1}
-          manualOutput={orbState === 'talking' ? 0.65 : 0.1}
-          label={fill(copy.orbLabel, { character: name })}
-        />
+      <div className="flex flex-1 flex-col items-center justify-center gap-7 py-6">
+        <div className="relative grid place-items-center">
+          <CharacterOrb
+            colors={colors}
+            agentState={orbState}
+            manualInput={orbState === 'listening' ? 0.5 : 0.1}
+            manualOutput={orbState === 'talking' ? 0.65 : 0.1}
+            label={fill(copy.orbLabel, { character: name })}
+          />
+        </div>
 
-        <p className="text-lg font-extrabold text-ink" aria-live="polite">
-          {caption}
-        </p>
-
-        {mission.dialogue.goalUz && (
-          <p className="max-w-sm text-center text-sm text-ink-muted">{mission.dialogue.goalUz}</p>
-        )}
-
-        {beats.length > 0 && (
-          <p className="text-xs font-bold tracking-[0.14em] text-ink-faint uppercase">
-            {fill(copy.beat, { current: Math.min(beatIndex + 1, beats.length), total: beats.length })}
+        <div className="flex min-h-16 flex-col items-center gap-2 text-center">
+          <p
+            className={`text-xl font-extrabold tracking-tight transition-colors ${
+              goalReached ? 'text-milestone' : 'text-ink'
+            }`}
+            aria-live="polite"
+          >
+            {caption || name}
           </p>
+
+          {mission.dialogue.goalUz && !goalReached && (
+            <p className="max-w-sm text-sm leading-relaxed text-ink-muted">{mission.dialogue.goalUz}</p>
+          )}
+        </div>
+
+        {/* How far through the scene, without putting the script on screen to be read. */}
+        {beats.length > 0 && started && (
+          <div
+            className="flex items-center gap-1.5"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={beats.length}
+            aria-valuenow={Math.min(beatIndex + 1, beats.length)}
+            aria-label={fill(copy.beat, { current: Math.min(beatIndex + 1, beats.length), total: beats.length })}
+          >
+            {beats.map((beat, index) => (
+              <span
+                key={beat.order}
+                className="h-1.5 rounded-full transition-all duration-300"
+                style={{
+                  width: index === beatIndex ? '1.75rem' : '0.5rem',
+                  background: index <= beatIndex ? palette.light : 'var(--color-hairline)',
+                }}
+              />
+            ))}
+          </div>
         )}
 
-        {error && <ErrorNote>{error}</ErrorNote>}
+        {error && (
+          <div className="w-full max-w-sm">
+            <ErrorNote>{error}</ErrorNote>
+          </div>
+        )}
       </div>
 
-      <footer className="flex items-center justify-center gap-3 pb-[env(safe-area-inset-bottom)]">
-        {phase === 'ready' || phase === 'unavailable' ? (
-          <Button size="lg" onClick={() => void connect()} disabled={phase === 'unavailable'}>
-            {copy.listening}
-          </Button>
-        ) : (
+      <footer className="flex items-center justify-center gap-3">
+        {started ? (
           <>
             <Button variant="secondary" onClick={toggleMute} disabled={phase !== 'live'}>
               {muted ? copy.unmute : copy.mute}
@@ -318,6 +368,10 @@ export function MissionLive() {
               {copy.finish}
             </Button>
           </>
+        ) : (
+          <Button size="lg" block className="max-w-sm" onClick={() => void connect()}>
+            {t.missionBrief.start}
+          </Button>
         )}
       </footer>
     </div>
@@ -328,4 +382,21 @@ function formatClock(seconds: number) {
   const minutes = Math.floor(Math.max(0, seconds) / 60)
   const rest = Math.max(0, seconds) % 60
   return `${minutes}:${String(rest).padStart(2, '0')}`
+}
+
+function BackGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
+  )
+}
+
+function ClockGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 1.8" />
+    </svg>
+  )
 }
