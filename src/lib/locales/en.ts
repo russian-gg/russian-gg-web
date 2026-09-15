@@ -474,9 +474,10 @@ export const en: Dictionary = {
       'The conversations and phrases you need during the day, learned quickly through tasks.',
     empty: 'No tasks yet',
     emptyBody: 'Carry on with the 90-day path — tasks are being prepared.',
-    other: 'Other tasks',
-    details: 'Details',
     start: 'Start',
+    bestScore: 'Best score: {score}%',
+    passMark: 'Pass mark: {score}%',
+    notTried: 'Not tried yet',
   },
 
   tests: {

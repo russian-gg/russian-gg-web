@@ -480,9 +480,10 @@ export const uz = {
       "oson va tez o'rganing.",
     empty: "Hozircha topshiriq yo'q",
     emptyBody: "90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda.",
-    other: 'Boshqa mashqlar',
-    details: 'Batafsil',
     start: 'Bajarish',
+    bestScore: 'Eng yaxshi natija: {score}%',
+    passMark: "O'tish bali: {score}%",
+    notTried: 'Hali urinilmagan',
   },
 
   tests: {

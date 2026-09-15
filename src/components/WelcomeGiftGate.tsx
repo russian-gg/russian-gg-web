@@ -16,6 +16,14 @@ type Phase = 'choosing' | 'opening' | 'revealed'
 const MIN_OPENING_MS = 1400
 // Pause between hover wiggles while the pointer stays on a box.
 const HOVER_SHAKE_PAUSE_MS = 700
+/**
+ * Phones and tablets have no hover, so the boxes take turns wiggling on their own instead. The
+ * width cap keeps touchscreen laptops on the hover behaviour. The first wiggle waits for the boxes
+ * to finish tumbling in.
+ */
+const TOUCH_QUERY = '(hover: none) and (pointer: coarse) and (max-width: 1024px)'
+const TOUCH_FIRST_SHAKE_MS = 1300
+const TOUCH_SHAKE_PAUSE_MS = 1400
 
 type Ribbon = { edge: string; shine: string; face: string; deep: string; line: string; fold: string; tail: string }
 type BoxWrap = {
@@ -144,6 +152,7 @@ export function WelcomeGiftGate() {
   const [shakingBox, setShakingBox] = useState<number | null>(null)
   const hoveredBoxRef = useRef<number | null>(null)
   const shakeTimerRef = useRef<number | undefined>(undefined)
+  const [touchOnly, setTouchOnly] = useState(() => window.matchMedia(TOUCH_QUERY).matches)
 
   const isProtectedPage = !['/', '/signin', '/signup', '/onboarding'].includes(location.pathname)
   const enabled = Boolean(user?.hasCompletedDiagnostic && isProtectedPage)
@@ -176,6 +185,24 @@ export function WelcomeGiftGate() {
 
   useEffect(() => () => window.clearTimeout(shakeTimerRef.current), [])
 
+  // Rotating a tablet can cross the width cap, so follow the query instead of reading it once.
+  useEffect(() => {
+    const query = window.matchMedia(TOUCH_QUERY)
+    const update = () => setTouchOnly(query.matches)
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+
+  // Starts the take-turns wiggle on touch screens; queueNextShake passes it along from box to box.
+  useEffect(() => {
+    if (!touchOnly || !visible || phase !== 'choosing') return
+    shakeTimerRef.current = window.setTimeout(() => setShakingBox(1), TOUCH_FIRST_SHAKE_MS)
+    return () => {
+      window.clearTimeout(shakeTimerRef.current)
+      setShakingBox(null)
+    }
+  }, [touchOnly, visible, phase])
+
   const prizeText = useMemo(() => {
     if (!reward) return ''
     return reward.bonusFreeDays > 0
@@ -196,21 +223,30 @@ export function WelcomeGiftGate() {
 
   if (!visible) return null
 
+  // A tap also fires pointerenter/leave; on touch screens they would break the take-turns cycle.
   function startHoverShake(box: number) {
+    if (touchOnly) return
     hoveredBoxRef.current = box
     window.clearTimeout(shakeTimerRef.current)
     setShakingBox(box)
   }
 
   function stopHoverShake() {
+    if (touchOnly) return
     hoveredBoxRef.current = null
     window.clearTimeout(shakeTimerRef.current)
     setShakingBox(null)
   }
 
-  // Each wiggle plays once; while the box is still hovered, queue the next one after a pause.
+  // Each wiggle plays once. On touch screens the next box takes its turn after a pause; with a
+  // mouse the same box wiggles again while it is still hovered.
   function queueNextShake(box: number) {
     setShakingBox(null)
+    window.clearTimeout(shakeTimerRef.current)
+    if (touchOnly) {
+      shakeTimerRef.current = window.setTimeout(() => setShakingBox((box % 3) + 1), TOUCH_SHAKE_PAUSE_MS)
+      return
+    }
     shakeTimerRef.current = window.setTimeout(() => {
       if (hoveredBoxRef.current === box) setShakingBox(box)
     }, HOVER_SHAKE_PAUSE_MS)
@@ -248,7 +284,7 @@ export function WelcomeGiftGate() {
   }
 
   return (
-    <div className={`welcome-gift-overlay welcome-gift-${phase}`} role="dialog" aria-modal="true" aria-labelledby="welcome-gift-title">
+    <div className={`welcome-gift-overlay welcome-gift-${phase}${touchOnly ? ' welcome-gift-touch' : ''}`} role="dialog" aria-modal="true" aria-labelledby="welcome-gift-title">
       <div className="welcome-gift-glow" aria-hidden="true" />
 
       <div className="welcome-gift-ambient" aria-hidden="true">
@@ -295,7 +331,7 @@ export function WelcomeGiftGate() {
                 onPointerEnter={() => startHoverShake(box)}
                 onPointerLeave={stopHoverShake}
                 onAnimationEnd={(event) => {
-                  if (event.animationName === 'welcome-wiggle') queueNextShake(box)
+                  if (event.animationName === 'welcome-wiggle' || event.animationName === 'welcome-wiggle-soft') queueNextShake(box)
                 }}
               >
                 {isChosen && phase === 'revealed' && (
@@ -488,7 +524,9 @@ const welcomeGiftStyles = `
   .welcome-gift-panel h2{position:relative;z-index:2;margin:14px 0 5px;color:#111827;font-size:clamp(28px,5vw,42px);font-weight:900;letter-spacing:-.035em}
   .welcome-gift-panel>p{position:relative;z-index:2;margin:0 auto;max-width:500px;color:#64748b;font-size:16px;line-height:1.55}
 
-  .welcome-boxes{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:clamp(10px,4vw,34px);min-height:215px;margin-top:18px}
+  .welcome-boxes{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:clamp(10px,4vw,34px);margin-top:10px}
+  /* Once a box is chosen it is positioned absolutely, so the row needs a height of its own. */
+  .welcome-gift-opening .welcome-boxes{min-height:215px}
   .welcome-gift-revealed .welcome-boxes{min-height:300px}
   .welcome-box-wrap{position:relative;width:150px;padding:0;border:0;background:transparent;cursor:pointer;transform-origin:50% 100%;animation:welcome-box-mix .9s cubic-bezier(.17,.86,.37,1.12) both}
   .welcome-box-wrap:nth-child(2){animation-delay:.12s}.welcome-box-wrap:nth-child(3){animation-delay:.24s}
@@ -503,7 +541,11 @@ const welcomeGiftStyles = `
   .welcome-box-art{display:block;width:100%;height:auto;overflow:visible;transform-origin:50% 92%;animation:welcome-idle 2.8s ease-in-out infinite}
   .welcome-box-wrap:nth-child(2) .welcome-box-art{animation-delay:-.9s}.welcome-box-wrap:nth-child(3) .welcome-box-art{animation-delay:-1.8s}
   .welcome-box-wrap:not(:disabled):hover .welcome-box-art{animation:none}
-  .welcome-box-wrap.is-shaking:not(:disabled) .welcome-box-art{animation:welcome-wiggle .55s ease-in-out}
+  .welcome-gift-overlay:not(.welcome-gift-touch) .welcome-box-wrap.is-shaking:not(:disabled) .welcome-box-art{animation:welcome-wiggle .55s ease-in-out}
+  /* Touch: the idle float keeps running on the art, and a softer wiggle rides on top of it via the
+     standalone rotate/scale/translate properties, so neither animation snaps the box into place. */
+  .welcome-gift-touch .welcome-box-wrap.is-shaking:not(:disabled) .welcome-box{transform-origin:50% 92%;animation:welcome-wiggle-soft .95s cubic-bezier(.37,0,.63,1)}
+  .welcome-gift-touch .welcome-box-wrap.is-shaking:not(:disabled) .welcome-box-light{opacity:.8;scale:1.08}
   .welcome-box-lid{transform-box:view-box;transform-origin:80px 90px}
   .welcome-box-glow,.welcome-box-seam{opacity:0}
   .welcome-box-twinkle{transform-box:fill-box;transform-origin:center;animation:welcome-twinkle 2.4s ease-in-out infinite}
@@ -560,6 +602,7 @@ const welcomeGiftStyles = `
   @keyframes welcome-idle{0%,100%{transform:none}50%{transform:translateY(-5px) rotate(-1.2deg)}}
   @keyframes welcome-light-pulse{0%,100%{transform:translate(-50%,-50%) scale(.92)}50%{transform:translate(-50%,-50%) scale(1.04)}}
   @keyframes welcome-wiggle{0%,100%{transform:none}25%{transform:rotate(-5deg) scale(1.03)}50%{transform:rotate(4deg) scale(1.05)}75%{transform:rotate(-2deg) scale(1.03)}}
+  @keyframes welcome-wiggle-soft{0%,100%{rotate:0deg;scale:1;translate:0 0}14%{rotate:-4deg;scale:1.04;translate:0 -4px}30%{rotate:3.5deg;scale:1.05;translate:0 -5px}48%{rotate:-2.5deg;scale:1.04;translate:0 -4px}66%{rotate:1.5deg;scale:1.02;translate:0 -2px}83%{rotate:-.5deg;scale:1.01;translate:0 -1px}}
   @keyframes welcome-charge{0%{transform:none}70%{transform:translateY(-6px) scale(1.06,1.03)}100%{transform:translateY(-10px) scale(1.1,1.05)}}
   @keyframes welcome-rumble-build{0%{transform:none}8%{transform:translate(-1px,0) rotate(-1.5deg)}16%{transform:translate(1px,-1px) rotate(1.5deg)}24%{transform:translate(-2px,0) rotate(-3deg)}32%{transform:translate(2px,-1px) rotate(3deg)}40%{transform:translate(-3px,0) rotate(-4.5deg)}48%{transform:translate(3px,-2px) rotate(4.5deg)}56%{transform:translate(-4px,0) rotate(-6deg)}64%{transform:translate(4px,-2px) rotate(6deg)}72%{transform:translate(-5px,-1px) rotate(-7.5deg)}80%{transform:translate(5px,-3px) rotate(7.5deg)}88%{transform:translate(-6px,-1px) rotate(-9deg)}94%{transform:translate(6px,-3px) rotate(9deg)}100%{transform:translate(0,-2px)}}
   @keyframes welcome-rumble-peak{0%,100%{transform:translate(-5px,-1px) rotate(-8deg)}50%{transform:translate(5px,-3px) rotate(8deg)}}
@@ -587,7 +630,8 @@ const welcomeGiftStyles = `
     .welcome-gift-overlay{padding:12px}
     .welcome-gift-panel{padding:28px 12px 22px;border-radius:27px}
     .welcome-gift-panel>p{padding:0 12px;font-size:14px}
-    .welcome-boxes{gap:4px;min-height:210px}
+    .welcome-boxes{gap:4px}
+    .welcome-gift-opening .welcome-boxes{min-height:190px}
     .welcome-gift-revealed .welcome-boxes{min-height:270px}
     .welcome-box-wrap{width:31vw;max-width:126px}
     .welcome-gift-opening .is-selected,.welcome-gift-revealed .is-selected{transform:translateX(-50%) scale(1.12)}

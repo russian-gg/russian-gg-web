@@ -5,9 +5,7 @@ import { TOPIC_ORDER } from '../lib/format'
 import { useT } from '../lib/i18n'
 import type { EntitlementView, MissionSummary, MissionTopic } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
-
-type Situation = Exclude<MissionTopic, 'Unset'>
+import { EmptyState, LinkButton, Spinner } from '../components/ui'
 
 export function Practice() {
   const t = useT()
@@ -21,37 +19,21 @@ export function Practice() {
   })
 
   /*
-   * Grouped, not filtered. Most situations hold one or two missions, so a filter row costs a
-   * tap and a decision to reveal a single card — the whole library fits on one screen, and
-   * seeing every situation at once is what tells the learner what the product covers.
+   * One list, still in situation order, but without a heading per situation: every card
+   * carries its own title, and most situations held a single card under a heading that only
+   * repeated it. Untagged missions go last. The sort is stable, so the server's order holds
+   * inside a situation.
    */
-  const groups = useMemo(() => {
+  const missions = useMemo(() => {
     if (!data) return []
 
-    const byTopic = new Map<Situation, MissionSummary[]>()
-    const untagged: MissionSummary[] = []
-
-    for (const mission of data) {
-      if (mission.topic === 'Unset') {
-        untagged.push(mission)
-        continue
-      }
-
-      const bucket = byTopic.get(mission.topic)
-      if (bucket) bucket.push(mission)
-      else byTopic.set(mission.topic, [mission])
+    const rank = (topic: MissionTopic) => {
+      const index = topic === 'Unset' ? -1 : TOPIC_ORDER.indexOf(topic)
+      return index < 0 ? TOPIC_ORDER.length : index
     }
 
-    const ordered = TOPIC_ORDER.filter((topic) => byTopic.has(topic)).map((topic) => ({
-      key: topic as string,
-      label: t.labels.topic[topic],
-      missions: byTopic.get(topic)!,
-    }))
-
-    return untagged.length > 0
-      ? [...ordered, { key: 'other', label: t.practice.other, missions: untagged }]
-      : ordered
-  }, [data, t])
+    return [...data].sort((a, b) => rank(a.topic) - rank(b.topic))
+  }, [data])
 
   return (
     <div className="space-y-10">
@@ -66,7 +48,7 @@ export function Practice() {
 
       {isLoading && <Spinner />}
 
-      {data && groups.length === 0 && (
+      {data && missions.length === 0 && (
         <EmptyState
           title={t.practice.empty}
           body={t.practice.emptyBody}
@@ -74,20 +56,17 @@ export function Practice() {
         />
       )}
 
-      {groups.map((group) => (
-        <section key={group.key}>
-          <SectionHeading>{group.label}</SectionHeading>
-          <div className="grid gap-3 lg:grid-cols-3">
-            {group.missions.map((mission) => (
-              <MissionCard
-                key={mission.id}
-                mission={mission}
-                showFreeLabel={entitlement?.hasProAccess === false}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      {missions.length > 0 && (
+        <div className="grid gap-3 lg:grid-cols-3">
+          {missions.map((mission) => (
+            <MissionCard
+              key={mission.id}
+              mission={mission}
+              showFreeLabel={entitlement?.hasProAccess === false}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
