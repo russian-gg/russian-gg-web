@@ -11,6 +11,7 @@ import {
   VoiceError,
   isPromptAudioPlaying,
   playPromptAudio,
+  prefetchPromptAudio,
   releaseMicrophone,
   requestMicrophone,
   stopPromptAudio,
@@ -319,6 +320,25 @@ export function MissionPlayer() {
     return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasLiveSession, secondsLeft])
+
+  /**
+   * Warms the TTS cache for the step on screen, so tapping "Listen" usually finds the audio
+   * already fetched instead of waiting on a live Gemini round trip.
+   */
+  useEffect(() => {
+    if (!mission || !mission.steps.length) return
+
+    const steps = mission.steps
+    const currentStep = steps[stepIndex] ?? steps[Math.max(0, Math.min(stepIndex, steps.length - 1))]
+    const text =
+      currentStep?.kind === 'PhraseIntro'
+        ? mission.targetPhrases.map((phrase) => phrase.russian).join('. ')
+        : currentStep?.promptRu ?? mission.summary?.titleRu
+
+    if (text) {
+      prefetchPromptAudio(text)
+    }
+  }, [mission, stepIndex])
 
   if (isLoading) return <Spinner />
 

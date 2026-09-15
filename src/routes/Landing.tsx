@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { LinkButton } from '../components/ui'
 import { ProductPreview, ReelThumb } from '../components/landing/visuals'
 import { cx } from '../lib/cx'
 import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
+import { playLandingCharacterVoice } from '../lib/liveVoice'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
 
 /**
@@ -243,6 +245,7 @@ function Characters() {
 
 function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }) {
   const t = useT().landing.characters
+  const { locale } = useLocale()
   const name = t.names[character.key]
   const { quote, caption } = t[character.key]
   const isProblem = character.status === 'problem'
@@ -281,7 +284,7 @@ function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }
             <span className="text-xs font-semibold text-white/80">
               {t.voicePrefix}: {name}
             </span>
-            <ListenButton label={t.listen} text={quote} />
+            <ListenButton label={t.listen} text={quote} character={character.key} isUzbek={locale === 'uz'} />
           </div>
         </div>
         <span
@@ -307,24 +310,50 @@ function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }
   )
 }
 
-/** Reads the line aloud with the browser's speech engine — a stand-in until real character-voice
- *  audio is dropped in. Silent where speech synthesis is unavailable. */
-function ListenButton({ label, text }: { label: string; text: string }) {
+/**
+ * In Uzbek, plays the real mascot voice (docs/lessons/tts_voice_instructions.md) via
+ * LandingVoiceService — these characters speak Uzbek by design. In Russian/English the quote is
+ * a translation of the pitch, not something the character would actually say, so this falls back
+ * to the browser's own speech engine, same as before.
+ */
+function ListenButton({
+  label,
+  text,
+  character,
+  isUzbek,
+}: {
+  label: string
+  text: string
+  character: CharacterKey
+  isUzbek: boolean
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'playing'>('idle')
+
   function speak() {
-    try {
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
-    } catch {
-      // No speech synthesis; the button simply does nothing.
+    if (!isUzbek) {
+      try {
+        window.speechSynthesis.cancel()
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
+      } catch {
+        // No speech synthesis; the button simply does nothing.
+      }
+      return
     }
+
+    void playLandingCharacterVoice(character, { onStateChange: setStatus }).catch(() => setStatus('idle'))
   }
+
   return (
     <button
       type="button"
       onClick={speak}
       className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] bg-white/10 px-3 py-1.5 text-xs font-extrabold text-white transition-colors hover:bg-white/20"
     >
-      <SpeakerGlyph />
+      {status === 'loading' ? (
+        <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      ) : (
+        <SpeakerGlyph />
+      )}
       {label}
     </button>
   )

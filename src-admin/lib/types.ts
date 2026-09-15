@@ -181,6 +181,36 @@ export type FeedbackItem = {
   createdAt: string
 }
 
+export type LessonFeedbackItem = {
+  id: string
+  userId: string
+  displayName?: string | null
+  email?: string | null
+  phoneNumber?: string | null
+  checkpointDay: number
+  /** Each score is 1–5, 5 being the best answer. */
+  satisfaction: number
+  recommendation: number
+  rating: number
+  note?: string | null
+  createdAt: string
+}
+
+/** Averages are 1–5 and absent before the first answer; counts are per score, index 0 = score 1. */
+export type LessonFeedbackReport = {
+  responses: number
+  averageSatisfaction?: number | null
+  averageRecommendation?: number | null
+  averageRating?: number | null
+  /** Share answering "definitely" or "probably" to the recommendation question, 0–100. */
+  recommendPercent?: number | null
+  satisfactionCounts: number[]
+  recommendationCounts: number[]
+  ratingCounts: number[]
+  checkpoints: number[]
+  items: LessonFeedbackItem[]
+}
+
 export type MarketingStatus = 'Proposed' | 'Accepted' | 'Executed' | 'Reviewed' | 'Dismissed'
 export type MarketingCategory =
   | 'Ugc'

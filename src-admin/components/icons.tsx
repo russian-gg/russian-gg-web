@@ -108,6 +108,15 @@ export function FeedbackGlyph() {
   )
 }
 
+/** A five-point star, outlined: what the learner rated the lessons. */
+export function StarGlyph() {
+  return (
+    <svg {...props}>
+      <path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z" />
+    </svg>
+  )
+}
+
 /* ----------------------------------------------------------------- the sales screen's own */
 
 /**

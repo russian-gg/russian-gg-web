@@ -372,11 +372,13 @@ export class LiveVoiceSession {
                  * entirely. It was returning Devanagari for spoken Russian, which then scored
                  * as a failed turn and left the learner repeating themselves.
                  *
-                 * The learner speaks Russian and Russian is what gets scored, so the input is
-                 * pinned to it. The tutor's Uzbek support is generated text, not transcribed,
-                 * so it is unaffected.
+                 * Which language, though, is the server's call: it was written here as Russian
+                 * for every session, so an Uzbek-led lesson opened in Russian and spoke its
+                 * Uzbek with a Russian accent. The mission's language policy decides it now,
+                 * and the pronunciation rules in the system instruction carry the rest — this
+                 * model picks its own language as the conversation goes either way.
                  */
-                languageCode: 'ru-RU',
+                languageCode: this.ticket.languageCode || 'ru-RU',
                 voiceConfig: {
                   prebuiltVoiceConfig: {
                     // The learner's choice, decided on the server. It used to be one name
@@ -824,14 +826,23 @@ type PromptAudioCallbacks = {
    * the same line slowly, then at speed, pass it; everything else keeps the preference as-is.
    */
   rate?: number
+  /**
+   * A lesson mascot ("penguin", "panda", "pero") narrating this line, so it comes back in that
+   * character's own voice instead of the learner's. Omit for ordinary, unattributed text.
+   */
+  character?: string
 }
 
-function setCachedPromptAudio(text: string, blob: Blob) {
-  if (promptAudioCache.has(text)) {
-    promptAudioCache.delete(text)
+function promptAudioCacheKey(text: string, character?: string) {
+  return character ? `${character}::${text}` : text
+}
+
+function setCachedPromptAudio(cacheKey: string, blob: Blob) {
+  if (promptAudioCache.has(cacheKey)) {
+    promptAudioCache.delete(cacheKey)
   }
 
-  promptAudioCache.set(text, blob)
+  promptAudioCache.set(cacheKey, blob)
 
   while (promptAudioCache.size > 12) {
     const oldestKey = promptAudioCache.keys().next().value
@@ -848,20 +859,96 @@ export function isPromptAudioPlaying(text?: string) {
   return text ? promptAudioText === text.trim() : true
 }
 
+// Keyed by cache key, not just text: two segments can share text but not voice. Storing the
+// in-flight promise (not just a flag) lets playPromptAudio await the same request instead of
+// firing a duplicate one when a segment it was told to play is already being warmed up.
+const promptAudioPrefetches = new Map<string, Promise<void>>()
+
+/**
+ * Best-effort warmup so the "Listen" button usually finds the audio already cached instead of
+ * waiting on a live Gemini TTS round trip. Failures are swallowed here because playPromptAudio
+ * falls back to its own live fetch if the prefetch never lands.
+ */
+export function prefetchPromptAudio(text: string, character?: string): Promise<void> {
+  const normalized = text.trim()
+  if (!normalized) {
+    return Promise.resolve()
+  }
+
+  const cacheKey = promptAudioCacheKey(normalized, character)
+  const inFlight = promptAudioPrefetches.get(cacheKey)
+  if (inFlight) {
+    return inFlight
+  }
+
+  if (promptAudioCache.has(cacheKey)) {
+    return Promise.resolve()
+  }
+
+  const request = api
+    .postBlob('/missions/voice/prompt-audio', { text: normalized, character })
+    .then((blob) => setCachedPromptAudio(cacheKey, blob))
+    .catch(() => {
+      // Best-effort: playPromptAudio will fetch live when the learner actually taps play.
+    })
+    .finally(() => promptAudioPrefetches.delete(cacheKey))
+
+  promptAudioPrefetches.set(cacheKey, request)
+  return request
+}
+
 export async function playPromptAudio(text: string, callbacks?: PromptAudioCallbacks) {
   const normalized = text.trim()
   if (!normalized) {
     return
   }
 
+  const cacheKey = promptAudioCacheKey(normalized, callbacks?.character)
+
+  // A parallel warmup (RuleSpeechButton fires every segment's request at once) may already be
+  // in flight for this exact text+voice — wait on that instead of asking Gemini for it twice.
+  const inFlight = promptAudioPrefetches.get(cacheKey)
+
+  await playCachedAudio(cacheKey, callbacks, async () => {
+    if (inFlight) {
+      await inFlight
+    }
+
+    return (
+      promptAudioCache.get(cacheKey) ??
+      (await api.postBlob('/missions/voice/prompt-audio', { text: normalized, character: callbacks?.character }))
+    )
+  })
+}
+
+/**
+ * Plays one of the landing page's three fixed character quotes in that mascot's own voice.
+ * Anonymous-safe: the request carries only the character key, never text — the server resolves
+ * which line to say (LandingVoiceService), so this can never become a free-form TTS call.
+ */
+export async function playLandingCharacterVoice(character: string, callbacks?: PromptAudioCallbacks) {
+  const cacheKey = `landing::${character}`
+
+  await playCachedAudio(
+    cacheKey,
+    callbacks,
+    async () => promptAudioCache.get(cacheKey) ?? (await api.postBlob('/landing/voice/prompt-audio', { character })),
+  )
+}
+
+/** Shared by playPromptAudio and playLandingCharacterVoice: resolve one cached audio blob, then
+ * own the single module-level Audio element (start/stop/pause/resume) that plays it. */
+async function playCachedAudio(
+  cacheKey: string,
+  callbacks: PromptAudioCallbacks | undefined,
+  resolveBlob: () => Promise<Blob>,
+) {
   callbacks?.onStateChange?.('loading')
   stopPromptAudio()
 
-  const audioBlob =
-    promptAudioCache.get(normalized) ?? await api.postBlob('/missions/voice/prompt-audio', { text: normalized })
-
-  if (!promptAudioCache.has(normalized)) {
-    setCachedPromptAudio(normalized, audioBlob)
+  const audioBlob = await resolveBlob()
+  if (!promptAudioCache.has(cacheKey)) {
+    setCachedPromptAudio(cacheKey, audioBlob)
   }
 
   const audioUrl = URL.createObjectURL(audioBlob)
@@ -871,7 +958,7 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
   audio.muted = preferences.muted
   promptAudio = audio
   promptAudioUrl = audioUrl
-  promptAudioText = normalized
+  promptAudioText = cacheKey
 
   audio.onended = () => {
     callbacks?.onStateChange?.('idle')

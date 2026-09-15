@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
-import type { MissionResult as MissionResultDto, SkillArea } from '../lib/types'
+import type { MissionResult as MissionResultDto, MissionRetryState, SkillArea } from '../lib/types'
 import { Badge, Card, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
@@ -25,6 +25,10 @@ export function MissionResult() {
 
   if (isLoading || !data) return <Spinner label={t.result.preparing} />
 
+  // A conversation that fell short is not a completed mission: say so, and say when the next
+  // attempt is allowed rather than leaving a learner to guess.
+  const failed = data.passed === false
+
   const skills = Object.entries(data.skillScores) as Array<[SkillArea, number]>
 
   async function goHome() {
@@ -38,12 +42,16 @@ export function MissionResult() {
   return (
     <div className="space-y-8">
       <header>
-        <Badge tone="milestone">{t.result.completed}</Badge>
+        <Badge tone={failed ? 'caution' : 'milestone'}>
+          {failed ? t.result.notPassed : t.result.completed}
+        </Badge>
         <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">
           {data.overallScore} <span className="text-lg font-medium text-ink-faint">/ 100</span>
         </h1>
-        <UzHint>{data.strengthNoteUz}</UzHint>
+        <UzHint>{failed ? t.result.notPassedBody : data.strengthNoteUz}</UzHint>
       </header>
+
+      {failed && <RetryPanel missionId={data.missionId} retry={data.retry ?? null} />}
 
       {data.unlockedMilestone && (
         <Card>
@@ -166,6 +174,80 @@ export function MissionResult() {
       )}
     </div>
   )
+}
+
+type RetryPanelProps = {
+  missionId: string
+  retry: MissionRetryState | null
+}
+
+/**
+ * The way back into the mission. While the cooldown runs the button is disabled and says when
+ * it opens, because the alternative — a button that silently refuses — reads as a broken app.
+ */
+function RetryPanel({ missionId, retry }: RetryPanelProps) {
+  const t = useT()
+  const remaining = useCountdown(retry?.retryAvailableAt)
+  const canRetry = retry?.canStart !== false
+
+  return (
+    <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm font-semibold text-ink">
+        {canRetry ? t.result.notPassedBody : fill(t.result.retryIn, { time: remaining ?? '—' })}
+      </p>
+      <div className="flex gap-2">
+        <Link
+          to={canRetry ? `/missions/${missionId}/live` : '#'}
+          aria-disabled={!canRetry}
+          onClick={(event) => {
+            if (!canRetry) event.preventDefault()
+          }}
+          className={`inline-flex items-center justify-center rounded-[var(--radius-control)] px-5 py-3 text-sm font-extrabold ${
+            canRetry ? 'bg-signal text-on-signal' : 'cursor-not-allowed bg-ground-sunken text-ink-faint'
+          }`}
+        >
+          {t.result.retryNow}
+        </Link>
+        <Link
+          to="/path"
+          className="inline-flex items-center justify-center rounded-[var(--radius-control)] border-2 border-hairline px-5 py-3 text-sm font-extrabold text-ink"
+        >
+          {t.result.nextMission}
+        </Link>
+      </div>
+    </Card>
+  )
+}
+
+/** Counts the cooldown down on screen, so the wait is visibly finite. */
+function useCountdown(until?: string | null) {
+  const [label, setLabel] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!until) {
+      setLabel(null)
+      return
+    }
+
+    const target = new Date(until).getTime()
+    const tick = () => {
+      const left = Math.max(0, Math.round((target - Date.now()) / 1000))
+      const hours = Math.floor(left / 3600)
+      const minutes = Math.floor((left % 3600) / 60)
+      const seconds = left % 60
+      setLabel(
+        hours > 0
+          ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+          : `${minutes}:${String(seconds).padStart(2, '0')}`,
+      )
+    }
+
+    tick()
+    const timer = window.setInterval(tick, 1000)
+    return () => window.clearInterval(timer)
+  }, [until])
+
+  return label
 }
 
 function Note({ term, value }: { term: string; value: string }) {
