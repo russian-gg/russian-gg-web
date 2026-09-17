@@ -552,6 +552,7 @@ export const en: Dictionary = {
     mute: 'Mute the microphone',
     unmute: 'Unmute the microphone',
     finish: 'Finish',
+    finishing: 'Finishing…',
     leave: 'Leave',
     orbLabel: 'Voice conversation with {character}',
     unavailable: 'Voice conversation is unavailable right now. Please try later.',

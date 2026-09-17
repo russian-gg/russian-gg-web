@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { characterColors, characterName, characterPalette } from '../lib/character'
+import { cx } from '../lib/cx'
+import { foundationLessons } from '../lib/foundation-lessons'
 import { fill, useT } from '../lib/i18n'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { LiveVoiceStatus } from '../lib/liveVoice'
@@ -47,6 +49,8 @@ export function MissionLive() {
   const [muted, setMuted] = useState(false)
   const [goalReached, setGoalReached] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [phrasesOpen, setPhrasesOpen] = useState(false)
+  const phrasesPanelId = useId()
 
   const sessionRef = useRef<LiveVoiceSession | null>(null)
   const sessionIdRef = useRef<string | null>(null)
@@ -59,7 +63,26 @@ export function MissionLive() {
   const turnsRef = useRef<{ stepIndex: number; learnerTranscript: string; tutorTranscript: string | null }[]>([])
 
   const beats = mission?.dialogue?.beats ?? []
-  const phrases = mission?.targetPhrases ?? []
+  /*
+   * The phrases the lesson itself taught, which is what the learner has actually been given to
+   * say. The mission's own target phrases are a two-to-five line summary of the scene, so a
+   * learner who froze found almost nothing to reach for; the lesson day behind the mission
+   * carries the full set.
+   */
+  const helpers = useMemo(() => {
+    const day = mission?.summary.courseDay ?? dayFromSlug(mission?.summary.slug)
+    const lesson = day === null ? undefined : foundationLessons[day]
+
+    if (lesson) {
+      return lesson.phrases.map((phrase) => ({ ru: phrase.ru, uz: phrase.uz, hint: phrase.pronunciation }))
+    }
+
+    return (mission?.targetPhrases ?? []).map((phrase) => ({
+      ru: phrase.russian,
+      uz: phrase.uzbekMeaning,
+      hint: phrase.transliteration ?? undefined,
+    }))
+  }, [mission])
   const character = mission?.dialogue?.character ?? 'None'
   const colors = characterColors(character)
   const palette = characterPalette(character)
@@ -339,6 +362,59 @@ export function MissionLive() {
         )}
       </header>
 
+      {/*
+        * The lesson's own phrases, parked against the right edge and pulled out when the learner
+        * wants them. A drawer rather than a strip across the screen: this is something reached
+        * for mid-sentence and then pushed away again, and anything permanently on screen next to
+        * the sphere competes with the conversation. The scene's own script stays hidden — these
+        * are the phrases the lesson taught, not the answers.
+        */}
+      {helpers.length > 0 && started && (
+        <div className="pointer-events-none fixed inset-y-0 right-0 z-20 flex items-center">
+          <aside
+            id={phrasesPanelId}
+            aria-label={copy.phrases}
+            aria-hidden={!phrasesOpen}
+            // Width, not height: the drawer opens sideways, so the sphere never moves.
+            className={cx(
+              'pointer-events-auto overflow-hidden transition-[width,opacity] duration-300 ease-out',
+              phrasesOpen ? 'w-[min(20rem,78vw)] opacity-100' : 'w-0 opacity-0',
+            )}
+          >
+            <div className="flex h-[min(70vh,34rem)] w-[min(20rem,78vw)] flex-col rounded-l-3xl border border-r-0 border-hairline bg-ground-raised/95 shadow-[0_18px_50px_-24px_rgb(17_24_39/0.55)] backdrop-blur-sm">
+              <p className="px-4 pt-4 pb-2 text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
+                {copy.phrases}
+              </p>
+              <ul className="flex flex-col gap-1.5 overflow-y-auto px-3 pb-4">
+                {helpers.map((helper) => (
+                  <li key={helper.ru} className="rounded-2xl bg-ground-sunken px-3.5 py-2.5">
+                    <p className="text-sm leading-snug font-bold text-ink">{helper.ru}</p>
+                    {helper.hint && (
+                      <p className="mt-0.5 text-[11px] leading-snug text-ink-faint">{helper.hint}</p>
+                    )}
+                    <p className="mt-1 text-xs leading-snug text-ink-muted">{helper.uz}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+
+          <button
+            type="button"
+            onClick={() => setPhrasesOpen((open) => !open)}
+            aria-expanded={phrasesOpen}
+            aria-controls={phrasesPanelId}
+            aria-label={copy.phrases}
+            className="pointer-events-auto flex items-center gap-1.5 rounded-l-2xl border border-r-0 border-hairline bg-ground-raised/95 py-4 pr-1.5 pl-2 shadow-[0_10px_30px_-18px_rgb(17_24_39/0.6)] transition-colors hover:bg-ground-raised"
+          >
+            <ChevronGlyph open={phrasesOpen} />
+            <span className="text-[11px] font-extrabold text-ink-muted [writing-mode:vertical-rl]">
+              {helpers.length}
+            </span>
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-1 flex-col items-center justify-center gap-7 py-6">
         <div className="relative grid place-items-center">
           <CharacterOrb
@@ -388,31 +464,6 @@ export function MissionLive() {
           </div>
         )}
 
-        {/*
-          * The lesson's own phrases, kept in reach while the learner speaks. The scene itself
-          * stays off the screen — this is the vocabulary they were taught, not the script —
-          * so someone who freezes mid-conversation has something to say rather than a silence
-          * to explain.
-          */}
-        {phrases.length > 0 && started && (
-          <section className="w-full max-w-md" aria-label={copy.phrases}>
-            <p className="mb-2 text-center text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
-              {copy.phrases}
-            </p>
-            <ul className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
-              {phrases.map((phrase) => (
-                <li
-                  key={phrase.order}
-                  className="flex items-baseline justify-between gap-3 rounded-xl bg-ground-sunken px-3 py-2"
-                >
-                  <span className="text-sm font-bold text-ink">{phrase.russian}</span>
-                  <span className="shrink-0 text-xs text-ink-muted">{phrase.uzbekMeaning}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         {error && (
           <div className="w-full max-w-sm">
             <ErrorNote>{error}</ErrorNote>
@@ -426,8 +477,19 @@ export function MissionLive() {
             <Button variant="secondary" onClick={toggleMute} disabled={phase !== 'live'}>
               {muted ? copy.unmute : copy.mute}
             </Button>
+            {/*
+              * Finishing is not instant — the conversation is handed over and graded — so the
+              * button says so rather than sitting there looking ignored.
+              */}
             <Button onClick={() => void finish()} disabled={phase === 'finishing'}>
-              {copy.finish}
+              {phase === 'finishing' ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  {copy.finishing}
+                </span>
+              ) : (
+                copy.finish
+              )}
             </Button>
           </>
         ) : (
@@ -438,6 +500,31 @@ export function MissionLive() {
       </footer>
     </div>
   )
+}
+
+/** Points at the drawer: left when it is closed and there is more to pull out, right when open. */
+function ChevronGlyph({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={cx('size-4 text-ink-muted transition-transform duration-300', open && 'rotate-180')}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  )
+}
+
+/** Practice-library missions carry their lesson in the slug: "practice-day-03-…". */
+function dayFromSlug(slug: string | undefined) {
+  const match = slug?.match(/day-(\d+)/)
+
+  return match ? Number(match[1]) : null
 }
 
 function formatClock(seconds: number) {

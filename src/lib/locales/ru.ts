@@ -558,6 +558,7 @@ export const ru: Dictionary = {
     mute: 'Выключить микрофон',
     unmute: 'Включить микрофон',
     finish: 'Завершить',
+    finishing: 'Завершаем…',
     leave: 'Выйти',
     orbLabel: 'Голосовой разговор с {character}',
     unavailable: 'Голосовой разговор сейчас недоступен. Попробуйте позже.',

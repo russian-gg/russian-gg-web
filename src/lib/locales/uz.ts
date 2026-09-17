@@ -560,6 +560,7 @@ export const uz = {
     mute: "Mikrofonni o'chirish",
     unmute: "Mikrofonni yoqish",
     finish: "Yakunlash",
+    finishing: "Yakunlanmoqda…",
     leave: "Chiqish",
     orbLabel: "{character} bilan ovozli suhbat",
     unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
