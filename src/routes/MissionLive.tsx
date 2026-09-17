@@ -126,6 +126,20 @@ export function MissionLive() {
     releaseMicrophone()
   }, [])
 
+  /**
+   * Reopens the microphone for the learner's next answer.
+   *
+   * The session stops recording the moment a turn completes and only starts again when it is
+   * asked to. Without this the conversation died after the first exchange: the learner kept
+   * talking into a microphone that was no longer sending anything, and Google closed the idle
+   * socket about a minute later with no error anywhere.
+   */
+  const listenAgain = useCallback(async () => {
+    if (finishingRef.current) return
+
+    await sessionRef.current?.beginNextTurn().catch(() => {})
+  }, [])
+
   /** One answer: scored against the beat it belongs to, which is what moves the scene on. */
   async function submitTurn() {
     const attempt = attemptRef.current
@@ -134,7 +148,12 @@ export function MissionLive() {
     const tutor = tutorRef.current.trim()
     tutorRef.current = ''
 
-    if (!attempt || spoken.length === 0) return
+    // The character spoke but the learner has not answered yet — keep the microphone open
+    // rather than treating the tutor's own turn as the end of the conversation.
+    if (!attempt || spoken.length === 0) {
+      await listenAgain()
+      return
+    }
 
     try {
       const feedback = await api.post<TurnFeedback>('/missions/attempts/turns', {
@@ -153,10 +172,13 @@ export function MissionLive() {
         setGoalReached(true)
         // Let the character finish its closing line before the screen changes.
         window.setTimeout(() => void finish(), 1600)
+        return
       }
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : copy.startFailed)
     }
+
+    await listenAgain()
   }
 
   async function connect() {
