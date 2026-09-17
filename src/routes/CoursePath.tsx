@@ -277,7 +277,7 @@ export function CoursePath() {
 
         return (
           <section key={`${phase}-${range}`}>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {phaseDays.map(({ day, lockKind }) => (
                 <DayCard
                   key={day.day}
@@ -525,7 +525,7 @@ function DayCard({
       aria-label={`${dayLabel}: ${focus}`}
       aria-busy={isOpening}
       className={cx(
-        'flex min-h-36 w-full flex-col rounded-[var(--radius-card)] border p-4 text-left sm:min-h-44 sm:p-5',
+        'flex min-h-40 w-full flex-col rounded-[var(--radius-card)] border p-5 text-left sm:min-h-48 sm:p-6',
         'transition-[border-color,box-shadow,transform] duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
         isDone
@@ -541,7 +541,7 @@ function DayCard({
         <div className="flex min-w-0 items-start gap-3">
           <span
             className={cx(
-              'flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums',
+              'flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold tabular-nums',
               isDone
                 ? 'bg-milestone text-white'
                 : isToday && !isLocked
@@ -553,7 +553,7 @@ function DayCard({
           </span>
           <div className="min-w-0 pt-0.5">
             <div className="flex items-start gap-2">
-            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>{focus}</h3>
+            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug sm:text-lg', isLocked ? 'text-ink-muted' : 'text-ink')}>{focus}</h3>
             {isDone && <CompletedGlyph label={t.path.done} />}
             </div>
             <p className="mt-1 text-xs font-semibold text-ink-faint">{dayLabel}</p>

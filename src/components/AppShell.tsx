@@ -101,7 +101,7 @@ export function AppShell() {
         The bottom padding clears the tab bar plus the home indicator; without it the last
         card on every screen sits under the bar and cannot be reached.
       */}
-      <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-6 md:px-10 md:py-10 md:pb-12 lg:px-14">
+      <main className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12">
         <Outlet />
       </main>
 

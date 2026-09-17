@@ -42,7 +42,7 @@ export function Home() {
     : data.dayFocusUz || t.home.fallbackTitle
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="space-y-6">
       <header className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised px-6 py-6 shadow-[0_8px_28px_rgb(22_24_29/0.04)] sm:px-7">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: 90 })}</Badge>
@@ -56,19 +56,24 @@ export function Home() {
         </h1>
       </header>
 
-      <section>
-        <SectionHeading>{t.home.todayMission}</SectionHeading>
-        {data.todayMission ? (
-          <MissionCard mission={data.todayMission} featured />
-        ) : (
-          <EmptyState
-            title={t.home.empty}
-            body={t.home.emptyBody}
-            action={<LinkButton to="/path">{t.nav.path}</LinkButton>}
-          />
-        )}
-        <LearningActivity />
-      </section>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] xl:gap-8">
+        <section>
+          <SectionHeading>{t.home.todayMission}</SectionHeading>
+          {data.todayMission ? (
+            <MissionCard mission={data.todayMission} featured />
+          ) : (
+            <EmptyState
+              title={t.home.empty}
+              body={t.home.emptyBody}
+              action={<LinkButton to="/path">{t.nav.path}</LinkButton>}
+            />
+          )}
+        </section>
+
+        <section>
+          <LearningActivity />
+        </section>
+      </div>
 
       {/*
         One section, deliberately. Progress numbers, the milestone preview, repair suggestions

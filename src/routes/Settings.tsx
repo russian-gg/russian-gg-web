@@ -55,7 +55,7 @@ export function Settings() {
   const active = tabs.some((tab) => tab.to === pathname) ? pathname : TAB_PROFILE
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.settings.title}</h1>
         <p className="text-support mt-1">{user?.email ?? user?.phoneNumber}</p>
@@ -108,10 +108,10 @@ function ProfileTab() {
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   return (
-    <div className="space-y-10">
-      {error && <ErrorNote>{error}</ErrorNote>}
+    <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
+      {error && <div className="xl:col-span-2"><ErrorNote>{error}</ErrorNote></div>}
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 xl:col-span-2">
         <span
           className="flex size-16 shrink-0 items-center justify-center rounded-full bg-signal text-xl font-extrabold text-on-signal"
           aria-hidden="true"
@@ -221,8 +221,8 @@ function GeneralTab() {
   const granted = new Map(consents?.map((consent) => [consent.kind, consent.granted]) ?? [])
 
   return (
-    <div className="space-y-10">
-      {error && <ErrorNote>{error}</ErrorNote>}
+    <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
+      {error && <div className="xl:col-span-2"><ErrorNote>{error}</ErrorNote></div>}
 
       <section>
         <SectionHeading>{t.settings.appearance}</SectionHeading>
@@ -301,7 +301,7 @@ function BillingTab() {
   if (isLoading) return <Spinner />
 
   return (
-    <div className="space-y-10">
+    <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
       <section>
         <SectionHeading>{t.profile.subscription}</SectionHeading>
         <Card>
