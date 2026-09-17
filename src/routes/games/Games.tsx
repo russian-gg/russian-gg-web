@@ -3,6 +3,9 @@ import { useOpenGames } from '../../lib/games'
 import { Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
 import { mascotImage } from '../../lib/mascot-images'
+import { useLocale } from '../../lib/i18n'
+import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
+import { GameMark } from './speaking/visuals'
 
 /**
  * The shelf. Built like a store rather than a menu: a grid of tiles, each with its own mark,
@@ -24,6 +27,7 @@ const ART: Record<string, { emoji: string; tint: string; to?: string }> = {
 
 export function Games() {
   const open = useOpenGames()
+  const { locale } = useLocale()
 
   if (!open) {
     return (
@@ -47,6 +51,14 @@ export function Games() {
           const art = ART[game.slug]
 
           if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} body={game.bodyUz} />
+
+          if (isSpeakingGame(game.slug)) {
+            const label = gameLabels[game.slug][locale]
+            return <Link key={game.slug} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
+              <GameMark game={game.slug} className="size-16 shrink-0 text-signal-ink" />
+              <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 block text-sm font-extrabold text-signal-ink">{copies[locale].start} →</span></span>
+            </Link>
+          }
 
           return (
             <Link

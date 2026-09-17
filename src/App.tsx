@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
@@ -29,6 +29,8 @@ import { Practice } from './routes/Practice'
 import { Progress } from './routes/Progress'
 import { Settings } from './routes/Settings'
 import { LinkPhonePage, SignIn, SignUp } from './routes/SignIn'
+
+const SpeakingGamePage = lazy(() => import('./routes/games/speaking/SpeakingGamePage').then((module) => ({ default: module.SpeakingGamePage })))
 
 export function App() {
   useVisitBeacon()
@@ -87,6 +89,7 @@ export function App() {
             with navigation. */}
         <Route path="/games/arra" element={<RequireAuth><SawGame /></RequireAuth>} />
         <Route path="/games/rod-runner" element={<RequireAuth><GenderRunnerGame /></RequireAuth>} />
+        <Route path="/games/:slug" element={<RequireAuth><Suspense fallback={<Spinner />}><SpeakingGamePage /></Suspense></RequireAuth>} />
 
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
