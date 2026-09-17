@@ -6,12 +6,7 @@ import { characterColors, characterName, characterPalette } from '../lib/charact
 import { fill, useT } from '../lib/i18n'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { LiveVoiceStatus } from '../lib/liveVoice'
-import type {
-  MissionDetail,
-  StartAttemptResponse,
-  TurnFeedback,
-  VoiceSessionOutcome,
-} from '../lib/types'
+import type { MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
 import { CharacterOrb, type OrbState } from '../components/CharacterOrb'
 import { Button, ErrorNote, Spinner } from '../components/ui'
 
@@ -60,6 +55,8 @@ export function MissionLive() {
   const tutorRef = useRef('')
   const beatRef = useRef(0)
   const finishingRef = useRef(false)
+  /** Every exchange as it happened, handed to the server when the conversation ends. */
+  const turnsRef = useRef<{ stepIndex: number; learnerTranscript: string; tutorTranscript: string | null }[]>([])
 
   const beats = mission?.dialogue?.beats ?? []
   const phrases = mission?.targetPhrases ?? []
@@ -102,6 +99,18 @@ export function MissionLive() {
     }
 
     try {
+      // Everything the learner said, graded in one pass now that the conversation is over.
+      // Scoring answer by answer put a model call between the learner and their next sentence.
+      if (turnsRef.current.length > 0) {
+        await api
+          .post('/missions/attempts/dialogue-turns', {
+            attemptId: attempt.attemptId,
+            turns: turnsRef.current,
+          })
+          .catch(() => {})
+        turnsRef.current = []
+      }
+
       await api.post(`/missions/attempts/${attempt.attemptId}/complete`)
       navigate(`/missions/attempts/${attempt.attemptId}/result`, { replace: true })
     } catch {
@@ -141,45 +150,44 @@ export function MissionLive() {
     await sessionRef.current?.beginNextTurn().catch(() => {})
   }, [])
 
-  /** One answer: scored against the beat it belongs to, which is what moves the scene on. */
-  async function submitTurn() {
-    const attempt = attemptRef.current
+  /**
+   * One exchange of the scene. Nothing is sent while the conversation is running: the answer is
+   * kept for the single grading pass at the end, and the scene moves on immediately.
+   */
+  function recordTurn() {
     const spoken = learnerRef.current.trim()
     learnerRef.current = ''
     const tutor = tutorRef.current.trim()
     tutorRef.current = ''
 
-    // The character spoke but the learner has not answered yet — keep the microphone open
-    // rather than treating the tutor's own turn as the end of the conversation.
-    if (!attempt || spoken.length === 0) {
-      await listenAgain()
+    // The character spoke but the learner has not answered yet — that is the tutor's own turn,
+    // not an exchange, and the scene has not moved.
+    if (!attemptRef.current || spoken.length === 0) {
+      void listenAgain()
       return
     }
 
-    try {
-      const feedback = await api.post<TurnFeedback>('/missions/attempts/turns', {
-        attemptId: attempt.attemptId,
-        stepIndex: beatRef.current,
-        learnerTranscript: spoken,
-        tutorTranscript: tutor || null,
-        isRetry: false,
-      })
+    turnsRef.current.push({
+      stepIndex: beatRef.current,
+      learnerTranscript: spoken,
+      tutorTranscript: tutor || null,
+    })
 
-      const next = Math.min(feedback.nextStepIndex, Math.max(beats.length - 1, 0))
-      beatRef.current = next
-      setBeatIndex(next)
+    // The dots follow the conversation, not the score. Following the server's step index made
+    // them sit still through an answer that was understood but imperfect, and jump two beats
+    // when a later answer covered them both.
+    const next = Math.min(beatRef.current + 1, Math.max(beats.length - 1, 0))
+    beatRef.current = next
+    setBeatIndex(next)
 
-      if (feedback.goalReached) {
-        setGoalReached(true)
-        // Let the character finish its closing line before the screen changes.
-        window.setTimeout(() => void finish(), 1600)
-        return
-      }
-    } catch (caught) {
-      setError(caught instanceof RequestError ? caught.message : copy.startFailed)
+    if (beats.length > 0 && turnsRef.current.length >= beats.length) {
+      setGoalReached(true)
+      // Let the character finish its closing line before the screen changes.
+      window.setTimeout(() => void finish(), 1800)
+      return
     }
 
-    await listenAgain()
+    void listenAgain()
   }
 
   async function connect() {
@@ -236,7 +244,7 @@ export function MissionLive() {
           onOutputTranscript: (text) => {
             tutorRef.current += text
           },
-          onTurnComplete: () => void submitTurn(),
+          onTurnComplete: () => recordTurn(),
           onSilenceTimeout: () => {},
           onNoSpeech: () => {},
           onDropped: () => setError(copy.unavailable),
