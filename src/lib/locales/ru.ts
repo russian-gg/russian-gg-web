@@ -562,6 +562,7 @@ export const ru: Dictionary = {
     orbLabel: 'Голосовой разговор с {character}',
     unavailable: 'Голосовой разговор сейчас недоступен. Попробуйте позже.',
     startFailed: 'Не удалось начать разговор. Попробуйте ещё раз.',
+    phrases: 'Фразы этого урока',
     characters: { Penguin: 'Пингвин', Panda: 'Панда', Pero: 'Перо', None: 'ИИ-наставник' },
   },
 

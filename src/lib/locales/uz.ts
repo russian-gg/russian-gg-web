@@ -564,6 +564,7 @@ export const uz = {
     orbLabel: "{character} bilan ovozli suhbat",
     unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
     startFailed: "Suhbatni boshlab bo'lmadi. Qayta urinib ko'ring.",
+    phrases: "Shu darsning iboralari",
     characters: { Penguin: "Pingvin", Panda: "Panda", Pero: "Pero", None: "AI ustoz" },
   },
 

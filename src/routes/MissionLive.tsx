@@ -62,6 +62,7 @@ export function MissionLive() {
   const finishingRef = useRef(false)
 
   const beats = mission?.dialogue?.beats ?? []
+  const phrases = mission?.targetPhrases ?? []
   const character = mission?.dialogue?.character ?? 'None'
   const colors = characterColors(character)
   const palette = characterPalette(character)
@@ -219,26 +220,32 @@ export function MissionLive() {
       sessionIdRef.current = ticket.sessionId
       setSecondsLeft(ticket.maxDurationSeconds)
 
-      const session = new LiveVoiceSession(ticket, {
-        onStatus: setStatus,
-        onConnected: () => {
-          setPhase('live')
-          void api
-            .post('/missions/voice/sessions/connected', { sessionId: ticket.sessionId, connectMilliseconds: 0 })
-            .catch(() => {})
+      const session = new LiveVoiceSession(
+        ticket,
+        {
+          onStatus: setStatus,
+          onConnected: () => {
+            setPhase('live')
+            void api
+              .post('/missions/voice/sessions/connected', { sessionId: ticket.sessionId, connectMilliseconds: 0 })
+              .catch(() => {})
+          },
+          onInputTranscript: (text) => {
+            learnerRef.current += text
+          },
+          onOutputTranscript: (text) => {
+            tutorRef.current += text
+          },
+          onTurnComplete: () => void submitTurn(),
+          onSilenceTimeout: () => {},
+          onNoSpeech: () => {},
+          onDropped: () => setError(copy.unavailable),
+          onError: () => setError(copy.startFailed),
         },
-        onInputTranscript: (text) => {
-          learnerRef.current += text
-        },
-        onOutputTranscript: (text) => {
-          tutorRef.current += text
-        },
-        onTurnComplete: () => void submitTurn(),
-        onSilenceTimeout: () => {},
-        onNoSpeech: () => {},
-        onDropped: () => setError(copy.unavailable),
-        onError: () => setError(copy.startFailed),
-      })
+        // A conversation, not a form: the microphone stays open for the whole scene and the
+        // character can be interrupted mid-sentence.
+        { continuous: true },
+      )
 
       sessionRef.current = session
       await session.start()
@@ -371,6 +378,31 @@ export function MissionLive() {
               />
             ))}
           </div>
+        )}
+
+        {/*
+          * The lesson's own phrases, kept in reach while the learner speaks. The scene itself
+          * stays off the screen — this is the vocabulary they were taught, not the script —
+          * so someone who freezes mid-conversation has something to say rather than a silence
+          * to explain.
+          */}
+        {phrases.length > 0 && started && (
+          <section className="w-full max-w-md" aria-label={copy.phrases}>
+            <p className="mb-2 text-center text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
+              {copy.phrases}
+            </p>
+            <ul className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+              {phrases.map((phrase) => (
+                <li
+                  key={phrase.order}
+                  className="flex items-baseline justify-between gap-3 rounded-xl bg-ground-sunken px-3 py-2"
+                >
+                  <span className="text-sm font-bold text-ink">{phrase.russian}</span>
+                  <span className="shrink-0 text-xs text-ink-muted">{phrase.uzbekMeaning}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {error && (

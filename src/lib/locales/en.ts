@@ -556,6 +556,7 @@ export const en: Dictionary = {
     orbLabel: 'Voice conversation with {character}',
     unavailable: 'Voice conversation is unavailable right now. Please try later.',
     startFailed: 'We could not start the conversation. Please try again.',
+    phrases: "This lesson's phrases",
     characters: { Penguin: 'Penguin', Panda: 'Panda', Pero: 'Pero', None: 'AI tutor' },
   },
 

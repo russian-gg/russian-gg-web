@@ -75,8 +75,22 @@ export interface LiveVoiceCallbacks {
   onNoSpeech: () => void
 }
 
+export interface LiveVoiceOptions {
+  /**
+   * Stream the microphone for the whole session and let the provider decide when the learner
+   * has finished speaking, instead of opening the microphone one turn at a time.
+   *
+   * Turn-gated capture is what made a conversation feel like a form: the learner had to fall
+   * silent for several seconds to end their turn, then wait for the app to score it before the
+   * microphone came back. Streaming also means the learner can cut the character off mid
+   * sentence, which is how people actually talk.
+   */
+  continuous?: boolean
+}
+
 export class LiveVoiceSession {
   private readonly callbacks: LiveVoiceCallbacks
+  private readonly continuous: boolean
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
   private readonly openingCue: string
@@ -129,11 +143,12 @@ export class LiveVoiceSession {
     void this.playbackContext?.resume().catch(() => {})
   }
 
-  constructor(ticket: VoiceSessionTicket, callbacks: LiveVoiceCallbacks) {
+  constructor(ticket: VoiceSessionTicket, callbacks: LiveVoiceCallbacks, options?: LiveVoiceOptions) {
     this.ticket = ticket
     this.systemInstruction = ticket.systemInstruction
     this.openingCue = ticket.openingCue
     this.callbacks = callbacks
+    this.continuous = options?.continuous ?? false
   }
 
   get elapsedSeconds() {
@@ -240,7 +255,10 @@ export class LiveVoiceSession {
       return
     }
 
-    if (this.recording) {
+    // Streaming never ends the audio stream by hand: the provider is the one listening for
+    // the end of the answer, and `audioStreamEnd` would close the microphone for the rest of
+    // the conversation rather than for this turn.
+    if (this.recording && !this.continuous) {
       // Recording stops; the microphone stays open for the next turn.
       this.recording = false
       this.autoStopRequested = true
@@ -303,19 +321,7 @@ export class LiveVoiceSession {
     // The microphone is already open — it belongs to the session, not to the turn. Acquiring
     // it per turn cost a few hundred milliseconds during which the learner was already
     // speaking, so the first word of every turn after the first was simply not recorded.
-    this.heardSpeechThisTurn = false
-    this.autoStopRequested = false
-    this.noSpeechReported = false
-    this.turnStartedAt = Date.now()
-    this.lastSpeechAt = Date.now()
-    this.inputTranscript = ''
-    this.outputTranscript = ''
-    this.turnSettled = false
-    this.turnCompletePromise = null
-    this.resolveTurnComplete = null
-    this.rejectTurnComplete = null
-    this.recording = true
-    this.callbacks.onStatus('listening')
+    this.armTurn()
   }
 
   async close() {
@@ -524,7 +530,15 @@ export class LiveVoiceSession {
     this.captureProcessor.connect(this.captureContext.destination)
 
     this.captureProcessor.onaudioprocess = (event) => {
-      if (this.inputPaused || !this.recording || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      // Streaming keeps sending between turns: the provider's own end-of-speech detection
+      // needs to hear the learner start talking again, and a microphone that closes after
+      // every answer is what turned the conversation into a form.
+      if (
+        this.inputPaused
+        || (!this.recording && !this.continuous)
+        || !this.ws
+        || this.ws.readyState !== WebSocket.OPEN
+      ) {
         return
       }
 
@@ -546,8 +560,11 @@ export class LiveVoiceSession {
       } else if (
         this.heardSpeechThisTurn &&
         !this.autoStopRequested &&
+        !this.continuous &&
         now - this.lastSpeechAt >= AUTO_STOP_SILENCE_MS
       ) {
+        // Only when the turn is ours to end. Streaming leaves that to the provider, which
+        // hears the pause without the learner having to hold a three-second silence.
         this.autoStopRequested = true
         window.setTimeout(() => this.callbacks.onSilenceTimeout(), 0)
       } else if (
@@ -706,7 +723,34 @@ export class LiveVoiceSession {
     }
 
     this.callbacks.onTurnComplete()
+
+    if (this.continuous && !this.closed) {
+      // The microphone never closed, so the next turn starts the moment this one ends —
+      // whatever the app does with the answer happens alongside the conversation, not in
+      // front of it.
+      this.armTurn()
+      return
+    }
+
     this.callbacks.onStatus('idle')
+  }
+
+  /** Fresh per-turn state. The capture graph and the socket outlive it. */
+  private armTurn() {
+    const now = Date.now()
+    this.heardSpeechThisTurn = false
+    this.autoStopRequested = false
+    this.noSpeechReported = false
+    this.turnStartedAt = now
+    this.lastSpeechAt = now
+    this.inputTranscript = ''
+    this.outputTranscript = ''
+    this.turnSettled = false
+    this.turnCompletePromise = null
+    this.resolveTurnComplete = null
+    this.rejectTurnComplete = null
+    this.recording = true
+    this.callbacks.onStatus('listening')
   }
 
   private ensureTurnPromise() {
