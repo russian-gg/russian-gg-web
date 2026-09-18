@@ -469,6 +469,8 @@ export interface EntitlementView {
   paymentProcessing: boolean
 }
 
+export type PaymentProvider = 'click' | 'payme'
+
 export interface CheckoutResponse {
   invoiceId: string
   checkoutUrl: string

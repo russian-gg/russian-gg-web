@@ -186,7 +186,7 @@ export const ru: Dictionary = {
       ],
       proAlt: 'или 90 дней — 299 000 сум',
       proCta: 'Выбрать Pro',
-      payNote: 'Uzcard и Humo — безопасная оплата через Click.',
+      payNote: 'Uzcard и Humo — безопасная оплата через Click или Payme.',
     },
 
     characters: {
@@ -704,10 +704,11 @@ export const ru: Dictionary = {
     perMonth: '{amount} в месяц',
     perDay: '{amount} в день',
     payWithClick: 'Оплатить через Click — {amount}',
+    payWithPayme: 'Оплатить через Payme — {amount}',
     opening: 'Открываем...',
     freeNote:
       'На бесплатном плане открыты тест уровня и первые 3 дня пути. Дальнейшие дни ' +
-      'открываются подпиской Pro через Click.',
+      'открываются подпиской Pro через Click или Payme.',
     proUnlocks: 'Что открывает Pro',
     freeLimits: 'На бесплатном плане',
     cancelNote:

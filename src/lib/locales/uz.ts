@@ -186,7 +186,7 @@ export const uz = {
       ],
       proAlt: 'yoki 90 kun — 299 000 so‘m',
       proCta: "Pro'ni tanlash",
-      payNote: "Uzcard va Humo — Click orqali xavfsiz to'lov.",
+      payNote: "Uzcard va Humo — Click yoki Payme orqali xavfsiz to'lov.",
     },
 
     characters: {
@@ -704,9 +704,10 @@ export const uz = {
     perMonth: 'Oyiga {amount}',
     perDay: 'Kuniga {amount}',
     payWithClick: "Click orqali to'lash - {amount}",
+    payWithPayme: "Payme orqali to'lash - {amount}",
     opening: 'Ochilmoqda...',
     freeNote:
-      "Bepul rejada daraja testi va yo'lning birinchi 3 kuni ochiq. Keyingi kunlar Click orqali " +
+      "Bepul rejada daraja testi va yo'lning birinchi 3 kuni ochiq. Keyingi kunlar Click yoki Payme orqali " +
       "Pro obuna bilan ochiladi.",
     proUnlocks: 'Pro nimani ochadi',
     freeLimits: 'Bepul rejada',

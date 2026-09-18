@@ -181,7 +181,7 @@ export const en: Dictionary = {
       ],
       proAlt: 'or 90 days — 299,000 so‘m',
       proCta: 'Choose Pro',
-      payNote: 'Uzcard and Humo — secure payment via Click.',
+      payNote: 'Uzcard and Humo — secure payment via Click or Payme.',
     },
 
     characters: {
@@ -694,10 +694,11 @@ export const en: Dictionary = {
     perMonth: '{amount} per month',
     perDay: '{amount} per day',
     payWithClick: 'Pay with Click — {amount}',
+    payWithPayme: 'Pay with Payme — {amount}',
     opening: 'Opening...',
     freeNote:
       'The free plan opens the level test and the first 3 days of the path. The days after ' +
-      'that open with a Pro subscription through Click.',
+      'that open with a Pro subscription through Click or Payme.',
     proUnlocks: 'What Pro opens',
     freeLimits: 'On the free plan',
     cancelNote:

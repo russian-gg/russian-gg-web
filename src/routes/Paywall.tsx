@@ -8,6 +8,7 @@ import type {
   BillingPeriod,
   CheckoutResponse,
   EntitlementView,
+  PaymentProvider,
   PlansView,
   PromoCodePreview,
   SubscriptionActionResponse,
@@ -97,16 +98,17 @@ export function Paywall() {
 
   if (isLoading || !plans) return <Spinner />
 
-  async function checkout() {
+  async function checkout(provider: PaymentProvider) {
     setBusy(true)
     setError(null)
     try {
       const result = await api.post<CheckoutResponse>('/billing/checkout', {
         period,
+        provider,
         returnUrl: `${window.location.origin}/billing/return`,
         promoCode: giftApplies ? undefined : promoPreview?.isValid ? promoPreview.code : undefined,
       })
-      track('checkout_started', { period })
+      track('checkout_started', { period, provider })
       window.location.href = result.checkoutUrl
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.billing.checkoutFailed)
@@ -330,10 +332,18 @@ export function Paywall() {
             </div>
           )}
 
-          <Button size="lg" block disabled={busy} onClick={() => void checkout()}>
+          <Button size="lg" block disabled={busy} onClick={() => void checkout('click')}>
             {busy
               ? t.billing.opening
               : fill(t.billing.payWithClick, {
+                  amount: formatPrice(amountToPay, selected.currency, locale),
+                })}
+          </Button>
+
+          <Button size="lg" variant="secondary" block disabled={busy} onClick={() => void checkout('payme')}>
+            {busy
+              ? t.billing.opening
+              : fill(t.billing.payWithPayme, {
                   amount: formatPrice(amountToPay, selected.currency, locale),
                 })}
           </Button>
