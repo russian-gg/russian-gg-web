@@ -22,8 +22,8 @@ export function Progress() {
   if (isLoading || !data) return <Spinner />
 
   return (
-    <div className="space-y-10">
-      <header>
+    <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
+      <header className="xl:col-span-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: 90 })}</Badge>
           <Badge>{t.labels.phase[data.phase]}</Badge>

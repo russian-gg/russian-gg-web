@@ -474,9 +474,10 @@ export const en: Dictionary = {
       'The conversations and phrases you need during the day, learned quickly through tasks.',
     empty: 'No tasks yet',
     emptyBody: 'Carry on with the 90-day path — tasks are being prepared.',
-    other: 'Other tasks',
-    details: 'Details',
     start: 'Start',
+    bestScore: 'Best score: {score}%',
+    passMark: 'Pass mark: {score}%',
+    notTried: 'Not tried yet',
   },
 
   tests: {
@@ -551,10 +552,12 @@ export const en: Dictionary = {
     mute: 'Mute the microphone',
     unmute: 'Unmute the microphone',
     finish: 'Finish',
+    finishing: 'Finishing…',
     leave: 'Leave',
     orbLabel: 'Voice conversation with {character}',
     unavailable: 'Voice conversation is unavailable right now. Please try later.',
     startFailed: 'We could not start the conversation. Please try again.',
+    phrases: "This lesson's phrases",
     characters: { Penguin: 'Penguin', Panda: 'Panda', Pero: 'Pero', None: 'AI tutor' },
   },
 

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "dev:admin": "vite --config vite.admin.config.ts",
     "build:admin": "tsc -b && vite build --config vite.admin.config.ts",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",

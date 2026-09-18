@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import {
   PLAYBACK_SPEEDS,
@@ -55,9 +55,12 @@ export function AppShell() {
     <div className="app-shell min-h-dvh overflow-x-clip bg-ground-sunken md:flex">
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center justify-between gap-3 px-4 py-2">
           <Wordmark />
-          <ProfileMenu compact />
+          <div className="flex items-center gap-2">
+            <WelcomeDiscountCountdown />
+            <ProfileMenu compact />
+          </div>
         </div>
       </header>
 
@@ -89,7 +92,8 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="fixed right-[5.75rem] top-[.8rem] z-30 md:right-6 md:top-6">
+      {/* Desktop only: on phones the timer sits in the header, in flow beside the avatar. */}
+      <div className="fixed right-6 top-6 z-30 hidden md:block">
         <WelcomeDiscountCountdown />
       </div>
 
@@ -97,7 +101,7 @@ export function AppShell() {
         The bottom padding clears the tab bar plus the home indicator; without it the last
         card on every screen sits under the bar and cannot be reached.
       */}
-      <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-6 md:px-10 md:py-10 md:pb-12 lg:px-14">
+      <main className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12">
         <Outlet />
       </main>
 
@@ -158,18 +162,40 @@ function WelcomeDiscountCountdown() {
   const urgent = secondsRemaining <= 180
   const time = formatCountdown(secondsRemaining)
 
+  // The timer is only worth watching because of the discount, so it leads to the plans.
   return (
-    <div
-      role="timer"
+    <Link
+      to="/paywall"
       aria-label={fill(t.welcomeGift.expiresIn, { time })}
-      className={`rounded-full border bg-white/95 px-3 py-1.5 text-sm font-black tabular-nums shadow-sm ${
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[13px] font-extrabold tabular-nums shadow-sm transition-colors ${
         urgent
-          ? 'border-danger/30 bg-danger-soft text-danger'
-          : 'border-hairline text-[#111827]'
+          ? 'border-danger/25 bg-danger-soft text-danger'
+          : 'border-signal/20 bg-signal-soft text-signal-ink hover:border-signal/45'
       }`}
     >
+      <span
+        className={`rounded-full px-1.5 py-1 text-[11px] font-black leading-none text-on-signal ${
+          urgent ? 'bg-danger' : 'bg-signal'
+        }`}
+      >
+        -{welcomeGift?.discountPercent}%
+      </span>
+      <ClockGlyph pulsing={urgent} />
       {time}
-    </div>
+    </Link>
+  )
+}
+
+function ClockGlyph({ pulsing }: { pulsing: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={`size-3.5 shrink-0 fill-none stroke-current stroke-[2.2] ${pulsing ? 'animate-pulse' : ''}`}
+    >
+      <circle cx="12" cy="13.5" r="7.5" />
+      <path d="M12 10v3.5l2.3 1.8M9.5 3h5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 

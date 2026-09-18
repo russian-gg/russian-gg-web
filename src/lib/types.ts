@@ -208,6 +208,10 @@ export interface MissionSummary {
   hasVoiceStep: boolean
   /** True when this mission is one continuous conversation rather than a list of steps. */
   isDialogue?: boolean
+  /** Best AI-evaluated score across finished runs, 0-100. Null until a run is scored. */
+  bestScore?: number | null
+  /** Score needed to finish the mission. Dialogue missions only. */
+  passScore?: number | null
 }
 
 export interface TargetPhraseView {

@@ -64,7 +64,7 @@ export function FeedbacksPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.feedbackPage.title}</h1>
         <p className="text-support mt-1">
@@ -81,7 +81,7 @@ export function FeedbacksPage() {
 
       <Card as="section">
         <SectionHeading>{t.feedbackPage.formTitle}</SectionHeading>
-        <div className="mt-5 space-y-5">
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.kind}</span>
             <select
@@ -123,7 +123,7 @@ export function FeedbacksPage() {
             </UzHint>
           </label>
 
-          <label className="block">
+          <label className="block lg:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.details}</span>
             <textarea
               value={message}
@@ -134,7 +134,7 @@ export function FeedbacksPage() {
             />
           </label>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row lg:col-span-2">
             <Button onClick={() => void submit()} disabled={busy}>
               {busy ? 'Yuborilmoqda...' : 'Yuborish'}
             </Button>

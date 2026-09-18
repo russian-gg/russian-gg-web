@@ -342,6 +342,29 @@
   }
 
   /*
+    Tailwind 4 stopped giving buttons the browser's own pointer cursor, so every control in
+    the product — the answer button, the mission cards, the tabs, the admin tables — looked
+    unclickable until it was clicked. Restored here once rather than by hanging a
+    `cursor-pointer` class on each of them, and stated for everything that behaves like a
+    control: real buttons, anything wearing a button or tab role, links, summaries, selects,
+    and the labels the choice cards are built from.
+
+    Disabled controls are excluded: they keep the arrow, which is what says "not now".
+    A control that is only visually disabled says so through `aria-disabled`, so that counts
+    too.
+  */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(input[type='radio']:not(:disabled)),
+  label:has(input[type='checkbox']:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  /*
     Focus is always visible and never colour-only, so keyboard users and anyone with a
     colour-vision difference can still tell where they are (PRD §7 accessibility).
     The outline follows the element's own radius, so it reads correctly on pills.

@@ -158,7 +158,7 @@ export function Paywall() {
       : 0
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8">
       {showPromoCelebration && promoPreview?.isValid && (
         <PromoCelebration
           discountAmount={formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale)}
@@ -205,7 +205,7 @@ export function Paywall() {
         <ActiveSubscription entitlement={entitlement} />
       ) : (
         <>
-          <div className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
             {plans.options.map((option) => (
               (() => {
                 const giftDiscounted = giftActive && option.period === 'NinetyDay'

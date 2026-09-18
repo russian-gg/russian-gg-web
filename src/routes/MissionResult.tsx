@@ -40,8 +40,8 @@ export function MissionResult() {
   }
 
   return (
-    <div className="space-y-8">
-      <header>
+    <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
+      <header className="xl:col-span-2">
         <Badge tone={failed ? 'caution' : 'milestone'}>
           {failed ? t.result.notPassed : t.result.completed}
         </Badge>
@@ -51,7 +51,11 @@ export function MissionResult() {
         <UzHint>{failed ? t.result.notPassedBody : data.strengthNoteUz}</UzHint>
       </header>
 
-      {failed && <RetryPanel missionId={data.missionId} retry={data.retry ?? null} />}
+      {failed && (
+        <div className="xl:col-span-2">
+          <RetryPanel missionId={data.missionId} retry={data.retry ?? null} />
+        </div>
+      )}
 
       {data.unlockedMilestone && (
         <Card>

@@ -480,9 +480,10 @@ export const uz = {
       "oson va tez o'rganing.",
     empty: "Hozircha topshiriq yo'q",
     emptyBody: "90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda.",
-    other: 'Boshqa mashqlar',
-    details: 'Batafsil',
     start: 'Bajarish',
+    bestScore: 'Eng yaxshi natija: {score}%',
+    passMark: "O'tish bali: {score}%",
+    notTried: 'Hali urinilmagan',
   },
 
   tests: {
@@ -559,10 +560,12 @@ export const uz = {
     mute: "Mikrofonni o'chirish",
     unmute: "Mikrofonni yoqish",
     finish: "Yakunlash",
+    finishing: "Yakunlanmoqda…",
     leave: "Chiqish",
     orbLabel: "{character} bilan ovozli suhbat",
     unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
     startFailed: "Suhbatni boshlab bo'lmadi. Qayta urinib ko'ring.",
+    phrases: "Shu darsning iboralari",
     characters: { Penguin: "Pingvin", Panda: "Panda", Pero: "Pero", None: "AI ustoz" },
   },
 

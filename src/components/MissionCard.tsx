@@ -70,12 +70,7 @@ export function MissionCard({
         </div>
       </div>
 
-      <MissionProgress
-        value={mission.isCompleted ? 1 : 0}
-        max={1}
-        completed={mission.isCompleted}
-        label={title}
-      />
+      <MissionScore mission={mission} label={title} />
 
       {needsRegisterLabel && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -86,9 +81,8 @@ export function MissionCard({
         </div>
       )}
 
-      <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-        <span className="text-sm font-extrabold text-signal-ink">{t.practice.details}</span>
-
+      {/* No separate "details" link: the start button opens the brief, which holds the instructions. */}
+      <div className="mt-auto flex items-center justify-end gap-3 pt-5">
         {mission.isCompleted ? (
           <span className="rounded-[var(--radius-control)] border border-milestone/15 bg-ground-raised px-4 py-1.5 text-sm font-extrabold text-milestone">
             {t.path.done}
@@ -110,6 +104,55 @@ export function MissionCard({
         )}
       </div>
     </Link>
+  )
+}
+
+/**
+ * The mission's best AI-evaluated score, with a tick at the pass mark when the mission has one
+ * (dialogue missions). A mission finished before scores were kept still reads as full.
+ */
+function MissionScore({ mission, label }: { mission: MissionSummary; label: string }) {
+  const t = useT()
+  const best = mission.bestScore ?? null
+  const pass = mission.passScore ?? null
+  const percent = Math.min(100, Math.max(0, best ?? (mission.isCompleted ? 100 : 0)))
+  const status =
+    best !== null
+      ? fill(t.practice.bestScore, { score: best })
+      : mission.isCompleted
+        ? t.path.done
+        : t.practice.notTried
+
+  return (
+    <div className="mt-5">
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuetext={pass !== null ? `${status}, ${fill(t.practice.passMark, { score: pass })}` : status}
+        className="relative h-2 rounded-full bg-ground-sunken ring-1 ring-black/[0.03]"
+      >
+        <span
+          className={`block h-full rounded-full transition-[width] duration-300 ${
+            mission.isCompleted ? 'bg-milestone' : 'bg-signal'
+          }`}
+          style={{ width: `${percent}%` }}
+        />
+        {pass !== null && (
+          <span
+            aria-hidden="true"
+            className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-ink/35"
+            style={{ left: `${pass}%` }}
+          />
+        )}
+      </div>
+      <div className="mt-1.5 flex items-center justify-between gap-3 text-[11px] font-semibold text-ink-muted">
+        <span className={mission.isCompleted ? 'text-milestone' : undefined}>{status}</span>
+        {pass !== null && <span>{fill(t.practice.passMark, { score: pass })}</span>}
+      </div>
+    </div>
   )
 }
 
