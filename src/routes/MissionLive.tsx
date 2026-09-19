@@ -203,7 +203,11 @@ export function MissionLive() {
     beatRef.current = next
     setBeatIndex(next)
 
-    if (beats.length > 0 && turnsRef.current.length >= beats.length) {
+    // Only beats that expect an answer have to be answered. A closing line the learner may
+    // simply let go ("Ученик может попрощаться") would otherwise hold the scene open until the
+    // clock ran out.
+    const required = beats.filter((beat) => beat.expectedAnswer).length || beats.length
+    if (required > 0 && turnsRef.current.length >= required) {
       setGoalReached(true)
       // Let the character finish its closing line before the screen changes.
       window.setTimeout(() => void finish(), 1800)
