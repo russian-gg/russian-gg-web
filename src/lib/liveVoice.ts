@@ -73,6 +73,19 @@ export interface LiveVoiceCallbacks {
   onSilenceTimeout: () => void
   /** Nothing was heard at all this turn — usually a muted or wrong input device. */
   onNoSpeech: () => void
+  /** The model called one of the functions declared in {@link LiveVoiceOptions.tools}. */
+  onToolCall?: (name: string, args: Record<string, unknown>) => void
+}
+
+/** A function the model may call during the session (Gemini Live function calling). */
+export interface LiveFunctionDeclaration {
+  name: string
+  description: string
+  parameters?: {
+    type: 'OBJECT'
+    properties: Record<string, { type: 'INTEGER' | 'STRING' | 'BOOLEAN' | 'NUMBER'; description?: string }>
+    required?: string[]
+  }
 }
 
 export interface LiveVoiceOptions {
@@ -86,11 +99,17 @@ export interface LiveVoiceOptions {
    * sentence, which is how people actually talk.
    */
   continuous?: boolean
+  /**
+   * Functions the model may call. Only the model can tell a right answer from a wrong one, so
+   * this is how it tells the screen what the conversation has achieved.
+   */
+  tools?: LiveFunctionDeclaration[]
 }
 
 export class LiveVoiceSession {
   private readonly callbacks: LiveVoiceCallbacks
   private readonly continuous: boolean
+  private readonly tools: LiveFunctionDeclaration[]
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
   private readonly openingCue: string
@@ -149,6 +168,7 @@ export class LiveVoiceSession {
     this.openingCue = ticket.openingCue
     this.callbacks = callbacks
     this.continuous = options?.continuous ?? false
+    this.tools = options?.tools ?? []
   }
 
   get elapsedSeconds() {
@@ -369,6 +389,7 @@ export class LiveVoiceSession {
             systemInstruction: {
               parts: [{ text: this.systemInstruction }],
             },
+            ...(this.tools.length > 0 ? { tools: [{ functionDeclarations: this.tools }] } : {}),
             generationConfig: {
               responseModalities: ['AUDIO'],
               speechConfig: {
@@ -406,6 +427,11 @@ export class LiveVoiceSession {
             this.connected = true
             this.callbacks.onConnected()
             resolve()
+            return
+          }
+
+          if (response.toolCall?.functionCalls?.length) {
+            this.answerToolCalls(response.toolCall.functionCalls)
             return
           }
 
@@ -733,6 +759,32 @@ export class LiveVoiceSession {
     }
 
     this.callbacks.onStatus('idle')
+  }
+
+  /**
+   * The model waits for an answer to every call before it speaks again, so each one is
+   * acknowledged at once — the app acts on it alongside the conversation, not in front of it.
+   */
+  private answerToolCalls(calls: LiveFunctionCall[]) {
+    for (const call of calls) {
+      if (call.name) {
+        this.callbacks.onToolCall?.(call.name, call.args ?? {})
+      }
+    }
+
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      return
+    }
+
+    this.ws.send(JSON.stringify({
+      toolResponse: {
+        functionResponses: calls.map((call) => ({
+          id: call.id,
+          name: call.name,
+          response: { result: 'ok' },
+        })),
+      },
+    }))
   }
 
   /** Fresh per-turn state. The capture graph and the socket outlive it. */
@@ -1289,8 +1341,15 @@ async function parseServerMessage(data: Blob | ArrayBuffer | string) {
   return JSON.parse(String(data))
 }
 
+type LiveFunctionCall = {
+  id?: string
+  name?: string
+  args?: Record<string, unknown>
+}
+
 type LiveServerMessage = {
   setupComplete?: object
+  toolCall?: { functionCalls?: LiveFunctionCall[] }
   serverContent?: {
     turnComplete?: boolean
     generationComplete?: boolean

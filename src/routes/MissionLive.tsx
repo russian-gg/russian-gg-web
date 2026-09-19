@@ -7,7 +7,7 @@ import { cx } from '../lib/cx'
 import { foundationLessons } from '../lib/foundation-lessons'
 import { fill, useT } from '../lib/i18n'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
-import type { LiveVoiceStatus } from '../lib/liveVoice'
+import type { LiveFunctionDeclaration, LiveVoiceStatus } from '../lib/liveVoice'
 import type { MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
 import { CharacterOrb, type OrbState } from '../components/CharacterOrb'
 import { Button, ErrorNote, Spinner } from '../components/ui'
@@ -22,6 +22,34 @@ const ORB_STATE: Record<LiveVoiceStatus, OrbState> = {
   thinking: 'thinking',
   closed: 'idle',
 }
+
+/**
+ * How the character reports what the conversation has achieved.
+ *
+ * The screen used to decide that itself by counting: four things said to a four-step scene and
+ * the mission closed and was graded — wrong answers, a half sentence and an off-topic remark
+ * counted the same as right ones. Only the character hears whether an answer was right, so it
+ * is the one that moves the scene on and ends it. The clock and the finish button still stop
+ * the conversation whatever the character does.
+ */
+const MISSION_TOOLS: LiveFunctionDeclaration[] = [
+  {
+    name: 'step_completed',
+    description: 'The learner has just correctly said the answer this step of the scene was waiting for.',
+    parameters: {
+      type: 'OBJECT',
+      properties: { step: { type: 'INTEGER', description: 'The step number, starting at 1.' } },
+      required: ['step'],
+    },
+  },
+  {
+    name: 'finish_mission',
+    description: 'Every step of the scene is complete and the closing line has been said. Ends the conversation.',
+  },
+]
+
+/** Long enough for the character's closing line to finish playing before the screen changes. */
+const CLOSING_LINE_MS = 3500
 
 /**
  * The conversation itself: one character, one goal, five minutes.
@@ -58,6 +86,9 @@ export function MissionLive() {
   const learnerRef = useRef('')
   const tutorRef = useRef('')
   const beatRef = useRef(0)
+  /** The character's line the learner is answering — what their answer is graded against. */
+  const questionRef = useRef('')
+  const finishRequestedRef = useRef(false)
   const finishingRef = useRef(false)
   /** Every exchange as it happened, handed to the server when the conversation ends. */
   const turnsRef = useRef<{ stepIndex: number; learnerTranscript: string; tutorTranscript: string | null }[]>([])
@@ -180,41 +211,59 @@ export function MissionLive() {
   function recordTurn() {
     const spoken = learnerRef.current.trim()
     learnerRef.current = ''
-    const tutor = tutorRef.current.trim()
+    const reply = tutorRef.current.trim()
     tutorRef.current = ''
 
     // The character spoke but the learner has not answered yet — that is the tutor's own turn,
-    // not an exchange, and the scene has not moved.
+    // not an exchange, and it is the line the learner will be answering next.
     if (!attemptRef.current || spoken.length === 0) {
+      if (reply) questionRef.current = reply
       void listenAgain()
       return
     }
 
+    /*
+     * Graded against the line it answered. The reply that follows is the character reacting to
+     * it — praise, or a correction — and grading against that is how a right answer to "как вас
+     * зовут?" was marked against "где вы живёте?". The step is only the conversation's position;
+     * the server works out the beat from the two lines themselves.
+     */
     turnsRef.current.push({
       stepIndex: beatRef.current,
       learnerTranscript: spoken,
-      tutorTranscript: tutor || null,
+      tutorTranscript: questionRef.current || null,
     })
+    if (reply) questionRef.current = reply
 
-    // The dots follow the conversation, not the score. Following the server's step index made
-    // them sit still through an answer that was understood but imperfect, and jump two beats
-    // when a later answer covered them both.
-    const next = Math.min(beatRef.current + 1, Math.max(beats.length - 1, 0))
-    beatRef.current = next
-    setBeatIndex(next)
+    // Wrong answers, retries and detours do not move the scene or end it: the character reports
+    // each step it heard done (step_completed) and the end of the scene (finish_mission).
+    if (finishRequestedRef.current) return
 
-    // Only beats that expect an answer have to be answered. A closing line the learner may
-    // simply let go ("Ученик может попрощаться") would otherwise hold the scene open until the
-    // clock ran out.
-    const required = beats.filter((beat) => beat.expectedAnswer).length || beats.length
-    if (required > 0 && turnsRef.current.length >= required) {
-      setGoalReached(true)
-      // Let the character finish its closing line before the screen changes.
-      window.setTimeout(() => void finish(), 1800)
+    void listenAgain()
+  }
+
+  /** The character's own report of what the conversation has achieved. See MISSION_TOOLS. */
+  function handleToolCall(name: string, args: Record<string, unknown>) {
+    if (name === 'step_completed') {
+      const step = Number(args.step)
+      if (!Number.isFinite(step) || step < 1) return
+
+      // Steps are numbered from one, so the step just completed is also the index of the next.
+      const next = Math.min(Math.round(step), Math.max(beats.length - 1, 0))
+      if (next > beatRef.current) {
+        beatRef.current = next
+        setBeatIndex(next)
+      }
       return
     }
 
-    void listenAgain()
+    if (name === 'finish_mission' && !finishRequestedRef.current) {
+      finishRequestedRef.current = true
+      beatRef.current = Math.max(beats.length - 1, 0)
+      setBeatIndex(beatRef.current)
+      setGoalReached(true)
+      window.setTimeout(() => void finish(), CLOSING_LINE_MS)
+    }
   }
 
   async function connect() {
@@ -258,20 +307,32 @@ export function MissionLive() {
       const session = new LiveVoiceSession(
         ticket,
         {
-          onStatus: setStatus,
+          onStatus: (next) => {
+            setStatus(next)
+            // A new listening turn: whatever the character said since the last exchange — the
+            // opening, above all — is the line the learner is about to answer.
+            if (next === 'listening' && tutorRef.current.trim()) {
+              questionRef.current = tutorRef.current.trim()
+              tutorRef.current = ''
+            }
+          },
           onConnected: () => {
             setPhase('live')
             void api
               .post('/missions/voice/sessions/connected', { sessionId: ticket.sessionId, connectMilliseconds: 0 })
               .catch(() => {})
           },
+          // Both arrive as the whole turn so far, not as the latest piece. Appending them wrote
+          // every answer out several times over ("Меня Меня зовут Меня зовут Али"), and that
+          // is what was graded.
           onInputTranscript: (text) => {
-            learnerRef.current += text
+            learnerRef.current = text
           },
           onOutputTranscript: (text) => {
-            tutorRef.current += text
+            tutorRef.current = text
           },
           onTurnComplete: () => recordTurn(),
+          onToolCall: handleToolCall,
           onSilenceTimeout: () => {},
           onNoSpeech: () => {},
           onDropped: () => setError(copy.unavailable),
@@ -279,7 +340,7 @@ export function MissionLive() {
         },
         // A conversation, not a form: the microphone stays open for the whole scene and the
         // character can be interrupted mid-sentence.
-        { continuous: true },
+        { continuous: true, tools: MISSION_TOOLS },
       )
 
       sessionRef.current = session
