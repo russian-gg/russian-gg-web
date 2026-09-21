@@ -280,6 +280,14 @@ export const en: Dictionary = {
     googleNoToken: 'Google did not return a token.',
     googleFailed: 'Google sign-in failed. Please try again.',
 
+    reset: {
+      forgot: 'Forgot your password?',
+      title: 'Reset your password',
+      subtitle:
+        'Enter the number your account uses. We will send a code, then you can choose a new password.',
+      submit: 'Save new password',
+      remembered: 'Remembered it?',
+    },
     phone: {
       title: 'Sign in or sign up',
       subtitle: 'Enter your phone number — we will text you a verification code.',
@@ -312,6 +320,9 @@ export const en: Dictionary = {
       linkDoneBody: 'Now sign in with your phone number and password.',
       linkedBanner: 'Your phone number is confirmed. Now sign in with your number and password.',
       continue: 'Continue',
+      numberOnOtherAccount:
+        'This number already belongs to another account. That is the account with your progress — sign in with your number and password, then link Google from Settings.',
+      signInWithThatAccount: 'Sign in with that account',
       errors: {
         invalid_phone_number: 'Enter a valid phone number.',
         otp_invalid: 'The code is incorrect.',
@@ -323,12 +334,17 @@ export const en: Dictionary = {
         otp_unavailable: 'We could not check the code right now. Please try again in a moment.',
         sms_failed: 'Could not send the code. Please try again.',
         phone_taken: 'This phone number is already used by another account.',
+        account_not_found: 'No account uses this phone number.',
         phone_already_registered:
           'This number is already registered. Sign in with your phone number and password.',
         display_name_required: 'Enter your name.',
         weak_password: 'Use at least 8 characters with both letters and numbers.',
         account_inactive: 'This account is inactive.',
         default: 'Something went wrong. Please try again.',
+        google_taken: 'This Google account is already used by another account.',
+        google_already_linked: 'This account is already linked to a different Google account.',
+        google_email_not_verified: 'This Google account has no verified email address.',
+        email_taken: 'This email address is already used by another account.',
       },
     },
   },
@@ -799,6 +815,12 @@ export const en: Dictionary = {
       'Lessons work without any of these. Voice recordings are kept only if you allow it.',
     account: 'Account',
     deleteAccount: 'Delete account',
+    googleSection: 'Google account',
+    googleLinked: 'Google is linked to this account.',
+    googleLinkBody:
+      'Link Google and you can sign in either way — with your phone number and password, or with Google — and always land on this same account.',
+    googleLinkAction: 'Link Google',
+    googleLinkFailed: 'Could not link the Google account.',
     deleteNote:
       'Deleting your account removes every recording, transcript and all your progress. ' +
       'This cannot be undone.',
