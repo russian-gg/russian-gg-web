@@ -432,6 +432,49 @@ export const en: Dictionary = {
     empty: 'No lesson for today',
     emptyBody: 'Pick another lesson from the 90-day path, or open the task library.',
     streak: '{count} days in a row',
+    seeAll: 'See all',
+    more: 'Details',
+    search: {
+      label: 'Search the course',
+      placeholder: 'Search for a day or a topic...',
+      noResults: 'Nothing found.',
+      day: 'Day {day}',
+    },
+    features: {
+      title: 'Main features',
+      subtitle: 'Make learning enjoyable and effective',
+      today: { title: "Today's lesson", body: 'Learn something new' },
+      tasks: { title: 'Tasks', body: 'Practise more' },
+      tests: { title: 'Tests', body: 'Check what you know' },
+      games: { title: 'Games', body: 'Learn by playing' },
+      progress: { title: 'Progress', body: 'Follow your results' },
+    },
+    recommended: {
+      title: 'Recommended lessons',
+      minutes: '{count} min',
+    },
+    quote: {
+      show: 'Show quote {n}',
+    },
+    progressPanel: {
+      title: 'My progress',
+      days: 'days',
+      done: 'Completed',
+      left: 'Remaining',
+    },
+    achievements: {
+      title: 'Achievements',
+    },
+    recent: {
+      title: 'Recent activity',
+      day: 'Day {day}',
+    },
+    hero: {
+      eyebrow: 'LEARN RUSSIAN',
+      title: 'Small steps, big possibilities!',
+      subtitle: 'A little every day — towards fluent Russian.',
+      cta: "Start today's lesson",
+    },
     activity: {
       title: 'Activity',
       subtitle: 'Your visits and lessons over 7 weeks',

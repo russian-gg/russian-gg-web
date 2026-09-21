@@ -600,3 +600,48 @@ export type AnonymousAssessment = {
   assessment: OnboardingAssessment
   token: string
 }
+
+// --- Home dashboard --------------------------------------------------------------
+
+export interface QuoteView {
+  id: string
+  textRu: string
+  textUz?: string | null
+  textEn?: string | null
+  attributionRu: string
+  attributionUz?: string | null
+  attributionEn?: string | null
+}
+
+export type AchievementCategory = 'Streak' | 'Lessons' | 'Tests' | 'Special'
+
+export interface AchievementView {
+  code: string
+  category: AchievementCategory
+  titleUz: string
+  titleRu: string
+  titleEn?: string | null
+  /**
+   * The learner's count, absent when the track has nothing behind it yet — the tile renders
+   * locked rather than zero. Optional, not just nullable: the API omits nulls entirely
+   * (`DefaultIgnoreCondition = WhenWritingNull`), so this key is missing rather than null and
+   * a `=== null` test would silently read it as a real value.
+   */
+  value?: number | null
+  /** Zero when the tile is a running total rather than something with an end. */
+  threshold: number
+  isUnlocked: boolean
+}
+
+export type SearchResultKind = 'Mission' | 'Day'
+
+export interface SearchResultView {
+  kind: SearchResultKind
+  missionId?: string | null
+  slug?: string | null
+  courseDay?: number | null
+  titleUz: string
+  titleRu: string
+  subtitleUz?: string | null
+  isLocked: boolean
+}

@@ -437,6 +437,49 @@ export const uz = {
     empty: 'Bugunga mashq topilmadi',
     emptyBody: "90 kunlik yo'ldan boshqa mashqni tanlang yoki mashq kutubxonasiga o'ting.",
     streak: '{count} kun ketma-ket',
+    seeAll: 'Barchasini ko‘rish',
+    more: 'Batafsil',
+    search: {
+      label: 'Kurs bo‘yicha qidirish',
+      placeholder: 'Kun yoki mavzuni qidiring...',
+      noResults: 'Hech narsa topilmadi.',
+      day: '{day}-kun',
+    },
+    features: {
+      title: 'Asosiy imkoniyatlar',
+      subtitle: 'O‘rganishni qiziqarli va samarali qiling',
+      today: { title: 'Bugungi dars', body: 'Yangi bilimlar o‘rganing' },
+      tasks: { title: 'Topshiriqlar', body: 'Ko‘proq mashq qiling' },
+      tests: { title: 'Testlar', body: 'Bilimingizni tekshirib ko‘ring' },
+      games: { title: 'O‘yinlar', body: 'O‘ynab o‘rganing' },
+      progress: { title: 'Progress', body: 'Natijalaringizni kuzatib boring' },
+    },
+    recommended: {
+      title: 'Tavsiya etilgan darslar',
+      minutes: '{count} daqiqa',
+    },
+    quote: {
+      show: '{n}-iqtibosni ko‘rsatish',
+    },
+    progressPanel: {
+      title: 'Mening progressim',
+      days: 'kun',
+      done: 'Bajarilgan',
+      left: 'Qolgan',
+    },
+    achievements: {
+      title: 'Yutuqlar',
+    },
+    recent: {
+      title: 'So‘nggi faollik',
+      day: '{day}-kun',
+    },
+    hero: {
+      eyebrow: "RUS TILINI O'RGANING",
+      title: 'Kichik qadamlardan katta imkoniyatlar!',
+      subtitle: 'Har kuni bir oz — erkin rus tili sari.',
+      cta: 'Bugungi darsni boshlash',
+    },
     activity: {
       title: 'Faollik',
       subtitle: '7 haftalik dars va kirish tarixi',

@@ -525,3 +525,175 @@
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50% { transform: translateY(-7px) rotate(2deg); }
 }
+
+/*
+  Home hero.
+
+  Its own scope rather than new global tokens: this palette is the illustration's — a sky,
+  domes and trees — and nothing outside the banner has any use for it. Declared here so the
+  SVG can paint from variables and the dark theme can re-point them, exactly the way the
+  product's own tokens work. An illustration hard-coded to a pale sky would be a lit panel
+  sitting in a dark page.
+*/
+@layer utilities {
+  .home-hero {
+    --hero-sky-top: #f6faff;
+    --hero-sky-bottom: #dfecfd;
+    --hero-glow: rgb(91 155 245 / 0.18);
+    --hero-cloud: rgb(255 255 255 / 0.85);
+    --hero-far: #d3e4fa;
+    --hero-mid: #b7d2f6;
+    --hero-dome-light: #a5c8f5;
+    --hero-dome: #73a6ef;
+    --hero-dome-deep: #3f7fdc;
+    --hero-line: #2f6bc6;
+    --hero-tree: #7fb0f0;
+    --hero-tree-deep: #4f8ae0;
+    --hero-bird: #4a86dd;
+
+    /* 10.8:1 on the deepest part of the sky. The heading is never a tint of the illustration. */
+    --hero-ink: #12315f;
+    /* 4.5:1 at the sky's darkest. The subtitle is running text, so it clears AA outright. */
+    --hero-ink-muted: #4b6c96;
+    --hero-script: #2f6bc6;
+
+    /*
+      The veil between the photograph and the copy. The picture's left is near-empty sky, so
+      this only has to guarantee what the crop cannot be trusted to: at a narrow width the
+      framing pulls the domes across, and without it the heading would be sitting on masonry.
+    */
+    --hero-scrim-strong: rgb(246 250 255 / 0.93);
+    --hero-scrim-soft: rgb(246 250 255 / 0.55);
+  }
+
+  :root[data-theme='dark'] .home-hero {
+    --hero-sky-top: #121a28;
+    --hero-sky-bottom: #182640;
+    --hero-glow: rgb(91 155 245 / 0.16);
+    --hero-cloud: rgb(148 178 220 / 0.14);
+    --hero-far: #1c2c46;
+    --hero-mid: #253c5e;
+    --hero-dome-light: #33578c;
+    --hero-dome: #4a7cbe;
+    --hero-dome-deep: #6ea6f1;
+    --hero-line: #8ebbf8;
+    --hero-tree: #2f5183;
+    --hero-tree-deep: #23405f;
+    --hero-bird: #7db3fa;
+
+    --hero-ink: #eaf1fb;
+    --hero-ink-muted: #a3b8d4;
+    --hero-script: #8ebbf8;
+
+    /*
+      Heavier here, and it never reaches transparent. The artwork is a fixed daylight picture
+      that cannot be re-pointed at the dark palette the way the SVG's variables could, so the
+      scrim is what keeps it from glowing out of a dark page — it stays over the whole banner
+      rather than fading off the right edge.
+    */
+    --hero-scrim-strong: rgb(18 26 40 / 0.94);
+    --hero-scrim-soft: rgb(18 26 40 / 0.74);
+    --hero-scrim-end: rgb(18 26 40 / 0.55);
+  }
+
+  /*
+    Vertical on a phone, where the copy sits above the domes, and horizontal from `md`, where
+    it sits beside them. `--hero-scrim-end` is transparent in the light theme, so the light
+    banner still opens out into clear picture on the right.
+  */
+  .home-hero__scrim {
+    background: linear-gradient(
+      to bottom,
+      var(--hero-scrim-strong) 0%,
+      var(--hero-scrim-soft) 46%,
+      var(--hero-scrim-end, transparent) 78%
+    );
+  }
+
+  @media (min-width: 48rem) {
+    .home-hero__scrim {
+      background: linear-gradient(
+        to right,
+        var(--hero-scrim-strong) 0%,
+        var(--hero-scrim-soft) 44%,
+        var(--hero-scrim-end, transparent) 70%
+      );
+    }
+  }
+
+  /*
+    The birds fly over the illustration, not inside it: the background is one static SVG that
+    the browser paints once, and only these four small elements are ever recomposited.
+
+    Each bird is two nested animations — the rail carries it across the banner at a constant
+    rate, the body rises and falls underneath on a duration that is deliberately not a factor
+    of the rail's. Neither loop lines up with the other, so the path reads as a slow curve that
+    never repeats itself rather than as a sine wave on a wire.
+  */
+  .hero-bird {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    animation: heroBirdCross var(--bird-cross) linear var(--bird-delay) infinite;
+  }
+
+  .hero-bird__body {
+    display: block;
+    width: var(--bird-size);
+    color: var(--hero-bird);
+    animation: heroBirdRise var(--bird-rise) ease-in-out var(--bird-delay) infinite;
+  }
+
+  .hero-bird__wings {
+    transform-box: fill-box;
+    transform-origin: 50% 85%;
+    animation: heroBirdFlap var(--bird-flap) ease-in-out infinite;
+  }
+
+  @keyframes heroBirdCross {
+    0% {
+      opacity: 0;
+      transform: translateX(var(--bird-from));
+    }
+    14%,
+    86% {
+      opacity: var(--bird-opacity);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(var(--bird-to));
+    }
+  }
+
+  @keyframes heroBirdRise {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-4deg);
+    }
+    50% {
+      transform: translateY(var(--bird-lift)) rotate(4deg);
+    }
+  }
+
+  @keyframes heroBirdFlap {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+  }
+
+  /*
+    Stilled rather than frozen. The global reduced-motion rule ends every animation at its last
+    frame, and a bird's last frame is off the right edge at zero opacity — so honouring the
+    preference by that rule alone would leave four invisible elements and an empty sky. The
+    birds painted into the background SVG stay, and they are the ones the still image needs.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-birds {
+      display: none;
+    }
+  }
+}
