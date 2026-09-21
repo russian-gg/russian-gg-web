@@ -176,11 +176,11 @@ export function Sales() {
 
 function SalesDashboardTab() {
   const [days, setDays] = useState(30)
-  const { data, error, isLoading } = useAdminQuery<SalesDashboardData>(
+  const { data, error, isLoading, refresh } = useAdminQuery<SalesDashboardData>(
     `/api/admin-portal/sales/dashboard?days=${days}`,
   )
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
@@ -398,7 +398,7 @@ function Inbox({ waiting }: { waiting: number }) {
     if (selected === null && chats.length > 0) setSelected(chats[0].id)
   }, [chats, selected])
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
@@ -657,7 +657,7 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
     if (thread) thread.scrollTop = thread.scrollHeight
   }, [data?.messages.length])
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
@@ -986,7 +986,7 @@ function AgentSettings() {
     if (data) setDraft({ ...data, webhookUrl: data.webhookUrl ?? DEFAULT_WEBHOOK_URL })
   }, [data])
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!draft && isLoading) return <Loading />
   if (!draft) return null
 

@@ -5,11 +5,11 @@ import { TOPIC_ORDER } from '../lib/format'
 import { useT } from '../lib/i18n'
 import type { EntitlementView, MissionSummary, MissionTopic } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
-import { EmptyState, LinkButton, Spinner } from '../components/ui'
+import { EmptyState, LinkButton, QueryError, Spinner } from '../components/ui'
 
 export function Practice() {
   const t = useT()
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['practice'],
     queryFn: () => api.get<MissionSummary[]>('/course/practice'),
   })
@@ -47,6 +47,10 @@ export function Practice() {
       </header>
 
       {isLoading && <Spinner />}
+
+      {/* Without this the heading sits over nothing at all: `data` is undefined on a failed
+          request, so neither the list nor the empty state below is reached. */}
+      {isError && <QueryError onRetry={() => void refetch()} />}
 
       {data && missions.length === 0 && (
         <EmptyState

@@ -40,7 +40,7 @@ export function Games() {
         subtitle="Qaysi o'yin foydalanuvchilarga ochiq — hammasi standart holatda yopiq"
       />
 
-      {error && <ErrorNote>{error}</ErrorNote>}
+      {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {failure && <ErrorNote>{failure}</ErrorNote>}
       {!data && isLoading && <Loading />}
 

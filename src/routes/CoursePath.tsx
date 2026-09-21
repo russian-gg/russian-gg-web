@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
@@ -15,7 +17,7 @@ import {
   MissionCardAction,
   MissionProgress,
 } from '../components/MissionCard'
-import { Badge, Button, Card, LinkButton, Spinner } from '../components/ui'
+import { Badge, Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -42,7 +44,7 @@ export function CoursePath() {
   const [search, setSearch] = useState('')
   const syncStartedDays = useRef(new Set<number>())
 
-  const { data: days, isLoading } = useQuery({
+  const { data: days, isLoading, isError, refetch } = useQuery({
     queryKey: ['course-map'],
     queryFn: () => api.get<CourseDayView[]>('/course/map'),
   })
@@ -134,7 +136,8 @@ export function CoursePath() {
     })()
   }, [queryClient, unsyncedKey, user?.id])
 
-  if (isLoading || !days) return <Spinner />
+  if (isLoading) return <Spinner />
+  if (isError || !days) return <QueryError onRetry={() => void refetch()} />
 
   let previousDaysComplete = true
   const displayedDays = days.map((day) => {
@@ -346,6 +349,7 @@ function DayPreviewDrawer({
   onDismiss: () => void
   onStart: (restart: boolean) => void
 }) {
+  const dialogRef = useFocusTrap<HTMLElement>()
   const { day } = selected
   const focus = getDayFocus(day, locale)
   const isDone = day.completedMissionCount >= day.requiredMissionCount
@@ -353,17 +357,10 @@ function DayPreviewDrawer({
   const total = partialProgress?.max ?? day.requiredMissionCount
   const hasProgress = completed > 0 && !isDone
   const restart = isDone || !hasProgress
-  const description = locale === 'ru'
-    ? 'На этом уроке вы изучите новые правила и фразы, а затем закрепите их в интерактивных заданиях.'
-    : locale === 'en'
-      ? 'In this lesson you will learn new rules and phrases, then practise them in interactive activities.'
-      : 'Bu darsda yangi qoida va iboralarni o‘rganib, ularni interaktiv mashqlarda mustahkamlaysiz.'
-  const action = locale === 'ru'
-    ? isDone ? 'Повторить урок' : hasProgress ? 'Продолжить урок' : 'Начать урок'
-    : locale === 'en'
-      ? isDone ? 'Repeat lesson' : hasProgress ? 'Continue lesson' : 'Start lesson'
-      : isDone ? 'Darsni takrorlash' : hasProgress ? 'Darsni davom ettirish' : 'Darsni boshlash'
-  const close = locale === 'ru' ? 'Закрыть' : locale === 'en' ? 'Close' : 'Yopish'
+  const copy = useT().dayPreview
+  const description = copy.description
+  const action = isDone ? copy.repeat : hasProgress ? copy.resume : copy.start
+  const close = copy.close
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -388,6 +385,8 @@ function DayPreviewDrawer({
         onClick={onDismiss}
       />
       <aside
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="day-preview-title"
@@ -396,7 +395,7 @@ function DayPreviewDrawer({
         <div className="flex items-start justify-between gap-5">
           <div>
             <h2 id="day-preview-title" className="text-3xl font-black text-ink">
-              {locale === 'ru' ? `Урок ${day.day}` : locale === 'en' ? `Lesson ${day.day}` : `${day.day}-dars`}
+              {fill(copy.lessonDay, { day: day.day })}
             </h2>
           </div>
           <button type="button" onClick={onDismiss} aria-label={close} className="flex size-10 shrink-0 items-center justify-center rounded-full text-2xl text-ink-muted transition hover:bg-ground-sunken hover:text-ink">×</button>
@@ -406,8 +405,8 @@ function DayPreviewDrawer({
           <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{focus}</p>
           <p className="mt-3 text-base leading-7 text-ink-muted">{description}</p>
           <div className="mt-4 flex items-center justify-between gap-3 text-xs font-black text-ink-muted">
-            <span>{completed} / {total} {locale === 'ru' ? 'разделов' : locale === 'en' ? 'sections' : 'bo‘lim'}</span>
-            {isDone && <span className="text-milestone">✓ {locale === 'ru' ? 'Пройдено' : locale === 'en' ? 'Completed' : 'Yakunlangan'}</span>}
+            <span>{completed} / {total} {copy.sections}</span>
+            {isDone && <span className="text-milestone">✓ {copy.completed}</span>}
           </div>
           <MissionProgress value={completed} max={total} completed={isDone} label={focus} compact />
         </div>
@@ -429,6 +428,7 @@ function DayPreviewDrawer({
  * learner reached for more of the course.
  */
 function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: () => void }) {
+  const lockedRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
 
   useEffect(() => {
@@ -450,6 +450,8 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
       <Card
         className="w-full max-w-md"
         onClick={(event) => event.stopPropagation()}
+        ref={lockedRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="locked-day-title"
@@ -616,13 +618,10 @@ function fillFallbackDay(day: number, locale: Locale) {
 
 function SearchGlyph() {
   return (
-    <svg
-      viewBox="0 0 24 24"
+    <Search
       aria-hidden="true"
-      className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 fill-none stroke-current stroke-2 text-ink-faint"
-    >
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="m15.5 15.5 4 4" strokeLinecap="round" />
-    </svg>
+      strokeWidth={2}
+      className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-faint"
+    />
   )
 }

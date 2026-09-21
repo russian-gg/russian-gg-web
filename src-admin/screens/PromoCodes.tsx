@@ -180,7 +180,7 @@ export function PromoCodes() {
             {data && <Badge tone="neutral">{data.length} ta jami kod</Badge>}
           </div>
 
-          {error && <ErrorNote>{error}</ErrorNote>}
+          {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
           {!data && isLoading && <Loading />}
 
           {data && (

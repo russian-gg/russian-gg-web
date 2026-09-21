@@ -9,6 +9,10 @@ RUN npm ci
 
 COPY . .
 RUN npm run build
+# The maps are written but never shipped. `sourcemap: 'hidden'` keeps them out of the browser
+# by emitting no sourceMappingURL, and this keeps them off the server entirely — a map is
+# still readable to anyone who guesses its URL.
+RUN find dist -name '*.map' -delete
 
 FROM nginx:1.27-alpine AS runtime
 COPY --from=build /app/dist /usr/share/nginx/html

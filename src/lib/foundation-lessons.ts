@@ -837,7 +837,7 @@ const lesson6: LessonData = {
     { title: 'Добрая', translation: 'mehribon', tone: 'red' },
     { title: 'Мудрый', translation: 'dono', tone: 'yellow' },
   ],
-  sceneImage: '/lesson-scenes/day-6-family.jpg',
+  sceneImage: '/lesson-scenes/day-6-family.webp',
   completionMessage: 'Ajoyib! Endi siz odamlarning tashqi ko‘rinishi va xarakterini rus tilida tasvirlay olasiz. «Красивый», «умная», «сильный», «добрая» — bularni eslab qoling. Ertaga biz ko‘plikdagi otlar va «много» so‘zi haqida gaplashamiz. Ko‘rishguncha!',
   reflection: {
     questions: [
@@ -989,7 +989,7 @@ const lesson7: LessonData = {
     { title: 'Сёстры', translation: 'opa-singillar', tone: 'red' },
     { title: 'Стулья', translation: 'stullar', tone: 'yellow' },
   ],
-  sceneImage: '/lesson-scenes/day-6-family.jpg',
+  sceneImage: '/lesson-scenes/day-6-family.webp',
   completionMessage: 'Ajoyib! Endi siz ko‘plikda gapira olasiz. «Братья», «друзья», «стулья» — bularni eslab qoling. Ertaga xonangiz haqida gaplashamiz. Ko‘rishguncha, eng zo‘r o‘quvchim!',
   reflection: {
     questions: [

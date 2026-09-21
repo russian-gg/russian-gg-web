@@ -42,7 +42,11 @@ export function Transactions() {
           const status = item.status as keyof typeof statusTone
 
           return (
-            <Row key={item.id} onClick={() => setSelected(item.userId)}>
+            <Row
+              key={item.id}
+              onClick={() => setSelected(item.userId)}
+              label={`${item.displayName ?? 'Ismsiz'} — ma'lumotini ochish`}
+            >
               <Cell>
                 <span className="block font-bold text-ink">{item.displayName ?? 'Ismsiz'}</span>
                 <span className="block text-xs text-ink-faint">{item.email ?? '—'}</span>

@@ -5,10 +5,11 @@ import { api, track } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
 import type { MissionResult as MissionResultDto, MissionRetryState, SkillArea } from '../lib/types'
-import { Badge, Card, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Card, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
 export function MissionResult() {
+  const geminiReply = useT().dayPreview.geminiReply
   const t = useT()
   const { locale } = useLocale()
   const { attemptId = '' } = useParams()
@@ -16,14 +17,15 @@ export function MissionResult() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['attempt-result', attemptId],
     queryFn: () => api.get<MissionResultDto>(`/missions/attempts/${attemptId}/result`),
     // The enrichment job fills in detail shortly after completion; poll until it lands.
     refetchInterval: (query) => (query.state.data?.enrichmentPending ? 3000 : false),
   })
 
-  if (isLoading || !data) return <Spinner label={t.result.preparing} />
+  if (isLoading) return <Spinner label={t.result.preparing} />
+  if (isError || !data) return <QueryError onRetry={() => void refetch()} />
 
   // A conversation that fell short is not a completed mission: say so, and say when the next
   // attempt is allowed rather than leaving a learner to guess.
@@ -138,7 +140,7 @@ export function MissionResult() {
                 {turn.tutorTranscript ? (
                   <div className="mt-3 rounded-lg bg-ground-sunken px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-                      Gemini javobi
+                      {geminiReply}
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-ink">{turn.tutorTranscript}</p>
                   </div>

@@ -25,6 +25,459 @@ export const uz = {
     loadFailedBody: 'Internetni tekshirib, sahifani yangilang.',
   },
 
+  /**
+   * The placement result. Every figure on this screen is measured from forty seconds of the
+   * learner's own speech, so the copy around them stays plain — a number nobody believes is
+   * worse than no number.
+   */
+  level: {
+    eyebrow: 'Sizning natijangiz',
+    speaking: 'Gapirish',
+    comprehension: 'Tushunish',
+    longestRun: "so'z — eng uzun ruscha ketma-ketligingiz",
+    totalWords: "Jami so'z",
+    russian: 'Ruscha',
+    uzbek: "O'zbekcha",
+    other: 'Boshqa til',
+    spokeFor: 'Gapirdingiz',
+    gaps: 'Hozir uddalay olmaysiz',
+    strengths: 'Sizda allaqachon bor',
+    showTranscript: "Nima deganingizni ko'rish",
+    disclaimer:
+      "Bu dastlabki baho, til sertifikati emas. Har bir ovozli mashqdan keyin yangilanadi.",
+    planTitle: 'Obuna bilan 90 kun ichida',
+    planChart: "90 kunlik gapirish darajasi o'sishi",
+    today: 'Bugun',
+    dayShort: '{day}-kun',
+    planNote:
+      "Birinchi nuqta — hozir o'lchangani. Qolgani — kunda 10 daqiqa gapirsangiz reja qayerga olib borishi.",
+  },
+
+  /**
+   * The games shelf and the two arcade games that live outside the shell.
+   *
+   * They were written in Uzbek inline, which meant a learner who switched the product to
+   * Russian or English still met the whole arcade in Uzbek. The Russian *content* — the words
+   * being sorted, "Мужской" and the rest — stays Russian in every locale: it is the subject
+   * being taught, not the interface.
+   */
+  arcade: {
+    title: "O'yinlar",
+    subtitle: "Gapirishni mashq qilishning eng qisqa yo'li — o'ynab.",
+    newGame: 'Yangi o‘yin',
+    record: 'Rekord',
+    runnerTitle: 'Penguin Ice Runner',
+    runnerTagline: '3D muzlik yugurishi',
+    runnerBlurb:
+      'Pingvinni uchta muz yo‘lakda boshqaring, Z-shakldagi tangalarni yig‘ing, muzlardan sakrang va ruscha otlarning rodini toping.',
+    play: 'O‘ynash',
+
+    runner: {
+      exit: 'O‘yinlardan chiqish',
+      soundOn: 'Ovozni yoqish',
+      soundOff: 'Ovozni o‘chirish',
+      fullscreen: 'To‘liq ekran',
+      findGender: 'Rodini aniqlang',
+      listen: 'So‘zni tinglash',
+      introTitle: 'Rodlar bo‘ylab 3D muzlik yugurishi',
+      introBody:
+        'Pingvinni uchta muz yo‘lakdan boshqaring: ruscha otning rodini toping, tanga to‘lqinlarini yig‘ing va muz to‘siqlaridan sakrang.',
+      rulesTitle: 'O‘yin qoidasi:',
+      ruleLeft: '• Chap yo‘lak = ekrandagi chap rod',
+      ruleMiddle: '• O‘rta yo‘lak = ekrandagi o‘rta rod',
+      ruleRight: '• O‘ng yo‘lak = ekrandagi o‘ng rod',
+      ruleCoins: '• Z-shakldagi tangalarni yig‘ing, muzlardan sakrang',
+      gesture:
+        'Ekranni chapga yoki o‘ngga suring — yo‘lak almashadi. Tepaga suring — pingvin sakraydi.',
+      start: 'O‘yinni boshlash',
+      paused: 'Pauza',
+      resume: 'Davom etish',
+      restart: 'Qayta boshlash',
+      falling: 'Muz yorildi! Pingvin sirpanib ketdi…',
+      over: 'O‘yin tugadi',
+      score: 'Ball',
+      coins: 'Tangalar',
+      again: 'Yana o‘ynash',
+      backToGames: 'O‘yinlarga qaytish',
+      controlsHint: 'Chapga / o‘ngga suring — yo‘lak almashtirish · Tepaga suring — sakrash',
+      left: 'Chapga (A)',
+      jump: 'Sakrash',
+      right: 'O‘ngga (D)',
+      speed: 'Tezlik darajasi',
+      lives: '{count} ta jon',
+      difficulty: {
+        normal: { label: 'Normal', caption: 'Hozirgi tezlik' },
+        high: { label: 'High', caption: '25% tezroq' },
+        expert: { label: 'Expert', caption: '50% tezroq' },
+      },
+      hitObstacle: 'To‘siqqa urildingiz — sakrashni unutmang!',
+      correct: 'To‘g‘ri rod! +1',
+      /* The word and its gender are Russian in every locale — they are what is being learnt. */
+      wrong: 'Xato: «{word}» — {gender}',
+    },
+
+    saw: {
+      back: "O'yinlar",
+      score: 'Ball',
+      question: '{n}-savol',
+      keepTalking: 'Gapiring — jim turmang, arra yaqinlashadi.',
+      unsupported: "Bu brauzer ovozni tanimaydi. Chrome yoki Safari'da oching.",
+      micDenied: 'Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.',
+      start: 'Boshlash',
+      lostTitle: 'Vaa! 😱',
+      lostBody: 'Arra yetib keldi. Jim qolgan payting — u yaqinlashadi.',
+      retry: 'Qayta urinish',
+      wonTitle: 'Omon qoldingiz! 🎉',
+      wonBody: "Bir daqiqa to'xtamay gapirdingiz. Bitta ball sizniki.",
+      next: 'Keyingi savol',
+    },
+  },
+
+  /**
+   * The first minute of an account: the spoken brief, the forty seconds, and the typed way
+   * round it. It was written inline in Uzbek, which meant the one screen that decides whether
+   * somebody stays was the one screen that ignored their choice of language.
+   */
+  placement: {
+    analysing: 'Darajangiz tahlil qilinmoqda',
+    analysingBody: "Aytganlaringizni o'qiyapmiz — bir necha soniya.",
+    briefTitle: 'Tinglang',
+    briefBody: "Nima qilish kerakligini aytib beramiz — tugagach, mikrofon o'zi ochiladi.",
+    briefDone: 'Tushundim, boshlaymiz',
+
+    typeTitle: 'Yozib bering',
+    typeBody:
+      "Rus tilingiz haqida bir-ikki gap: qayerda kerak, qayerda qiynalasiz. Ruscha so'zlarni bilganingizcha yozing — aralashtirsangiz ham bo'ladi.",
+    typePlaceholder:
+      "Men do'konda ishlayman, mijozlar ruscha so'raydi, men тушунаман lekin javob berolmayman…",
+    typeSubmit: "Darajamni ko'rish",
+    typeSwitchToVoice: 'Ovoz bilan aytaman',
+
+    speakingTitle: 'Rus tilingiz haqida gapiring',
+    connecting: 'Mikrofon ulanmoqda…',
+    speakingHint: "O'zbekcha aralashtirsangiz ham bo'ladi — qayerda qiynalasiz?",
+    permissionHint: 'Bir soniya — ruxsat so‘ralsa, “Ruxsat berish”ni bosing.',
+    listening: 'Tinglayapmiz…',
+    listeningHint: 'Boshlang — bir gap ham yetadi.',
+    finish: 'Yakunlash',
+    remaining: 'Qolgan vaqt',
+
+    step: '1 qadam',
+    introTitle: 'Rus tili darajangiz haqida aytib bering',
+    introBody:
+      "Mikrofonni bosing va 40 soniya gapiring. Qayerda qiynalasiz — ishdami, ko'chadami? O'zbekcha aralashtirsangiz ham bo'ladi, savol yo'q, test yo'q.",
+    start: 'Gapirishni boshlash',
+    startAria: 'Bosing va gapiring',
+    shortIsFine: 'Qisqa javob ham yetadi',
+    cantSpeak: 'Hozir gapira olmayman, yozib beraman',
+
+    /** For the person staring at a microphone with nothing in their head. */
+    cues: [
+      "Ismingiz nima, qayerda ishlaysiz yoki o'qiysiz?",
+      "Rus tili qayerda kerak — ishdami, ko'chadami yoki sayohatdami?",
+      "O'zbekcha gapiravering, bilgan ruscha so'zlaringizni qo'shing.",
+    ],
+
+    mic: {
+      denied: 'Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.',
+      blocked: 'Mikrofon bloklangan. Brauzer sozlamalaridan ruxsat bering.',
+      notFound: 'Mikrofon topilmadi.',
+      busy: 'Mikrofonni boshqa dastur band qilgan.',
+      insecure: 'Sahifani https orqali oching — mikrofon aks holda ishlamaydi.',
+      failed: "Ovoz ulanmadi. Birozdan keyin urinib ko'ring.",
+      scoreFailed: "Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.",
+    },
+  },
+
+  lessonOne: {
+    eyebrow: '1-dars · A1',
+    subtitle: 'Qo‘shni bilan tanishuv',
+    progress: 'Dars progressi',
+    sectionsDone: '{done} / {total} bo‘lim yakunlandi',
+    overallLabel: 'Dars bo‘yicha umumiy natija',
+    back: '← Orqaga',
+    next: 'Davom etish →',
+    gateTests: 'Davom etish uchun ikki testga to‘g‘ri javob bering.',
+    gatePhrases: 'Davom etish uchun barcha 15 iborani oching va tinglang.',
+    gateGame: 'Davom etish uchun 10 ta so‘zni to‘g‘ri rangli uyga joylang.',
+    sections: {
+      tests: { title: 'Yengil test', short: 'Yengil test' },
+      phonetics: { title: 'Fonetik qoida', short: 'Fonetik qoida' },
+      grammar: { title: 'Rodlar haqida ertak', short: 'Rodlar haqida ertak' },
+      phrases: { title: '15 ta asosiy ibora', short: '15 ta ibora' },
+      game: { title: 'Rangli uy', short: 'Rangli uy o‘yini' },
+      missions: { title: 'Dialog va AI savollari', short: 'AI missiyasi' },
+      vocabulary: { title: 'Словарь', short: 'Словарь' },
+      picture: { title: 'Rasmli mashq', short: 'Rasmli mashq' },
+      complete: { title: 'Dars yakuni', short: 'Dars yakuni' },
+    },
+    dayOneHeading: '1-kun · Dars natijasi',
+    sectionsCompleted: 'Yakunlangan bo‘limlar',
+    correct: 'Верно! ',
+    tryAgain: 'Yana urinib ko‘ring. ',
+
+    phonetics: {
+      eyebrow: 'A, O, U va urg‘u',
+      title: 'Urg‘uli unlini aniq va cho‘ziq ayting',
+      body:
+        'Rus tilida unlilar urg‘uli va urg‘usiz holatda turlicha talaffuz qilinadi. Hozir urg‘uli unlilarni mashq qilamiz. Urg‘u so‘z ma’nosini ham o‘zgartirishi mumkin: *за́мок* — qal’a, *замо́к* — qulf.',
+      tip: 'Har bir yangi so‘zni tinglaganda, urg‘uli bo‘g‘inni balandroq va cho‘ziqroq ayting!',
+    },
+
+    grammar: {
+      eyebrow: 'Rodlar haqida ertak',
+      title: 'Rodlar qirolliklariga xush kelibsiz!',
+      tale:
+        'Olis zamonlarda *OT (имя существительное)* nomli katta qirollik bo‘lgan va uning ichiga hamma “kim?” hamda “nima?” savollariga javob bo‘ladigan so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.',
+      penguinTitle: '🐧 Pingvin qirolligi · Мужской род',
+      penguinBody:
+        'Undosh harf yoki *-й* bilan tugagan so‘zlarni o‘z ichiga tanlab olibdi (misol uchun, *дом, сосед, ключ*). Ular faxr bilan: *“он мой”* deyishadi.',
+      pandaTitle: '🐼 Panda qirolligi · Женский род',
+      pandaBody:
+        '*-а, -я, -ь* harflari bilan tugagan so‘zlarni o‘z hududiga kirgizibdi (masalan, *квартира, лестница, дверь*). Ular ohista shivirlashadi: *“она моя”*.',
+      featherTitle: '🪶 Pat qirolligi · Средний род',
+      featherBody:
+        'Jonsiz narsalardan aynan *-о, -е, -ё* harflari bilan tugaganlarini saralab olibdi (masalan, *окно, море, ружьё*). Ular ishonch bilan: *“оно моё”* deb aytadi.',
+      ending: 'Tugashi',
+      examples: 'Misollar',
+      anchor: 'Kalit',
+      noteTitle: 'Pingvin eslatmasi',
+      note:
+        'Rangni so‘zning oxiriga qarab tanlang: ko‘k — мужской, qizil — женский, sariq — средний. *дверь* kabi yumshatish belgisi bilan tugagan so‘zlarni lug‘at bilan tekshirish kerak.',
+    },
+
+    phrases: {
+      title: '15 ta asosiy iborani oching',
+      body: 'Vaziyat kartasini oching, 🎧 orqali tinglang va ovoz chiqarib takrorlang.',
+      listen: 'Tinglash',
+      stopListening: 'Tinglashni to‘xtatish',
+      reveal: 'Iborani ochish',
+    },
+
+    game: {
+      rulesTitle: 'O‘yin qoidasi',
+      rules:
+        'So‘zni to‘g‘ri rangli uyga sudrang. Telefonda so‘zni, keyin rangli uyni bosing. Har bir to‘g‘ri javob — 10 ball.',
+      rulesNote:
+        '🎧 tugmasi orqali urg‘uni tinglang va ovoz chiqarib takrorlang. AI missiyasida to‘g‘ri urg‘u alohida tekshiriladi.',
+      words: 'So‘zlar',
+      points: 'ball',
+      house: 'uy',
+      dropHere: 'So‘zni shu yerga tashlang',
+      retryWord: '— qayta urinib ko‘ring',
+      solved: '✓ Ajoyib! 10 ta so‘zning rodi to‘g‘ri topildi — {points} ball.',
+    },
+
+    missions: {
+      dialogueTitle: 'Namunaviy dialog',
+      moreLines: 'Keyingi replikalar',
+      aiAsksTitle: 'AI sizdan so‘raydi',
+      expected: 'Kutilgan javob: {answer}',
+      aiChecks:
+        'AI urg‘u (сосе́д, кварти́ра, этаже́), unlilar talaffuzi va javobning to‘liqligini tekshiradi.',
+      readyTitle: 'Ovozli missiyaga tayyormisiz?',
+      readyBody:
+        'AI yuqoridagi 6 ta savolni ketma-ket beradi. Siz mikrofon orqali javob berasiz; AI urg‘u, talaffuz va javobning to‘liqligini tekshiradi.',
+      startAi: '🎙️ 6 ta AI savolini boshlash',
+      rolePlayHint: 'Yuqoridagi namunaviy dialogni rollarga bo‘lib mashq qiling:',
+      startDialogue: '🐧🐼 Dialogni AI bilan mashq qilish',
+      dialogueLoading: 'Dialog tayyorlanmoqda…',
+      dialogueFailed: 'Dialogni yuklab bo‘lmadi. Sahifani yangilab ko‘ring.',
+      dialogueMissing: 'Dialog missiyasi topilmadi.',
+    },
+
+    vocabulary: {
+      intro: 'Bitta kartani oching, tarjimasini ko‘ring va bilganingizni belgilang.',
+      cards: '{count} ta karta',
+      tapToOpen: 'Bosib oching',
+      deckTitle: 'Yangi so‘zlar kolodasi',
+      deckBody: 'Tarjima kartaning orqa tomonida. Bilganingiz o‘ngga, bilmaganingiz chapga ketadi.',
+      startCards: 'Kartalarni boshlash →',
+      close: 'Yopish',
+      finishedTitle: 'Koloda tugadi',
+      finishedBody:
+        '{known} ta so‘zni bildingiz, {unknown} tasini yana mashq qilasiz. Qolgan kartalar takrorlash uchun saqlandi.',
+      restart: 'Qayta boshlash',
+      seeFront: 'Kartaning old tomonini ko‘rish',
+      seeTranslation: 'Tarjimani ko‘rish',
+      russianPhrase: 'Ruscha ibora',
+      tapForTranslation: 'Kartani bosing — tarjimasini ko‘ring',
+      translation: 'O‘zbekcha tarjima',
+      sampleSentence: 'Namunaviy gap',
+      hearIt: 'Talaffuzni tinglash',
+    },
+
+    picture: {
+      sceneLabel: 'Eshik oldida kalit ushlab turgan kishi va uning qo‘shnisi',
+      personWithKey: 'Kalit ushlagan kishi',
+      key: 'Kalit',
+      neighbour: 'Qo‘shni',
+      tea: 'Choy',
+      eyebrow: 'Mashq',
+      title: 'Rasmni rus tilida 3–4 gap bilan tasvirlang',
+      body: 'Eshik oldidagi odamlar, kalit va choy taklifiga qarang. Quyidagi so‘zlardan foydalaning:',
+      sample: 'Namuna',
+    },
+
+    complete: {
+      badge: '1-dars muvaffaqiyatli tugadi',
+      title: 'Ajoyib!',
+      body:
+        'Endi siz qo‘shningiz bilan tanisha olasiz, o‘zingizni tanishtira olasiz va rus tilida taklif qilishni bilasiz. Shunday davom eting — bu sizning ilk qadamingiz!',
+      meetTitle: 'Tanishuv',
+      meetBody: 'Ismingizni ayta olasiz.',
+      homeTitle: 'Uy va qo‘shni',
+      homeBody: 'Manzil haqida gapirasiz.',
+      inviteTitle: 'Taklif',
+      inviteBody: 'Choyga taklif qilasiz.',
+      practiceAi: 'AI suhbatni mashq qilish',
+      seeProgress: 'Progressni ko‘rish',
+      restart: 'Darsni qayta boshlash',
+    },
+  },
+
+  lesson: {
+    eyebrow: '{day}-dars · A1',
+    progress: 'Dars progressi',
+    sectionsOf: '{done} / {total} bo‘lim',
+    back: '← Orqaga',
+    next: 'Davom etish →',
+    finishLesson: 'Darsni yakunlash',
+    tryAgain: 'Yana urinib ko‘ring.',
+
+    sections: {
+      tests: 'Yengil test',
+      phonetics: 'Fonetik qoida',
+      grammar: 'Grammatik qoida',
+      genderTale: 'Rodlar haqida ertak',
+      phrases: 'Kun frazalari',
+      game: 'Kreativ o‘yin',
+      missions: 'Dialog',
+      vocabulary: 'Словарь',
+      picture: 'Rasmli mashq',
+      complete: 'Dars yakuni',
+    },
+
+    gate: {
+      tests: 'Davom etish uchun barcha testlarga to‘g‘ri javob bering.',
+      phrases: 'Davom etish uchun barcha iboralarni ochib, baholang.',
+      game: 'Davom etish uchun o‘yinni oxirigacha yeching.',
+      dialogue: 'Davom etish uchun avval dialogni oxirigacha mashq qiling.',
+      aiChat: 'Endi AI bilan suhbatga o‘ting.',
+      vocabulary: 'Davom etish uchun kamida {count} ta kartani ko‘rib chiqing.',
+      picture: 'Davom etish uchun mashq javobini yozing.',
+    },
+
+    rule: {
+      listen: 'Qoidani tinglash',
+      tongueTwister: 'Скороговорка · tez aytish mashqi',
+      tongueTwisterHint: 'Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
+      penguinKingdom: 'Pingvin qirolligi',
+      pandaKingdom: 'Panda qirolligi',
+      featherKingdom: 'Pat qirolligi',
+    },
+
+    phrases: {
+      intro:
+        'Iborani tanlang. U karta shaklida ochiladi: vaziyat, talaffuz, namuna gap va eslab qolish holati bir joyda.',
+      open: 'Kartani oching',
+      close: 'Yopish',
+      example: 'Namuna gap',
+      repeat: 'Tinglang va takrorlang!',
+    },
+
+    game: {
+      words: 'So‘zlar',
+      swipe: 'Yon tomonga suring →',
+      hearWord: '{word} so‘zini tinglash',
+      allPlaced: 'Barcha so‘zlar joylashtirildi! ✓',
+      wrongHouse: '— bu uyga mos emas, yana urinib ko‘ring',
+      pairs: 'Juftlar',
+      points: 'ball',
+      missingFromBag: 'Sumkada nima yo‘q?',
+      bagReady: 'Sumka tayyor!',
+      bagBonus: 'Ishga o‘z vaqtida yetib keldingiz. +30 bonus ball!',
+      ready: 'Tayyor',
+      cityMap: 'Shahar xaritasi',
+      pickTrueSentenceSuffix: 'haqida to‘g‘ri gapni tanlang:',
+      cityDone: 'Shahar xaritasi tayyor!',
+      cityDoneBody: '10 ta sevimli joy haqida to‘g‘ri gap tuzdingiz — 100 ball!',
+      guestsAndFamily: 'Mehmonlar va oila bir xonada',
+      pickPluralSuffix: 'so‘zining ko‘pligini tanlang:',
+      objects: 'Buyumlar',
+      roomReady: 'Xona tayyor! ✓',
+      wrongPlace: 'Bu buyumning joyi boshqa. Yana urinib ko‘ring.',
+      pickSpotSuffix: 'uchun xonadagi mos joyni bosing.',
+      familyPhoto: 'Oilaviy surat',
+      familyPhotoAlt: 'Panda va Pingvin bilan oilaviy surat',
+    },
+
+    missions: {
+      practiseDialogue: 'Dialogni mashq qiling',
+      aiChat: 'AI bilan suhbat',
+      intro:
+        'Har bir qatorni tinglang va ovoz chiqarib takrorlang. Butun dialogni mashq qilib bo‘lgach, AI bilan suhbatga o‘tasiz.',
+      goToAi: 'AI bilan suhbatga o‘tish →',
+      nextLine: 'Keyingi qator',
+      backToDialogue: '← Dialogga qaytish',
+      step: '{n}-qadam',
+      mic: 'Mikrofon',
+      stopRecording: 'Yozishni to‘xtatish',
+      twoNeighbours: 'Ikki qo‘shni suhbati',
+    },
+
+    vocabulary: {
+      cards: '{count} ta karta',
+      deckTitle: 'Yangi so‘zlar kolodasi',
+      open: 'Ochish',
+      resume: 'Davom ettirish',
+      listenAndRepeat: 'Tinglang va takrorlang',
+      tapForFront: 'Old tomon uchun kartani bosing',
+      known: 'выучил',
+      unknown: 'не знаю',
+      again: 'повторю',
+    },
+
+    exercise: {
+      familyPhoto: 'Oila surati',
+      template: 'Shablon',
+      placeholder: 'Javobingizni shu yerga yozing…',
+      listenToText: 'Matnni tinglash',
+      sample: 'Namuna',
+    },
+
+    complete: {
+      badge: '{day}-dars muvaffaqiyatli tugadi',
+      title: 'Ajoyib!',
+      body:
+        'Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.',
+    },
+
+    audio: {
+      play: 'Tinglash',
+      pause: 'Pauza',
+    },
+  },
+
+  dayPreview: {
+    description:
+      'Bu darsda yangi qoida va iboralarni o‘rganib, ularni interaktiv mashqlarda mustahkamlaysiz.',
+    start: 'Darsni boshlash',
+    resume: 'Darsni davom ettirish',
+    repeat: 'Darsni takrorlash',
+    close: 'Yopish',
+    lessonDay: '{day}-dars',
+    sections: 'bo‘lim',
+    completed: 'Yakunlangan',
+    dayBadge: '{day}-kun',
+    perDay: '/kun',
+    telegram: 'Telegram orqali bog‘lanish',
+    stopListening: 'Eshitishni to‘xtatish',
+    geminiReply: 'Gemini javobi',
+    attachmentNote:
+      'Hozircha faylning nomi izoh bilan birga saqlanadi. Kerak bo‘lsa keyin to‘liq uploadni ham ulaymiz.',
+  },
+
   nav: {
     today: 'Bugungi dars',
     todayShort: 'Bugun',
@@ -41,6 +494,7 @@ export const uz = {
     main: 'Asosiy',
     daysDone: '{count} kun bajarildi',
     comingSoon: 'Tez orada',
+    skipToContent: 'Asosiy qismga o‘tish',
   },
 
   account: {

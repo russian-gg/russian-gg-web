@@ -1,4 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { BarChart3, BookOpen, Check, ChevronLeft, Lightbulb, Mic, Square, Target } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -66,6 +68,7 @@ type MicrophonePermissionCode = Extract<
  * deliberately withheld until the mission ends.
  */
 export function MissionPlayer() {
+  const dayCopy = useT().dayPreview
   const t = useT()
   const { locale } = useLocale()
   const { missionId = '' } = useParams()
@@ -1225,7 +1228,7 @@ export function MissionPlayer() {
           </button>
 
           {summary.courseDay !== null && summary.courseDay !== undefined && (
-            <Badge outline>{summary.courseDay}-kun</Badge>
+            <Badge outline>{fill(dayCopy.dayBadge, { day: summary.courseDay })}</Badge>
           )}
         </header>
 
@@ -1596,7 +1599,7 @@ function ConversationThread({
 }
 
 /** Drop a square image at this path to give the tutor a face; see public/README.md. */
-const TUTOR_AVATAR_SRC = '/tutor-avatar.jpg'
+const TUTOR_AVATAR_SRC = '/tutor-avatar.webp'
 
 /**
  * The tutor's mark. Uses the avatar image when one is present and falls back to the abstract
@@ -1997,6 +2000,7 @@ function DailyLimitDialog({
   onDismiss: () => void
   onBuy: () => void
 }) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
 
   useEffect(() => {
@@ -2013,6 +2017,8 @@ function DailyLimitDialog({
       <div
         className="w-full max-w-md rounded-[var(--radius-card)] bg-ground p-6 shadow-soft"
         onClick={(event) => event.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="daily-limit-title"
@@ -2045,6 +2051,7 @@ function MicrophonePermissionDialog({
   onRetry: () => void
   onDismiss: () => void
 }) {
+  const micRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const platform = microphonePermissionPlatform()
   const instructions =
@@ -2058,6 +2065,8 @@ function MicrophonePermissionDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
       <div
         className="w-full max-w-md rounded-[var(--radius-card)] bg-ground p-5 shadow-soft sm:p-6"
+        ref={micRef}
+        tabIndex={-1}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="microphone-permission-title"
@@ -2121,9 +2130,7 @@ function CheckMark({ done, current }: { done: boolean; current: boolean }) {
         aria-label="Bajarildi"
         role="img"
       >
-        <svg viewBox="0 0 12 12" aria-hidden="true" className="size-2.5 fill-none stroke-on-signal stroke-[2.2]">
-          <path d="m2 6.3 2.6 2.6L10 3.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <Check aria-hidden="true" strokeWidth={2.8} className="size-2.5 text-on-signal" />
       </span>
     )
   }
@@ -2141,66 +2148,41 @@ function CheckMark({ done, current }: { done: boolean; current: boolean }) {
 
 /* -------------------------------------------------------------------------- glyphs */
 
-const railGlyph = 'size-4 fill-none stroke-current stroke-[1.7]'
+/*
+  The rail's section marks. Each names a kind of help rather than a picture: the goal, the
+  hint, the phrases and what the AI said about the answer.
+*/
+const railGlyph = 'size-4 shrink-0'
+const RAIL_STROKE = 1.7
 
 function TargetGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
-      <circle cx="12" cy="12" r="8.5" />
-      <circle cx="12" cy="12" r="3.5" />
-    </svg>
-  )
+  return <Target aria-hidden="true" strokeWidth={RAIL_STROKE} className={railGlyph} />
 }
 
 function HintGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
-      <path d="M12 3.5v2M4.7 8.2l1.7 1M19.3 8.2l-1.7 1M9.5 19h5" strokeLinecap="round" />
-      <path d="M8.6 14.8a4.6 4.6 0 1 1 6.8 0c-.6.7-.9 1.3-.9 2.2h-5c0-.9-.3-1.5-.9-2.2Z" strokeLinejoin="round" />
-    </svg>
-  )
+  return <Lightbulb aria-hidden="true" strokeWidth={RAIL_STROKE} className={railGlyph} />
 }
 
 function PhraseGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
-      <path d="M4 5.5h6a2 2 0 0 1 2 2v11a2 2 0 0 0-2-2H4Z" strokeLinejoin="round" />
-      <path d="M20 5.5h-6a2 2 0 0 0-2 2v11a2 2 0 0 1 2-2h6Z" strokeLinejoin="round" />
-    </svg>
-  )
+  return <BookOpen aria-hidden="true" strokeWidth={RAIL_STROKE} className={railGlyph} />
 }
 
+/** The AI's read on the answer — a score broken down, which is what the bars said before. */
 function CoachGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={railGlyph}>
-      <path d="M5 17V9.5M9.7 17V6M14.3 17v-7M19 17v-4" strokeLinecap="round" />
-    </svg>
-  )
+  return <BarChart3 aria-hidden="true" strokeWidth={RAIL_STROKE} className={railGlyph} />
 }
 
 function BackGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 shrink-0 fill-none stroke-current stroke-[1.8]">
-      <path d="M14 5.5 7.5 12l6.5 6.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <ChevronLeft aria-hidden="true" strokeWidth={1.8} className="size-4 shrink-0" />
 }
 
 function MicGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8 fill-none stroke-on-signal stroke-[1.7]">
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" strokeLinecap="round" />
-    </svg>
-  )
+  return <Mic aria-hidden="true" strokeWidth={1.7} className="size-8 text-on-signal" />
 }
 
+/** Filled, like play and pause: a hollow square inside a solid button reads as a frame. */
 function StopGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-7 fill-on-signal">
-      <rect x="6" y="6" width="12" height="12" rx="2.5" />
-    </svg>
-  )
+  return <Square aria-hidden="true" strokeWidth={0} className="size-7 fill-on-signal" />
 }
 
 function InlineListenButton({

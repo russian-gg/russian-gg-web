@@ -17,19 +17,7 @@ import type {
   VoiceGender,
   VoiceMood,
 } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  ErrorNote,
-  RadioOption,
-  Rule,
-  SectionHeading,
-  Spinner,
-  Switch,
-  TabLinks,
-  UzHint,
-} from '../components/ui'
+import { Badge, Button, Card, ErrorNote, QueryError, RadioOption, Rule, SectionHeading, Spinner, Switch, TabLinks, UzHint } from '../components/ui'
 
 /**
  * Everything about the account, in one place, behind three tabs.
@@ -81,7 +69,7 @@ function ProfileTab() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const { data: progress, isLoading } = useQuery({
+  const { data: progress, isLoading, isError, refetch } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
     staleTime: 60_000,
@@ -104,6 +92,7 @@ function ProfileTab() {
   }
 
   if (isLoading) return <Spinner />
+  if (isError) return <QueryError onRetry={() => void refetch()} />
 
   const name =
     user?.displayName?.trim() || user?.email?.split('@')[0] || user?.phoneNumber || t.account.learner
@@ -276,7 +265,7 @@ function GeneralTab() {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
 
-  const { data: consents, isLoading } = useQuery({
+  const { data: consents, isLoading, isError, refetch } = useQuery({
     queryKey: ['consents'],
     queryFn: () => api.get<ConsentState[]>('/auth/consents'),
   })
@@ -292,6 +281,9 @@ function GeneralTab() {
   }
 
   if (isLoading) return <Spinner />
+  /* Falling through would render every consent as ungranted — a record of something the
+     learner never chose, which is worse than saying the list did not load. */
+  if (isError || !consents) return <QueryError onRetry={() => void refetch()} />
 
   const consents_ = consentList(t)
   const granted = new Map(consents?.map((consent) => [consent.kind, consent.granted]) ?? [])
@@ -367,7 +359,7 @@ function BillingTab() {
   const { locale } = useLocale()
   const navigate = useNavigate()
 
-  const { data: entitlement, isLoading } = useQuery({
+  const { data: entitlement, isLoading, isError, refetch } = useQuery({
     queryKey: ['entitlement'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
     staleTime: 60_000,
@@ -375,6 +367,9 @@ function BillingTab() {
   })
 
   if (isLoading) return <Spinner />
+  /* The card below has a "no subscription" branch. Showing it to somebody who is paying,
+     because one request failed, is the one outcome this screen must not produce. */
+  if (isError) return <QueryError onRetry={() => void refetch()} />
 
   return (
     <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">

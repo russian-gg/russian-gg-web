@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { MessageCircle, X } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import { useLocation } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
@@ -8,6 +10,7 @@ import { Button, Card, ErrorNote } from './ui'
 const DISMISS_KEY_PREFIX = 'rgg.phone-prompt.dismissed-on'
 
 export function PhoneNumberPrompt() {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const { pathname } = useLocation()
   const { user, refreshUser } = useAuth()
@@ -90,6 +93,8 @@ export function PhoneNumberPrompt() {
       onClick={dismiss}
     >
       <Card
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="phone-prompt-title"
@@ -199,20 +204,12 @@ function normalizePhoneNumber(value: string) {
 
 function PhoneGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.9]">
-      <path
-        d="M6.9 17.4c.9.5 1.9.7 3 .7 4.6 0 8.3-3.4 8.3-7.6s-3.7-7.6-8.3-7.6-8.3 3.4-8.3 7.6c0 1.6.5 3 1.5 4.2L2.3 20l4.6-2.6Z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <MessageCircle aria-hidden="true" strokeWidth={1.9} className="size-4" />
   )
 }
 
 function CloseGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6 fill-none stroke-current stroke-[1.9]">
-      <path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" />
-    </svg>
+    <X aria-hidden="true" strokeWidth={1.9} className="size-6" />
   )
 }

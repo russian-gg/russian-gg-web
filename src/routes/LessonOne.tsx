@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { fill, useT } from '../lib/i18n'
+import { Rich } from '../components/Rich'
+import { useFocusTrap } from '../lib/focus-trap'
 import type { CSSProperties, Dispatch, SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
@@ -113,6 +116,7 @@ const emptyState: LessonState = {
 }
 
 export function LessonOne() {
+  const t = useT().lessonOne
   const { missionId } = useParams<{ missionId: string }>()
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -204,20 +208,20 @@ export function LessonOne() {
   return (
     <div className="mx-auto -mt-5 max-w-5xl pb-12 md:mt-0">
       <header className="rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5 sm:p-6">
-        <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">1-dars · A1</p>
+        <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">{t.eyebrow}</p>
         <h1 className="mt-1 text-2xl font-black text-ink sm:text-3xl">Знакомство с соседом</h1>
-        <p className="mt-1 text-sm font-semibold text-ink-muted">Qo‘shni bilan tanishuv</p>
+        <p className="mt-1 text-sm font-semibold text-ink-muted">{t.subtitle}</p>
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <p className="mt-5 text-sm font-extrabold text-ink">Dars progressi</p>
+          <p className="mt-5 text-sm font-extrabold text-ink">{t.progress}</p>
           <p className="text-xs font-bold tracking-wide text-ink-faint uppercase">
-            {completedCount} / {sections.length} bo‘lim yakunlandi
+            {fill(t.sectionsDone, { done: completedCount, total: sections.length })}
           </p>
         </div>
         <div className="mt-3">
           <ProgressBar
             value={completedCount}
             max={sections.length}
-            label="Dars bo‘yicha umumiy natija"
+            label={t.overallLabel}
           />
         </div>
       </header>
@@ -228,7 +232,7 @@ export function LessonOne() {
             {active.eyebrow}
           </p>
           <h2 className="mt-1 text-2xl font-black text-ink sm:text-3xl">
-            {active.title}
+            {t.sections[active.id].title}
           </h2>
         </div>
 
@@ -257,21 +261,21 @@ export function LessonOne() {
           disabled={state.sectionIndex === 0}
           onClick={() => visitSection(state.sectionIndex - 1)}
         >
-          ← Orqaga
+          {t.back}
         </Button>
 
         {state.sectionIndex < sections.length - 1 && (
           <div className="sm:text-right">
             <Button size="lg" block disabled={!canContinue} onClick={completeAndContinue}>
-              Davom etish →
+              {t.next}
             </Button>
             {!canContinue && (
               <p className="mt-2 text-xs text-ink-muted">
                 {active.id === 'tests'
-                  ? 'Davom etish uchun ikki testga to‘g‘ri javob bering.'
+                  ? t.gateTests
                   : active.id === 'phrases'
-                    ? 'Davom etish uchun barcha 15 iborani oching va tinglang.'
-                    : 'Davom etish uchun 10 ta so‘zni to‘g‘ri rangli uyga joylang.'}
+                    ? t.gatePhrases
+                    : t.gateGame}
               </p>
             )}
           </div>
@@ -317,6 +321,7 @@ function TestsSection({ state, setState }: { state: LessonState; setState: SetLe
 }
 
 function PhoneticsSection() {
+  const t = useT().lessonOne.phonetics
   const vowels = [
     {
       letter: 'А',
@@ -347,12 +352,10 @@ function PhoneticsSection() {
   return (
     <div className="space-y-5">
       <Card className="border-signal bg-signal-soft p-6 sm:p-8">
-        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">A, O, U va urg‘u</p>
-        <h3 className="mt-2 text-2xl font-black text-ink">Urg‘uli unlini aniq va cho‘ziq ayting</h3>
+        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">{t.eyebrow}</p>
+        <h3 className="mt-2 text-2xl font-black text-ink">{t.title}</h3>
         <p className="mt-3 max-w-3xl leading-relaxed text-ink-muted">
-          Rus tilida unlilar urg‘uli va urg‘usiz holatda turlicha talaffuz qilinadi. Hozir urg‘uli
-          unlilarni mashq qilamiz. Urg‘u so‘z ma’nosini ham o‘zgartirishi mumkin:
-          <strong className="text-ink"> за́мок</strong> — qal’a, <strong className="text-ink">замо́к</strong> — qulf.
+          <Rich text={t.body} className="text-ink" />
         </p>
       </Card>
 
@@ -382,15 +385,14 @@ function PhoneticsSection() {
 
       <Card className="p-6 text-center sm:p-8">
         <p className="text-3xl" aria-hidden="true">🐼</p>
-        <p className="mt-3 font-black text-ink">
-          Har bir yangi so‘zni tinglaganda, urg‘uli bo‘g‘inni balandroq va cho‘ziqroq ayting!
-        </p>
+        <p className="mt-3 font-black text-ink">{t.tip}</p>
       </Card>
     </div>
   )
 }
 
 function GrammarSection() {
+  const t = useT().lessonOne.grammar
   const genders = [
     {
       character: '🐧',
@@ -429,44 +431,33 @@ function GrammarSection() {
       <Card className="overflow-hidden border-signal/25 p-0">
         <div className="bg-[linear-gradient(135deg,var(--color-signal-soft),var(--color-ground-raised))] p-6 sm:p-8">
           <p className="text-xs font-black tracking-[0.16em] text-signal-ink uppercase">
-            Rodlar haqida ertak
+            {t.eyebrow}
           </p>
-          <h3 className="mt-2 text-2xl font-black text-ink sm:text-3xl">
-            Rodlar qirolliklariga xush kelibsiz!
-          </h3>
+          <h3 className="mt-2 text-2xl font-black text-ink sm:text-3xl">{t.title}</h3>
           <p className="mt-4 max-w-3xl leading-relaxed text-ink-muted">
-            Olis zamonlarda <strong className="text-ink">OT (имя существительное)</strong> nomli
-            katta qirollik bo‘lgan va uning ichiga hamma “kim?” hamda “nima?” savollariga javob
-            bo‘ladigan so‘zlar kirgan ekan. So‘zlar shunchalik ko‘p ekanki, ularni boshqarish
-            qiyinlashibdi. Shunda barcha otlar uchta kichik qirollikka ajratilib saralanibdi.
+            <Rich text={t.tale} className="text-ink" />
           </p>
         </div>
 
         <div className="grid gap-3 p-5 sm:p-6 lg:grid-cols-3">
           <article className="rounded-2xl border-2 border-signal bg-signal-soft p-5">
-            <p className="font-black text-[#084fbd]">🐧 Pingvin qirolligi · Мужской род</p>
+            <p className="font-black text-[#084fbd]">{t.penguinTitle}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">
-              Undosh harf yoki <strong>-й</strong> bilan tugagan so‘zlarni o‘z ichiga tanlab olibdi
-              (misol uchun, <strong>дом, сосед, ключ</strong>). Ular faxr bilan:
-              <strong className="text-[#084fbd]"> “он мой”</strong> deyishadi.
+              <Rich text={t.penguinBody} />
             </p>
           </article>
 
           <article className="rounded-2xl border-2 border-danger bg-danger-soft p-5">
-            <p className="font-black text-[#e0001b]">🐼 Panda qirolligi · Женский род</p>
+            <p className="font-black text-[#e0001b]">{t.pandaTitle}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">
-              <strong>-а, -я, -ь</strong> harflari bilan tugagan so‘zlarni o‘z hududiga kirgizibdi
-              (masalan, <strong>квартира, лестница, дверь</strong>). Ular ohista shivirlashadi:
-              <strong className="text-[#e0001b]"> “она моя”</strong>.
+              <Rich text={t.pandaBody} />
             </p>
           </article>
 
           <article className="rounded-2xl border-2 border-caution bg-caution-soft p-5">
-            <p className="font-black text-[#c88b00]">🪶 Pat qirolligi · Средний род</p>
+            <p className="font-black text-[#c88b00]">{t.featherTitle}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">
-              Jonsiz narsalardan aynan <strong>-о, -е, -ё</strong> harflari bilan tugaganlarini
-              saralab olibdi (masalan, <strong>окно, море, ружьё</strong>). Ular ishonch bilan:
-              <strong className="text-[#c88b00]"> “оно моё”</strong> deb aytadi.
+              <Rich text={t.featherBody} />
             </p>
           </article>
         </div>
@@ -482,9 +473,9 @@ function GrammarSection() {
               </p>
               <h3 className={cx('mt-1 text-xl font-black', gender.accentClass)}>{gender.title}</h3>
               <dl className="mt-4 space-y-2 text-sm">
-                <LearnRow label="Tugashi" value={gender.endings} />
-                <LearnRow label="Misollar" value={gender.examples} />
-                <LearnRow label="Kalit" value={gender.anchor} />
+                <LearnRow label={t.ending} value={gender.endings} />
+                <LearnRow label={t.examples} value={gender.examples} />
+                <LearnRow label={t.anchor} value={gender.anchor} />
               </dl>
             </article>
           ))}
@@ -495,12 +486,9 @@ function GrammarSection() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <span className="text-5xl" aria-hidden="true">🐧</span>
           <div>
-            <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Pingvin eslatmasi</p>
+            <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">{t.noteTitle}</p>
             <p className="mt-2 leading-relaxed text-ink">
-              Rangni so‘zning oxiriga qarab tanlang: <strong className="text-signal-ink">ko‘k — мужской</strong>,
-              <strong className="text-danger"> qizil — женский</strong>,
-              <strong className="text-caution"> sariq — средний</strong>. <strong>дверь</strong> kabi
-              yumshatish belgisi bilan tugagan so‘zlarni lug‘at bilan tekshirish kerak.
+              <Rich text={t.note} />
             </p>
           </div>
         </div>
@@ -510,6 +498,7 @@ function GrammarSection() {
 }
 
 function PhrasesSection({ state, setState }: { state: LessonState; setState: SetLessonState }) {
+  const t = useT().lessonOne.phrases
   const [speakingPhraseIndex, setSpeakingPhraseIndex] = useState<number | null>(null)
 
   useEffect(() => {
@@ -567,8 +556,8 @@ function PhrasesSection({ state, setState }: { state: LessonState; setState: Set
         </div>
         <div className="border-t-2 border-caution bg-ground-raised px-5 py-4 sm:flex sm:items-center sm:justify-between">
           <div>
-            <p className="font-black text-ink">15 ta asosiy iborani oching</p>
-            <p className="text-sm text-ink-muted">Vaziyat kartasini oching, 🎧 orqali tinglang va ovoz chiqarib takrorlang.</p>
+            <p className="font-black text-ink">{t.title}</p>
+            <p className="text-sm text-ink-muted">{t.body}</p>
           </div>
           <p className="mt-2 text-lg font-black text-caution sm:mt-0">{state.discoveredPhrases.length} / 15</p>
         </div>
@@ -608,7 +597,7 @@ function PhrasesSection({ state, setState }: { state: LessonState; setState: Set
                   <button
                     type="button"
                     onClick={() => togglePhrasePlayback(index, phrase.ru)}
-                    aria-label={speakingPhraseIndex === index ? 'Tinglashni to‘xtatish' : 'Tinglash'}
+                    aria-label={speakingPhraseIndex === index ? t.stopListening : t.listen}
                     aria-pressed={speakingPhraseIndex === index}
                     className={cx(
                       'mt-3 inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-black text-signal-ink transition',
@@ -622,7 +611,7 @@ function PhrasesSection({ state, setState }: { state: LessonState; setState: Set
                     ) : (
                       <PlayGlyph />
                     )}
-                    Tinglash
+                    {t.listen}
                   </button>
                 </>
               ) : (
@@ -631,7 +620,7 @@ function PhrasesSection({ state, setState }: { state: LessonState; setState: Set
                   onClick={() => discover(index)}
                   className="mt-4 rounded-full bg-signal-soft px-4 py-2 text-sm font-extrabold text-signal-ink hover:bg-signal hover:text-on-signal"
                 >
-                  Iborani ochish
+                  {t.reveal}
                 </button>
               )}
             </article>
@@ -651,6 +640,7 @@ function GameSection({
   setState: SetLessonState
   solved: boolean
 }) {
+  const t = useT().lessonOne.game
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null)
   const correctCount = gameWords.filter((word) => state.gameMatches[word.id] === word.answer).length
 
@@ -670,21 +660,16 @@ function GameSection({
   return (
     <div className="space-y-5">
       <Card className="bg-ink text-ground-raised">
-        <p className="text-xs font-black tracking-[0.15em] text-signal uppercase">O‘yin qoidasi</p>
-        <p className="mt-2 max-w-3xl text-lg leading-relaxed">
-          So‘zni to‘g‘ri rangli uyga sudrang. Telefonda so‘zni, keyin rangli uyni bosing.
-          Har bir to‘g‘ri javob — 10 ball.
-        </p>
-        <p className="mt-3 text-sm text-ground-raised/75">
-          🎧 tugmasi orqali urg‘uni tinglang va ovoz chiqarib takrorlang. AI missiyasida to‘g‘ri urg‘u alohida tekshiriladi.
-        </p>
+        <p className="text-xs font-black tracking-[0.15em] text-signal uppercase">{t.rulesTitle}</p>
+        <p className="mt-2 max-w-3xl text-lg leading-relaxed">{t.rules}</p>
+        <p className="mt-3 text-sm text-ground-raised/75">{t.rulesNote}</p>
       </Card>
 
       <Card className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="font-black text-ink">So‘zlar</p>
+          <p className="font-black text-ink">{t.words}</p>
           <p className="rounded-full bg-signal-soft px-4 py-2 font-black text-signal-ink">
-            {correctCount * 10} / {gameWords.length * 10} ball
+            {correctCount * 10} / {gameWords.length * 10} {t.points}
           </p>
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
@@ -747,11 +732,11 @@ function GameSection({
               )}
             >
               <span className="text-4xl" aria-hidden="true">{box.character}</span>
-              <span className="mt-3 block text-xs font-black tracking-[0.14em] uppercase">{box.color} uy</span>
+              <span className="mt-3 block text-xs font-black tracking-[0.14em] uppercase">{box.color} {t.house}</span>
               <span className="mt-1 block text-xl font-black">{box.label}</span>
               <span className="mt-5 flex flex-wrap gap-2">
                 {wordsInBox.length === 0 && (
-                  <span className="text-sm font-semibold opacity-70">So‘zni shu yerga tashlang</span>
+                  <span className="text-sm font-semibold opacity-70">{t.dropHere}</span>
                 )}
                 {wordsInBox.map((word) => {
                   const correct = word.answer === box.id
@@ -763,7 +748,7 @@ function GameSection({
                         correct ? 'text-milestone' : 'text-danger',
                       )}
                     >
-                      {word.word} {correct ? '✓' : '— qayta urinib ko‘ring'}
+                      {word.word} {correct ? '✓' : t.retryWord}
                     </span>
                   )
                 })}
@@ -775,7 +760,7 @@ function GameSection({
 
       {solved && (
         <div role="status" className="rounded-2xl bg-milestone-soft px-5 py-4 text-center font-black text-milestone">
-          ✓ Ajoyib! 10 ta so‘zning rodi to‘g‘ri topildi — {gameWords.length * 10} ball.
+          {fill(t.solved, { points: gameWords.length * 10 })}
         </div>
       )}
     </div>
@@ -795,10 +780,11 @@ function MissionsSection({
   hasError: boolean
   onStartMission: () => void
 }) {
+  const t = useT().lessonOne.missions
   return (
     <div className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
       <Card className="p-6">
-        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Namunaviy dialog</p>
+        <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">{t.dialogueTitle}</p>
         <div className="mt-5 space-y-4">
           {dialogue.map(([first, second], index) => (
             <div key={first} className="space-y-2">
@@ -806,7 +792,7 @@ function MissionsSection({
               {second && (
                 <p className="ml-8 rounded-2xl rounded-br-sm bg-signal-soft px-4 py-3 text-sm leading-relaxed text-ink">{second}</p>
               )}
-              {index < dialogue.length - 1 && <span className="sr-only">Keyingi replikalar</span>}
+              {index < dialogue.length - 1 && <span className="sr-only">{t.moreLines}</span>}
             </div>
           ))}
         </div>
@@ -814,47 +800,44 @@ function MissionsSection({
 
       <div className="space-y-5">
         <Card>
-          <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">AI sizdan so‘raydi</p>
+          <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">{t.aiAsksTitle}</p>
           <ol className="mt-4 space-y-3">
             {aiQuestions.map((item, index) => (
               <li key={item.question} className="flex gap-3 text-sm leading-snug text-ink">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-signal-soft text-xs font-black text-signal-ink">{index + 1}</span>
                 <span>
                   <strong className="block">{item.question}</strong>
-                  <span className="mt-1 block text-xs text-ink-muted">Kutilgan javob: {item.answer}</span>
+                  <span className="mt-1 block text-xs text-ink-muted">{fill(t.expected, { answer: item.answer })}</span>
                 </span>
               </li>
             ))}
           </ol>
           <p className="mt-5 rounded-2xl bg-ground-sunken p-3 text-xs leading-relaxed text-ink-muted">
-            AI urg‘u (сосе́д, кварти́ра, этаже́), unlilar talaffuzi va javobning to‘liqligini tekshiradi.
+            {t.aiChecks}
           </p>
         </Card>
 
         <Card className="border-signal bg-signal-soft text-center">
           <div className="text-5xl" aria-hidden="true">🎙️</div>
-          <h3 className="mt-3 text-xl font-black text-ink">Ovozli missiyaga tayyormisiz?</h3>
-          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-            AI yuqoridagi 6 ta savolni ketma-ket beradi. Siz mikrofon orqali javob berasiz;
-            AI urg‘u, talaffuz va javobning to‘liqligini tekshiradi.
-          </p>
+          <h3 className="mt-3 text-xl font-black text-ink">{t.readyTitle}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">{t.readyBody}</p>
           {lessonMissionId && (
             <LinkButton to={`/missions/${lessonMissionId}`} block className="mt-5" onClick={onStartMission}>
-              🎙️ 6 ta AI savolini boshlash
+              {t.startAi}
             </LinkButton>
           )}
           <div className="mt-5 border-t border-signal/20 pt-5">
-            <p className="text-xs font-bold text-ink-muted">Yuqoridagi namunaviy dialogni rollarga bo‘lib mashq qiling:</p>
+            <p className="text-xs font-bold text-ink-muted">{t.rolePlayHint}</p>
             {dialogueMissionId ? (
               <LinkButton to={`/missions/${dialogueMissionId}`} block variant="secondary" className="mt-3" onClick={onStartMission}>
-                🐧🐼 Dialogni AI bilan mashq qilish
+                {t.startDialogue}
               </LinkButton>
             ) : isLoading ? (
-              <p className="mt-3 text-sm font-bold text-ink-muted">Dialog tayyorlanmoqda…</p>
+              <p className="mt-3 text-sm font-bold text-ink-muted">{t.dialogueLoading}</p>
             ) : hasError ? (
-              <p className="mt-3 text-sm font-bold text-danger">Dialogni yuklab bo‘lmadi. Sahifani yangilab ko‘ring.</p>
+              <p className="mt-3 text-sm font-bold text-danger">{t.dialogueFailed}</p>
             ) : (
-              <p className="mt-3 text-sm font-bold text-danger">Dialog missiyasi topilmadi.</p>
+              <p className="mt-3 text-sm font-bold text-danger">{t.dialogueMissing}</p>
             )}
           </div>
         </Card>
@@ -864,6 +847,7 @@ function MissionsSection({
 }
 
 function VocabularySection() {
+  const t = useT().lessonOne.vocabulary
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   useEffect(() => {
@@ -888,9 +872,7 @@ function VocabularySection() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <p className="text-center text-sm leading-relaxed text-ink-muted">
-        Bitta kartani oching, tarjimasini ko‘ring va bilganingizni belgilang.
-      </p>
+      <p className="text-center text-sm leading-relaxed text-ink-muted">{t.intro}</p>
 
       <div className="relative mx-auto mt-8 max-w-xl px-2 pb-6 pt-3 sm:px-8">
         <div className="absolute inset-x-10 bottom-1 top-10 rotate-3 rounded-[2rem] border-2 border-hairline bg-ground-sunken" />
@@ -904,18 +886,16 @@ function VocabularySection() {
           <span className="block p-5 sm:p-6">
             <span className="flex items-center justify-between gap-3">
               <span className="text-xs font-black tracking-[0.14em] text-signal-ink uppercase">
-                {vocabulary.length} ta karta
+                {fill(t.cards, { count: vocabulary.length })}
               </span>
               <span className="rounded-full bg-signal-soft px-3 py-1 text-xs font-black text-signal-ink">
-                Bosib oching
+                {t.tapToOpen}
               </span>
             </span>
-            <span className="mt-3 block text-2xl font-black text-ink sm:text-3xl">Yangi so‘zlar kolodasi</span>
-            <span className="mt-2 block text-sm leading-relaxed text-ink-muted">
-              Tarjima kartaning orqa tomonida. Bilganingiz o‘ngga, bilmaganingiz chapga ketadi.
-            </span>
+            <span className="mt-3 block text-2xl font-black text-ink sm:text-3xl">{t.deckTitle}</span>
+            <span className="mt-2 block text-sm leading-relaxed text-ink-muted">{t.deckBody}</span>
             <span className="mt-5 flex h-12 items-center justify-center rounded-full bg-signal px-5 font-black text-on-signal shadow-[0_4px_0_0_var(--color-signal-depth)] transition group-active:translate-y-1 group-active:shadow-none">
-              Kartalarni boshlash →
+              {t.startCards}
             </span>
           </span>
         </button>
@@ -938,6 +918,8 @@ function VocabularyStudy({
   initialIndex: number
   onClose: () => void
 }) {
+  const t = useT().lessonOne.vocabulary
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const [index, setIndex] = useState(initialIndex)
   const [isFlipped, setIsFlipped] = useState(false)
   const [exit, setExit] = useState<VocabularyRating | null>(null)
@@ -980,6 +962,8 @@ function VocabularyStudy({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-[90] overflow-y-auto bg-ground"
       role="dialog"
       aria-modal="true"
@@ -998,7 +982,7 @@ function VocabularyStudy({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Yopish"
+            aria-label={t.close}
             className="flex size-11 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-2xl font-bold text-ink hover:border-ink-faint"
           >
             ×
@@ -1008,14 +992,13 @@ function VocabularyStudy({
         {isFinished ? (
           <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
             <div className="flex size-20 items-center justify-center rounded-full bg-milestone-soft text-4xl text-milestone">✓</div>
-            <h2 id="vocabulary-word" className="mt-5 text-3xl font-black text-ink">Koloda tugadi</h2>
+            <h2 id="vocabulary-word" className="mt-5 text-3xl font-black text-ink">{t.finishedTitle}</h2>
             <p className="mt-3 max-w-md leading-relaxed text-ink-muted">
-              {knownCount} ta so‘zni bildingiz, {unknownCount} tasini yana mashq qilasiz.
-              Qolgan kartalar takrorlash uchun saqlandi.
+              {fill(t.finishedBody, { known: knownCount, unknown: unknownCount })}
             </p>
             <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:flex-row">
-              <Button size="lg" block onClick={restart}>Qayta boshlash</Button>
-              <Button size="lg" block variant="secondary" onClick={onClose}>Yopish</Button>
+              <Button size="lg" block onClick={restart}>{t.restart}</Button>
+              <Button size="lg" block variant="secondary" onClick={onClose}>{t.close}</Button>
             </div>
           </div>
         ) : (
@@ -1030,7 +1013,7 @@ function VocabularyStudy({
                   style={{ transform: cardTransform, transformStyle: 'preserve-3d' }}
                   role="button"
                   tabIndex={0}
-                  aria-label={isFlipped ? 'Kartaning old tomonini ko‘rish' : 'Tarjimani ko‘rish'}
+                  aria-label={isFlipped ? t.seeFront : t.seeTranslation}
                   onClick={() => setIsFlipped((flipped) => !flipped)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -1045,14 +1028,14 @@ function VocabularyStudy({
                   >
                     <VocabularyPhoto index={index} className="block aspect-[16/10] w-full" />
                     <div className="p-6 sm:p-8">
-                      <p className="text-xs font-black tracking-[0.14em] text-signal-ink uppercase">Ruscha ibora</p>
+                      <p className="text-xs font-black tracking-[0.14em] text-signal-ink uppercase">{t.russianPhrase}</p>
                       <h2
                         id="vocabulary-word"
                         className={cx('mt-3 text-3xl font-black sm:text-4xl', vocabularyTextClass(word.tone))}
                       >
                         {word.phrase}
                       </h2>
-                      <p className="mt-3 text-sm font-bold text-ink-faint">Kartani bosing — tarjimasini ko‘ring</p>
+                      <p className="mt-3 text-sm font-bold text-ink-faint">{t.tapForTranslation}</p>
                     </div>
                   </div>
 
@@ -1071,11 +1054,11 @@ function VocabularyStudy({
                   >
                     <VocabularyPhoto index={index} className="block h-40 w-full sm:h-48" />
                     <div className="p-6 text-left sm:p-8">
-                      <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">O‘zbekcha tarjima</p>
+                      <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">{t.translation}</p>
                       <h2 className={cx('mt-2 text-3xl font-black', vocabularyTextClass(word.tone))}>{word.meaning}</h2>
                       <p className="mt-2 font-bold text-ink-faint">{word.transliteration}</p>
                       <div className="mt-5 rounded-2xl bg-ground-sunken p-4">
-                        <p className="text-xs font-black tracking-[0.12em] text-ink-faint uppercase">Namunaviy gap</p>
+                        <p className="text-xs font-black tracking-[0.12em] text-ink-faint uppercase">{t.sampleSentence}</p>
                         <p className="mt-2 leading-relaxed text-ink">{word.example}</p>
                       </div>
                       <button
@@ -1087,7 +1070,7 @@ function VocabularyStudy({
                         className="mt-5 inline-flex items-center gap-3 rounded-full bg-signal px-5 py-3 font-extrabold text-on-signal"
                       >
                         <span className="flex size-7 items-center justify-center rounded-full bg-white/20"><PlayGlyph /></span>
-                        Talaffuzni tinglash
+                        {t.hearIt}
                       </button>
                     </div>
                   </div>
@@ -1139,6 +1122,7 @@ function vocabularyTextClass(tone: (typeof vocabulary)[number]['tone']): string 
 }
 
 function PictureExerciseSection() {
+  const t = useT().lessonOne.picture
   const promptWords = ['сосед', 'квартира', 'дом', 'ключ', 'чай']
 
   return (
@@ -1151,26 +1135,24 @@ function PictureExerciseSection() {
             <div className="absolute inset-x-7 bottom-0 h-36 rounded-t-full bg-[#396aa7]" />
             <div className="absolute top-8 left-1/2 -translate-x-1/2 rounded-full bg-[#704729] px-4 py-1 text-xs font-black text-white">КВАРТИРА</div>
           </div>
-          <div className="absolute bottom-5 left-[16%] flex items-end gap-2" aria-label="Eshik oldida kalit ushlab turgan kishi va uning qo‘shnisi">
-            <span className="text-7xl" role="img" aria-label="Kalit ushlagan kishi">🧑‍🔧</span>
-            <span className="mb-10 text-4xl" role="img" aria-label="Kalit">🔑</span>
-            <span className="text-7xl" role="img" aria-label="Qo‘shni">🧑</span>
-            <span className="mb-10 text-4xl" role="img" aria-label="Choy">🍵</span>
+          <div className="absolute bottom-5 left-[16%] flex items-end gap-2" aria-label={t.sceneLabel}>
+            <span className="text-7xl" role="img" aria-label={t.personWithKey}>🧑‍🔧</span>
+            <span className="mb-10 text-4xl" role="img" aria-label={t.key}>🔑</span>
+            <span className="text-7xl" role="img" aria-label={t.neighbour}>🧑</span>
+            <span className="mb-10 text-4xl" role="img" aria-label={t.tea}>🍵</span>
           </div>
         </div>
         <div className="bg-ground-raised p-6 sm:p-8">
-          <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">Mashq</p>
-          <h3 className="mt-2 text-2xl font-black text-ink">Rasmni rus tilida 3–4 gap bilan tasvirlang</h3>
-          <p className="mt-3 leading-relaxed text-ink-muted">
-            Eshik oldidagi odamlar, kalit va choy taklifiga qarang. Quyidagi so‘zlardan foydalaning:
-          </p>
+          <p className="text-xs font-black tracking-[0.15em] text-signal-ink uppercase">{t.eyebrow}</p>
+          <h3 className="mt-2 text-2xl font-black text-ink">{t.title}</h3>
+          <p className="mt-3 leading-relaxed text-ink-muted">{t.body}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {promptWords.map((word) => (
               <span key={word} className="rounded-full bg-signal-soft px-3 py-1.5 font-black text-signal-ink">{word}</span>
             ))}
           </div>
           <div className="mt-5 rounded-2xl bg-ground-sunken p-4">
-            <p className="text-xs font-black tracking-[0.12em] text-ink-faint uppercase">Namuna</p>
+            <p className="text-xs font-black tracking-[0.12em] text-ink-faint uppercase">{t.sample}</p>
             <p className="mt-2 leading-relaxed text-ink">
               «Это я и мой сосед. Я живу в этом доме. Это моя квартира. Я хочу пригласить соседа на чай.»
             </p>
@@ -1182,30 +1164,28 @@ function PictureExerciseSection() {
 }
 
 function CompleteSection({ missionId, onReset }: { missionId?: string; onReset: () => void }) {
+  const t = useT().lessonOne.complete
   return (
     <div className="space-y-5">
       <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-8 text-center sm:p-12">
         <AnswerCelebration />
         <div className="text-7xl" aria-hidden="true">🐧</div>
         <span className="mt-5 inline-flex rounded-full bg-milestone-soft px-4 py-2 text-sm font-black text-milestone">
-          1-dars muvaffaqiyatli tugadi
+          {t.badge}
         </span>
-        <h3 className="mt-4 text-3xl font-black text-ink">Ajoyib!</h3>
-        <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
-          Endi siz qo‘shningiz bilan tanisha olasiz, o‘zingizni tanishtira olasiz va rus tilida
-          taklif qilishni bilasiz. Shunday davom eting — bu sizning ilk qadamingiz!
-        </p>
+        <h3 className="mt-4 text-3xl font-black text-ink">{t.title}</h3>
+        <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">{t.body}</p>
         <div className="mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
-          <Outcome icon="👋" title="Tanishuv" tone="yellow" body="Ismingizni ayta olasiz." />
-          <Outcome icon="🏠" title="Uy va qo‘shni" tone="blue" body="Manzil haqida gapirasiz." />
-          <Outcome icon="🍵" title="Taklif" tone="yellow" body="Choyga taklif qilasiz." />
+          <Outcome icon="👋" title={t.meetTitle} tone="yellow" body={t.meetBody} />
+          <Outcome icon="🏠" title={t.homeTitle} tone="blue" body={t.homeBody} />
+          <Outcome icon="🍵" title={t.inviteTitle} tone="yellow" body={t.inviteBody} />
         </div>
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-        {missionId && <LinkButton to={`/missions/${missionId}`}>AI suhbatni mashq qilish</LinkButton>}
-        <LinkButton to="/progress" variant="secondary">Progressni ko‘rish</LinkButton>
-        <Button variant="ghost" size="lg" onClick={onReset}>Darsni qayta boshlash</Button>
+        {missionId && <LinkButton to={`/missions/${missionId}`}>{t.practiceAi}</LinkButton>}
+        <LinkButton to="/progress" variant="secondary">{t.seeProgress}</LinkButton>
+        <Button variant="ghost" size="lg" onClick={onReset}>{t.restart}</Button>
       </div>
     </div>
   )
@@ -1230,6 +1210,7 @@ function QuizCard({
   feedback: string
   onAnswer: (answer: string) => void
 }) {
+  const t = useT().lessonOne
   const answeredCorrectly = answer === correct
 
   return (
@@ -1290,7 +1271,7 @@ function QuizCard({
             answeredCorrectly ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger',
           )}
         >
-          <strong>{answeredCorrectly ? 'Верно! ' : 'Yana urinib ko‘ring. '}</strong>
+          <strong>{answeredCorrectly ? t.correct : t.tryAgain}</strong>
           {answeredCorrectly && feedback}
         </div>
       )}

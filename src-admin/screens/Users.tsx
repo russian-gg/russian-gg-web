@@ -74,7 +74,7 @@ function UserList() {
         {data && <span className="text-sm text-ink-muted">Jami: {formatNumber(data.total)}</span>}
       </div>
 
-      {error && <ErrorNote>{error}</ErrorNote>}
+      {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {!data && isLoading && <Loading />}
 
       {data && (
@@ -93,7 +93,11 @@ function UserList() {
             ]}
           >
             {data.items.map((user) => (
-              <Row key={user.id} onClick={() => setSelected(user.id)}>
+              <Row
+                key={user.id}
+                onClick={() => setSelected(user.id)}
+                label={`${user.displayName ?? 'Ismsiz'} — ma'lumotini ochish`}
+              >
                 <Cell>
                   <span className="block font-bold text-ink">{user.displayName ?? 'Ismsiz'}</span>
                   <span className="block text-xs text-ink-faint">{user.email}</span>
@@ -146,9 +150,9 @@ function UserList() {
 }
 
 function AudienceTab() {
-  const { data, error, isLoading } = useAdminQuery<Audience>('/api/admin-portal/audience')
+  const { data, error, isLoading, refresh } = useAdminQuery<Audience>('/api/admin-portal/audience')
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 

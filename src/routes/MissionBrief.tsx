@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Clock } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
@@ -40,6 +42,7 @@ const MASCOT_BY_CHARACTER: Record<string, Mascot> = {
 }
 
 export function MissionBrief({ mission }: MissionBriefProps) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const navigate = useNavigate()
   const [showCooldown, setShowCooldown] = useState(false)
@@ -159,6 +162,8 @@ export function MissionBrief({ mission }: MissionBriefProps) {
       */}
       {showCooldown && (
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
           role="dialog"
           aria-modal="true"
@@ -203,10 +208,7 @@ function Stat({ label, value }: StatProps) {
 
 function ClockGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6 fill-none stroke-current stroke-[1.8]" strokeLinecap="round">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 1.8" />
-    </svg>
+    <Clock aria-hidden="true" strokeWidth={1.8} className="size-6" />
   )
 }
 

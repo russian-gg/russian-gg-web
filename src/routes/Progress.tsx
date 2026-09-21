@@ -6,7 +6,7 @@ import { LESSON_ONE_SECTIONS, readLessonOneProgress } from '../lib/demo-lesson-o
 import { fill, useT } from '../lib/i18n'
 import type { ProgressView, SkillArea } from '../lib/types'
 import { ConfidenceTrend, MilestoneTimeline, SkillRow } from '../components/Progress'
-import { Badge, Card, ProgressBar, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Card, ProgressBar, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 const SKILLS: SkillArea[] = ['Listening', 'Speaking', 'Pronunciation', 'Vocabulary', 'Grammar']
 
@@ -14,12 +14,14 @@ export function Progress() {
   const t = useT()
   const { user } = useAuth()
   const lessonOne = readLessonOneProgress(user?.id)
-  const { data, isLoading } = useQuery({
+  const lesson = useT().lessonOne
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
   })
 
-  if (isLoading || !data) return <Spinner />
+  if (isLoading) return <Spinner />
+  if (isError || !data) return <QueryError onRetry={() => void refetch()} />
 
   return (
     <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
@@ -34,22 +36,25 @@ export function Progress() {
 
       {lessonOne.completed.length > 0 && (
         <section>
-          <SectionHeading>1-kun · Dars natijasi</SectionHeading>
+          <SectionHeading>{lesson.dayOneHeading}</SectionHeading>
           <Card className={lessonOne.isComplete ? 'border-milestone bg-milestone-soft/35' : undefined}>
             <div className="flex flex-wrap items-end justify-between gap-2">
               <h2 className="text-lg font-extrabold text-ink">Знакомство с соседом</h2>
               <span className="text-xs font-bold tracking-wide text-ink-faint uppercase">
-                {lessonOne.completed.length} / {LESSON_ONE_SECTIONS.length} bo‘lim yakunlandi
+                {fill(lesson.sectionsDone, {
+                  done: lessonOne.completed.length,
+                  total: LESSON_ONE_SECTIONS.length,
+                })}
               </span>
             </div>
             <div className="mt-3">
               <ProgressBar
                 value={lessonOne.completed.length}
                 max={LESSON_ONE_SECTIONS.length}
-                label="Birinchi dars bo‘yicha umumiy natija"
+                label={lesson.overallLabel}
               />
             </div>
-            <ul aria-label="Yakunlangan bo‘limlar" className="mt-4 flex flex-wrap gap-2">
+            <ul aria-label={lesson.sectionsCompleted} className="mt-4 flex flex-wrap gap-2">
               {LESSON_ONE_SECTIONS
                 .filter((section) => lessonOne.completed.includes(section.id))
                 .map((section) => (
@@ -58,7 +63,7 @@ export function Progress() {
                     className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1.5 text-xs font-extrabold text-milestone"
                   >
                     <span aria-hidden="true">✓</span>
-                    {section.progressTitle}
+                    {lesson.sections[section.id].short}
                   </li>
                 ))}
             </ul>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import type {
   MarketingCategory,
@@ -136,7 +137,7 @@ export function Marketing() {
     }
   }, [data, selected])
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
@@ -315,9 +316,7 @@ function StepMark({ state }: { state: MarketingRunStep['state'] }) {
         aria-hidden="true"
         className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-milestone"
       >
-        <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-on-signal stroke-[3.5]">
-          <path d="m5 13 5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <Check aria-hidden="true" className="size-3 text-on-signal" strokeWidth={3.5} />
       </span>
     )
   }
@@ -345,7 +344,7 @@ function PlanDetail({
   const [failure, setFailure] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 

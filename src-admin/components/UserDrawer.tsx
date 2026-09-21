@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useFocusTrap } from '../../src/lib/focus-trap'
 import { adminFetch, formatDateTime, session, useAdminQuery } from '../lib/api'
 import type { UserDetail } from '../lib/types'
 import { Badge, Button, Card, EmptyNote, ErrorNote, Loading, SectionHeading } from './ui'
@@ -22,6 +23,7 @@ export function UserDrawer({
   /** Called instead of onClose when something about the learner changed. */
   onChanged?: () => void
 }) {
+  const dialogRef = useFocusTrap<HTMLElement>()
   const { data, error } = useAdminQuery<UserDetail>(`/api/admin-portal/users/${userId}`)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
@@ -101,6 +103,8 @@ export function UserDrawer({
           shown ? 'translate-x-0' : 'translate-x-full',
         )}
         onClick={(event) => event.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Foydalanuvchi ma'lumoti"

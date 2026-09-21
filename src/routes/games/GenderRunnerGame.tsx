@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { fill, useT } from '../../lib/i18n'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui'
@@ -47,10 +48,14 @@ const GENDERS: Record<Gender, { label: string; short: string; color: string }> =
   neuter: { label: 'Средний род', short: 'СРЕДНИЙ', color: '#D6A800' },
 }
 
-const DIFFICULTIES: Record<Difficulty, { label: string; speed: number; caption: string; color: string }> = {
-  normal: { label: 'Normal', speed: 1, caption: 'Hozirgi tezlik', color: 'border-cyan-300 bg-cyan-400/20 text-cyan-100' },
-  high: { label: 'High', speed: 1.25, caption: '25% tezroq', color: 'border-amber-300 bg-amber-400/20 text-amber-100' },
-  expert: { label: 'Expert', speed: 1.5, caption: '50% tezroq', color: 'border-rose-300 bg-rose-400/20 text-rose-100' },
+/**
+ * Speed and paint only. The label and the caption under it are copy, so they live in the
+ * dictionary under the same difficulty key — `t.arcade.runner.difficulty[key]`.
+ */
+const DIFFICULTIES: Record<Difficulty, { speed: number; color: string }> = {
+  normal: { speed: 1, color: 'border-cyan-300 bg-cyan-400/20 text-cyan-100' },
+  high: { speed: 1.25, color: 'border-amber-300 bg-amber-400/20 text-amber-100' },
+  expert: { speed: 1.5, color: 'border-rose-300 bg-rose-400/20 text-rose-100' },
 }
 
 const WORDS: Word[] = [
@@ -146,6 +151,11 @@ function makeCoinWave(startZ: number, repeats = 2): TrackItem[] {
 }
 
 export function GenderRunnerGame() {
+  const t = useT().arcade.runner
+  const shelf = useT().arcade
+  /* The animation loop is not re-created on a language change, so it reads through a ref. */
+  const copy = useRef(t)
+  copy.current = t
   const navigate = useNavigate()
   const gameRootRef = useRef<HTMLElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -394,7 +404,7 @@ export function GenderRunnerGame() {
       for (const obstacle of world.obstacles) {
         if (!obstacle.hit && obstacle.z < 0.1 && obstacle.z > -0.04 && obstacle.lane === world.lane) {
           obstacle.hit = true
-          if (world.jumpUntil <= now) loseLife('To‘siqqa urildingiz — sakrashni unutmang!')
+          if (world.jumpUntil <= now) loseLife(copy.current.hitObstacle)
         }
       }
 
@@ -409,9 +419,9 @@ export function GenderRunnerGame() {
           world.score += 1
           playGameSound('correct', mutedRef.current)
           setStatus((current) => ({ ...current, score: world.score }))
-          showMessage('To‘g‘ri rod! +1', 'correct')
+          showMessage(copy.current.correct, 'correct')
         } else {
-          loseLife(`Xato: «${world.word.text}» — ${GENDERS[world.word.gender].label}`)
+          loseLife(fill(copy.current.wrong, { word: world.word.text, gender: GENDERS[world.word.gender].label }))
         }
         if (world.lives > 0) nextGate()
       }
@@ -439,31 +449,31 @@ export function GenderRunnerGame() {
       <div className="mx-auto flex min-h-[100dvh] max-w-6xl flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <button type="button" onClick={() => navigate('/games')} className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black text-white/75 hover:text-white" aria-label="O‘yinlardan chiqish">
+            <button type="button" onClick={() => navigate('/games')} className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black text-white/75 hover:text-white" aria-label={t.exit}>
               ×
             </button>
             <div className="min-w-0">
-              <strong className="block truncate text-sm font-black sm:text-base">Penguin Ice Runner</strong>
-              <span className="hidden text-[10px] font-bold tracking-[0.12em] text-cyan-200 uppercase min-[390px]:block">3D muzlik yugurishi</span>
+              <strong className="block truncate text-sm font-black sm:text-base">{shelf.runnerTitle}</strong>
+              <span className="hidden text-[10px] font-bold tracking-[0.12em] text-cyan-200 uppercase min-[390px]:block">{shelf.runnerTagline}</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] font-black sm:gap-3 sm:text-sm">
             <span className="rounded-lg bg-white/10 px-2 py-1">⭐ {status.score}</span>
             <span className="rounded-lg bg-white/10 px-2 py-1">🪙 {status.coins}</span>
-            <span className="hidden sm:inline" aria-label={`${status.lives} ta jon`}>{lifeMarks.join(' ')}</span>
-            <span className="hidden rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-2 py-1 text-cyan-100 md:inline">{DIFFICULTIES[difficulty].label}</span>
-            <button type="button" onClick={toggleMuted} data-ui-sound="none" className="grid size-9 place-items-center rounded-xl bg-white/10" aria-label={muted ? 'Ovozni yoqish' : 'Ovozni o‘chirish'}>
+            <span className="hidden sm:inline" aria-label={fill(t.lives, { count: status.lives })}>{lifeMarks.join(' ')}</span>
+            <span className="hidden rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-2 py-1 text-cyan-100 md:inline">{t.difficulty[difficulty].label}</span>
+            <button type="button" onClick={toggleMuted} data-ui-sound="none" className="grid size-9 place-items-center rounded-xl bg-white/10" aria-label={muted ? t.soundOn : t.soundOff}>
               {muted ? '🔇' : '🔊'}
             </button>
-            <button type="button" onClick={toggleFullscreen} className="hidden size-9 place-items-center rounded-xl bg-white/10 sm:grid" aria-label="To‘liq ekran">
+            <button type="button" onClick={toggleFullscreen} className="hidden size-9 place-items-center rounded-xl bg-white/10 sm:grid" aria-label={t.fullscreen}>
               ⛶
             </button>
           </div>
         </header>
 
         <div className="flex items-center justify-between bg-slate-900 px-4 py-1.5 text-[11px] font-black sm:hidden">
-          <span aria-label={`${status.lives} ta jon`}>{lifeMarks.join(' ')}</span>
-          <span className="text-emerald-300">Rekord: {highScore}</span>
+          <span aria-label={fill(t.lives, { count: status.lives })}>{lifeMarks.join(' ')}</span>
+          <span className="text-emerald-300">{shelf.record}: {highScore}</span>
         </div>
 
         <section
@@ -480,10 +490,10 @@ export function GenderRunnerGame() {
           />
 
           <div className="pointer-events-none absolute top-4 left-1/2 w-[min(88%,520px)] -translate-x-1/2 text-center sm:top-7">
-            <p className="text-[10px] font-black tracking-[0.18em] text-amber-200 uppercase">Rodini aniqlang</p>
+            <p className="text-[10px] font-black tracking-[0.18em] text-amber-200 uppercase">{t.findGender}</p>
             <div className="mt-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-amber-600 bg-amber-50 px-4 py-2 text-amber-950 shadow-2xl">
               <span className="text-xl font-black tracking-wide sm:text-3xl">«{status.word.text}»</span>
-              <button type="button" className="pointer-events-auto grid size-8 place-items-center rounded-full bg-amber-200 text-sm" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label="So‘zni tinglash">▶</button>
+              <button type="button" className="pointer-events-auto grid size-8 place-items-center rounded-full bg-amber-200 text-sm" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label={t.listen}>▶</button>
             </div>
             {status.message && (
               <p className={cx(
@@ -496,47 +506,45 @@ export function GenderRunnerGame() {
           </div>
 
           {phase === 'ready' && (
-            <GameOverlay title="Penguin Ice Runner" icon="🐧">
-              <p className="text-[11px] font-black tracking-[0.15em] text-cyan-200 uppercase">Rodlar bo‘ylab 3D muzlik yugurishi</p>
-              <p className="max-w-md text-sm leading-relaxed text-slate-200 sm:text-base">
-                Pingvinni uchta muz yo‘lakdan boshqaring: ruscha otning rodini toping, tanga to‘lqinlarini yig‘ing va muz to‘siqlaridan sakrang.
-              </p>
+            <GameOverlay title={shelf.runnerTitle} icon="🐧">
+              <p className="text-[11px] font-black tracking-[0.15em] text-cyan-200 uppercase">{t.introTitle}</p>
+              <p className="max-w-md text-sm leading-relaxed text-slate-200 sm:text-base">{t.introBody}</p>
               <DifficultyPicker value={difficulty} onChange={chooseDifficulty} />
               <div className="w-full max-w-md rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-left text-[11px] font-bold leading-relaxed text-slate-100 sm:text-xs">
-                <strong className="mb-1 block text-amber-300">O‘yin qoidasi:</strong>
-                <span className="block">• Chap yo‘lak = ekrandagi chap rod</span>
-                <span className="block">• O‘rta yo‘lak = ekrandagi o‘rta rod</span>
-                <span className="block">• O‘ng yo‘lak = ekrandagi o‘ng rod</span>
-                <span className="block">• Z-shakldagi tangalarni yig‘ing, muzlardan sakrang</span>
-                <span className="mt-2 hidden text-cyan-200 [@media(pointer:coarse)]:block">Ekranni chapga yoki o‘ngga suring — yo‘lak almashadi. Tepaga suring — pingvin sakraydi.</span>
+                <strong className="mb-1 block text-amber-300">{t.rulesTitle}</strong>
+                <span className="block">{t.ruleLeft}</span>
+                <span className="block">{t.ruleMiddle}</span>
+                <span className="block">{t.ruleRight}</span>
+                <span className="block">{t.ruleCoins}</span>
+                <span className="mt-2 hidden text-cyan-200 [@media(pointer:coarse)]:block">{t.gesture}</span>
               </div>
-              <Button block onClick={start}>O‘yinni boshlash</Button>
+              <Button block onClick={start}>{t.start}</Button>
             </GameOverlay>
           )}
 
           {phase === 'paused' && (
-            <GameOverlay title="Pauza" icon="⏸️">
+            <GameOverlay title={t.paused} icon="⏸️">
               <DifficultyPicker value={difficulty} onChange={chooseDifficulty} />
-              <Button block onClick={() => changePhase('playing')}>Davom etish</Button>
-              <button type="button" onClick={start} className="text-sm font-black text-white/70 hover:text-white">Qayta boshlash</button>
+              <Button block onClick={() => changePhase('playing')}>{t.resume}</Button>
+              <button type="button" onClick={start} className="text-sm font-black text-white/70 hover:text-white">{t.restart}</button>
             </GameOverlay>
           )}
 
           {phase === 'falling' && (
             <div className="pointer-events-none absolute inset-x-4 bottom-7 z-10 rounded-2xl border border-cyan-200/30 bg-slate-950/75 px-4 py-3 text-center text-sm font-black text-cyan-100 shadow-2xl backdrop-blur-sm sm:inset-x-auto sm:left-1/2 sm:w-96 sm:-translate-x-1/2">
-              Muz yorildi! Pingvin sirpanib ketdi…
+              {t.falling}
             </div>
           )}
 
           {phase === 'gameover' && (
-            <GameOverlay title="O‘yin tugadi" icon="🏁">
+            <GameOverlay title={t.over} icon="🏁">
               <div className="grid w-full max-w-sm grid-cols-3 gap-2">
-                <Result label="Ball" value={status.score} />
-                <Result label="Tangalar" value={status.coins} />
-                <Result label="Rekord" value={highScore} />
+                <Result label={t.score} value={status.score} />
+                <Result label={t.coins} value={status.coins} />
+                <Result label={shelf.record} value={highScore} />
               </div>
-              <Button block onClick={start}>Yana o‘ynash</Button>
-              <button type="button" onClick={() => navigate('/games')} className="text-sm font-black text-white/70 hover:text-white">O‘yinlarga qaytish</button>
+              <Button block onClick={start}>{t.again}</Button>
+              <button type="button" onClick={() => navigate('/games')} className="text-sm font-black text-white/70 hover:text-white">{t.backToGames}</button>
             </GameOverlay>
           )}
 
@@ -545,7 +553,7 @@ export function GenderRunnerGame() {
               type="button"
               onClick={() => changePhase('paused')}
               className="absolute top-3 right-3 grid size-10 place-items-center rounded-xl border border-white/20 bg-black/55 text-lg backdrop-blur-sm sm:top-5 sm:right-5"
-              aria-label="Pauza"
+              aria-label={t.paused}
             >
               ⏸
             </button>
@@ -553,12 +561,12 @@ export function GenderRunnerGame() {
         </section>
 
         <p className="hidden border-t border-white/10 bg-[#111827] px-4 py-3 text-center text-xs font-bold text-cyan-100 [@media(pointer:coarse)]:block">
-          Chapga / o‘ngga suring — yo‘lak almashtirish · Tepaga suring — sakrash
+          {t.controlsHint}
         </p>
         <div className="grid grid-cols-3 gap-2 border-t border-white/10 bg-[#111827] p-3 sm:mx-auto sm:w-full sm:max-w-xl sm:rounded-t-2xl [@media(pointer:coarse)]:hidden">
-          <ControlButton onClick={() => move(-1)} disabled={phase !== 'playing'} label="Chapga (A)" icon="←" />
-          <ControlButton onClick={jump} disabled={phase !== 'playing'} label="Sakrash" icon="↑" accent />
-          <ControlButton onClick={() => move(1)} disabled={phase !== 'playing'} label="O‘ngga (D)" icon="→" />
+          <ControlButton onClick={() => move(-1)} disabled={phase !== 'playing'} label={t.left} icon="←" />
+          <ControlButton onClick={jump} disabled={phase !== 'playing'} label={t.jump} icon="↑" accent />
+          <ControlButton onClick={() => move(1)} disabled={phase !== 'playing'} label={t.right} icon="→" />
         </div>
       </div>
     </main>
@@ -578,9 +586,11 @@ function GameOverlay({ title, icon, children }: { title: string; icon: string; c
 }
 
 function DifficultyPicker({ value, onChange }: { value: Difficulty; onChange: (difficulty: Difficulty) => void }) {
+  const t = useT().arcade.runner
+
   return (
     <div className="w-full max-w-md">
-      <span className="mb-2 block text-left text-[10px] font-black tracking-[0.14em] text-white/60 uppercase">Tezlik darajasi</span>
+      <span className="mb-2 block text-left text-[10px] font-black tracking-[0.14em] text-white/60 uppercase">{t.speed}</span>
       <div className="grid grid-cols-3 gap-2">
         {(Object.entries(DIFFICULTIES) as [Difficulty, (typeof DIFFICULTIES)[Difficulty]][]).map(([key, option]) => (
           <button
@@ -593,8 +603,8 @@ function DifficultyPicker({ value, onChange }: { value: Difficulty; onChange: (d
               value === key ? option.color : 'border-white/10 bg-white/5 text-white/55 hover:bg-white/10',
             )}
           >
-            <strong className="block text-xs font-black sm:text-sm">{option.label}</strong>
-            <span className="mt-0.5 block text-[9px] font-bold sm:text-[10px]">{option.caption}</span>
+            <strong className="block text-xs font-black sm:text-sm">{t.difficulty[key].label}</strong>
+            <span className="mt-0.5 block text-[9px] font-bold sm:text-[10px]">{t.difficulty[key].caption}</span>
           </button>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BarChart3, ClipboardList, Clock, Gamepad2, GraduationCap, Target } from 'lucide-react'
 import { useT } from '../../lib/i18n'
 import { missionPath } from '../../lib/mission-path'
 import type { MissionSummary } from '../../lib/types'
@@ -136,54 +137,36 @@ function tintFor(slug: string) {
 
 function ClockGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-[2]">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <Clock aria-hidden="true" strokeWidth={2} className="size-3.5" />
   )
 }
 
 function CapGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
-      <path d="m12 4 9 5-9 5-9-5 9-5Z" strokeLinejoin="round" />
-      <path d="M6 11v4c0 1.7 2.7 3 6 3s6-1.3 6-3v-4" strokeLinecap="round" />
-    </svg>
+    <GraduationCap aria-hidden="true" strokeWidth={1.9} className="size-5" />
   )
 }
 
 function TargetGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
-    </svg>
+    <Target aria-hidden="true" strokeWidth={1.9} className="size-5" />
   )
 }
 
 function TestGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
-      <rect x="5" y="3" width="14" height="18" rx="2" />
-      <path d="M9 8h6M9 12h6M9 16h3" strokeLinecap="round" />
-    </svg>
+    <ClipboardList aria-hidden="true" strokeWidth={1.9} className="size-5" />
   )
 }
 
 function GameGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
-      <rect x="2.5" y="7" width="19" height="10" rx="4" />
-      <path d="M7 11v2M6 12h2M16 11.5h.01M18 13.5h.01" strokeLinecap="round" />
-    </svg>
+    <Gamepad2 aria-hidden="true" strokeWidth={1.9} className="size-5" />
   )
 }
 
 function ChartGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" strokeLinecap="round" />
-    </svg>
+    <BarChart3 aria-hidden="true" strokeWidth={1.9} className="size-5" />
   )
 }

@@ -3,7 +3,7 @@ import { useOpenGames } from '../../lib/games'
 import { Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
 import { mascotImage } from '../../lib/mascot-images'
-import { useLocale } from '../../lib/i18n'
+import { useLocale, useT } from '../../lib/i18n'
 import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
 import { GameMark } from './speaking/visuals'
 
@@ -28,6 +28,7 @@ const ART: Record<string, { emoji: string; tint: string; to?: string }> = {
 export function Games() {
   const open = useOpenGames()
   const { locale } = useLocale()
+  const t = useT().arcade
 
   if (!open) {
     return (
@@ -40,10 +41,8 @@ export function Games() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-black text-ink sm:text-3xl">O'yinlar</h1>
-        <p className="mt-1 text-[15px] text-ink-muted">
-          Gapirishni mashq qilishning eng qisqa yo'li — o'ynab.
-        </p>
+        <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.title}</h1>
+        <p className="mt-1 text-[15px] text-ink-muted">{t.subtitle}</p>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -89,6 +88,7 @@ export function Games() {
 }
 
 function RunnerCard({ body }: { body: string }) {
+  const t = useT().arcade
   let highScore = 0
   try {
     const saved = Number(localStorage.getItem('rgg_gender_runner_highscore'))
@@ -107,9 +107,9 @@ function RunnerCard({ body }: { body: string }) {
 
       <span className="relative flex items-center justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/20 px-3 py-1 text-[11px] font-black tracking-wider text-rose-300 uppercase">
-          <span className="size-2 animate-pulse rounded-full bg-rose-500" /> Yangi o‘yin
+          <span className="size-2 animate-pulse rounded-full bg-rose-500" /> {t.newGame}
         </span>
-        <span className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">🏆 Rekord: {highScore}</span>
+        <span className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">🏆 {t.record}: {highScore}</span>
       </span>
 
       <span className="relative mt-4 grid gap-5 md:grid-cols-[1.25fr_1fr] md:items-center">
@@ -127,13 +127,13 @@ function RunnerCard({ body }: { body: string }) {
         </span>
 
         <span>
-          <strong className="block text-2xl font-black sm:text-3xl">Penguin Ice Runner</strong>
+          <strong className="block text-2xl font-black sm:text-3xl">{t.runnerTitle}</strong>
           <span className="mt-2 block text-sm leading-relaxed text-slate-300">{body}</span>
-          <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">Pingvinni uchta muz yo‘lakda boshqaring, Z-shakldagi tangalarni yig‘ing, muzlardan sakrang va ruscha otlarning rodini toping.</span>
+          <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">{t.runnerBlurb}</span>
           <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 text-sm font-black shadow-lg shadow-rose-500/20 transition group-hover:scale-105">
-            ▶ O‘ynash
+            ▶ {t.play}
           </span>
-          <span className="ml-3 text-xs font-bold text-cyan-100/60">3D muzlik yugurishi</span>
+          <span className="ml-3 text-xs font-bold text-cyan-100/60">{t.runnerTagline}</span>
         </span>
       </span>
     </Link>

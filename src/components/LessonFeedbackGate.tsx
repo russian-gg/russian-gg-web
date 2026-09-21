@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, Star } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import type { FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
@@ -61,6 +63,7 @@ type LessonFeedbackDialogProps = {
 
 /** One question per step, in order. The last step — the note — is optional and sends the lot. */
 function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const copy = t.lessonFeedback
   const { user } = useAuth()
@@ -150,6 +153,8 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
       className={`lf-backdrop fixed inset-0 z-[200] flex items-end justify-center bg-black/55 p-3 backdrop-blur-sm sm:items-center sm:p-6${
         closing ? ' lf-closing' : ''
       }`}
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="lesson-feedback-title"
@@ -363,9 +368,7 @@ function Legend({ text, requiredLabel }: LegendProps) {
 
 function CheckGlyph() {
   return (
-    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3.5 8.5l3 3 6-7" />
-    </svg>
+    <Check aria-hidden="true" strokeWidth={2.5} className="size-3.5" />
   )
 }
 
@@ -375,19 +378,12 @@ type StarGlyphProps = {
 
 function StarGlyph({ filled }: StarGlyphProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={`size-11 transition-colors sm:size-12 ${filled ? 'text-coin' : 'text-hairline'}`}
+    <Star
       aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        stroke={filled ? 'var(--color-coin-strong)' : 'var(--color-control-depth)'}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-        d="M12 2.8l2.8 5.7 6.3.9-4.55 4.43 1.07 6.27L12 17.13 6.38 20.1l1.07-6.27L2.9 9.4l6.3-.9z"
-      />
-    </svg>
+      className={`size-11 fill-current transition-colors sm:size-12 ${filled ? 'text-coin' : 'text-hairline'}`}
+      stroke={filled ? 'var(--color-coin-strong)' : 'var(--color-control-depth)'}
+      strokeWidth={1.2}
+    />
   )
 }
 

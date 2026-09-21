@@ -16,16 +16,20 @@ export function foundationLessonStorageKey(userId: string, day: number): string 
     : `rgg.demostage.foundation-lesson.v1.${encodeURIComponent(userId)}.${day}`
 }
 
+/**
+ * The lesson's nine steps, in order. Only the order and the ids live here now — the names
+ * are copy, so they are `t.lessonOne.sections[id]`, keyed by the same id.
+ */
 export const LESSON_ONE_SECTIONS = [
-  { id: 'tests', eyebrow: '1', title: 'Yengil test', progressTitle: 'Yengil test' },
-  { id: 'phonetics', eyebrow: '2', title: 'Fonetik qoida', progressTitle: 'Fonetik qoida' },
-  { id: 'grammar', eyebrow: '3', title: 'Rodlar haqida ertak', progressTitle: 'Rodlar haqida ertak' },
-  { id: 'phrases', eyebrow: '4', title: '15 ta asosiy ibora', progressTitle: '15 ta ibora' },
-  { id: 'game', eyebrow: '5', title: 'Rangli uy', progressTitle: 'Rangli uy o‘yini' },
-  { id: 'missions', eyebrow: '6', title: 'Dialog va AI savollari', progressTitle: 'AI missiyasi' },
-  { id: 'vocabulary', eyebrow: '7', title: 'Словарь', progressTitle: 'Словарь' },
-  { id: 'picture', eyebrow: '8', title: 'Rasmli mashq', progressTitle: 'Rasmli mashq' },
-  { id: 'complete', eyebrow: '9', title: 'Dars yakuni', progressTitle: 'Dars yakuni' },
+  { id: 'tests', eyebrow: '1' },
+  { id: 'phonetics', eyebrow: '2' },
+  { id: 'grammar', eyebrow: '3' },
+  { id: 'phrases', eyebrow: '4' },
+  { id: 'game', eyebrow: '5' },
+  { id: 'missions', eyebrow: '6' },
+  { id: 'vocabulary', eyebrow: '7' },
+  { id: 'picture', eyebrow: '8' },
+  { id: 'complete', eyebrow: '9' },
 ] as const
 
 export type LessonOneSection = (typeof LESSON_ONE_SECTIONS)[number]['id']

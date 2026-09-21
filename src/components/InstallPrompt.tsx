@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, Menu, MoreVertical, Share, X } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { cx } from '../lib/cx'
 import { useT } from '../lib/i18n'
@@ -115,9 +116,7 @@ export function InstallPrompt() {
             aria-label={t.install.close}
             className="-mt-1 -mr-1 shrink-0 rounded-full p-2 text-ink-faint transition-colors hover:bg-ground-sunken hover:text-ink"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[2.2]">
-              <path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" />
-            </svg>
+            <X aria-hidden="true" strokeWidth={2.2} className="size-4" />
           </button>
         </div>
 
@@ -183,9 +182,7 @@ export function InstallPrompt() {
             )}
           >
             {never && (
-              <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-on-signal stroke-[3.5]">
-                <path d="m5 13 5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Check aria-hidden="true" strokeWidth={3.5} className="size-3 text-on-signal" />
             )}
           </span>
           <span className="text-sm text-ink-muted">{t.install.neverShow}</span>
@@ -212,32 +209,23 @@ export function InstallPrompt() {
   )
 }
 
-/** iOS's share mark: the shape is the instruction, so it is drawn rather than described. */
+/** iOS's share mark: the shape *is* the instruction, which is why the step shows it. */
 function ShareGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-signal-ink stroke-[1.8]">
-      <path d="M12 15V3m0 0L8.5 6.5M12 3l3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 12H5a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1" strokeLinecap="round" />
-    </svg>
+    <Share aria-hidden="true" strokeWidth={1.8} className="size-5 text-signal-ink" />
   )
 }
 
 /** Chrome and Firefox on Android. */
 function DotsGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-signal-ink">
-      <circle cx="12" cy="5" r="1.8" />
-      <circle cx="12" cy="12" r="1.8" />
-      <circle cx="12" cy="19" r="1.8" />
-    </svg>
+    <MoreVertical aria-hidden="true" strokeWidth={2.4} className="size-5 text-signal-ink" />
   )
 }
 
 /** Samsung Internet, which is most of the other half of Uzbekistan's Android phones. */
 function LinesGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-signal-ink stroke-[2]">
-      <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-    </svg>
+    <Menu aria-hidden="true" strokeWidth={2} className="size-5 text-signal-ink" />
   )
 }

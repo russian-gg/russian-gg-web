@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { BarChart3 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { pickContent } from '../lib/content'
@@ -426,9 +427,7 @@ function CoinGlyph({ className }: { className?: string }) {
 function ActivityGlyph() {
   return (
     <span className="flex size-9 items-center justify-center rounded-xl bg-signal-soft text-signal-ink" aria-hidden="true">
-      <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round">
-        <path d="M5 18V9m7 9V5m7 13v-6" />
-      </svg>
+      <BarChart3 aria-hidden="true" strokeWidth={2} className="size-5" />
     </span>
   )
 }

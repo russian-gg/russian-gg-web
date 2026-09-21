@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowUpRight, Check, CircleAlert, CircleCheck, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { LinkButton } from '../components/ui'
@@ -200,9 +201,9 @@ const CHARACTERS: Array<{
 }> = [
   // `bubble` is a vibrant Duolingo-style fill (white text on it); `accent` is the soft same-hue
   // card border. Both are fixed brand illustration colours, not theme tokens.
-  { key: 'panda', n: '01', status: 'problem', image: '/characters/panda.png', accent: '#f3a9cb', bubble: '#e83e8c' },
-  { key: 'pingvin', n: '02', status: 'solution', image: '/characters/pingvin.png', accent: '#9cc3f7', bubble: '#1c8fe0' },
-  { key: 'pero', n: '03', status: 'solution', image: '/characters/pero.png', accent: '#f3d178', bubble: '#e08a0a' },
+  { key: 'panda', n: '01', status: 'problem', image: '/characters/panda.webp', accent: '#f3a9cb', bubble: '#e83e8c' },
+  { key: 'pingvin', n: '02', status: 'solution', image: '/characters/pingvin.webp', accent: '#9cc3f7', bubble: '#1c8fe0' },
+  { key: 'pero', n: '03', status: 'solution', image: '/characters/pero.webp', accent: '#f3d178', bubble: '#e08a0a' },
 ]
 
 function Characters() {
@@ -361,43 +362,25 @@ function ListenButton({
 
 function SparkleGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 fill-current">
-      <path d="M12 2l1.9 5.6L19.5 9l-5.6 1.9L12 16.5l-1.9-5.6L4.5 9l5.6-1.4L12 2Z" />
-    </svg>
+    <Sparkles aria-hidden="true" strokeWidth={0} className="size-3.5 fill-current" />
   )
 }
 
 function AlertGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3 fill-none stroke-current stroke-[2.4]">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v6" strokeLinecap="round" />
-      <path d="M12 16.5v.5" strokeLinecap="round" />
-    </svg>
+    <CircleAlert aria-hidden="true" strokeWidth={2.4} className="size-3" />
   )
 }
 
 function CheckGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3 fill-none stroke-current stroke-[2.6]">
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8.5 12.5 2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <CircleCheck aria-hidden="true" strokeWidth={2.6} className="size-3" />
   )
 }
 
 function SpeakerGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 fill-current">
-      <path d="M4 9v6h3l5 4V5L7 9H4Z" />
-      <path
-        d="M16 8.5a4 4 0 0 1 0 7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
+    <Volume2 aria-hidden="true" strokeWidth={2} className="size-3.5" />
   )
 }
 
@@ -406,8 +389,8 @@ function SpeakerGlyph() {
 function Games() {
   const t = useT().landing
   const games = [
-    { title: t.games.runnerTitle, body: t.games.runnerBody, image: '/games/rod-runner.jpg' },
-    { title: t.games.sawTitle, body: t.games.sawBody, image: '/games/lazer.jpg' },
+    { title: t.games.runnerTitle, body: t.games.runnerBody, image: '/games/rod-runner.webp' },
+    { title: t.games.sawTitle, body: t.games.sawBody, image: '/games/lazer.webp' },
   ]
 
   return (
@@ -455,13 +438,13 @@ function Games() {
 type Creator = { handle: string; title: string; url: string; cover: string }
 
 const CREATORS: Creator[] = [
-  { handle: '@fateemajan__', title: '90 kunda rus tilida gapirishni boshlash', url: 'https://www.instagram.com/reel/DbpH5-BhAzP/', cover: '/reels/fateemajan__.jpg' },
-  { handle: '@with_jeren', title: 'Ruscha gapirsam, inglizcha aralashib ketadimi?', url: 'https://www.instagram.com/reel/Dbv8Qpooa-p/', cover: '/reels/with_jeren.jpg' },
-  { handle: '@the_sakinaa', title: 'Har kuni 15 daqiqa ovozli mashq', url: 'https://www.instagram.com/reel/DbzrlaWsxcW/', cover: '/reels/the_sakinaa.jpg' },
-  { handle: '@1bonuyem', title: "Rus tilini tez gapirishning yo'li", url: 'https://www.instagram.com/reel/Dbthm3zxbs8/', cover: '/reels/1bonuyem.jpg' },
-  { handle: '@abdulxoliq.ustoz', title: "Rus tilini o'rganishning amaliy usuli", url: 'https://www.instagram.com/reel/DbyOkbvNA29/', cover: '/reels/abdulxoliq.ustoz.jpg' },
-  { handle: '@blog_rano', title: 'Ish uchun rus tili: qayerdan boshlash', url: 'https://www.instagram.com/reel/DbtLqBPNJZt/', cover: '/reels/blog_rano.jpg' },
-  { handle: '@yasina_nadirbekovna', title: 'Rus tilida ishonch bilan gapiring', url: 'https://www.instagram.com/reel/Db3EzzVMynp/', cover: '/reels/yasina_nadirbekovna.jpg' },
+  { handle: '@fateemajan__', title: '90 kunda rus tilida gapirishni boshlash', url: 'https://www.instagram.com/reel/DbpH5-BhAzP/', cover: '/reels/fateemajan__.webp' },
+  { handle: '@with_jeren', title: 'Ruscha gapirsam, inglizcha aralashib ketadimi?', url: 'https://www.instagram.com/reel/Dbv8Qpooa-p/', cover: '/reels/with_jeren.webp' },
+  { handle: '@the_sakinaa', title: 'Har kuni 15 daqiqa ovozli mashq', url: 'https://www.instagram.com/reel/DbzrlaWsxcW/', cover: '/reels/the_sakinaa.webp' },
+  { handle: '@1bonuyem', title: "Rus tilini tez gapirishning yo'li", url: 'https://www.instagram.com/reel/Dbthm3zxbs8/', cover: '/reels/1bonuyem.webp' },
+  { handle: '@abdulxoliq.ustoz', title: "Rus tilini o'rganishning amaliy usuli", url: 'https://www.instagram.com/reel/DbyOkbvNA29/', cover: '/reels/abdulxoliq.ustoz.webp' },
+  { handle: '@blog_rano', title: 'Ish uchun rus tili: qayerdan boshlash', url: 'https://www.instagram.com/reel/DbtLqBPNJZt/', cover: '/reels/blog_rano.webp' },
+  { handle: '@yasina_nadirbekovna', title: 'Rus tilida ishonch bilan gapiring', url: 'https://www.instagram.com/reel/Db3EzzVMynp/', cover: '/reels/yasina_nadirbekovna.webp' },
 ]
 
 /**
@@ -566,7 +549,7 @@ function Mobile() {
       <div className="grid items-center gap-12 lg:grid-cols-2">
         <div className="order-2 flex justify-center lg:order-1">
           <img
-            src="/mobile/app-home.png"
+            src="/mobile/app-home.webp"
             alt=""
             aria-hidden="true"
             className="w-full max-w-[19rem] drop-shadow-[0_34px_60px_-26px_rgb(45_118_221/0.45)]"
@@ -746,7 +729,7 @@ function FinalCta() {
           </div>
           <div className="hidden justify-end lg:flex">
             <img
-              src="/characters/panda.png"
+              src="/characters/panda.webp"
               alt=""
               aria-hidden="true"
               className="h-64 w-auto drop-shadow-[0_20px_30px_rgb(18_54_110/0.28)]"
@@ -965,10 +948,7 @@ function InstagramIcon() {
 
 function ShieldIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[2]">
-      <path d="M12 3 5 6v5c0 4.4 3 8.3 7 9.5 4-1.2 7-5.1 7-9.5V6l-7-3Z" />
-      <path d="m9 12 2 2 4-4.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <ShieldCheck aria-hidden="true" strokeWidth={2} className="size-4" />
   )
 }
 
@@ -1028,30 +1008,19 @@ function SectionEyebrow({ children, center = false }: { children: ReactNode; cen
 /** A small signal-ink check, for feature lists and trust marks. */
 function Tick() {
   return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4 fill-none stroke-signal-ink stroke-[2.4]">
-      <path d="m4 10.5 4 4 8-9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <Check aria-hidden="true" strokeWidth={2.4} className="size-4 text-signal-ink" />
   )
 }
 
 function PhoneGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-ink-muted stroke-[2]">
-      <rect x="7" y="3" width="10" height="18" rx="2.5" />
-      <path d="M11 18h2" strokeLinecap="round" />
-    </svg>
+    <Smartphone aria-hidden="true" strokeWidth={2} className="size-4 text-ink-muted" />
   )
 }
 
 /** The small "opens elsewhere" arrow beside a linked handle. */
 function ExternalGlyph() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="size-3.5 fill-none stroke-signal-ink stroke-[2.4]"
-    >
-      <path d="M9 6h9v9M18 6 7 17" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="size-3.5 text-signal-ink" />
   )
 }

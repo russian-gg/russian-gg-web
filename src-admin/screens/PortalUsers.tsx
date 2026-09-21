@@ -187,7 +187,7 @@ export function PortalUsers() {
         </Card>
 
         <div className="space-y-4">
-          {error && <ErrorNote>{error}</ErrorNote>}
+          {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
           {!data && isLoading && <Loading />}
           {data?.length === 0 && (
             <EmptyNote>Hozircha alohida hisob yo'q — panelga faqat asosiy login bilan kirilyapti.</EmptyNote>

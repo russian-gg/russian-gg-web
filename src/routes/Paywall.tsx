@@ -14,7 +14,7 @@ import type {
   SubscriptionActionResponse,
   WelcomeGiftStatus,
 } from '../lib/types'
-import { Badge, Button, Card, ErrorNote, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Button, Card, ErrorNote, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
 
 const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
   id: index,
@@ -50,6 +50,7 @@ function perMonthAmountTiyin(amountTiyin: number, period: BillingPeriod) {
 }
 
 export function Paywall() {
+  const perDay = useT().dayPreview.perDay
   const t = useT()
   const { locale } = useLocale()
   const [period, setPeriod] = useState<BillingPeriod>('NinetyDay')
@@ -62,7 +63,7 @@ export function Paywall() {
   const [showPromoCelebration, setShowPromoCelebration] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
-  const { data: plans, isLoading } = useQuery({
+  const { data: plans, isLoading, isError, refetch } = useQuery({
     queryKey: ['plans'],
     queryFn: () => api.get<PlansView>('/billing/plans'),
   })
@@ -96,7 +97,8 @@ export function Paywall() {
     return () => window.clearTimeout(timer)
   }, [showPromoCelebration])
 
-  if (isLoading || !plans) return <Spinner />
+  if (isLoading) return <Spinner />
+  if (isError || !plans) return <QueryError onRetry={() => void refetch()} />
 
   async function checkout(provider: PaymentProvider) {
     setBusy(true)
@@ -264,7 +266,7 @@ export function Paywall() {
                         <div className="mt-4 border-t border-hairline pt-4">
                           <div className="flex flex-wrap items-end gap-x-1 gap-y-1">
                             <span className="text-3xl font-extrabold tracking-tight text-ink">{perDayPrice}</span>
-                            <span className="pb-1 text-lg font-semibold text-ink-muted">/kun</span>
+                            <span className="pb-1 text-lg font-semibold text-ink-muted">{perDay}</span>
                           </div>
                         </div>
                       </div>

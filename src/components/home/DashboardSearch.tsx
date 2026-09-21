@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Lock, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
@@ -136,18 +137,12 @@ export function DashboardSearch() {
 
 function SearchGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[2]">
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
-    </svg>
+    <Search aria-hidden="true" strokeWidth={2} className="size-5" />
   )
 }
 
 function LockGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[2]">
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
-    </svg>
+    <Lock aria-hidden="true" strokeWidth={2} className="size-4" />
   )
 }

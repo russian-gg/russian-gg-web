@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import googleGIcon from '../assets/google-g-dark.svg'
@@ -600,19 +601,11 @@ function PasswordField({
 function EyeGlyph({ open }: { open: boolean }) {
   if (open) {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-1.8">
-        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
+      <Eye aria-hidden="true" strokeWidth={1.8} className="size-5" />
     )
   }
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-1.8">
-      <path d="M3 4.5 20 19.5" />
-      <path d="M10.6 6.2A11.6 11.6 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-4.1 4.5" />
-      <path d="M6.7 8.1A17.2 17.2 0 0 0 2 12s3.5 6 10 6c1.4 0 2.6-.3 3.8-.7" />
-      <path d="M9.9 9.9A3 3 0 0 0 14 14" />
-    </svg>
+    <EyeOff aria-hidden="true" strokeWidth={1.8} className="size-5" />
   )
 }
 

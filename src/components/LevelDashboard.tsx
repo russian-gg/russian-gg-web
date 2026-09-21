@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { OnboardingAssessment, OnboardingMilestone } from '../lib/types'
 import { cx } from '../lib/cx'
+import { fill, useT } from '../lib/i18n'
 
 /**
  * What forty seconds of speaking turned into.
@@ -19,6 +20,7 @@ export function LevelDashboard({
   onContinue: () => void
   continueLabel: string
 }) {
+  const t = useT().level
   const { stats } = assessment
   const hasLanguageBreakdown =
     typeof stats.uzbekWords === 'number' && typeof stats.otherWords === 'number'
@@ -26,12 +28,12 @@ export function LevelDashboard({
   return (
     <div className="space-y-5">
       <header className="space-y-3">
-        <p className="text-xs font-black tracking-[0.16em] text-ink-faint uppercase">Sizning natijangiz</p>
+        <p className="text-xs font-black tracking-[0.16em] text-ink-faint uppercase">{t.eyebrow}</p>
         <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{assessment.headlineUz}</h1>
 
         <div className="flex flex-wrap gap-2">
-          <LevelChip label="Gapirish" value={assessment.speaking} tone="warn" />
-          <LevelChip label="Tushunish" value={assessment.comprehension} tone="good" />
+          <LevelChip label={t.speaking} value={assessment.speaking} tone="warn" />
+          <LevelChip label={t.comprehension} value={assessment.comprehension} tone="good" />
         </div>
       </header>
 
@@ -46,22 +48,20 @@ export function LevelDashboard({
             <div className="text-5xl leading-none font-black tabular-nums text-signal-ink">
               {stats.longestRussianRun}
             </div>
-            <div className="mt-1.5 text-sm font-bold text-ink">
-              so'z — eng uzun ruscha ketma-ketligingiz
-            </div>
+            <div className="mt-1.5 text-sm font-bold text-ink">{t.longestRun}</div>
           </div>
 
           <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <Figure label="Jami so'z" value={stats.words} />
-            <Figure label="Ruscha" value={`${stats.russianWords} (${stats.russianShare}%)`} />
+            <Figure label={t.totalWords} value={stats.words} />
+            <Figure label={t.russian} value={`${stats.russianWords} (${stats.russianShare}%)`} />
             {hasLanguageBreakdown && (
               <>
-                <Figure label="O'zbekcha" value={`${stats.uzbekWords} (${stats.uzbekShare}%)`} />
-                <Figure label="Boshqa til" value={`${stats.otherWords} (${stats.otherShare}%)`} />
+                <Figure label={t.uzbek} value={`${stats.uzbekWords} (${stats.uzbekShare}%)`} />
+                <Figure label={t.other} value={`${stats.otherWords} (${stats.otherShare}%)`} />
               </>
             )}
             {/* A typed answer has no length, and "0 s" would read as a measurement of one. */}
-            {stats.seconds > 0 && <Figure label="Gapirdingiz" value={`${stats.seconds} s`} />}
+            {stats.seconds > 0 && <Figure label={t.spokeFor} value={`${stats.seconds} s`} />}
           </dl>
         </div>
 
@@ -71,7 +71,7 @@ export function LevelDashboard({
       {assessment.gapsUz.length > 0 && (
         <section>
           <h2 className="mb-2.5 text-sm font-black tracking-[0.14em] text-ink-faint uppercase">
-            Hozir uddalay olmaysiz
+            {t.gaps}
           </h2>
           <ul className="space-y-2">
             {assessment.gapsUz.map((gap) => (
@@ -91,7 +91,7 @@ export function LevelDashboard({
 
       {assessment.strengthsUz.length > 0 && (
         <section className="rounded-[var(--radius-card)] border-2 border-milestone/35 bg-milestone-soft/40 px-4 py-3">
-          <h2 className="text-sm font-black text-milestone">Sizda allaqachon bor</h2>
+          <h2 className="text-sm font-black text-milestone">{t.strengths}</h2>
           <ul className="mt-1.5 space-y-1">
             {assessment.strengthsUz.map((strength) => (
               <li key={strength} className="text-[15px] text-ink">
@@ -105,7 +105,7 @@ export function LevelDashboard({
       {assessment.transcriptUz && (
         <details className="rounded-[var(--radius-card)] border-2 border-hairline px-4 py-3">
           <summary className="cursor-pointer text-sm font-bold text-ink-muted">
-            Nima deganingizni ko'rish
+            {t.showTranscript}
           </summary>
           <p
             dir="auto"
@@ -124,9 +124,7 @@ export function LevelDashboard({
         {continueLabel}
       </button>
 
-      <p className="text-center text-xs text-ink-faint">
-        Bu dastlabki baho, til sertifikati emas. Har bir ovozli mashqdan keyin yangilanadi.
-      </p>
+      <p className="text-center text-xs text-ink-faint">{t.disclaimer}</p>
     </div>
   )
 }
@@ -174,6 +172,7 @@ function LevelChip({
  * It draws itself in on mount, because the point of this screen is that something changes.
  */
 function PlanCurve({ plan }: { plan: OnboardingMilestone[] }) {
+  const t = useT().level
   const [drawn, setDrawn] = useState(false)
 
   useEffect(() => {
@@ -200,14 +199,14 @@ function PlanCurve({ plan }: { plan: OnboardingMilestone[] }) {
   return (
     <section className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5">
       <h2 className="text-sm font-black tracking-[0.14em] text-ink-faint uppercase">
-        Obuna bilan 90 kun ichida
+        {t.planTitle}
       </h2>
 
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="mt-3 w-full"
         role="img"
-        aria-label="90 kunlik gapirish darajasi o'sishi"
+        aria-label={t.planChart}
       >
         <defs>
           <linearGradient id="planFill" x1="0" y1="0" x2="0" y2="1">
@@ -250,7 +249,7 @@ function PlanCurve({ plan }: { plan: OnboardingMilestone[] }) {
               textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}
               className="fill-[var(--color-ink-faint)] text-[9px] font-bold"
             >
-              {point.day === 0 ? 'Bugun' : `${point.day}-kun`}
+              {point.day === 0 ? t.today : fill(t.dayShort, { day: point.day })}
             </text>
           </g>
         ))}
@@ -260,17 +259,14 @@ function PlanCurve({ plan }: { plan: OnboardingMilestone[] }) {
         {plan.slice(1).map((point) => (
           <li key={point.day} className="flex gap-3">
             <span className="mt-0.5 w-14 shrink-0 text-sm font-black text-signal-ink tabular-nums">
-              {point.day}-kun
+              {fill(t.dayShort, { day: point.day })}
             </span>
             <span className="text-[15px] leading-snug text-ink">{point.bodyUz}</span>
           </li>
         ))}
       </ol>
 
-      <p className="mt-3 text-xs text-ink-faint">
-        Birinchi nuqta — hozir o'lchangani. Qolgani — kunda 10 daqiqa gapirsangiz reja
-        qayerga olib borishi.
-      </p>
+      <p className="mt-3 text-xs text-ink-faint">{t.planNote}</p>
     </section>
   )
 }

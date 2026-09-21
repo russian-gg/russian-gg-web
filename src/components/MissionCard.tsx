@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ArrowRight, Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
@@ -207,18 +208,14 @@ export function CompletedGlyph({ label }: { label: string }) {
       aria-label={label}
       className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-milestone text-milestone"
     >
-      <svg viewBox="0 0 20 20" aria-hidden="true" className="size-3 fill-none stroke-current stroke-[2.4]">
-        <path d="m4.5 10.25 3.25 3.25 7.75-7.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <Check aria-hidden="true" strokeWidth={2.4} className="size-3" />
     </span>
   )
 }
 
 export function ArrowGlyph() {
   return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4 fill-none stroke-current stroke-2">
-      <path d="M4 10h11M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <ArrowRight aria-hidden="true" strokeWidth={2} className="size-4" />
   )
 }
 

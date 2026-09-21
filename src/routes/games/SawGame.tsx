@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { fill, useT } from '../../lib/i18n'
 import { useNavigate } from 'react-router-dom'
 import { useSpeechRecognition } from '../../lib/speech'
 import { Button, ErrorNote } from '../../components/ui'
@@ -39,6 +40,7 @@ const QUESTIONS = [
 type Phase = 'ready' | 'playing' | 'cut' | 'won'
 
 export function SawGame() {
+  const t = useT().arcade.saw
   const navigate = useNavigate()
   // Russian recognition on purpose: the blade retreats for Russian, so Russian is the thing
   // that has to be heard well. Uzbek still registers as speech, which is what stops the stall.
@@ -245,12 +247,12 @@ export function SawGame() {
             onClick={() => navigate('/games')}
             className="text-sm font-bold text-ink-muted transition-colors hover:text-ink"
           >
-            ← O'yinlar
+            ← {t.back}
           </button>
 
           <div className="flex items-center gap-3 text-sm font-black">
             <span className="text-ink-muted">
-              Ball: <span className="text-ink tabular-nums">{score}</span>
+              {t.score}: <span className="text-ink tabular-nums">{score}</span>
             </span>
             {phase === 'playing' && (
               <span className={cx('tabular-nums', secondsLeft <= 10 ? 'text-caution' : 'text-ink')}>
@@ -262,7 +264,7 @@ export function SawGame() {
 
         <section className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5">
           <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">
-            {round + 1}-savol
+            {fill(t.question, { n: round + 1 })}
           </p>
           <h1 className="mt-1.5 text-xl leading-snug font-black text-ink">{question}</h1>
         </section>
@@ -303,43 +305,39 @@ export function SawGame() {
         {phase === 'playing' && (
           <div className="min-h-16 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3">
             <p className={cx('text-[15px] leading-relaxed', spoken ? 'text-ink' : 'text-ink-faint')}>
-              {spoken || 'Gapiring — jim turmang, arra yaqinlashadi.'}
+              {spoken || t.keepTalking}
             </p>
           </div>
         )}
 
         {!speech.supported && (
-          <ErrorNote>
-            Bu brauzer ovozni tanimaydi. Chrome yoki Safari'da oching.
-          </ErrorNote>
+          <ErrorNote>{t.unsupported}</ErrorNote>
         )}
 
         {speech.status === 'denied' && (
-          <ErrorNote>Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.</ErrorNote>
+          <ErrorNote>{t.micDenied}</ErrorNote>
         )}
 
         {phase === 'ready' && (
           <Button block disabled={!speech.supported} onClick={start}>
-            Boshlash
+            {t.start}
           </Button>
         )}
 
         {phase === 'cut' && (
           <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft/30 p-5 text-center">
-            <p className="text-2xl font-black text-danger">Vaa! 😱</p>
-            <p className="text-[15px] text-ink">
-              Arra yetib keldi. Jim qolgan payting — u yaqinlashadi.
-            </p>
+            <p className="text-2xl font-black text-danger">{t.lostTitle}</p>
+            <p className="text-[15px] text-ink">{t.lostBody}</p>
             <Button block onClick={start}>
-              Qayta urinish
+              {t.retry}
             </Button>
           </div>
         )}
 
         {phase === 'won' && (
           <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-milestone bg-milestone-soft/40 p-5 text-center">
-            <p className="text-2xl font-black text-milestone">Omon qoldingiz! 🎉</p>
-            <p className="text-[15px] text-ink">Bir daqiqa to'xtamay gapirdingiz. Bitta ball sizniki.</p>
+            <p className="text-2xl font-black text-milestone">{t.wonTitle}</p>
+            <p className="text-[15px] text-ink">{t.wonBody}</p>
             <Button
               block
               onClick={() => {
@@ -347,7 +345,7 @@ export function SawGame() {
                 setPhase('ready')
               }}
             >
-              Keyingi savol
+              {t.next}
             </Button>
           </div>
         )}

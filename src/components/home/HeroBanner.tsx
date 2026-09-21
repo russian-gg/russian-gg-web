@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import { useT } from '../../lib/i18n'
 import { PlayGlyph } from '../ui'
-import heroBackdrop from '../../assets/images/landing_bg.png'
+import heroBackdrop from '../../assets/images/landing_bg.webp'
 
 /**
  * The top of the home screen.
@@ -11,10 +12,14 @@ import heroBackdrop from '../../assets/images/landing_bg.png'
  * that used to sit in this position are all still on the screen — under the card below it and
  * on the progress screen, where somebody goes when they actually want them.
  *
- * The artwork is the supplied `landing_bg.png` rather than the drawn SVG that stood in for it.
+ * The artwork is the supplied `landing_bg` rather than the drawn SVG that stood in for it.
  * It is a single wide picture with its subject on the right and open sky on the left, so it is
  * laid in as one covering layer and the copy sits over the empty half — no seam to line up and
  * nothing to keep in step as the banner resizes.
+ *
+ * It is a WebP at 1600px rather than the 2172px PNG it was delivered as: this is the largest
+ * element on the first screen a returning learner sees, and 1.3 MB of it was the single
+ * heaviest thing the product asked for. 1600 still clears the widest the banner is ever drawn.
  *
  * Everything else it is built from is already the product's: the pill geometry and press
  * physics come from `Button`, the radius from the card token, the type scale from the rest of
@@ -113,12 +118,6 @@ export function HeroBanner({ to }: { to: string }) {
 
 function ArrowGlyph() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="size-[18px] shrink-0 fill-none stroke-current stroke-[2.2]"
-    >
-      <path d="M4.5 12h14m0 0-5-5m5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <ArrowRight aria-hidden="true" strokeWidth={2.2} className="size-[18px] shrink-0" />
   )
 }

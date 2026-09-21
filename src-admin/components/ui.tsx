@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
+import { useFocusTrap } from '../../src/lib/focus-trap'
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react'
 import { cx } from '../../src/lib/cx'
 
 /**
@@ -67,7 +68,12 @@ export function Card({
   className,
   as: Tag = 'section',
   ...props
-}: HTMLAttributes<HTMLElement> & { children: ReactNode; as?: 'section' | 'article' | 'div' }) {
+}: HTMLAttributes<HTMLElement> & {
+  children: ReactNode
+  as?: 'section' | 'article' | 'div'
+  /* React 19 passes `ref` through as an ordinary prop; `HTMLAttributes` just does not say so. */
+  ref?: Ref<HTMLDivElement>
+}) {
   return (
     <Tag
       {...props}
@@ -301,6 +307,9 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
             {head.map((column) => (
               <th
                 key={column}
+                /* Without `scope` a screen reader reads a cell as a bare value with nothing
+                   naming it — on a twelve-column table that is a list of numbers. */
+                scope="col"
                 className="border-b-2 border-hairline px-3 py-3 text-xs font-extrabold whitespace-nowrap uppercase tracking-[0.12em] text-ink-faint sm:px-4"
               >
                 {column}
@@ -314,19 +323,53 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
   )
 }
 
+/**
+ * A table row, optionally one that opens something.
+ *
+ * A clickable row used to be a bare `<tr onClick>` wearing `cursor-pointer`: it looked like a
+ * control, and to a keyboard it was not one. On Foydalanuvchilar and Tranzaksiyalar the row
+ * *is* the only way into the user drawer, so an operator working by keyboard could not open a
+ * record at all.
+ *
+ * `role="button"` and a tab stop fix the reachability; Enter and Space are handled because a
+ * click handler on a non-button element gets neither for free. `label` names the row for
+ * anyone who cannot see which one has focus — "Row 4" is not an answer to "open what?".
+ *
+ * A row with no `onClick` stays a plain `<tr>`: adding a tab stop to every row of a
+ * two-hundred-row table would bury the pager behind two hundred presses of Tab.
+ */
 export function Row({
   children,
   onClick,
+  label,
 }: {
   children: ReactNode
   onClick?: () => void
+  /** Accessible name for a clickable row — usually the thing it opens. */
+  label?: string
 }) {
+  if (!onClick) {
+    return <tr className="border-b border-hairline last:border-b-0">{children}</tr>
+  }
+
   return (
     <tr
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        // Space scrolls the page otherwise, which is the opposite of activating the row.
+        event.preventDefault()
+        onClick()
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
       className={cx(
         'border-b border-hairline last:border-b-0',
-        onClick && 'cursor-pointer hover:bg-ground-sunken',
+        'cursor-pointer hover:bg-ground-sunken',
+        // The global `:focus-visible` outline is drawn outside the element, and a table row
+        // clips it against its neighbours. Inset instead, so the focused row is unmistakable.
+        'focus-visible:outline-none focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-signal',
       )}
     >
       {children}
@@ -418,6 +461,7 @@ export function ConfirmDialog({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCancel()
@@ -430,6 +474,8 @@ export function ConfirmDialog({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -471,11 +517,28 @@ export function Loading({ label = 'Yuklanmoqda' }: { label?: string }) {
   )
 }
 
-export function ErrorNote({ children }: { children: ReactNode }) {
+/**
+ * `role="alert"` so a failure that arrives after the page has settled is announced rather
+ * than only drawn — an operator who has tabbed into a filter is told the table underneath did
+ * not load. The learner app's note has always done this; this one had not.
+ *
+ * `onRetry` takes `useAdminQuery`'s `refresh`. Every failure here is a fetch that can simply
+ * be run again, and sending somebody to the reload button costs them their filters and their
+ * place in a list.
+ */
+export function ErrorNote({ children, onRetry }: { children: ReactNode; onRetry?: () => void }) {
   return (
-    <p className="rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft px-4 py-3 text-sm text-danger">
-      {children}
-    </p>
+    <div
+      role="alert"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft px-4 py-3 text-sm text-danger"
+    >
+      <span>{children}</span>
+      {onRetry && (
+        <Button variant="secondary" size="sm" onClick={onRetry}>
+          Qayta urinish
+        </Button>
+      )}
+    </div>
   )
 }
 

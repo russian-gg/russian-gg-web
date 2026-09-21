@@ -4,10 +4,14 @@ import { PlayGlyph } from '../ui'
 import { VoiceSignal } from '../VoiceSignal'
 
 /**
- * The landing page's illustrations. Everything here obeys the same rule the rest of the
- * product does (PRD §7): abstract line, circle, signal and wave motifs — no emoji, no
- * mascots, no glossy 3D. The one photograph allowed anywhere is the tutor's portrait, and
- * it appears once, inside the product mock, exactly as it does in the real mission player.
+ * The landing page's illustrations — drawn here rather than taken from the icon set, because
+ * an illustration is not an icon: these are scenes and product mocks, and Lucide's vocabulary
+ * is single marks at a single weight.
+ *
+ * They still obey the rest of the rule the product does (PRD §7): abstract line, circle,
+ * signal and wave motifs, no emoji, no mascots, no glossy 3D. The one photograph allowed
+ * anywhere is the tutor's portrait, and it appears once, inside the product mock, exactly as
+ * it does in the real mission player.
  *
  * These are decorative, so they are `aria-hidden`; the surrounding copy carries the meaning.
  */
@@ -65,7 +69,7 @@ export function ProductPreview({
         {/* The tutor turn. The Cyrillic here is the content being learned, not chrome. */}
         <div className="flex items-start gap-3">
           <img
-            src="/characters/pingvin-avatar.png"
+            src="/characters/pingvin-avatar.webp"
             alt=""
             aria-hidden="true"
             className="size-9 shrink-0 rounded-full object-cover"

@@ -1,6 +1,8 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from 'react'
+import { Check, LoaderCircle, Pause, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cx } from '../lib/cx'
+import { useT } from '../lib/i18n'
 
 /* -------------------------------------------------------------------------- buttons */
 
@@ -120,23 +122,18 @@ export function LinkButton({
 }
 
 /**
- * The play glyph on "Eshitish". Drawn rather than an emoji or an icon font, matching the
- * abstract-iconography rule (PRD §7).
+ * The play glyph on "Eshitish".
+ *
+ * Filled rather than outlined, which is the one place this product departs from Lucide's
+ * default: at 10px inside a solid button, a hairline triangle is a smudge. `fill-current`
+ * with no stroke gives the solid shape while still taking its colour from the button.
  */
 export function PlayGlyph() {
-  return (
-    <svg viewBox="0 0 10 12" aria-hidden="true" className="size-2.5 fill-current">
-      <path d="M0 0.8v10.4a.8.8 0 0 0 1.23.67l8.2-5.2a.8.8 0 0 0 0-1.34L1.23.13A.8.8 0 0 0 0 .8Z" />
-    </svg>
-  )
+  return <Play aria-hidden="true" strokeWidth={0} className="size-2.5 fill-current" />
 }
 
 export function PauseGlyph() {
-  return (
-    <svg viewBox="0 0 10 12" aria-hidden="true" className="size-2.5 fill-current">
-      <path d="M1 0h2.25A1 1 0 0 1 4.25 1v10a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1A1 1 0 0 1 1 0Zm5.75 0H9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6.75a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1Z" />
-    </svg>
-  )
+  return <Pause aria-hidden="true" strokeWidth={0} className="size-2.5 fill-current" />
 }
 
 /* ------------------------------------------------------------------------- surfaces */
@@ -151,6 +148,14 @@ export function Card({
   children: ReactNode
   className?: string
   as?: 'section' | 'article' | 'div'
+  /**
+   * React 19 delivers `ref` as an ordinary prop to a function component, so it rides through
+   * the spread below with everything else — but `HTMLAttributes` does not declare it, so the
+   * type has to. Named here because the dialogs built on `Card` need a handle for their focus
+   * trap. `Tag` is always one of three HTML elements and TypeScript resolves that union to
+   * the div, so that is the type the callers ask for.
+   */
+  ref?: Ref<HTMLDivElement>
 }) {
   return (
     <Tag
@@ -456,16 +461,11 @@ export function CheckCircle({
         size === 'sm' ? 'size-7' : 'size-8',
       )}
     >
-      <svg
-        viewBox="0 0 24 24"
+      <Check
         aria-hidden="true"
-        className={cx(
-          'fill-none stroke-milestone stroke-[2.6]',
-          size === 'sm' ? 'size-3.5' : 'size-4',
-        )}
-      >
-        <path d="m5 12.5 4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+        strokeWidth={2.6}
+        className={cx('text-milestone', size === 'sm' ? 'size-3.5' : 'size-4')}
+      />
     </span>
   )
 }
@@ -473,7 +473,7 @@ export function CheckCircle({
 export function Spinner({ label = 'Yuklanmoqda' }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-12 text-ink-faint" role="status">
-      <span className="size-4 animate-spin rounded-full border-2 border-hairline border-t-signal" />
+      <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-signal" strokeWidth={2.4} />
       <span className="text-sm">{label}…</span>
     </div>
   )
@@ -494,6 +494,30 @@ export function EmptyState({
       <p className="text-support mx-auto mt-2 max-w-sm">{body}</p>
       {action && <div className="mt-5">{action}</div>}
     </Card>
+  )
+}
+
+/**
+ * What a screen shows when its data did not arrive.
+ *
+ * Almost every screen used to read `if (isLoading || !data) return <Spinner />`, which on a
+ * failed request leaves `isLoading` false and `data` undefined — a spinner that never
+ * resolves, with nothing said and nothing to press. On a connection that drops in and out,
+ * which is the normal case for this audience, that was the most common failure in the
+ * product and it looked like the app had hung.
+ *
+ * `onRetry` takes React Query's own `refetch`, so the button re-runs the request in place
+ * rather than asking somebody to reload the page and lose where they were.
+ */
+export function QueryError({ onRetry }: { onRetry?: () => void }) {
+  const t = useT()
+
+  return (
+    <EmptyState
+      title={t.common.loadFailed}
+      body={t.common.loadFailedBody}
+      action={onRetry && <Button onClick={onRetry}>{t.common.retry}</Button>}
+    />
   )
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BookOpen, CircleCheck, Flame, Lock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
@@ -188,29 +189,18 @@ export function AchievementsPanel() {
 function AchievementGlyph({ code, locked }: { code: string; locked: boolean }) {
   if (locked) {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[2]">
-        <rect x="5" y="11" width="14" height="9" rx="2" />
-        <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
-      </svg>
+      <Lock aria-hidden="true" strokeWidth={2} className="size-5" />
     )
   }
 
   if (code === 'streak_days') {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.9]">
-        <path
-          d="M12 3s5 4.2 5 8.5a5 5 0 0 1-10 0C7 9 9 7.5 9 7.5s.5 2 1.5 2S12 3 12 3Z"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <Flame aria-hidden="true" strokeWidth={1.9} className="size-5" />
     )
   }
 
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[2]">
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8 12 3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <CircleCheck aria-hidden="true" strokeWidth={2} className="size-5" />
   )
 }
 
@@ -272,17 +262,12 @@ export function RecentActivity() {
 
 function BookGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4.5 fill-none stroke-current stroke-[1.9]">
-      <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z" strokeLinejoin="round" />
-    </svg>
+    <BookOpen aria-hidden="true" strokeWidth={1.9} className="size-4.5" />
   )
 }
 
 function TickGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[2.2]">
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8 12 3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <CircleCheck aria-hidden="true" strokeWidth={2.2} className="size-5" />
   )
 }

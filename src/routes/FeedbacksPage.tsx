@@ -13,6 +13,7 @@ const ISSUE_TYPES = [
 ] as const
 
 export function FeedbacksPage() {
+  const hint = useT().dayPreview
   const t = useT()
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [issueType, setIssueType] = useState<(typeof ISSUE_TYPES)[number]>('Xatolik haqida xabar')
@@ -118,9 +119,7 @@ export function FeedbacksPage() {
               }}
               className="block w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink"
             />
-            <UzHint>
-              Hozircha faylning nomi izoh bilan birga saqlanadi. Kerak bo'lsa keyin to'liq uploadni ham ulaymiz.
-            </UzHint>
+            <UzHint>{hint.attachmentNote}</UzHint>
           </label>
 
           <label className="block lg:col-span-2">
