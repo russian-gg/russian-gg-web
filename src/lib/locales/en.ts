@@ -280,6 +280,14 @@ export const en: Dictionary = {
     googleNoToken: 'Google did not return a token.',
     googleFailed: 'Google sign-in failed. Please try again.',
 
+    reset: {
+      forgot: 'Forgot your password?',
+      title: 'Reset your password',
+      subtitle:
+        'Enter the number your account uses. We will send a code, then you can choose a new password.',
+      submit: 'Save new password',
+      remembered: 'Remembered it?',
+    },
     phone: {
       title: 'Sign in or sign up',
       subtitle: 'Enter your phone number — we will text you a verification code.',
@@ -326,6 +334,7 @@ export const en: Dictionary = {
         otp_unavailable: 'We could not check the code right now. Please try again in a moment.',
         sms_failed: 'Could not send the code. Please try again.',
         phone_taken: 'This phone number is already used by another account.',
+        account_not_found: 'No account uses this phone number.',
         phone_already_registered:
           'This number is already registered. Sign in with your phone number and password.',
         display_name_required: 'Enter your name.',

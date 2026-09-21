@@ -137,6 +137,11 @@ export function SignIn() {
             <Button type="submit" size="lg" block disabled={busy || !password}>
               {busy ? t.auth.signingIn : t.auth.signInAction}
             </Button>
+            <p className="text-center">
+              <Link to="/reset-password" className="text-sm font-semibold text-signal-ink">
+                {t.auth.reset.forgot}
+              </Link>
+            </p>
           </div>
         )}
       </form>
@@ -229,6 +234,47 @@ export function SignUp() {
   )
 }
 
+/**
+ * The way back in for a learner who forgot their password.
+ *
+ * Phone and password is the primary credential here and a password is required to finish signing
+ * up, so without this screen a forgotten password cost somebody their progress and their
+ * subscription with no support path to either. It reuses the same three steps as registration
+ * — number, code, password — minus the name, because the account is already known.
+ */
+export function ResetPasswordPage() {
+  const t = useT()
+  const navigate = useNavigate()
+  const { requestPasswordReset, confirmPasswordResetCode, completePasswordReset } = useAuth()
+
+  return (
+    <AuthLayout
+      title={t.auth.reset.title}
+      footer={
+        <>
+          {t.auth.reset.remembered}{' '}
+          <Link to="/signin" className="font-semibold text-signal-ink">
+            {t.auth.goSignIn}
+          </Link>
+        </>
+      }
+    >
+      <PhoneCredentialSetupFlow
+        subtitle={t.auth.reset.subtitle}
+        requestCode={requestPasswordReset}
+        confirmCode={confirmPasswordResetCode}
+        collectName={false}
+        completeSetup={async (verificationToken, _displayName, newPassword) => {
+          // The server hands back a session, so there is nowhere to send them but in.
+          const user = await completePasswordReset(verificationToken, newPassword)
+          navigate(postAuthDestination(user), { replace: true })
+        }}
+        submitLabel={t.auth.reset.submit}
+      />
+    </AuthLayout>
+  )
+}
+
 /** Existing email/Google learners verify a phone once and set its reusable password. */
 export function LinkPhonePage() {
   const t = useT()
@@ -299,6 +345,7 @@ function PhoneCredentialSetupFlow({
   confirmCode,
   completeSetup,
   initialDisplayName = '',
+  collectName = true,
   submitLabel,
 }: {
   subtitle: string
@@ -306,6 +353,8 @@ function PhoneCredentialSetupFlow({
   confirmCode: (phoneE164: string, code: string) => Promise<{ verificationToken: string }>
   completeSetup: (verificationToken: string, displayName: string, password: string) => Promise<void>
   initialDisplayName?: string
+  /** A password reset reuses these three steps but already knows who the learner is. */
+  collectName?: boolean
   submitLabel: string
 }) {
   const t = useT()
@@ -322,7 +371,10 @@ function PhoneCredentialSetupFlow({
   const [resendIn, setResendIn] = useState(0)
   const e164 = '+998' + local
   const canRequest = local.length === 9
-  const canSubmit = code.length === 4 && displayName.trim().length >= 2 && validPassword(password)
+  const canSubmit =
+    code.length === 4 &&
+    (!collectName || displayName.trim().length >= 2) &&
+    validPassword(password)
 
   useEffect(() => {
     if (resendIn <= 0) return
@@ -444,14 +496,16 @@ function PhoneCredentialSetupFlow({
             className="h-12 w-full cursor-not-allowed rounded-xl border-2 border-hairline bg-ground-sunken px-4 text-base text-ink-faint opacity-70"
           />
         </label>
-        <Field
-          label={t.auth.displayName}
-          name="phoneDisplayName"
-          autoComplete="name"
-          required
-          value={displayName}
-          onChange={(event) => setDisplayName(event.target.value)}
-        />
+        {collectName && (
+          <Field
+            label={t.auth.displayName}
+            name="phoneDisplayName"
+            autoComplete="name"
+            required
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+          />
+        )}
         <PasswordField
           label={t.auth.password}
           name="phonePassword"

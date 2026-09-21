@@ -285,6 +285,14 @@ export const uz = {
     googleNoToken: 'Google orqali kirishda token kelmadi.',
     googleFailed: "Google orqali kirishda xatolik. Qayta urinib ko'ring.",
 
+    reset: {
+      forgot: 'Parolni unutdingizmi?',
+      title: 'Parolni tiklash',
+      subtitle:
+        'Hisobingizga biriktirilgan raqamni kiriting. Kod yuboramiz, so‘ng yangi parol tanlaysiz.',
+      submit: 'Yangi parolni saqlash',
+      remembered: 'Esladingizmi?',
+    },
     phone: {
       title: 'Kirish yoki ro‘yxatdan o‘tish',
       subtitle: "Telefon raqamingizni kiriting — SMS orqali tasdiqlash kodini yuboramiz.",
@@ -332,6 +340,7 @@ export const uz = {
         otp_unavailable: "Kodni hozir tekshira olmadik. Bir oz o'tib qayta urinib ko'ring.",
         sms_failed: "Kod yuborilmadi. Qayta urinib ko‘ring.",
         phone_taken: 'Bu raqam boshqa hisobga biriktirilgan.',
+        account_not_found: 'Bu raqamga biriktirilgan hisob topilmadi.',
         phone_already_registered:
           'Bu raqam ro‘yxatdan o‘tgan. Telefon raqami va parol bilan kiring.',
         display_name_required: 'Ismingizni kiriting.',

@@ -131,6 +131,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(false)
         return auth.user
       },
+      requestPasswordReset(phoneNumber) {
+        return api.post<PhoneCodeChallenge>('/auth/password/reset/request', { phoneNumber })
+      },
+      confirmPasswordResetCode(phoneNumber, code) {
+        return api.post<PhoneVerificationChallenge>('/auth/password/reset/confirm', {
+          phoneNumber,
+          code,
+        })
+      },
+      // The reset proves the phone, which is the same proof registration asks for, so the server
+      // hands back a session rather than making somebody who just recovered their account sign in
+      // again with the password they set two seconds ago.
+      async completePasswordReset(verificationToken, password) {
+        const auth = await api.post<AuthResponse>('/auth/password/reset/complete', {
+          verificationToken,
+          password,
+        })
+        tokenStore.set(auth)
+        resetCache()
+        adoptAccountLocale(auth.user.uiLanguage)
+        setUser(auth.user)
+        setPendingOnboarding(false)
+        return auth.user
+      },
       // Unlike signInWithGoogle this acts on the account already signed in, so it returns a
       // profile rather than a token pair — the session it was asked from stays valid.
       async linkGoogle(credential) {
