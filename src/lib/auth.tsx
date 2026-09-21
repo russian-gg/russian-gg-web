@@ -131,6 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(false)
         return auth.user
       },
+      // Unlike signInWithGoogle this acts on the account already signed in, so it returns a
+      // profile rather than a token pair — the session it was asked from stays valid.
+      async linkGoogle(credential) {
+        const profile = await api.post<UserProfile>('/auth/google/link', { credential })
+        setUser(profile)
+        return profile
+      },
       requestPhoneLink(phoneNumber) {
         return api.post<PhoneCodeChallenge>('/auth/phone/link/request', { phoneNumber })
       },

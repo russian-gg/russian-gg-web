@@ -317,6 +317,10 @@ export const uz = {
       linkDoneBody: 'Endi telefon raqamingiz va parolingiz orqali kiring.',
       linkedBanner: 'Telefon raqamingiz tasdiqlandi. Endi raqam va parol bilan kiring.',
       continue: 'Davom etish',
+      numberOnOtherAccount:
+        'Bu raqam boshqa hisobga biriktirilgan. Natijalaringiz o‘sha hisobda — raqam va parol '
+        + 'bilan kiring, so‘ng sozlamalardan Google’ni biriktiring.',
+      signInWithThatAccount: 'O‘sha hisobga kirish',
       errors: {
         invalid_phone_number: "To‘g‘ri telefon raqamini kiriting.",
         otp_invalid: "Kod noto‘g‘ri.",
@@ -334,6 +338,10 @@ export const uz = {
         weak_password: "Parol kamida 8 belgi bo'lib, harf va raqamdan iborat bo'lsin.",
         account_inactive: 'Bu hisob faol emas.',
         default: "Xatolik yuz berdi. Qayta urinib ko‘ring.",
+        google_taken: 'Bu Google hisobi boshqa profilga biriktirilgan.',
+        google_already_linked: 'Bu hisobga allaqachon boshqa Google hisobi biriktirilgan.',
+        google_email_not_verified: 'Bu Google hisobining tasdiqlangan pochtasi yo‘q.',
+        email_taken: 'Bu pochta manzili boshqa profilga biriktirilgan.',
       },
     },
   },
@@ -809,6 +817,13 @@ export const uz = {
       'taqdirdagina saqlanadi.',
     account: 'Hisob',
     deleteAccount: "Hisobni o'chirish",
+    googleSection: 'Google hisobi',
+    googleLinked: 'Google bu hisobga biriktirilgan.',
+    googleLinkBody:
+      'Google’ni biriktirsangiz, ikkala yo‘l bilan — raqam va parol bilan yoki Google orqali — '
+      + 'kira olasiz va doim shu hisobga tushasiz.',
+    googleLinkAction: 'Google’ni biriktirish',
+    googleLinkFailed: 'Google hisobini biriktirib bo‘lmadi.',
     deleteNote:
       "Hisobni o'chirsangiz, barcha yozuvlar, transkriptlar va progress o'chiriladi. Buni " +
       'qaytarib bo\'lmaydi.',

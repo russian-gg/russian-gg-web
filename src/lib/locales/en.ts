@@ -312,6 +312,9 @@ export const en: Dictionary = {
       linkDoneBody: 'Now sign in with your phone number and password.',
       linkedBanner: 'Your phone number is confirmed. Now sign in with your number and password.',
       continue: 'Continue',
+      numberOnOtherAccount:
+        'This number already belongs to another account. That is the account with your progress — sign in with your number and password, then link Google from Settings.',
+      signInWithThatAccount: 'Sign in with that account',
       errors: {
         invalid_phone_number: 'Enter a valid phone number.',
         otp_invalid: 'The code is incorrect.',
@@ -329,6 +332,10 @@ export const en: Dictionary = {
         weak_password: 'Use at least 8 characters with both letters and numbers.',
         account_inactive: 'This account is inactive.',
         default: 'Something went wrong. Please try again.',
+        google_taken: 'This Google account is already used by another account.',
+        google_already_linked: 'This account is already linked to a different Google account.',
+        google_email_not_verified: 'This Google account has no verified email address.',
+        email_taken: 'This email address is already used by another account.',
       },
     },
   },
@@ -799,6 +806,12 @@ export const en: Dictionary = {
       'Lessons work without any of these. Voice recordings are kept only if you allow it.',
     account: 'Account',
     deleteAccount: 'Delete account',
+    googleSection: 'Google account',
+    googleLinked: 'Google is linked to this account.',
+    googleLinkBody:
+      'Link Google and you can sign in either way — with your phone number and password, or with Google — and always land on this same account.',
+    googleLinkAction: 'Link Google',
+    googleLinkFailed: 'Could not link the Google account.',
     deleteNote:
       'Deleting your account removes every recording, transcript and all your progress. ' +
       'This cannot be undone.',

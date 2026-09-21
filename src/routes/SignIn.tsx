@@ -232,7 +232,9 @@ export function SignUp() {
 /** Existing email/Google learners verify a phone once and set its reusable password. */
 export function LinkPhonePage() {
   const t = useT()
+  const navigate = useNavigate()
   const { user, requestPhoneLink, confirmPhoneLinkCode, completePhoneLink, signOut } = useAuth()
+  const [numberBelongsElsewhere, setNumberBelongsElsewhere] = useState(false)
 
   async function finishAndLeave() {
     try {
@@ -243,11 +245,42 @@ export function LinkPhonePage() {
     await signOut()
   }
 
+  async function leaveForSignIn() {
+    await signOut()
+    navigate('/signin', { replace: true })
+  }
+
   return (
     <AuthLayout title={t.auth.phone.linkTitle}>
+      {/*
+        Every route redirects here until a number is verified, so somebody whose number is on
+        another account had nowhere left to go: the only screen they could reach was the one
+        screen that could never accept them. That is what a learner who signed in with Google
+        on top of an existing phone account ends up in. Name what happened and point them at
+        the account that already has the number.
+      */}
+      {numberBelongsElsewhere && (
+        <div className="mb-5 space-y-3 rounded-xl bg-signal-soft px-4 py-3">
+          <p className="text-sm font-medium text-ink">{t.auth.phone.numberOnOtherAccount}</p>
+          <Button variant="secondary" size="sm" onClick={() => void leaveForSignIn()}>
+            {t.auth.phone.signInWithThatAccount}
+          </Button>
+        </div>
+      )}
+
       <PhoneCredentialSetupFlow
         subtitle={t.auth.phone.linkSubtitle}
-        requestCode={requestPhoneLink}
+        requestCode={async (phoneE164) => {
+          setNumberBelongsElsewhere(false)
+          try {
+            return await requestPhoneLink(phoneE164)
+          } catch (caught) {
+            if (caught instanceof RequestError && caught.code === 'phone_taken') {
+              setNumberBelongsElsewhere(true)
+            }
+            throw caught
+          }
+        }}
         confirmCode={confirmPhoneLinkCode}
         initialDisplayName={user?.displayName ?? ''}
         completeSetup={async (verificationToken, name, newPassword) => {
@@ -529,13 +562,16 @@ function EyeGlyph({ open }: { open: boolean }) {
   )
 }
 
-function GoogleContinueButton({
+/** Also used by Settings, where it attaches a Google account rather than starting a session. */
+export function GoogleContinueButton({
   busy,
   text,
+  label,
   onCredential,
 }: {
   busy: boolean
   text: 'continue_with' | 'signup_with'
+  label?: string
   onCredential: (response: GoogleCredentialResponse) => void | Promise<void>
 }) {
   const buttonRef = useRef<HTMLDivElement | null>(null)
@@ -544,7 +580,7 @@ function GoogleContinueButton({
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const t = useT()
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
-  const buttonLabel = text === 'signup_with' ? t.auth.googleSignUp : t.auth.googleContinue
+  const buttonLabel = label ?? (text === 'signup_with' ? t.auth.googleSignUp : t.auth.googleContinue)
 
   useEffect(() => {
     if (!clientId || !buttonRef.current || initializedRef.current) return
@@ -629,6 +665,38 @@ function formatUzPhone(digits: string) {
     .join(' ')
 }
 
+/** A full Uzbek number in digits: country code 998 plus nine local ones. */
+const UZ_INTERNATIONAL_LENGTH = 12
+
+/**
+ * Reduces whatever was typed, pasted or autofilled to the nine local digits the box holds.
+ *
+ * The country code is already printed beside the field, so anybody pasting a number they
+ * copied from somewhere — or letting the browser autofill one — arrives with it twice.
+ * Simply keeping the first nine digits turned +998974437767 into 99 897 44 37: the code was
+ * counted as the number and the last three digits fell off the end, which reads as a typo
+ * the learner did not make and sends the code to a number that does not exist.
+ *
+ * It cannot just drop a leading "998" though: 99 is a real operator code here, so a local
+ * number may genuinely start with those digits. The prefix is only removed once the string is
+ * long enough that it cannot be anything else — a local number is nine digits, and reaching
+ * twelve means a country code is in there too.
+ */
+function toUzLocalDigits(raw: string) {
+  let digits = raw.replace(/\D/g, '')
+
+  // An international prefix dialled rather than typed as "+".
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2)
+  }
+
+  if (digits.startsWith('998') && digits.length >= UZ_INTERNATIONAL_LENGTH) {
+    digits = digits.slice(3)
+  }
+
+  return digits.slice(0, 9)
+}
+
 /**
  * The country code sits fixed to the left and the caller keeps the 9 raw local digits; the box
  * shows them grouped as they are typed. Used everywhere a phone is entered so the shape is the
@@ -659,7 +727,7 @@ function PhoneNumberInput({
           autoComplete="tel-national"
           placeholder={t.auth.phone.placeholder}
           value={formatUzPhone(value)}
-          onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, 9))}
+          onChange={(event) => onChange(toUzLocalDigits(event.target.value))}
           className="h-12 w-full rounded-r-2xl bg-transparent pr-4 text-base tracking-[0.02em] text-ink placeholder:text-ink-faint focus:outline-none"
         />
       </div>

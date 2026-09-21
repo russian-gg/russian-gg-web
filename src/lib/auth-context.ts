@@ -16,6 +16,8 @@ export interface AuthState {
     displayName: string,
     password: string,
   ) => Promise<UserProfile>
+  /** Attach a Google account to the signed-in account, the mirror of the phone link. */
+  linkGoogle: (credential: string) => Promise<UserProfile>
   /** Attach a phone and reusable password to the signed-in account. */
   requestPhoneLink: (phoneNumber: string) => Promise<PhoneCodeChallenge>
   confirmPhoneLinkCode: (phoneNumber: string, code: string) => Promise<PhoneVerificationChallenge>
