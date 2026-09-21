@@ -347,6 +347,12 @@ export function MissionLive() {
       sessionRef.current = session
       await session.start()
     } catch (caught) {
+      // A session that failed half-way still holds the microphone it opened. Closing it hands
+      // that back; without this the recording indicator stayed lit until the tab was closed.
+      const started = sessionRef.current
+      sessionRef.current = null
+      await started?.close().catch(() => {})
+
       releaseMicrophone()
       setPhase('ready')
       setError(caught instanceof RequestError ? caught.message : copy.startFailed)

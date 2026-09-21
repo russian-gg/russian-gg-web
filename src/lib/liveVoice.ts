@@ -536,12 +536,36 @@ export class LiveVoiceSession {
    * are dropped while `recording` is false, which is what makes a turn boundary instant.
    */
   private async openMicrophone() {
-    if (this.mediaStream) {
+    // A stream this session opened earlier can have been stopped since — another screen's
+    // cleanup, a device change — and a stopped track delivers silence rather than an error.
+    if (this.mediaStream && this.mediaStream.getAudioTracks().some((track) => track.readyState === 'live')) {
       return
     }
 
     this.mediaStream = await requestMicrophone()
+
+    /*
+     * Resumed, not just created. A context created outside the browser's user-activation
+     * window starts suspended, and the wait for getUserMedia is long enough to fall outside
+     * it — so `onaudioprocess` never fired, the tutor heard nothing, and the screen showed a
+     * working session listening to a microphone that was never running. The playback context
+     * has always been resumed here; this one was not.
+     */
     this.captureContext = new AudioContext()
+    if (this.captureContext.state === 'suspended') {
+      await this.captureContext.resume().catch(() => {})
+    }
+
+    // The learner unplugging a headset, the OS taking the device, another tab claiming it:
+    // the session is over either way, and saying so beats a sphere that listens forever.
+    for (const track of this.mediaStream.getAudioTracks()) {
+      track.onended = () => {
+        if (!this.closed) {
+          this.callbacks.onError('mic_failed')
+        }
+      }
+    }
+
     /*
      * ScriptProcessorNode is deprecated in favour of AudioWorklet, and deliberately kept.
      * A worklet delivers 128 samples per call against this node's 4096, so the swap is not
@@ -828,12 +852,24 @@ export class LiveVoiceSession {
  */
 let sharedStream: MediaStream | null = null
 let pendingStream: Promise<MediaStream> | null = null
+/**
+ * How many holders still need the stream.
+ *
+ * The press takes one and the session takes another, and both of them let go. Without the
+ * count the first release stopped the tracks under the holder still using them: a screen left
+ * behind — a finished lesson, a pagehide, a route change — took the microphone away from the
+ * conversation that had just started, and the session kept a stream whose tracks were ended.
+ * Nothing threw; the sphere simply listened to silence.
+ */
+let holders = 0
 
 /**
  * Asks for the microphone, or hands back the one already open. Call it on the press, so the
  * permission prompt and the session round trip cost their time together rather than in turn.
  */
 export function requestMicrophone(): Promise<MediaStream> {
+  holders += 1
+
   if (sharedStream?.active) {
     return Promise.resolve(sharedStream)
   }
@@ -843,6 +879,11 @@ export function requestMicrophone(): Promise<MediaStream> {
       sharedStream = stream
       return stream
     })
+    .catch((error: unknown) => {
+      // A hold nobody got. Left counted, the next release would free somebody else's stream.
+      holders = Math.max(0, holders - 1)
+      throw error
+    })
     .finally(() => {
       pendingStream = null
     })
@@ -850,8 +891,16 @@ export function requestMicrophone(): Promise<MediaStream> {
   return pendingStream
 }
 
-/** Ends the shared stream and turns the recording indicator off. Safe when nothing is open. */
+/**
+ * Gives up one hold. The stream stops, and the recording indicator goes out, once the last
+ * holder has let go — not when the first one does.
+ */
 export function releaseMicrophone() {
+  holders = Math.max(0, holders - 1)
+  if (holders > 0) {
+    return
+  }
+
   sharedStream?.getTracks().forEach((track) => track.stop())
   sharedStream = null
 }
