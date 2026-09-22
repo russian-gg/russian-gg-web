@@ -15,6 +15,8 @@ import {
 } from '../components/home/HomeSidePanels'
 import { missionPath } from '../lib/mission-path'
 import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
+import { Reveal, Sequence } from '../components/motion'
+import { rise, stagger } from '../lib/motion'
 
 /**
  * The home screen.
@@ -54,15 +56,29 @@ export function Home() {
   const startPath = data.todayMission ? missionPath(data.todayMission) : '/path'
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-2xl">
-        <DashboardSearch />
-      </div>
+    /*
+      The screen arrives in the order it is meant to be read.
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:gap-8">
+      This is the one place in the product where the sequence is doing real work rather than
+      decoration. Home says one thing — here is your next lesson — and then answers "how am I
+      doing" underneath it. Landing the whole grid in a single frame puts the banner and the
+      scoreboard in front of the eye at the same instant and lets them compete; landing them
+      in order states the priority the layout was already built around.
+
+      The rail is a separate `Sequence` with a beat of its own (see below) rather than more
+      children of this one, because it is a *column*, not the next item in this list.
+    */
+    <Sequence className="space-y-6" gap={stagger.base}>
+      <Reveal className="max-w-2xl">
+        <DashboardSearch />
+      </Reveal>
+
+      <Reveal className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:gap-8">
         {/* The column the learner came for. */}
-        <div className="min-w-0 space-y-6">
-          <HeroBanner to={startPath} />
+        <Sequence className="min-w-0 space-y-6" gap={stagger.base}>
+          <Reveal variants={rise}>
+            <HeroBanner to={startPath} />
+          </Reveal>
 
           {/*
             The day, the phase, the streak and the plan. They used to sit inside a card with the
@@ -70,14 +86,14 @@ export function Home() {
             four status chips in it is a dashboard header again, and these read perfectly well as
             a quiet line underneath one.
           */}
-          <div className="flex flex-wrap items-center gap-2">
+          <Reveal className="flex flex-wrap items-center gap-2">
             <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: 90 })}</Badge>
             <Badge>{t.labels.phase[data.phase]}</Badge>
             {data.streakDays > 1 && <Badge tone="milestone">{fill(t.home.streak, { count: data.streakDays })}</Badge>}
             {data.tier === 'Free' && <Badge tone="caution">{t.account.plan.free}</Badge>}
-          </div>
+          </Reveal>
 
-          <section>
+          <Reveal as="section">
             <SectionHeading
               action={
                 <Link to="/path" className="text-sm font-bold text-signal-ink">
@@ -96,13 +112,13 @@ export function Home() {
                 action={<LinkButton to="/path">{t.nav.path}</LinkButton>}
               />
             )}
-          </section>
+          </Reveal>
 
-          <section>
+          <Reveal as="section">
             <SectionHeading>{t.home.features.title}</SectionHeading>
             <p className="text-support -mt-1 mb-3 text-sm">{t.home.features.subtitle}</p>
             <FeatureTiles />
-          </section>
+          </Reveal>
 
           {/*
             Pro-only, and absent rather than teased when the plan does not include it: the
@@ -110,7 +126,7 @@ export function Home() {
             than no heading at all.
           */}
           {data.practiceForToday.length > 0 && (
-            <section>
+            <Reveal as="section">
               <SectionHeading
                 action={
                   <Link to="/practice" className="text-sm font-bold text-signal-ink">
@@ -121,18 +137,26 @@ export function Home() {
                 {t.home.recommended.title}
               </SectionHeading>
               <RecommendedLessons missions={data.practiceForToday} />
-            </section>
+            </Reveal>
           )}
-        </div>
+        </Sequence>
 
-        {/* Evidence, not instructions. */}
-        <aside className="min-w-0 space-y-6">
-          <QuoteCard />
-          <ProgressRing currentDay={data.currentDay} />
-          <AchievementsPanel />
-          <RecentActivity />
-        </aside>
-      </div>
-    </div>
+        {/*
+          Evidence, not instructions — and it waits its turn.
+
+          The rail starts a fifth of a second after the main column does. On a wide screen the
+          two are side by side, and without the delay the learner's peripheral vision gets the
+          scoreboard moving at the same moment the lesson card lands, which is exactly the
+          competition the layout exists to avoid. On a narrow screen the rail falls in
+          underneath and the delay costs nothing, because it is below the fold anyway.
+        */}
+        <Sequence as="aside" className="min-w-0 space-y-6" gap={stagger.base} delay={0.2}>
+          <Reveal><QuoteCard /></Reveal>
+          <Reveal><ProgressRing currentDay={data.currentDay} /></Reveal>
+          <Reveal><AchievementsPanel /></Reveal>
+          <Reveal><RecentActivity /></Reveal>
+        </Sequence>
+      </Reveal>
+    </Sequence>
   )
 }

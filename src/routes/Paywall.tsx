@@ -15,6 +15,9 @@ import type {
   WelcomeGiftStatus,
 } from '../lib/types'
 import { Badge, Button, Card, ErrorNote, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Reveal, Sequence } from '../components/motion'
+import * as m from 'motion/react-m'
+import { rise, stagger } from '../lib/motion'
 
 const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
   id: index,
@@ -162,7 +165,12 @@ export function Paywall() {
       : 0
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    /*
+      The screen where somebody decides to pay, so nothing here is hurried and nothing here is
+      a flourish. The sections arrive in the order the decision is made in: what this is, what
+      it costs, what you get, what you lose without it.
+    */
+    <Sequence className="mx-auto max-w-5xl space-y-8" gap={stagger.base}>
       {showPromoCelebration && promoPreview?.isValid && (
         <PromoCelebration
           discountAmount={formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale)}
@@ -174,12 +182,12 @@ export function Paywall() {
         />
       )}
 
-      <header>
+      <Reveal>
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.billing.title}</h1>
         <p className="text-support mt-1">
           {t.billing.subtitle}
         </p>
-      </header>
+      </Reveal>
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
@@ -209,7 +217,11 @@ export function Paywall() {
         <ActiveSubscription entitlement={entitlement} />
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-2">
+          {/*
+            The plans are a comparison, so they land together on a wide beat rather than
+            racing each other. Two options, one decision.
+          */}
+          <Sequence className="grid gap-3 md:grid-cols-2" gap={stagger.wide}>
             {plans.options.map((option) => (
               (() => {
                 const giftDiscounted = giftActive && option.period === 'NinetyDay'
@@ -231,8 +243,15 @@ export function Paywall() {
                 const currentPrice = formatPrice(option.amountTiyin, option.currency, locale)
 
                 return (
-                  <button
+                  /*
+                    The button itself carries the variant rather than sitting inside a wrapper.
+                    A sequence reaches its children by propagating a variant label, so a plain
+                    `<button>` here would be skipped by the beat — and a wrapper div would take
+                    over the grid-item role from the button, which is what sizes it.
+                  */
+                  <m.button
                     key={option.period}
+                    variants={rise}
                     type="button"
                     aria-pressed={period === option.period}
                     onClick={() => setPeriod(option.period)}
@@ -285,11 +304,11 @@ export function Paywall() {
                         })}
                       </p>
                     </div>
-                  </button>
+                  </m.button>
                 )
               })()
             ))}
-          </div>
+          </Sequence>
 
           {!giftActive && <Card>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -356,37 +375,40 @@ export function Paywall() {
         </>
       )}
 
-      <section>
+      <Reveal as="section">
         <SectionHeading>{t.billing.proUnlocks}</SectionHeading>
-        <ul className="space-y-2">
+        {/* What is being bought, one line at a time. */}
+        <Sequence as="ul" className="space-y-2" gap={stagger.tight}>
           {t.billing.proBenefits.map((benefit) => (
-            <li key={benefit} className="flex gap-3 text-base text-ink">
+            <Reveal as="li" key={benefit} className="flex gap-3 text-base text-ink">
               <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-signal" />
               {benefit}
-            </li>
+            </Reveal>
           ))}
-        </ul>
-      </section>
+        </Sequence>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <SectionHeading>{t.billing.freeLimits}</SectionHeading>
-        <ul className="space-y-2">
+        <Sequence as="ul" className="space-y-2" gap={stagger.tight}>
           {t.billing.freeLimitItems.map((limit) => (
-            <li key={limit} className="flex gap-3 text-base text-ink-muted">
+            <Reveal as="li" key={limit} className="flex gap-3 text-base text-ink-muted">
               <span
                 aria-hidden="true"
                 className="mt-2 size-1.5 shrink-0 rounded-full bg-ink-faint"
               />
               {limit}
-            </li>
+            </Reveal>
           ))}
-        </ul>
-      </section>
+        </Sequence>
+      </Reveal>
 
-      <p className="text-support border-t border-hairline pt-5">
-        {t.billing.cancelNote}
-      </p>
-    </div>
+      <Reveal>
+        <p className="text-support border-t border-hairline pt-5">
+          {t.billing.cancelNote}
+        </p>
+      </Reveal>
+    </Sequence>
   )
 }
 

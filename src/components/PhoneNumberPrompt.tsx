@@ -6,11 +6,11 @@ import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useT } from '../lib/i18n'
 import { Button, Card, ErrorNote } from './ui'
+import { Overlay } from './motion'
 
 const DISMISS_KEY_PREFIX = 'rgg.phone-prompt.dismissed-on'
 
 export function PhoneNumberPrompt() {
-  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const { pathname } = useLocation()
   const { user, refreshUser } = useAuth()
@@ -19,6 +19,15 @@ export function PhoneNumberPrompt() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [todayKey, setTodayKey] = useState(getLocalDayKey)
+
+  /*
+    The prompt stays mounted while it is closed so it can animate *out* — see `Overlay`. That
+    makes the focus trap's own flag load-bearing rather than incidental: without it the trap
+    would be arming itself around a dialog nobody can see, and Tab would be held captive by
+    an invisible panel on every screen in the app.
+  */
+  const visible = open && !!user && !user.phoneNumber
+  const dialogRef = useFocusTrap<HTMLDivElement>(visible)
 
   useEffect(() => {
     if (!user || user.phoneNumber) {
@@ -47,10 +56,6 @@ export function PhoneNumberPrompt() {
 
     return () => window.clearInterval(interval)
   }, [])
-
-  if (!open || !user || user.phoneNumber) {
-    return null
-  }
 
   async function submit() {
     if (!user) {
@@ -88,10 +93,7 @@ export function PhoneNumberPrompt() {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-      onClick={dismiss}
-    >
+    <Overlay open={visible} onDismiss={dismiss}>
       <Card
         ref={dialogRef}
         tabIndex={-1}
@@ -153,7 +155,7 @@ export function PhoneNumberPrompt() {
 
         {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
       </Card>
-    </div>
+    </Overlay>
   )
 }
 

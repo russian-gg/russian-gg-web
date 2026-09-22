@@ -4,6 +4,13 @@ import { useT } from '../../lib/i18n'
 import { missionPath } from '../../lib/mission-path'
 import type { MissionSummary } from '../../lib/types'
 import { Badge } from '../ui'
+import { Reveal, Sequence } from '../motion'
+import { pop, rise, stagger, tactile } from '../../lib/motion'
+import * as m from 'motion/react-m'
+
+/** See the note in `MissionCard`: these tiles are grid items, so the link has to be the
+ *  motion element or `h-full` inside it stops resolving against the row. */
+const MotionLink = m.create(Link)
 
 /**
  * The five doors into the rest of the product.
@@ -26,7 +33,15 @@ export function FeatureTiles() {
   ] as const
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    /*
+      Five doors, arriving in reading order.
+
+      The tight gap rather than the ordinary one: these are a single row on a wide screen and
+      a 2×3 block on a phone, so the eye takes them as one object. A 60ms beat across five
+      tiles reads as a wave washing over a group; 40ms reads as the group itself landing,
+      which is what it is.
+    */
+    <Sequence className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" gap={stagger.tight}>
       {tiles.map((tile) => {
         const copy = t.home.features[tile.key]
         const body = (
@@ -38,9 +53,18 @@ export function FeatureTiles() {
               {tile.icon}
             </span>
             {tile.to === null && (
-              <span className="absolute top-3 right-3">
+              /*
+                The chip pops in a beat after its tile has settled. It is an annotation on the
+                tile, and an annotation that arrives with the thing it annotates is just part
+                of the picture — arriving after it is what makes it read as a remark.
+              */
+              <m.span
+                className="absolute top-3 right-3"
+                variants={pop}
+                transition={{ delay: 0.24 }}
+              >
                 <Badge tone="signal">{t.nav.comingSoon}</Badge>
-              </span>
+              </m.span>
             )}
             <span className="mt-4 block text-[15px] font-extrabold text-ink">{copy.title}</span>
             <span className="text-support mt-1 block text-xs leading-snug">{copy.body}</span>
@@ -51,20 +75,29 @@ export function FeatureTiles() {
           'relative flex h-full flex-col rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4 text-left'
 
         return tile.to === null ? (
-          <div key={tile.key} className={`${shell} opacity-70`}>
+          <Reveal key={tile.key} variants={rise} className={`${shell} opacity-70`}>
             {body}
-          </div>
+          </Reveal>
         ) : (
-          <Link
+          /*
+            `tactile` rather than the CSS hover this used to carry. A tile is a surface you
+            push, not a button — it has no edge to sink onto — and the Motion version adds the
+            half of that the CSS never had: a press state. On a phone there is no hover at all,
+            so without `whileTap` these five tiles gave no feedback whatsoever on the device
+            most of this audience opens the product on.
+          */
+          <MotionLink
             key={tile.key}
+            variants={rise}
+            {...tactile}
             to={tile.to}
-            className={`${shell} transition hover:-translate-y-0.5 hover:border-signal hover:shadow-md`}
+            className={`${shell} transition-[border-color,box-shadow] hover:border-signal hover:shadow-md`}
           >
             {body}
-          </Link>
+          </MotionLink>
         )
       })}
-    </div>
+    </Sequence>
   )
 }
 
@@ -82,12 +115,21 @@ export function RecommendedLessons({ missions }: { missions: MissionSummary[] })
   if (missions.length === 0) return null
 
   return (
-    <ul className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2">
+    /*
+      The shelf deals its cards rather than laying them all down at once.
+
+      Only the first two or three are on screen on a phone, so the beat is doing something
+      specific here beyond rhythm: the card that is half-cut at the right edge arrives last and
+      still moving, which is the clearest way an interface can say "this scrolls" without
+      printing an arrow on it.
+    */
+    <Sequence as="ul" className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2" gap={stagger.base}>
       {missions.map((mission) => (
-        <li key={mission.id} className="w-56 shrink-0 snap-start">
-          <Link
+        <Reveal as="li" key={mission.id} variants={rise} className="w-56 shrink-0 snap-start">
+          <MotionLink
+            {...tactile}
             to={missionPath(mission)}
-            className="block h-full overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-ground-raised transition hover:-translate-y-0.5 hover:border-signal hover:shadow-md"
+            className="block h-full overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-ground-raised transition-[border-color,box-shadow] hover:border-signal hover:shadow-md"
           >
             <span
               aria-hidden="true"
@@ -112,10 +154,10 @@ export function RecommendedLessons({ missions }: { missions: MissionSummary[] })
                 </span>
               </span>
             </span>
-          </Link>
-        </li>
+          </MotionLink>
+        </Reveal>
       ))}
-    </ul>
+    </Sequence>
   )
 }
 

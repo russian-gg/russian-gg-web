@@ -6,6 +6,9 @@ import { api } from '../../lib/api'
 import { useT } from '../../lib/i18n'
 import type { AchievementView, LearningActivityView, QuoteView } from '../../lib/types'
 import { Card, SectionHeading } from '../ui'
+import * as m from 'motion/react-m'
+import { Reveal, Sequence } from '../motion'
+import { ease, pop, stagger } from '../../lib/motion'
 
 /** Long enough to read a proverb twice without it feeling like a slideshow. */
 const QUOTE_ROTATE_MS = 12_000
@@ -99,7 +102,20 @@ export function ProgressRing({ currentDay, total = 90 }: { currentDay: number; t
         <div className="relative shrink-0">
           <svg viewBox="0 0 100 100" className="size-24 -rotate-90" aria-hidden="true">
             <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--color-hairline)" strokeWidth="9" />
-            <circle
+            {/*
+              The arc draws rather than appears.
+
+              It is the clearest statement of progress on the home screen, and an arc that is
+              simply there is a picture of a number, while an arc that sweeps to its position
+              is the ninety days being counted out. The dash array is what is animated -
+              `filled` against the rest of the circumference - so the stroke grows along the
+              path instead of fading in along its whole length.
+
+              A second, and a slow one by this file's standards. This is the one thing on the
+              home rail worth watching finish, and the rail is already a fifth of a second
+              behind the lesson card, so nothing is waiting on it.
+            */}
+            <m.circle
               cx="50"
               cy="50"
               r={radius}
@@ -107,7 +123,9 @@ export function ProgressRing({ currentDay, total = 90 }: { currentDay: number; t
               stroke="var(--color-signal)"
               strokeWidth="9"
               strokeLinecap="round"
-              strokeDasharray={`${filled} ${circumference - filled}`}
+              initial={{ strokeDasharray: `0 ${circumference}` }}
+              animate={{ strokeDasharray: `${filled} ${circumference - filled}` }}
+              transition={{ duration: 0.9, ease: ease.enter }}
             />
           </svg>
           <span className="absolute inset-0 flex flex-col items-center justify-center">
@@ -159,13 +177,18 @@ export function AchievementsPanel() {
     <Card>
       <SectionHeading>{t.home.achievements.title}</SectionHeading>
 
-      <ul className="mt-3 grid grid-cols-4 gap-2">
+      {/*
+        A row of small square badges, so they swell in rather than sliding: `pop` is the
+        variant for a thing asserting itself, and an achievement is exactly that. Tight beat -
+        four of them across a narrow rail read as one group.
+      */}
+      <Sequence as="ul" className="mt-3 grid grid-cols-4 gap-2" gap={stagger.tight}>
         {tiles.map((tile) => {
           // Nullish, not `=== null`: the API drops null keys entirely, so an unavailable
           // track arrives as a missing property rather than an explicit null.
           const locked = (tile.value ?? null) === null
           return (
-            <li key={tile.code} className="text-center">
+            <Reveal as="li" key={tile.code} variants={pop} className="text-center">
               <span
                 aria-hidden="true"
                 className={`mx-auto grid size-11 place-items-center rounded-full ${
@@ -178,10 +201,10 @@ export function AchievementsPanel() {
                 {locked ? '?' : tile.value}
               </span>
               <span className="text-support block text-[10px] leading-tight">{tile.titleUz}</span>
-            </li>
+            </Reveal>
           )
         })}
-      </ul>
+      </Sequence>
     </Card>
   )
 }
@@ -233,9 +256,9 @@ export function RecentActivity() {
     <Card>
       <SectionHeading>{t.home.recent.title}</SectionHeading>
 
-      <ul className="mt-3 space-y-3">
+      <Sequence as="ul" className="mt-3 space-y-3" gap={stagger.base}>
         {recent.map((lesson) => (
-          <li key={`${lesson.missionId}-${lesson.completedAt}`} className="flex items-center gap-3">
+          <Reveal as="li" key={`${lesson.missionId}-${lesson.completedAt}`} className="flex items-center gap-3">
             <span
               aria-hidden="true"
               className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-signal-soft text-signal"
@@ -253,9 +276,9 @@ export function RecentActivity() {
             <span aria-label={t.path.done} className="shrink-0 text-milestone">
               <TickGlyph />
             </span>
-          </li>
+          </Reveal>
         ))}
-      </ul>
+      </Sequence>
     </Card>
   )
 }

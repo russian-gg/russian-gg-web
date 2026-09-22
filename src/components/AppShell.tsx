@@ -20,7 +20,9 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
 import { useAuth } from '../lib/auth-context'
 import {
   PLAYBACK_SPEEDS,
@@ -38,6 +40,7 @@ import { api } from '../lib/api'
 import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { Badge, Switch } from './ui'
+import { duration, ease } from '../lib/motion'
 
 const NAV = [
   { to: '/home', key: 'today', icon: TodayGlyph },
@@ -151,7 +154,7 @@ export function AppShell() {
         tabIndex={-1}
         className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12"
       >
-        <Outlet />
+        <PageTransition />
       </main>
 
       <PhoneNumberPrompt />
@@ -363,9 +366,11 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         <ChevronGlyph direction={open ? 'up' : 'down'} />
       </button>
 
-      {open && (
-        <ProfilePopover
-          anchor={triggerRef}
+      <AnimatePresence>
+        {open && (
+          <ProfilePopover
+            key="profile-menu"
+            anchor={triggerRef}
           compact={compact}
           label={t.account.menu}
           onDismiss={() => setOpen(false)}
@@ -403,8 +408,9 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 
           <MenuItem label={t.account.feedback} icon={<ChatGlyph />} onClick={() => go('/feedbacks')} />
           <MenuItem label={t.account.signOut} icon={<ExitGlyph />} onClick={() => void logout()} danger />
-        </ProfilePopover>
-      )}
+          </ProfilePopover>
+        )}
+      </AnimatePresence>
     </>
   )
 }
@@ -466,17 +472,45 @@ function ProfilePopover({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onDismiss])
 
+  /*
+    The menu unfolds from the button that opened it, which means it scales from the corner it
+    is pinned to rather than from its own middle — a panel that grows from its centre reads as
+    a dialog that happened to land near the trigger.
+
+    The two placements need two origins, and they are the mirror of each other: on a phone the
+    menu hangs down from the avatar in the header, so it opens from its top-right and starts a
+    few pixels high; on desktop it opens upwards out of the rail's footer, so it grows from its
+    bottom-left and starts a few pixels low.
+
+    Exit matters more here than entrance. A menu that vanishes between two frames on a click
+    leaves the eye with no idea whether the click registered, which is why this is worth the
+    presence machinery at all.
+  */
+  const origin = compact ? 'top right' : 'bottom left'
+  const offset = compact ? -6 : 6
+
   return createPortal(
     <>
-      <div className="fixed inset-0 z-40" onClick={onDismiss} aria-hidden="true" />
-      <div
+      <m.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: duration.quick, ease: ease.exit }}
+        className="fixed inset-0 z-40"
+        onClick={onDismiss}
+        aria-hidden="true"
+      />
+      <m.div
         role="menu"
         aria-label={label}
-        style={style ?? { visibility: 'hidden' }}
+        initial={{ opacity: 0, scale: 0.95, y: offset }}
+        animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: duration.quick, ease: ease.enter } }}
+        exit={{ opacity: 0, scale: 0.97, y: offset * 0.6, transition: { duration: 0.12, ease: ease.exit } }}
+        style={{ ...(style ?? { visibility: 'hidden' }), transformOrigin: origin }}
         className="fixed z-50 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-2 shadow-2xl"
       >
         {children}
-      </div>
+      </m.div>
     </>,
     document.body,
   )
@@ -706,6 +740,56 @@ function ProgressGlyph() {
   return <BarChart3 aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
 }
 
+
+/**
+ * The screen underneath the shell, changing.
+ *
+ * Only the `main` region animates. The rail, the header and the tab bar are furniture — they
+ * did not change, and fading them out and back in on every navigation would say they did,
+ * which is both a lie and the thing that makes a single-page app feel like it is reloading.
+ *
+ * `mode="wait"` rather than a crossfade. Two screens of different heights overlapping in
+ * normal flow makes the page jump to the taller one and back; waiting costs the exit duration
+ * and nothing else. That exit is deliberately the short one — the learner has already decided
+ * to leave, so the only honest thing to do is get out of the way.
+ *
+ * Keyed on `pathname`, not on the whole location: `/settings/billing` and `/settings/general`
+ * are the same screen with a different tab selected, and re-mounting it between them would
+ * throw away the panel the learner is reading. They are separate paths, so they *are* keyed
+ * apart here — but the search string is excluded for the same reason, so a query parameter
+ * changing under a screen never restarts it.
+ */
+function PageTransition() {
+  const { pathname } = useLocation()
+  /*
+    `useOutlet()` rather than `<Outlet />`, and this is load-bearing rather than a style
+    preference.
+
+    `AnimatePresence` holds the leaving screen on stage by re-rendering the element it saved
+    from the previous render. An `<Outlet />` in that saved element is not a screen — it is an
+    instruction to look up whatever screen the router is pointing at *now*, and by the time
+    the exit runs the router is already pointing at the new one. The result is the screen the
+    learner just opened playing the leaving animation, and then immediately playing the
+    arriving one: a visible double flash on every single navigation.
+
+    `useOutlet()` resolves the match to a concrete element while the old location is still
+    current, so what gets held on stage is the screen that is actually leaving.
+  */
+  const outlet = useOutlet()
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <m.div
+        key={pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.enter } }}
+        exit={{ opacity: 0, y: -6, transition: { duration: 0.13, ease: ease.exit } }}
+      >
+        {outlet}
+      </m.div>
+    </AnimatePresence>
+  )
+}
 
 function RailLink({
   to,

@@ -3,6 +3,9 @@ import { Check, Menu, MoreVertical, Share, X } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { cx } from '../lib/cx'
 import { useT } from '../lib/i18n'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
+import { duration, ease, springSoft } from '../lib/motion'
 import { useInstallOffer } from '../lib/pwa'
 
 /**
@@ -73,8 +76,6 @@ export function InstallPrompt() {
     if (!offered) setShowingSteps(false)
   }, [offered])
 
-  if (!offered) return null
-
   const steps =
     how === 'ios'
       ? [t.install.iosStep1, t.install.iosStep2]
@@ -88,13 +89,29 @@ export function InstallPrompt() {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-label={t.install.title}
-      // Above the tab bar, clear of the home indicator, and clear of the browser's own bar.
-      className="animate-rise fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-50 md:inset-x-auto md:right-6 md:bottom-6 md:w-96"
-      ref={sheet}
-    >
+    /*
+      The prompt keeps its entrance and gains an exit.
+
+      `animate-rise` did the arrival perfectly well, but the card was torn out of the tree the
+      moment it was dismissed - and this is a card a learner dismisses far more often than
+      they accept. Vanishing mid-blink on the one interaction it mostly receives made it read
+      as a glitch rather than as having been answered.
+
+      The spring is the same one the dialogs use, so the sheet belongs to the same world as
+      everything else that arrives from an edge.
+    */
+    <AnimatePresence>
+      {offered && (
+      <m.div
+        role="dialog"
+        aria-label={t.install.title}
+        // Above the tab bar, clear of the home indicator, and clear of the browser's own bar.
+        className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-50 md:inset-x-auto md:right-6 md:bottom-6 md:w-96"
+        ref={sheet}
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1, transition: springSoft }}
+        exit={{ opacity: 0, y: 16, scale: 0.98, transition: { duration: duration.quick, ease: ease.exit } }}
+      >
       <div className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 shadow-[0_12px_40px_rgb(16_24_40/0.16)]">
         <div className="flex items-start gap-3">
           <img
@@ -205,7 +222,9 @@ export function InstallPrompt() {
           </button>
         </div>
       </div>
-    </div>
+      </m.div>
+      )}
+    </AnimatePresence>
   )
 }
 

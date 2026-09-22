@@ -8,6 +8,20 @@ import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
 import { missionCardClass } from './mission-card-style'
 import { Badge } from './ui'
+import * as m from 'motion/react-m'
+import { duration, ease, rise } from '../lib/motion'
+
+/**
+ * The card is a link, and the link is the motion element.
+ *
+ * Not a `<m.div>` wrapped around it: this card is a grid item everywhere it appears, and a
+ * wrapper takes the grid-item role for itself — the link inside then sizes to its own content
+ * instead of stretching to the row, so a shelf of cards stops lining up.
+ *
+ * Carrying `variants` and no `animate` of its own is deliberate. Dropped into a `Sequence` it
+ * joins the beat; standing on its own it simply renders, with no entrance and nothing hidden.
+ */
+const MotionLink = m.create(Link)
 
 export function MissionCard({
   mission,
@@ -41,7 +55,19 @@ export function MissionCard({
     : missionPath(mission)
 
   return (
-    <Link
+    /*
+      Hover stays in CSS (`missionCardClass` lifts the card with Tailwind's `translate`
+      property); the press is Motion's, on `transform`. The two are separate CSS properties, so
+      they compose rather than overwrite each other.
+
+      The press is the half that was missing: hover does not exist on a phone, and this is the
+      main thing a learner taps in the product. A locked card does not sink — it is not going
+      to open, and a control that answers a press it cannot honour is a small lie.
+    */
+    <MotionLink
+      variants={rise}
+      whileTap={mission.isLocked ? undefined : { scale: 0.985, y: 1 }}
+      transition={{ duration: 0.09, ease: ease.move }}
       to={destination}
       aria-label={title}
       className={cx(
@@ -104,7 +130,7 @@ export function MissionCard({
           </span>
         )}
       </div>
-    </Link>
+    </MotionLink>
   )
 }
 
@@ -135,11 +161,24 @@ function MissionScore({ mission, label }: { mission: MissionSummary; label: stri
         aria-valuetext={pass !== null ? `${status}, ${fill(t.practice.passMark, { score: pass })}` : status}
         className="relative h-2 rounded-full bg-ground-sunken ring-1 ring-black/[0.03]"
       >
-        <span
-          className={`block h-full rounded-full transition-[width] duration-300 ${
-            mission.isCompleted ? 'bg-milestone' : 'bg-signal'
-          }`}
-          style={{ width: `${percent}%` }}
+        {/*
+          The score fills rather than appearing full.
+
+          It carried `transition-[width]` before, which never ran: a CSS transition has no
+          previous value to move from on the element's first render, so a card scrolled into
+          view has always simply shown its bar already at its final length. Growing it is the
+          difference between a number that is reported and a result that is *shown* — and it
+          is the one measurement on this card the learner earned.
+
+          `whileInView` because a shelf of these is mostly below the fold. `once` so scrolling
+          back up the practice list does not re-run twenty bars.
+        */}
+        <m.span
+          className={`block h-full rounded-full ${mission.isCompleted ? 'bg-milestone' : 'bg-signal'}`}
+          initial={{ width: 0 }}
+          whileInView={{ width: `${percent}%` }}
+          viewport={{ once: true, amount: 0.8 }}
+          transition={{ duration: duration.deliberate, ease: ease.enter }}
         />
         {pass !== null && (
           <span

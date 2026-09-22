@@ -6,6 +6,22 @@ import { mascotImage } from '../../lib/mascot-images'
 import { useLocale, useT } from '../../lib/i18n'
 import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
 import { GameMark } from './speaking/visuals'
+import * as m from 'motion/react-m'
+import { Reveal, Sequence } from '../../components/motion'
+import { rise, stagger, tactile } from '../../lib/motion'
+
+/**
+ * The card links, animated in place.
+ *
+ * `m.create` rather than a `<m.div>` wrapped around each `<Link>`, and the distinction is not
+ * cosmetic: these links are grid items. The runner card carries `sm:col-span-2` and the others
+ * rely on the grid stretching them, so putting a div between the grid and the link hands the
+ * grid-item role to the div — the span stops applying, the runner card collapses to a single
+ * column, and its fixed-height artwork spills out of a box half its width.
+ *
+ * Making the link itself the motion element keeps the DOM exactly as it was.
+ */
+const MotionLink = m.create(Link)
 
 /**
  * The shelf. Built like a store rather than a menu: a grid of tiles, each with its own mark,
@@ -39,13 +55,20 @@ export function Games() {
   }
 
   return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.title}</h1>
-        <p className="mt-1 text-[15px] text-ink-muted">{t.subtitle}</p>
-      </header>
+    <Sequence className="space-y-5" gap={stagger.base}>
+      <Reveal>
+        <header>
+          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.title}</h1>
+          <p className="mt-1 text-[15px] text-ink-muted">{t.subtitle}</p>
+        </header>
+      </Reveal>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/*
+        A shelf of games, dealt out. These are the most toy-like surfaces in the product, so
+        they get the spring entrance and a press that answers a thumb - the arcade is the one
+        place where a card behaving like an object is the entire point.
+      */}
+      <Sequence className="grid gap-4 sm:grid-cols-2" gap={stagger.base}>
         {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
           const art = ART[game.slug]
 
@@ -53,15 +76,17 @@ export function Games() {
 
           if (isSpeakingGame(game.slug)) {
             const label = gameLabels[game.slug][locale]
-            return <Link key={game.slug} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
+            return <MotionLink key={game.slug} variants={rise} {...tactile} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
               <GameMark game={game.slug} className="size-16 shrink-0 text-signal-ink" />
               <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 block text-sm font-extrabold text-signal-ink">{copies[locale].start} →</span></span>
-            </Link>
+            </MotionLink>
           }
 
           return (
-            <Link
+            <MotionLink
               key={game.slug}
+              variants={rise}
+              {...tactile}
               to={art?.to ?? '/home'}
               className="flex items-center gap-3.5 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-3.5 text-left transition-colors hover:border-signal"
             >
@@ -79,11 +104,11 @@ export function Games() {
                 <span className="block truncate text-base font-black text-ink">{game.titleUz}</span>
                 <span className="mt-0.5 block text-sm leading-snug text-ink-muted">{game.bodyUz}</span>
               </span>
-            </Link>
+            </MotionLink>
           )
         })}
-      </div>
-    </div>
+      </Sequence>
+    </Sequence>
   )
 }
 
@@ -98,7 +123,13 @@ function RunnerCard({ body }: { body: string }) {
   }
 
   return (
-    <Link
+    /*
+      The card is the grid item, so `sm:col-span-2` stays on it and the entrance rides on the
+      same element. No `tactile` here: this one already lifts on hover in CSS, and a second
+      hover transform would just be two rules arguing about the same pixels.
+    */
+    <MotionLink
+      variants={rise}
       to="/games/rod-runner"
       className="group relative overflow-hidden rounded-[32px] border border-cyan-300/25 bg-gradient-to-br from-[#071c4a] via-[#0c4a6e] to-[#082f49] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:col-span-2 sm:p-7"
     >
@@ -136,6 +167,6 @@ function RunnerCard({ body }: { body: string }) {
           <span className="ml-3 text-xs font-bold text-cyan-100/60">{t.runnerTagline}</span>
         </span>
       </span>
-    </Link>
+    </MotionLink>
   )
 }

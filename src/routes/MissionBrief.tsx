@@ -10,6 +10,9 @@ import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import type { Mascot } from '../lib/foundation-lessons'
 import type { MissionDetail } from '../lib/types'
 import { Button, Card, Spinner } from '../components/ui'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
+import { backdrop, sheet } from '../lib/motion'
 import { MissionPlayer } from './MissionPlayer'
 
 /**
@@ -160,16 +163,22 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         came back for another go should be told when they can have one, not met with a control
         that silently does nothing.
       */}
-      {showCooldown && (
-        <div
+      <AnimatePresence>
+        {showCooldown && (
+        <m.div
+          key="cooldown"
           ref={dialogRef}
           tabIndex={-1}
+          variants={backdrop}
+          initial="hidden"
+          animate="shown"
+          exit="exit"
           className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="mission-cooldown-title"
         >
-          <div className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl">
+          <m.div variants={sheet} className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl">
             <div
               className="grid size-12 place-items-center rounded-full"
               style={{ background: `${palette.light}26`, color: palette.deep }}
@@ -185,9 +194,10 @@ export function MissionBrief({ mission }: MissionBriefProps) {
             <Button block className="mt-5" onClick={() => setShowCooldown(false)}>
               {copy.cooldownOk}
             </Button>
-          </div>
-        </div>
-      )}
+          </m.div>
+        </m.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

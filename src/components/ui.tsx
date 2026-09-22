@@ -1,8 +1,11 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from 'react'
 import { Check, LoaderCircle, Pause, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
 import { cx } from '../lib/cx'
 import { useT } from '../lib/i18n'
+import { collapse, duration, ease, pop, springSoft } from '../lib/motion'
 
 /* -------------------------------------------------------------------------- buttons */
 
@@ -224,11 +227,31 @@ export function Field({
         )}
       />
       {hint && !error && <span className="text-support mt-1 block">{hint}</span>}
-      {error && (
-        <span id={`${id}-error`} className="mt-1 block text-sm font-medium text-danger">
-          {error}
-        </span>
-      )}
+      {/*
+        An error opens the space it needs instead of taking it.
+
+        A validation message that appears between two frames shoves everything below it down
+        by a line, and on a form the learner is mid-way through that can move the button out
+        from under a thumb already on its way to it. Animating the height turns the shove into
+        something the eye can follow — and it needs Motion, because `height: auto` is the one
+        value CSS still cannot transition to without hard-coding a pixel height, which three
+        locales' worth of error copy would immediately make wrong.
+      */}
+      <AnimatePresence initial={false}>
+        {error && (
+          <m.span
+            key="error"
+            id={`${id}-error`}
+            variants={collapse}
+            initial="hidden"
+            animate="shown"
+            exit="exit"
+            className="block overflow-hidden text-sm font-medium text-danger"
+          >
+            <span className="mt-1 block">{error}</span>
+          </m.span>
+        )}
+      </AnimatePresence>
     </label>
   )
 }
@@ -340,9 +363,23 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
       aria-label={label}
       className="h-3 w-full overflow-hidden rounded-full bg-ground-sunken"
     >
-      <div
-        className="relative h-full rounded-full bg-signal transition-[width] duration-300"
-        style={{ width: `${percent}%` }}
+      {/*
+        The fill moves on a spring rather than a timed curve.
+
+        This bar is the mission player's session progress: it steps forward each time the
+        learner answers, and a spring is the difference between a bar being redrawn and a bar
+        being *pushed*. It is the same physicality the buttons have, and for the same reason —
+        this product's surfaces are meant to behave like objects.
+
+        It also starts at zero on mount, which the CSS transition could never do: a transition
+        needs a previous value, and on first render there isn't one, so the bar used to appear
+        already part-filled whenever a learner resumed mid-mission.
+      */}
+      <m.div
+        className="relative h-full rounded-full bg-signal"
+        initial={{ width: 0 }}
+        animate={{ width: `${percent}%` }}
+        transition={springSoft}
       >
         {/*
           A highlight along the top of the fill. It is what stops a progress bar reading as a
@@ -353,7 +390,7 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
           aria-hidden="true"
           className="absolute inset-x-1 top-[3px] h-[3px] rounded-full bg-white/35"
         />
-      </div>
+      </m.div>
     </div>
   )
 }
@@ -423,14 +460,21 @@ export function Switch({ checked }: { checked: boolean }) {
         checked ? 'border-signal bg-signal' : 'border-hairline bg-ground-sunken',
       )}
     >
-      <span
+      {/*
+        The knob travels on a spring, which is the whole point of a switch: it is a physical
+        toggle, and the one moment it has to sell that is the half-second it is moving. A
+        linear slide reads as a value being set; a knob that arrives and settles reads as a
+        thing that was flicked.
+      */}
+      <m.span
         className={cx(
           // The knob carries the same solid bottom edge the buttons do, so it reads as a
           // physical thing sitting in the track rather than a circle floating on it.
           'absolute size-5 rounded-full bg-white shadow-[0_2px_0_0_rgb(0_0_0/0.12)]',
-          'transition-transform',
-          checked ? 'translate-x-[1.4375rem]' : 'translate-x-[0.125rem]',
         )}
+        initial={false}
+        animate={{ x: checked ? '1.4375rem' : '0.125rem' }}
+        transition={{ type: 'spring', duration: 0.35, bounce: 0.3 }}
       />
     </span>
   )
@@ -452,21 +496,39 @@ export function CheckCircle({
   size?: 'sm' | 'md'
 }) {
   return (
-    <span
+    /*
+      Completion is the one thing in this product worth a flourish, so the tick pops rather
+      than fades: the disc springs in, and the tick draws itself a beat later, inside it.
+
+      The order matters more than either half. Landing the disc and the tick together makes
+      one shape appear; landing the disc first and marking it second is the gesture of
+      something being *ticked off*, which is what actually happened.
+    */
+    <m.span
       role="img"
       aria-label={label}
+      variants={pop}
+      initial="hidden"
+      animate="shown"
       className={cx(
         'flex shrink-0 items-center justify-center rounded-full bg-milestone-soft',
         'border-2 border-milestone/25',
         size === 'sm' ? 'size-7' : 'size-8',
       )}
     >
-      <Check
-        aria-hidden="true"
-        strokeWidth={2.6}
-        className={cx('text-milestone', size === 'sm' ? 'size-3.5' : 'size-4')}
-      />
-    </span>
+      <m.span
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.1, duration: duration.base, ease: ease.enter }}
+        className="flex"
+      >
+        <Check
+          aria-hidden="true"
+          strokeWidth={2.6}
+          className={cx('text-milestone', size === 'sm' ? 'size-3.5' : 'size-4')}
+        />
+      </m.span>
+    </m.span>
   )
 }
 
@@ -523,11 +585,19 @@ export function QueryError({ onRetry }: { onRetry?: () => void }) {
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (
-    <p
+    /*
+      Arrives, rather than being already there. An alert that blinks into existence is easy to
+      miss precisely because nothing about it moved — and this is the component that tells a
+      learner their answer did not send.
+    */
+    <m.p
       role="alert"
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: duration.base, ease: ease.enter }}
       className="rounded-xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger"
     >
       {children}
-    </p>
+    </m.p>
   )
 }

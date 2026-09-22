@@ -18,6 +18,11 @@ import {
   MissionProgress,
 } from '../components/MissionCard'
 import { Badge, Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
+import { Overlay, Reveal, SequenceInView } from '../components/motion'
+import { duration, ease, rise, stagger, useIsPhone } from '../lib/motion'
+import type { Variants } from 'motion/react'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -280,10 +285,30 @@ export function CoursePath() {
 
         return (
           <section key={`${phase}-${range}`}>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {/*
+              The tightest beat in the product, and the only one that could have been.
+
+              A phase of this path is up to thirty cards. At the ordinary 60ms the last one
+              would land nearly two seconds after the first, which is not a rhythm, it is a
+              wait. At 40ms a full row washes in quickly enough to read as the grid itself
+              arriving while still making the direction of travel - left to right, top to
+              bottom - completely legible.
+
+              It is also per phase rather than over the whole list: each phase starts its own
+              count when it scrolls into view, so a learner opening Day 60 does not sit through
+              an imaginary fifty-nine-card animation above them.
+            */}
+            <SequenceInView className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" gap={stagger.tight}>
               {phaseDays.map(({ day, lockKind }) => (
+                /*
+                  The `Reveal` is not decoration around the card — it is what makes the card a
+                  participant. A sequence reaches its children by propagating a variant label,
+                  and a plain component has no variants to receive it, so a bare `<DayCard>`
+                  here would sit outside the beat and appear instantly while its neighbours
+                  arrived in order.
+                */
+                <Reveal key={day.day} variants={rise}>
                 <DayCard
-                  key={day.day}
                   day={day}
                   maxUnlockedDay={maxUnlockedDay}
                   currentDay={progress?.currentDay ?? 1}
@@ -303,8 +328,9 @@ export function CoursePath() {
                   }
                   onSelect={() => handleDay(day, lockKind)}
                 />
+                </Reveal>
               ))}
-            </div>
+            </SequenceInView>
           </section>
         )
       })}
@@ -315,23 +341,58 @@ export function CoursePath() {
         </Card>
       )}
 
-      {locked && <LockedDayDialog locked={locked} onDismiss={() => setLocked(null)} />}
-      {selectedDay && (
-        <DayPreviewDrawer
-          selected={selectedDay}
-          locale={locale}
-          isOpening={openingDay === selectedDay.day.day}
-          partialProgress={
-            foundationProgress[selectedDay.day.day] && !foundationProgress[selectedDay.day.day].isComplete
-              ? { value: foundationProgress[selectedDay.day.day].completed.length, max: LESSON_ONE_SECTIONS.length }
-              : null
-          }
-          onDismiss={() => setSelectedDay(null)}
-          onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
-        />
-      )}
+      {/*
+        Both of these are held by `AnimatePresence` rather than rendered straight from the
+        condition. Without it the dialog and the drawer are removed from the tree in the same
+        commit the learner dismisses them, and an exit animation has nothing left to animate.
+      */}
+      <AnimatePresence>
+        {locked && <LockedDayDialog key="locked" locked={locked} onDismiss={() => setLocked(null)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedDay && (
+          <DayPreviewDrawer
+            key="day-preview"
+            selected={selectedDay}
+            locale={locale}
+            isOpening={openingDay === selectedDay.day.day}
+            partialProgress={
+              foundationProgress[selectedDay.day.day] && !foundationProgress[selectedDay.day.day].isComplete
+                ? { value: foundationProgress[selectedDay.day.day].completed.length, max: LESSON_ONE_SECTIONS.length }
+                : null
+            }
+            onDismiss={() => setSelectedDay(null)}
+            onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
+}
+
+/**
+ * The day drawer's entrance, which is two entrances.
+ *
+ * It is a bottom sheet on a phone and a right-hand panel from `sm` up, and the travel is
+ * expressed as a percentage of the panel itself so one variant covers both: `y: 100%` is
+ * exactly its own height on a phone, `x: 100%` exactly its own width on a desktop. Which of
+ * the two applies is decided by the same `sm` breakpoint the layout uses, read through
+ * `useIsPhone` so the variant and the CSS can never disagree about where the panel is.
+ *
+ * It leaves the way it came. A panel that slides in from the right and fades out in place
+ * reads as two different objects.
+ */
+const drawerSlide: Variants = {
+  hidden: (phone: boolean) => (phone ? { y: '100%' } : { x: '100%' }),
+  shown: {
+    x: 0,
+    y: 0,
+    transition: { type: 'spring', duration: 0.55, bounce: 0.06 },
+  },
+  exit: (phone: boolean) =>
+    phone
+      ? { y: '100%', transition: { duration: duration.base, ease: ease.exit } }
+      : { x: '100%', transition: { duration: duration.base, ease: ease.exit } },
 }
 
 function DayPreviewDrawer({
@@ -350,6 +411,7 @@ function DayPreviewDrawer({
   onStart: (restart: boolean) => void
 }) {
   const dialogRef = useFocusTrap<HTMLElement>()
+  const phone = useIsPhone()
   const { day } = selected
   const focus = getDayFocus(day, locale)
   const isDone = day.completedMissionCount >= day.requiredMissionCount
@@ -377,19 +439,37 @@ function DayPreviewDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end" role="presentation">
-      <button
+      <m.button
         type="button"
         aria-label={close}
         data-ui-sound="click"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: duration.base, ease: ease.enter }}
         className="absolute inset-0 h-full w-full cursor-default bg-ink/45 backdrop-blur-[1px]"
         onClick={onDismiss}
       />
-      <aside
+      {/*
+        The drawer comes in from the edge it is attached to, and the edge is not the same on
+        every screen: it is a bottom sheet on a phone and a right-hand panel from `sm` up. A
+        single entrance would be wrong on one of the two - a panel that fades in while pinned
+        to an edge looks like it was always there and someone turned the lights on.
+
+        `x`/`y` percentages rather than pixels, so the travel is the panel's own width or
+        height and the same variant works at every size.
+      */}
+      <m.aside
         ref={dialogRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="day-preview-title"
+        variants={drawerSlide}
+        custom={phone}
+        initial="hidden"
+        animate="shown"
+        exit="exit"
         className="relative flex max-h-[88dvh] w-full flex-col overflow-y-auto rounded-t-[2rem] bg-ground-raised p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-[2rem] sm:p-8"
       >
         <div className="flex items-start justify-between gap-5">
@@ -417,7 +497,7 @@ function DayPreviewDrawer({
           </Button>
           <Button block variant="ghost" size="lg" className="mt-2" onClick={onDismiss}>{close}</Button>
         </div>
-      </aside>
+      </m.aside>
     </div>
   )
 }
@@ -443,10 +523,7 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
   const isPro = locked.kind === 'pro'
 
   return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4"
-      onClick={onDismiss}
-    >
+    <Overlay open onDismiss={onDismiss} backdropClassName="bg-black/35">
       <Card
         className="w-full max-w-md"
         onClick={(event) => event.stopPropagation()}
@@ -481,7 +558,7 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
           </Button>
         )}
       </Card>
-    </div>
+    </Overlay>
   )
 }
 

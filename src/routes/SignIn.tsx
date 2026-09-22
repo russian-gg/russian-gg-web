@@ -5,6 +5,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import googleGIcon from '../assets/google-g-dark.svg'
 import { OtpInput } from '../components/OtpInput'
 import { Button, ErrorNote, Field } from '../components/ui'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
+import { Reveal, Sequence } from '../components/motion'
+import { collapse, stagger } from '../lib/motion'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { needsPhone } from '../lib/country'
@@ -122,8 +126,26 @@ export function SignIn() {
         {error && <ErrorNote>{error}</ErrorNote>}
         <PhoneNumberInput label={t.auth.phone.label} value={local} onChange={setLocal} />
 
+        {/*
+          Progressive disclosure: the password half of the form appears once there is a phone
+          number to attach it to. It already rose in; what it could not do was leave, so
+          clearing the phone field made half a form vanish between two frames.
+
+          `collapse` animates the height as well as the opacity, so the button underneath
+          travels rather than jumping - which matters here more than anywhere, because that
+          button is the one a thumb is already moving towards.
+        */}
+        <AnimatePresence initial={false}>
         {phoneComplete && (
-          <div className="space-y-4" style={{ animation: 'var(--animate-rise)' }}>
+          <m.div
+            key="password-step"
+            variants={collapse}
+            initial="hidden"
+            animate="shown"
+            exit="exit"
+            className="overflow-hidden"
+          >
+          <div className="space-y-4 pt-4">
             <PasswordField
               label={t.auth.password}
               name="password"
@@ -144,7 +166,9 @@ export function SignIn() {
               </Link>
             </p>
           </div>
+          </m.div>
         )}
+        </AnimatePresence>
       </form>
 
       <Divider />
@@ -549,14 +573,31 @@ function AuthLayout({ title, children, footer }: { title: string; children: Reac
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-12">
-      <button type="button" onClick={goBack} aria-label={t.common.back} className="self-start text-sm font-medium text-ink-faint">
-        ← russian.gg
-      </button>
-      <h1 className="mt-6 mb-7 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
-      {children}
-      {footer && <p className="text-support mt-6">{footer}</p>}
-    </div>
+    /*
+      Every auth screen in the product is this layout - sign in, sign up, password reset and
+      phone linking - so animating it here is the whole set.
+
+      They sit outside the shell, which means they get no page transition of their own: this
+      is the only thing standing between a learner and a form that snaps into existence. The
+      beat runs back link, title, form, footer, which is the order the screen is read in and
+      the order the tab key will visit them in.
+    */
+    <Sequence className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-12" gap={stagger.base}>
+      <Reveal className="self-start">
+        <button type="button" onClick={goBack} aria-label={t.common.back} className="text-sm font-medium text-ink-faint">
+          ← russian.gg
+        </button>
+      </Reveal>
+      <Reveal>
+        <h1 className="mt-6 mb-7 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
+      </Reveal>
+      <Reveal>{children}</Reveal>
+      {footer && (
+        <Reveal>
+          <p className="text-support mt-6">{footer}</p>
+        </Reveal>
+      )}
+    </Sequence>
   )
 }
 

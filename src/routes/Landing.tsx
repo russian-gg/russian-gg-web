@@ -3,6 +3,9 @@ import { ArrowUpRight, Check, CircleAlert, CircleCheck, ShieldCheck, Smartphone,
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { LinkButton } from '../components/ui'
+import { Reveal, Sequence, SequenceInView } from '../components/motion'
+import { fadeIn, rise, stagger } from '../lib/motion'
+import * as m from 'motion/react-m'
 import { ProductPreview, ReelThumb } from '../components/landing/visuals'
 import { cx } from '../lib/cx'
 import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
@@ -142,43 +145,63 @@ function Hero() {
       </div>
 
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
-        <div>
-          <p className="inline-flex items-center rounded-[var(--radius-control)] border border-hairline bg-ground-raised px-3.5 py-1.5 text-xs font-extrabold tracking-[0.06em] text-signal-ink uppercase">
-            {t.hero.eyebrow}
-          </p>
+        {/*
+          The hero is the only block on this page that animates on load rather than on scroll,
+          because it is the only one already on screen when the page arrives.
 
-          <h1 className="mt-6 text-4xl leading-[1.08] font-extrabold tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]">
-            {t.headline}
-          </h1>
+          A wide beat here, not the ordinary one. These are five separate claims - a label, a
+          promise, an explanation, a way in, a reason to trust it - and they are meant to be
+          read in that order rather than taken in as a block. 90ms is slow enough that the eye
+          follows the argument down the column, and the whole run still finishes inside half a
+          second, which is roughly how long the hero artwork takes to decode anyway.
+        */}
+        <Sequence gap={stagger.wide}>
+          <Reveal>
+            <p className="inline-flex items-center rounded-[var(--radius-control)] border border-hairline bg-ground-raised px-3.5 py-1.5 text-xs font-extrabold tracking-[0.06em] text-signal-ink uppercase">
+              {t.hero.eyebrow}
+            </p>
+          </Reveal>
 
-          <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-muted">{t.body}</p>
+          <Reveal>
+            <h1 className="mt-6 text-4xl leading-[1.08] font-extrabold tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]">
+              {t.headline}
+            </h1>
+          </Reveal>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Reveal>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-muted">{t.body}</p>
+          </Reveal>
+
+          <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <LinkButton to="/signup" className="w-full sm:w-auto">
               {t.hero.primaryCta}
             </LinkButton>
             <LinkButton to="/onboarding" variant="secondary" className="w-full sm:w-auto">
               {t.hero.secondaryCta}
             </LinkButton>
-          </div>
+          </Reveal>
 
-          <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <Reveal className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-bold text-ink">{t.hero.socialProof}</span>
             <span className="inline-flex items-center gap-1.5 text-ink-faint">
               <Tick />
               {t.hero.trustNote}
             </span>
-          </div>
-        </div>
+          </Reveal>
+        </Sequence>
 
-        <div className="lg:pl-6">
+        {/*
+          The mock arrives from the right, a beat behind the column it belongs to, so it reads
+          as the evidence for the claim rather than a second thing competing with it.
+        */}
+        <Reveal variants={fadeIn('right', 24)} delay={0.3} className="lg:pl-6">
           <ProductPreview
             day={t.hero.mockDay}
             objective={t.hero.mockObjective}
             hint={t.hero.mockHint}
             action={t.hero.mockAction}
           />
-        </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -211,26 +234,45 @@ function Characters() {
   return (
     <section id="method" className="border-t border-hairline bg-ground-sunken/40">
       <div className="mx-auto max-w-6xl px-5 py-20">
-        <div className="text-center">
-          <span className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-signal-soft px-4 py-1.5 text-xs font-extrabold tracking-[0.12em] text-signal-ink uppercase">
-            <SparkleGlyph />
-            {t.eyebrow}
-          </span>
-          <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-extrabold leading-[1.15] tracking-tight text-ink sm:text-4xl">
-            {t.title}
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-ink-muted">
-            {t.subtitle}
-          </p>
-        </div>
+        <SequenceInView className="text-center">
+          <Reveal>
+            <span className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-signal-soft px-4 py-1.5 text-xs font-extrabold tracking-[0.12em] text-signal-ink uppercase">
+              <SparkleGlyph />
+              {t.eyebrow}
+            </span>
+          </Reveal>
+          <Reveal>
+            <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-extrabold leading-[1.15] tracking-tight text-ink sm:text-4xl">
+              {t.title}
+            </h2>
+          </Reveal>
+          <Reveal>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-ink-muted">
+              {t.subtitle}
+            </p>
+          </Reveal>
+        </SequenceInView>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        {/*
+          The three characters carry the argument in order - the Panda names the problem, the
+          other two answer it - so they arrive in that order too. A wide beat, because these
+          are three statements and not three items in a grid.
+        */}
+        <SequenceInView className="mt-12 grid gap-6 md:grid-cols-3" gap={stagger.wide}>
           {CHARACTERS.map((character) => (
-            <CharacterCard key={character.key} character={character} />
+            <Reveal key={character.key} variants={rise}>
+              <CharacterCard character={character} />
+            </Reveal>
           ))}
-        </div>
+        </SequenceInView>
 
-        <div className="mt-8 flex flex-col items-start justify-between gap-6 rounded-[var(--radius-card)] border border-hairline bg-ground-raised px-6 py-7 sm:flex-row sm:items-center sm:px-9">
+        <m.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-8 flex flex-col items-start justify-between gap-6 rounded-[var(--radius-card)] border border-hairline bg-ground-raised px-6 py-7 sm:flex-row sm:items-center sm:px-9"
+        >
           <div>
             <h3 className="text-lg font-extrabold text-ink sm:text-xl">{t.ctaTitle}</h3>
             <p className="mt-1 text-sm text-ink-muted">{t.ctaBody}</p>
@@ -238,7 +280,7 @@ function Characters() {
           <LinkButton to="/signup" className="w-full shrink-0 sm:w-auto">
             {t.ctaButton}
           </LinkButton>
-        </div>
+        </m.div>
       </div>
     </section>
   )
@@ -401,10 +443,12 @@ function Games() {
       </h2>
       <p className="mt-3 max-w-xl text-base text-ink-muted">{t.games.subtitle}</p>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+      <SequenceInView className="mt-10 grid gap-6 lg:grid-cols-2" gap={stagger.wide}>
         {games.map((game) => (
-          <article
+          <Reveal
+            as="article"
             key={game.title}
+            variants={rise}
             className="overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3"
           >
             <div className="overflow-hidden rounded-[1.15rem]">
@@ -420,9 +464,9 @@ function Games() {
               <h3 className="text-lg font-extrabold text-ink">{game.title}</h3>
               <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">{game.body}</p>
             </div>
-          </article>
+          </Reveal>
         ))}
-      </div>
+      </SequenceInView>
     </section>
   )
 }
@@ -602,15 +646,27 @@ function Pricing() {
   return (
     <section id="pricing" className="border-t border-hairline bg-ground-sunken/40">
       <div className="mx-auto max-w-5xl px-5 py-20">
-        <div className="text-center">
-          <SectionEyebrow center>{t.pricing.eyebrow}</SectionEyebrow>
-          <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-            {t.pricing.title}
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-base text-ink-muted">{t.pricing.subtitle}</p>
-        </div>
+        <SequenceInView className="text-center">
+          <Reveal>
+            <SectionEyebrow center>{t.pricing.eyebrow}</SectionEyebrow>
+          </Reveal>
+          <Reveal>
+            <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+              {t.pricing.title}
+            </h2>
+          </Reveal>
+          <Reveal>
+            <p className="mx-auto mt-3 max-w-md text-base text-ink-muted">{t.pricing.subtitle}</p>
+          </Reveal>
+        </SequenceInView>
 
-        <div className="mx-auto mt-10 grid max-w-3xl gap-6 md:grid-cols-2">
+        {/*
+          Free first, then Pro. The order is the argument, so the beat is wide enough to be
+          read as one - here is what you get for nothing, and here is what the other one adds.
+          Landing them together turns a comparison into a pair of price tags.
+        */}
+        <SequenceInView className="mx-auto mt-10 grid max-w-3xl gap-6 md:grid-cols-2" gap={stagger.wide}>
+          <Reveal variants={rise}>
           <PlanCard
             title={t.pricing.freeTitle}
             price={t.pricing.freePrice}
@@ -619,6 +675,8 @@ function Pricing() {
             features={t.pricing.freeFeatures}
             cta={<LinkButton to="/signup" variant="secondary" block>{t.pricing.freeCta}</LinkButton>}
           />
+          </Reveal>
+          <Reveal variants={rise}>
           <PlanCard
             featured
             badge={t.pricing.proBadge}
@@ -630,9 +688,18 @@ function Pricing() {
             note={t.pricing.proAlt}
             cta={<LinkButton to="/signup" block>{t.pricing.proCta}</LinkButton>}
           />
-        </div>
+          </Reveal>
+        </SequenceInView>
 
-        <p className="mt-6 text-center text-sm text-ink-muted">{t.pricing.payNote}</p>
+        <m.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.28 }}
+          className="mt-6 text-center text-sm text-ink-muted"
+        >
+          {t.pricing.payNote}
+        </m.p>
       </div>
     </section>
   )
