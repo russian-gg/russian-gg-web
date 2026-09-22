@@ -370,6 +370,7 @@ export const uz = {
 
     rule: {
       listen: 'Qoidani tinglash',
+      speed: { slow: 'Sekin', normal: 'Oddiy', fast: 'Tez' },
       tongueTwister: 'Скороговорка · tez aytish mashqi',
       tongueTwisterHint: 'Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
       penguinKingdom: 'Pingvin qirolligi',
@@ -956,6 +957,14 @@ export const uz = {
   },
 
   path: {
+    hero: {
+      eyebrow: "RUS TILINI O'RGANING",
+      subtitle: 'Har kuni bir oz — erkin rus tili sari.',
+      dayUnit: 'kun',
+      noteTitle: 'Siz buni uddalaysiz!',
+      noteBody: "Har kuni o'qish — yangi imkoniyatlar sari qadam.",    },
+    filterPro: 'Pro kerak',
+    inProgress: 'Jarayonda',
     title: "90 kunlik yo'l",
     subtitle: "Har kuni bitta aniq vazifa — yurgan sari yo'l ochiladi.",
     today: 'Bugun',
@@ -987,6 +996,22 @@ export const uz = {
     noResults: 'Mos keladigan kun topilmadi.',
   },
 
+  preview: {
+    whatToExpect: 'Nimani kutish mumkin',
+    missionEyebrow: 'Topshiriq',
+    goal: 'Maqsad',
+    time: 'Vaqt',
+    phrases: 'Iboralar',
+    phrasesValue: '{count} ta ibora',
+    passMark: "O'tish bali",
+    passValue: 'Kamida {score}%',
+    conversationBody:
+      "Sherigingiz gapiradi — siz ovoz bilan javob berasiz. Maqsadga yetganingizda yoki vaqt " +
+      'tugaganda suhbat yakunlanadi.',
+    stepsBody:
+      "Yangi iboralarni ko'rib chiqasiz, so'ng ularni ovoz bilan takrorlab mustahkamlaysiz.",
+    registerNote: "Bu suhbat uslubiga e'tibor bering — u har joyda ham mos kelavermaydi.",
+  },
   practice: {
     title: 'Topshiriqlarni bajarishga tayyormisiz?',
     subtitle:
@@ -1360,6 +1385,7 @@ export const uz = {
   },
 
   feedbackPage: {
+    subtitle: 'Muammo, taklif yoki eʼtirozingizni shu yerda alohida forma orqali yuboring.',
     title: 'Fikr bildirish',
     formTitle: 'Izoh formasi',
     kind: 'Muammo turi',

@@ -1,23 +1,7 @@
 import { useState } from 'react'
 import { formatDateTime, formatNumber, formatUsd, useAdminQuery } from '../lib/api'
 import type { AiUsage as AiUsageData } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  Cell,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  Pager,
-  PeriodToggle,
-  Row,
-  Select,
-  Stat,
-  Table,
-  TextField,
-} from '../components/ui'
+import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Pager, PeriodToggle, Row, Screen, Select, Stat, Table, TextField } from '../components/ui'
 import { BarList, Donut, LineChart } from '../components/charts'
 
 const PAGE_SIZE = 25
@@ -43,13 +27,13 @@ export function AiUsage() {
   }
 
   if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (!data && isLoading) return <LoadingRows />
   if (!data) return null
 
   const hasCost = data.costByDay.some((point) => point.value > 0)
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader title="AI ishlatilishi" subtitle="AI chaqiruvlari jurnali: tokenlar, narx va status" />
         <PeriodToggle value={days} onChange={(next) => { setDays(next); setPage(1) }} />
@@ -191,7 +175,7 @@ export function AiUsage() {
         )}
       </Table>
 
-      <Pager page={page} total={data.totalCalls} pageSize={PAGE_SIZE} onPage={setPage} />
-    </div>
+      <Pager page={page} total={data.totalCalls} pageSize={PAGE_SIZE} onPage={setPage} />
+    </Screen>
   )
 }

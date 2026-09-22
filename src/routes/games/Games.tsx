@@ -1,4 +1,18 @@
 import { Link } from 'react-router-dom'
+import {
+  ArrowRight,
+  Dices,
+  Footprints,
+  Gamepad2,
+  Headphones,
+  MessageSquare,
+  Play,
+  Swords,
+  Target,
+  Trophy,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import { useOpenGames } from '../../lib/games'
 import { Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
@@ -30,15 +44,22 @@ const MotionLink = m.create(Link)
  * What is on it is the panel's decision, not this file's. Only the artwork lives here — a game
  * the server has not opened is not drawn at all, so nobody is shown a door that does not open.
  */
-/** Everything the app can draw, keyed by the slug the server switches on. */
-const ART: Record<string, { emoji: string; tint: string; to?: string }> = {
-  arra: { emoji: '🪚', tint: 'from-signal/25 to-signal/5', to: '/games/arra' },
-  'rod-runner': { emoji: '🏃', tint: 'from-caution/30 to-signal/10', to: '/games/rod-runner' },
-  'soz-ovi': { emoji: '🎯', tint: 'from-milestone/25 to-milestone/5' },
-  'tez-javob': { emoji: '⚡️', tint: 'from-caution/25 to-caution/5' },
-  dialog: { emoji: '💬', tint: 'from-signal/25 to-signal/5' },
-  'eshitib-top': { emoji: '🎧', tint: 'from-milestone/25 to-milestone/5' },
-  xotira: { emoji: '🃏', tint: 'from-caution/25 to-caution/5' },
+/**
+ * Everything the app can draw, keyed by the slug the server switches on.
+ *
+ * Drawn marks rather than emoji: this shelf is the first thing a learner sees of a game, and
+ * an emoji here rendered at whatever size and colour the platform font felt like — the saw
+ * (🪚) in particular is a recent addition that simply does not exist on older Android, so the
+ * tile for it was an empty box.
+ */
+const ART: Record<string, { icon: LucideIcon; tint: string; to?: string }> = {
+  arra: { icon: Swords, tint: 'from-signal/25 to-signal/5', to: '/games/arra' },
+  'rod-runner': { icon: Footprints, tint: 'from-caution/30 to-signal/10', to: '/games/rod-runner' },
+  'soz-ovi': { icon: Target, tint: 'from-milestone/25 to-milestone/5' },
+  'tez-javob': { icon: Zap, tint: 'from-caution/25 to-caution/5' },
+  dialog: { icon: MessageSquare, tint: 'from-signal/25 to-signal/5' },
+  'eshitib-top': { icon: Headphones, tint: 'from-milestone/25 to-milestone/5' },
+  xotira: { icon: Dices, tint: 'from-caution/25 to-caution/5' },
 }
 
 export function Games() {
@@ -78,7 +99,7 @@ export function Games() {
             const label = gameLabels[game.slug][locale]
             return <MotionLink key={game.slug} variants={rise} {...tactile} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
               <GameMark game={game.slug} className="size-16 shrink-0 text-signal-ink" />
-              <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 block text-sm font-extrabold text-signal-ink">{copies[locale].start} →</span></span>
+              <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
             </MotionLink>
           }
 
@@ -92,12 +113,15 @@ export function Games() {
             >
               <span
                 className={cx(
-                  'grid size-14 shrink-0 place-items-center rounded-[var(--radius-card)] bg-gradient-to-br text-3xl',
+                  'grid size-14 shrink-0 place-items-center rounded-[var(--radius-card)] bg-gradient-to-br',
                   art?.tint ?? 'from-signal/25 to-signal/5',
                 )}
                 aria-hidden
               >
-                {art?.emoji ?? '🎮'}
+                {(() => {
+                  const Icon = art?.icon ?? Gamepad2
+                  return <Icon aria-hidden="true" strokeWidth={1.7} className="size-7 text-signal-ink" />
+                })()}
               </span>
 
               <span className="min-w-0">
@@ -140,7 +164,10 @@ function RunnerCard({ body }: { body: string }) {
         <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/20 px-3 py-1 text-[11px] font-black tracking-wider text-rose-300 uppercase">
           <span className="size-2 animate-pulse rounded-full bg-rose-500" /> {t.newGame}
         </span>
-        <span className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">🏆 {t.record}: {highScore}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
+          <Trophy aria-hidden="true" className="size-3.5 fill-amber-400/40" strokeWidth={2} />
+          {t.record}: {highScore}
+        </span>
       </span>
 
       <span className="relative mt-4 grid gap-5 md:grid-cols-[1.25fr_1fr] md:items-center">
@@ -162,7 +189,8 @@ function RunnerCard({ body }: { body: string }) {
           <span className="mt-2 block text-sm leading-relaxed text-slate-300">{body}</span>
           <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">{t.runnerBlurb}</span>
           <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 text-sm font-black shadow-lg shadow-rose-500/20 transition group-hover:scale-105">
-            ▶ {t.play}
+            <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} />
+            {t.play}
           </span>
           <span className="ml-3 text-xs font-bold text-cyan-100/60">{t.runnerTagline}</span>
         </span>

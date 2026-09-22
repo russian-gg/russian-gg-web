@@ -12,17 +12,7 @@ import type {
   MarketingPlanSummary,
   MarketingStatus,
 } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  ConfirmDialog,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  SectionHeading,
-} from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, EmptyNote, ErrorNote, Loading, PageHeader, Screen, SectionHeading } from '../components/ui'
 import { cx } from '../../src/lib/cx'
 
 const PROGRAMME_WEEKS = 12
@@ -159,7 +149,7 @@ export function Marketing() {
   }
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader
           title="Marketing strategiya"
@@ -236,8 +226,8 @@ export function Marketing() {
             />
           )}
         </div>
-      )}
-    </div>
+      )}
+    </Screen>
   )
 }
 
@@ -397,7 +387,7 @@ function PlanDetail({
   }
 
   return (
-    <div className="space-y-4">
+    <Screen className="space-y-4">
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -534,7 +524,7 @@ function PlanDetail({
           onCancel={() => setConfirmingDelete(false)}
         />
       )}
-    </div>
+    </Screen>
   )
 }
 

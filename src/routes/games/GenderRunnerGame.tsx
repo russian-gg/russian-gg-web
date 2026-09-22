@@ -1,4 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Bird,
+  Coins,
+  Flag,
+  Heart,
+  HeartCrack,
+  Maximize,
+  Pause,
+  Play,
+  Star,
+  Volume2,
+  VolumeX,
+} from 'lucide-react'
 import { fill, useT } from '../../lib/i18n'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -442,7 +458,7 @@ export function GenderRunnerGame() {
     }
   }, [loseLife])
 
-  const lifeMarks = Array.from({ length: 3 }, (_, index) => index < status.lives ? '❤️' : '🖤')
+  const lives = Array.from({ length: 3 }, (_, index) => index < status.lives)
 
   return (
     <main ref={gameRootRef} className="min-h-[100dvh] bg-[#0b0f19] text-white">
@@ -458,21 +474,33 @@ export function GenderRunnerGame() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] font-black sm:gap-3 sm:text-sm">
-            <span className="rounded-lg bg-white/10 px-2 py-1">⭐ {status.score}</span>
-            <span className="rounded-lg bg-white/10 px-2 py-1">🪙 {status.coins}</span>
-            <span className="hidden sm:inline" aria-label={fill(t.lives, { count: status.lives })}>{lifeMarks.join(' ')}</span>
+            <span className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1">
+              <Star aria-hidden="true" className="size-3.5 fill-amber-300 text-amber-300" strokeWidth={0} />
+              {status.score}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1">
+              <Coins aria-hidden="true" className="size-3.5 text-amber-200" strokeWidth={2} />
+              {status.coins}
+            </span>
+            <span className="hidden items-center gap-0.5 sm:inline-flex" aria-label={fill(t.lives, { count: status.lives })}>
+              <Lives lives={lives} />
+            </span>
             <span className="hidden rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-2 py-1 text-cyan-100 md:inline">{t.difficulty[difficulty].label}</span>
             <button type="button" onClick={toggleMuted} data-ui-sound="none" className="grid size-9 place-items-center rounded-xl bg-white/10" aria-label={muted ? t.soundOn : t.soundOff}>
-              {muted ? '🔇' : '🔊'}
+              {muted
+                ? <VolumeX aria-hidden="true" className="size-4" strokeWidth={2} />
+                : <Volume2 aria-hidden="true" className="size-4" strokeWidth={2} />}
             </button>
             <button type="button" onClick={toggleFullscreen} className="hidden size-9 place-items-center rounded-xl bg-white/10 sm:grid" aria-label={t.fullscreen}>
-              ⛶
+              <Maximize aria-hidden="true" className="size-4" strokeWidth={2} />
             </button>
           </div>
         </header>
 
         <div className="flex items-center justify-between bg-slate-900 px-4 py-1.5 text-[11px] font-black sm:hidden">
-          <span aria-label={fill(t.lives, { count: status.lives })}>{lifeMarks.join(' ')}</span>
+          <span className="inline-flex items-center gap-0.5" aria-label={fill(t.lives, { count: status.lives })}>
+            <Lives lives={lives} />
+          </span>
           <span className="text-emerald-300">{shelf.record}: {highScore}</span>
         </div>
 
@@ -493,7 +521,7 @@ export function GenderRunnerGame() {
             <p className="text-[10px] font-black tracking-[0.18em] text-amber-200 uppercase">{t.findGender}</p>
             <div className="mt-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-amber-600 bg-amber-50 px-4 py-2 text-amber-950 shadow-2xl">
               <span className="text-xl font-black tracking-wide sm:text-3xl">«{status.word.text}»</span>
-              <button type="button" className="pointer-events-auto grid size-8 place-items-center rounded-full bg-amber-200 text-sm" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label={t.listen}>▶</button>
+              <button type="button" className="pointer-events-auto grid size-8 place-items-center rounded-full bg-amber-200 text-sm" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label={t.listen}><Play aria-hidden="true" className="size-3.5 fill-current" strokeWidth={0} /></button>
             </div>
             {status.message && (
               <p className={cx(
@@ -506,7 +534,7 @@ export function GenderRunnerGame() {
           </div>
 
           {phase === 'ready' && (
-            <GameOverlay title={shelf.runnerTitle} icon="🐧">
+            <GameOverlay title={shelf.runnerTitle} icon={<Bird className="size-10 text-cyan-300" strokeWidth={1.6} />}>
               <p className="text-[11px] font-black tracking-[0.15em] text-cyan-200 uppercase">{t.introTitle}</p>
               <p className="max-w-md text-sm leading-relaxed text-slate-200 sm:text-base">{t.introBody}</p>
               <DifficultyPicker value={difficulty} onChange={chooseDifficulty} />
@@ -523,7 +551,7 @@ export function GenderRunnerGame() {
           )}
 
           {phase === 'paused' && (
-            <GameOverlay title={t.paused} icon="⏸️">
+            <GameOverlay title={t.paused} icon={<Pause className="size-10 fill-white/80 text-white/80" strokeWidth={0} />}>
               <DifficultyPicker value={difficulty} onChange={chooseDifficulty} />
               <Button block onClick={() => changePhase('playing')}>{t.resume}</Button>
               <button type="button" onClick={start} className="text-sm font-black text-white/70 hover:text-white">{t.restart}</button>
@@ -537,7 +565,7 @@ export function GenderRunnerGame() {
           )}
 
           {phase === 'gameover' && (
-            <GameOverlay title={t.over} icon="🏁">
+            <GameOverlay title={t.over} icon={<Flag className="size-10 text-rose-300" strokeWidth={1.6} />}>
               <div className="grid w-full max-w-sm grid-cols-3 gap-2">
                 <Result label={t.score} value={status.score} />
                 <Result label={t.coins} value={status.coins} />
@@ -555,7 +583,7 @@ export function GenderRunnerGame() {
               className="absolute top-3 right-3 grid size-10 place-items-center rounded-xl border border-white/20 bg-black/55 text-lg backdrop-blur-sm sm:top-5 sm:right-5"
               aria-label={t.paused}
             >
-              ⏸
+              <Pause aria-hidden="true" className="size-5 fill-current" strokeWidth={0} />
             </button>
           )}
         </section>
@@ -564,20 +592,41 @@ export function GenderRunnerGame() {
           {t.controlsHint}
         </p>
         <div className="grid grid-cols-3 gap-2 border-t border-white/10 bg-[#111827] p-3 sm:mx-auto sm:w-full sm:max-w-xl sm:rounded-t-2xl [@media(pointer:coarse)]:hidden">
-          <ControlButton onClick={() => move(-1)} disabled={phase !== 'playing'} label={t.left} icon="←" />
-          <ControlButton onClick={jump} disabled={phase !== 'playing'} label={t.jump} icon="↑" accent />
-          <ControlButton onClick={() => move(1)} disabled={phase !== 'playing'} label={t.right} icon="→" />
+          <ControlButton onClick={() => move(-1)} disabled={phase !== 'playing'} label={t.left} icon={<ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2.4} />} />
+          <ControlButton onClick={jump} disabled={phase !== 'playing'} label={t.jump} icon={<ArrowUp aria-hidden="true" className="size-5" strokeWidth={2.4} />} accent />
+          <ControlButton onClick={() => move(1)} disabled={phase !== 'playing'} label={t.right} icon={<ArrowRight aria-hidden="true" className="size-5" strokeWidth={2.4} />} />
         </div>
       </div>
     </main>
   )
 }
+
+/**
+ * Three hearts, filled while they are still yours.
+ *
+ * Two different icons rather than one at two opacities: a dimmed heart and a lit heart at
+ * 14px over a moving scene are the same shape, and the count has to survive a glance. The
+ * row carries one `aria-label` on its parent, so these are decoration.
+ */
+function Lives({ lives }: { lives: boolean[] }) {
+  return (
+    <>
+      {lives.map((alive, index) =>
+        alive ? (
+          <Heart key={index} aria-hidden="true" className="size-3.5 fill-rose-500 text-rose-500" strokeWidth={0} />
+        ) : (
+          <HeartCrack key={index} aria-hidden="true" className="size-3.5 text-white/35" strokeWidth={2} />
+        ),
+      )}
+    </>
+  )
+}
 
-function GameOverlay({ title, icon, children }: { title: string; icon: string; children: ReactNode }) {
+function GameOverlay({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <div className="absolute inset-2 z-10 flex items-center justify-center rounded-2xl bg-black/75 p-4 backdrop-blur-sm sm:inset-4">
       <div className="flex w-full max-w-lg flex-col items-center gap-4 rounded-3xl border border-white/15 bg-slate-900/95 p-5 text-center shadow-2xl sm:p-7">
-        <span className="text-4xl" aria-hidden>{icon}</span>
+        <span aria-hidden className="text-signal-ink">{icon}</span>
         <h1 className="text-2xl font-black sm:text-3xl">{title}</h1>
         {children}
       </div>
@@ -625,7 +674,8 @@ function ControlButton({ onClick, disabled, label, icon, accent = false }: {
   onClick: () => void
   disabled: boolean
   label: string
-  icon: string
+  /** A drawn arrow now: the bare arrow characters varied wildly by platform font. */
+  icon: ReactNode
   accent?: boolean
 }) {
   return (

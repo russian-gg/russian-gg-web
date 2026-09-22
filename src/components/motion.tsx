@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, LazyMotion, MotionConfig, useInView, type Variants } from 'motion/react'
 import * as m from 'motion/react-m'
@@ -194,6 +194,44 @@ export function Sequence({
 }
 
 /**
+ * Shows a block that is sitting on screen but still hidden.
+ *
+ * `whileInView` has one bad failure mode and it is the worst one available to a content app:
+ * when the trigger does not fire, the content is not late, it is *gone* — `initial="hidden"`
+ * is `opacity: 0`, and nothing ever moves it. The ninety-day path shipped in exactly that
+ * state on phones, and the page looked empty rather than looked broken, which is why it was
+ * not obvious.
+ *
+ * So this is a second opinion, asked once, shortly after mount: if the element is within the
+ * viewport and the observer has still not driven it, drive it. A block that is genuinely
+ * below the fold is left alone and keeps its scroll behaviour.
+ *
+ * The delay is comfortably longer than any entrance in the system, so in the ordinary case
+ * this fires after the animation has already finished and changes nothing.
+ */
+function useOnScreenFailsafe(ref: React.RefObject<HTMLElement | null>, after = 900) {
+  const [rescued, setRescued] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const element = ref.current
+      if (!element) return
+
+      const box = element.getBoundingClientRect()
+      // Zero-sized means it is not laid out yet; that is not the case this rescues.
+      if (box.height === 0 && box.width === 0) return
+
+      const onScreen = box.top < window.innerHeight && box.bottom > 0
+      if (onScreen) setRescued(true)
+    }, after)
+
+    return () => window.clearTimeout(timer)
+  }, [ref, after])
+
+  return rescued
+}
+
+/**
  * The same as `Sequence`, but it waits until the block is actually on screen.
  *
  * For the long marketing page, where firing every section's entrance at load means the
@@ -201,8 +239,24 @@ export function Sequence({
  * always true: a section that replays its entrance every time it scrolls back into view is
  * the single most tiring pattern on the web.
  *
- * `amount: 0.2` triggers when a fifth of the block is visible rather than all of it, so a
- * section taller than the viewport is not stuck waiting for a bottom edge that never arrives.
+ * `amount` is `'some'` — the block starts arriving as soon as any part of it is on screen —
+ * and that is load-bearing rather than a preference.
+ *
+ * It used to be `0.2`, meaning *a fifth of this element must be visible*. A fraction is only
+ * satisfiable while the block is shorter than five viewports; past that the threshold asks
+ * for more of the element than the screen can physically show at once, the observer never
+ * fires, and the content sits at `opacity: 0` permanently. The ninety-day path hit exactly
+ * that: a phase is up to thirty cards, which on a phone is one column roughly 3,600px tall,
+ * so 20% was ~720px against a ~700px viewport — unreachable at any scroll position, and the
+ * lessons simply never appeared.
+ *
+ * `'some'` cannot fail that way at any height, and for a block that starts above the fold it
+ * resolves on the first frame, which is what makes the top of a page animate on arrival
+ * rather than on scroll.
+ *
+ * Whatever the trigger, the failure mode of this component is content that is never shown, so
+ * prefer erring toward showing: a section that animates slightly too early costs nothing, and
+ * one that never animates costs the whole screen.
  *
  * This one always drives, even nested: waiting for the viewport is the entire point, so
  * inheriting a parent's "go now" would defeat it.
@@ -212,22 +266,44 @@ export function SequenceInView({
   gap = stagger.base,
   className,
   as = 'div',
-  amount = 0.2,
+  amount = 'some',
 }: {
   children: ReactNode
   gap?: number
   className?: string
   as?: 'div' | 'section' | 'ul' | 'ol'
-  amount?: number
+  /**
+   * How much of the block must be on screen. Prefer the default.
+   *
+   * A number is a *fraction of this element*, so it silently stops being reachable once the
+   * element grows past roughly five screens tall — pass one only for a block with a bounded
+   * height, and never for a list.
+   */
+  amount?: 'some' | 'all' | number
 }) {
-  const Tag = m[as]
+  /*
+    Narrowed to one element type. `m[as]` is a union, and TypeScript resolves the `ref` on a
+    union of components to the *intersection* of their ref types — a value that cannot exist.
+    The cast costs nothing real: the runtime component is still whichever tag was asked for,
+    and the ref is only ever measured, never treated as a specific element.
+  */
+  const Tag = m[as] as typeof m.div
+  const ref = useRef<HTMLDivElement>(null)
+  const rescued = useOnScreenFailsafe(ref)
 
   return (
     <Orchestrated.Provider value={true}>
       <Tag
+        ref={ref}
         variants={sequence(gap)}
         initial="hidden"
         whileInView="shown"
+        /*
+          The failsafe below promotes this to an unconditional `shown`. While it is false the
+          prop is absent entirely, so `whileInView` is the only thing driving and the ordinary
+          scroll behaviour is untouched.
+        */
+        animate={rescued ? 'shown' : undefined}
         viewport={{ once: true, amount }}
         className={className}
       >

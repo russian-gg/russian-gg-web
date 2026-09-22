@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { formatDate, formatMoney, formatNumber, formatPercent, useAdminQuery } from '../lib/api'
 import type { Dashboard as DashboardData } from '../lib/types'
-import { Card, ErrorNote, Loading, PageHeader, PeriodToggle, SectionHeading, Stat } from '../components/ui'
+import { Card, ErrorNote, LoadingStats, PageHeader, PeriodToggle, Screen, SectionHeading, Stat } from '../components/ui'
 import { BarList, ColumnChart, Donut, LineChart, Sparkline } from '../components/charts'
 
 export function Dashboard() {
@@ -9,13 +9,13 @@ export function Dashboard() {
   const { data, error, isLoading } = useAdminQuery<DashboardData>(`/api/admin-portal/dashboard?days=${days}`)
 
   if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (!data && isLoading) return <LoadingStats />
   if (!data) return null
 
   const period = `${days} kunlik davr`
 
   return (
-    <div className="space-y-8">
+    <Screen className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader title="Boshqaruv paneli" subtitle="O'sish, tranzaksiyalar va auditoriya sharhi" />
         <PeriodToggle value={days} onChange={setDays} />
@@ -274,8 +274,8 @@ export function Dashboard() {
         </div>
       </section>
 
-      <p className="text-xs text-ink-faint">Muhit: {data.environment}</p>
-    </div>
+      <p className="text-xs text-ink-faint">Muhit: {data.environment}</p>
+    </Screen>
   )
 }
 

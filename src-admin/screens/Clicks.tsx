@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { formatNumber, useAdminQuery } from '../lib/api'
 import type { Clicks as ClicksData } from '../lib/types'
-import { Card, ErrorNote, Loading, PageHeader, PeriodToggle } from '../components/ui'
+import { Card, ErrorNote, LoadingStats, PageHeader, PeriodToggle, Screen } from '../components/ui'
 import { BarList } from '../components/charts'
 
 export function Clicks() {
@@ -9,11 +9,11 @@ export function Clicks() {
   const { data, error, isLoading } = useAdminQuery<ClicksData>(`/api/admin-portal/clicks?days=${days}`)
 
   if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (!data && isLoading) return <LoadingStats />
   if (!data) return null
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader
           title="Tugma bosishlari"
@@ -38,7 +38,7 @@ export function Clicks() {
         <p className="mt-5 text-xs text-ink-faint">
           Ro'yxat kodda nomlangan hodisalar katalogidan olinadi.
         </p>
-      </Card>
-    </div>
+      </Card>
+    </Screen>
   )
 }

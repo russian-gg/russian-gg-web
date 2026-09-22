@@ -349,6 +349,7 @@ export const ru: Dictionary = {
 
     rule: {
       listen: 'Послушать правило',
+      speed: { slow: 'Медленно', normal: 'Обычно', fast: 'Быстро' },
       tongueTwister: 'Скороговорка · упражнение на скорость',
       tongueTwisterHint: 'Сначала медленно, потом в обычном темпе, затем быстро.',
       penguinKingdom: 'Королевство Пингвина',
@@ -937,6 +938,14 @@ export const ru: Dictionary = {
   },
 
   path: {
+    hero: {
+      eyebrow: 'УЧИТЕ РУССКИЙ',
+      subtitle: 'Каждый день понемногу — к свободному русскому.',
+      dayUnit: 'дн.',
+      noteTitle: 'У вас получится!',
+      noteBody: 'Каждый день занятий — шаг к новым возможностям.',    },
+    filterPro: 'Нужен Pro',
+    inProgress: 'В процессе',
     title: '90-дневный путь',
     subtitle: 'Каждый день — одна задача. Путь открывается по мере движения.',
     today: 'Сегодня',
@@ -968,6 +977,22 @@ export const ru: Dictionary = {
     noResults: 'Подходящих дней не найдено.',
   },
 
+  preview: {
+    whatToExpect: 'Что вас ждёт',
+    missionEyebrow: 'Задание',
+    goal: 'Цель',
+    time: 'Время',
+    phrases: 'Фразы',
+    phrasesValue: '{count} фраз(ы)',
+    passMark: 'Проходной балл',
+    passValue: 'Минимум {score}%',
+    conversationBody:
+      'Собеседник говорит — вы отвечаете голосом. Разговор закончится, когда вы достигнете ' +
+      'цели или когда выйдет время.',
+    stepsBody:
+      'Сначала разбираете новые фразы, затем закрепляете их голосом.',
+    registerNote: 'Обратите внимание на стиль речи — он подойдёт не в любой обстановке.',
+  },
   practice: {
     title: 'Готовы выполнить задания?',
     subtitle:
@@ -1338,6 +1363,7 @@ export const ru: Dictionary = {
   },
 
   feedbackPage: {
+    subtitle: 'Опишите проблему, предложение или жалобу здесь, в отдельной форме.',
     title: 'Обратная связь',
     formTitle: 'Форма отзыва',
     kind: 'Тип проблемы',

@@ -48,7 +48,8 @@ const CASE_UNLOCK_DAY: Record<CaseName, number> = {
   instrumental: 14,
 }
 
-export function colorScopeForDay(day: number): ColorScope {
+/** Not exported: the provider below is the only way a caller sets a scope. */
+function colorScopeForDay(day: number): ColorScope {
   return {
     verbPersonalEndings: day >= 4,
     pastTense: false,

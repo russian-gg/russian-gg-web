@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { fill, useT } from '../../lib/i18n'
 import { useNavigate } from 'react-router-dom'
 import { useSpeechRecognition } from '../../lib/speech'
@@ -245,9 +246,10 @@ export function SawGame() {
           <button
             type="button"
             onClick={() => navigate('/games')}
-            className="text-sm font-bold text-ink-muted transition-colors hover:text-ink"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-ink-muted transition-colors hover:text-ink"
           >
-            ← {t.back}
+            <ArrowLeft aria-hidden="true" className="size-4" strokeWidth={2.2} />
+            {t.back}
           </button>
 
           <div className="flex items-center gap-3 text-sm font-black">

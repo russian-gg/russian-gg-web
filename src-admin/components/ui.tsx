@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
+import { Children, isValidElement, useEffect } from 'react'
+import { LoaderCircle } from 'lucide-react'
 import { useFocusTrap } from '../../src/lib/focus-trap'
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react'
 import { cx } from '../../src/lib/cx'
+import { Overlay, Reveal, Sequence } from '../../src/components/motion'
+import { fadeUp, rise, stagger } from '../../src/lib/motion'
 
 /**
  * The admin panel's pieces, built from the learner product's own tokens rather than a second
@@ -87,6 +90,35 @@ export function Card({
   )
 }
 
+/**
+ * An admin screen's outermost element. Its top-level blocks arrive in order.
+ *
+ * Every screen in the panel is a stack of sections — a header, a row of figures, a table —
+ * and before this they all appeared in the same frame, which on a screen with twelve cards
+ * reads as a flash rather than as a page. `Sequence` gives them a beat.
+ *
+ * The children are wrapped here rather than at each call site. Twelve screens rewriting their
+ * own section list into `<Reveal>`s is twelve chances to miss one and leave a section that
+ * jumps in ahead of its neighbours — and a screen should not have to know it is being
+ * animated in order to be animated correctly.
+ *
+ * `tight` because these stacks run long. At the base gap a ten-section screen would still be
+ * arriving 600ms in, which is the panel feeling slow rather than feeling considered.
+ *
+ * Anything that is not an element — a `false` from a conditional section, a bare string — is
+ * passed through untouched. Wrapping `{error && <ErrorNote/>}` when `error` is null would put
+ * an empty animated div in the middle of the stack and break the spacing above it.
+ */
+export function Screen({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <Sequence gap={stagger.tight} className={className}>
+      {Children.map(children, (child) =>
+        isValidElement(child) ? <Reveal variants={fadeUp}>{child}</Reveal> : child,
+      )}
+    </Sequence>
+  )
+}
+
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header>
@@ -148,14 +180,21 @@ export function Stat({
   badge?: ReactNode
 }) {
   return (
-    <Card className="flex flex-col gap-1">
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">{label}</span>
-        {badge}
-      </div>
-      <div className="text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">{value}</div>
-      {note && <div className="text-sm text-ink-muted">{note}</div>}
-    </Card>
+    /*
+      A `Reveal` rather than a bare card, so a row of figures arrives in order when it sits
+      inside a `Sequence` — and still animates on its own when it does not. The context in
+      `components/motion.tsx` is what decides which; nothing here has to know.
+    */
+    <Reveal variants={rise}>
+      <Card className="flex h-full flex-col gap-1">
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">{label}</span>
+          {badge}
+        </div>
+        <div className="text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">{value}</div>
+        {note && <div className="text-sm text-ink-muted">{note}</div>}
+      </Card>
+    </Reveal>
   )
 }
 
@@ -473,15 +512,24 @@ export function ConfirmDialog({
   }, [onCancel])
 
   return (
-    <div
-      ref={dialogRef}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onCancel}
-    >
+    /*
+      The dim and the panel animate in and — the part CSS could never do — out. `Overlay` holds
+      the subtree mounted until the exit finishes; before it, confirming or cancelling made the
+      dialog disappear between two frames, which reads as the panel having crashed rather than
+      having been answered.
+
+      The focus trap, Escape and the aria wiring stay here on purpose: `Overlay` animates a
+      layer, it is not a dialog framework. See the note on it in `components/motion.tsx`.
+    */
+    <Overlay open onDismiss={onCancel} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-md"
+      >
       <Card
         as="div"
         className="w-full max-w-md"
@@ -501,18 +549,67 @@ export function ConfirmDialog({
           </Button>
         </div>
       </Card>
-    </div>
+      </div>
+    </Overlay>
   )
 }
 
 export function Loading({ label = 'Yuklanmoqda' }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 py-8 text-sm text-ink-muted" role="status">
-      <span
-        aria-hidden="true"
-        className="size-4 animate-spin rounded-full border-2 border-hairline border-t-signal"
-      />
+      <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-signal" strokeWidth={2.4} />
       {label}
+    </div>
+  )
+}
+
+/**
+ * The shape of the thing that is coming, drawn in grey while it is fetched.
+ *
+ * A spinner says "wait"; this says "wait, and here is what for". On the panel that matters
+ * more than it sounds — most of these screens resolve into a table or a row of figures, and a
+ * placeholder with the right geometry means the page does not jump when the data lands.
+ *
+ * `role="status"` with the same label the spinner used, so nothing changes for a screen
+ * reader: the bars are decoration and are hidden from it entirely.
+ */
+export function LoadingRows({
+  rows = 5,
+  label = 'Yuklanmoqda',
+}: {
+  rows?: number
+  label?: string
+}) {
+  return (
+    <div role="status" aria-label={label} className="space-y-2 py-2">
+      {Array.from({ length: rows }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="skeleton h-12 w-full"
+          /*
+            Each bar's shimmer starts a beat after the one above it, so the highlight travels
+            down the list instead of every row pulsing in lockstep — which reads as a strobe.
+          */
+          style={{ animationDelay: `${index * 90}ms` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** The same idea for a row of figures: three cards' worth of grey. */
+export function LoadingStats({ count = 3 }: { count?: number }) {
+  return (
+    <div role="status" aria-label="Yuklanmoqda" className="grid gap-4 md:grid-cols-3">
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="skeleton h-28 w-full"
+          style={{ animationDelay: `${index * 90}ms` }}
+        />
+      ))}
     </div>
   )
 }

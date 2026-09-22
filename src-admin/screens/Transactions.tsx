@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { formatDate, formatMoney, formatNumber, useAdminQuery } from '../lib/api'
 import type { Paged, Transaction } from '../lib/types'
-import { Badge, Cell, EmptyNote, ErrorNote, Loading, PageHeader, Pager, Row, Table } from '../components/ui'
+import { Badge, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Pager, Row, Screen, Table } from '../components/ui'
 import { UserDrawer } from '../components/UserDrawer'
 
 const PAGE_SIZE = 20
@@ -27,11 +27,11 @@ export function Transactions() {
   )
 
   if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (!data && isLoading) return <LoadingRows />
   if (!data) return null
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader
         title="Tranzaksiyalar"
         subtitle={`Jami: ${formatNumber(data.total)} — to'lovni bosing, kim to'laganini ko'rasiz`}
@@ -80,7 +80,7 @@ export function Transactions() {
 
       <Pager page={page} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} />
 
-      {selected && <UserDrawer userId={selected} onClose={() => setSelected(null)} />}
-    </div>
+      {selected && <UserDrawer userId={selected} onClose={() => setSelected(null)} />}
+    </Screen>
   )
 }

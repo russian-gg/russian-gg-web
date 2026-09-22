@@ -12,19 +12,7 @@ import type {
   SalesSettings,
   SalesUserStatus,
 } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  PeriodToggle,
-  SectionHeading,
-  Stat,
-  Tabs,
-} from '../components/ui'
+import { Badge, Button, Card, EmptyNote, ErrorNote, Loading, PageHeader, PeriodToggle, Screen, SectionHeading, Stat, Tabs } from '../components/ui'
 import { BarList, ColumnChart } from '../components/charts'
 import { cx } from '../../src/lib/cx'
 import { DashboardGlyph, InboxGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
@@ -119,7 +107,7 @@ export function Sales() {
       Padded on the right from `lg` to leave the rail its column. The rail floats over the
       page, so without this the conversation would run underneath it.
     */
-    <div className="space-y-4 lg:pr-16">
+    <Screen className="space-y-4 lg:pr-16">
       <PageHeader title="Sotuv (Telegram)" subtitle="Bot yuritayotgan suhbatlar va sotuv agenti" />
 
       {/*
@@ -169,8 +157,8 @@ export function Sales() {
 
       {tab === 'dashboard' && <SalesDashboardTab />}
       {tab === 'inbox' && <Inbox waiting={unread?.chats ?? 0} />}
-      {tab === 'settings' && <AgentSettings />}
-    </div>
+      {tab === 'settings' && <AgentSettings />}
+    </Screen>
   )
 }
 
@@ -188,7 +176,7 @@ function SalesDashboardTab() {
   const answered = data.averageReplySeconds
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <div className="flex justify-end">
         <PeriodToggle value={days} onChange={setDays} />
       </div>
@@ -295,7 +283,7 @@ function SalesDashboardTab() {
           to'lovni aynan suhbat keltirganini isbotlamaydi.
         </p>
       </section>
-    </div>
+    </Screen>
   )
 }
 
@@ -1037,7 +1025,7 @@ function AgentSettings() {
   }
 
   return (
-    <div className="space-y-4">
+    <Screen className="space-y-4">
       <Card className="space-y-4">
         <SectionHeading>Telegram bot</SectionHeading>
 
@@ -1195,6 +1183,6 @@ function AgentSettings() {
         <span className="text-xs text-ink-faint">Yangilangan: {formatDateTime(data?.updatedAt)}</span>
       </div>
       </Card>
-    </div>
+    </Screen>
   )
 }

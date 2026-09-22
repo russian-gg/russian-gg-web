@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Reveal, Sequence } from '../components/motion'
+import { stagger } from '../lib/motion'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { GoogleContinueButton } from './SignIn'
 import type { GoogleCredentialResponse } from '../lib/google-auth'
@@ -45,18 +47,29 @@ export function Settings() {
   const active = tabs.some((tab) => tab.to === pathname) ? pathname : TAB_PROFILE
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.settings.title}</h1>
-        <p className="text-support mt-1">{user?.email ?? user?.phoneNumber}</p>
-      </header>
+    <Sequence gap={stagger.tight} className="space-y-6">
+      <Reveal as="section">
+        <header>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.settings.title}</h1>
+          <p className="text-support mt-1">{user?.email ?? user?.phoneNumber}</p>
+        </header>
+      </Reveal>
 
-      <TabLinks tabs={tabs} active={active} />
+      <Reveal>
+        <TabLinks tabs={tabs} active={active} />
+      </Reveal>
 
-      {active === TAB_PROFILE && <ProfileTab />}
-      {active === TAB_GENERAL && <GeneralTab />}
-      {active === TAB_BILLING && <BillingTab />}
-    </div>
+      {/*
+        Keyed on the active tab so switching re-runs the entrance. Without the key React sees
+        one element whose props changed and swaps the contents in place, which reads as the
+        panel being overwritten rather than as a different panel arriving.
+      */}
+      <Reveal key={active}>
+        {active === TAB_PROFILE && <ProfileTab />}
+        {active === TAB_GENERAL && <GeneralTab />}
+        {active === TAB_BILLING && <BillingTab />}
+      </Reveal>
+    </Sequence>
   )
 }
 

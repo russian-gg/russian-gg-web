@@ -345,6 +345,7 @@ export const en: Dictionary = {
 
     rule: {
       listen: 'Hear the rule',
+      speed: { slow: 'Slow', normal: 'Normal', fast: 'Fast' },
       tongueTwister: 'Скороговорка · a speed drill',
       tongueTwisterHint: 'Slowly first, then at normal speed, then fast.',
       penguinKingdom: 'The Penguin kingdom',
@@ -930,6 +931,14 @@ export const en: Dictionary = {
   },
 
   path: {
+    hero: {
+      eyebrow: 'LEARN RUSSIAN',
+      subtitle: 'A little every day — towards fluent Russian.',
+      dayUnit: 'days',
+      noteTitle: 'You can do this!',
+      noteBody: 'Every day of study is a step towards something new.',    },
+    filterPro: 'Pro needed',
+    inProgress: 'In progress',
     title: '90-day path',
     subtitle: 'One clear task per day — the path opens as you walk it.',
     today: 'Today',
@@ -960,6 +969,22 @@ export const en: Dictionary = {
     noResults: 'No matching days found.',
   },
 
+  preview: {
+    whatToExpect: 'What to expect',
+    missionEyebrow: 'Task',
+    goal: 'Goal',
+    time: 'Time',
+    phrases: 'Phrases',
+    phrasesValue: '{count} phrases',
+    passMark: 'Pass mark',
+    passValue: 'At least {score}%',
+    conversationBody:
+      'Your partner speaks and you answer out loud. The conversation ends once you reach the ' +
+      'goal or the time runs out.',
+    stepsBody:
+      'You go through the new phrases first, then practise them out loud.',
+    registerNote: 'Mind the register here — it does not fit every setting.',
+  },
   practice: {
     title: 'Ready to work through some tasks?',
     subtitle:
@@ -1326,6 +1351,7 @@ export const en: Dictionary = {
   },
 
   feedbackPage: {
+    subtitle: 'Send a problem, a suggestion or a complaint here, on its own form.',
     title: 'Feedback',
     formTitle: 'Feedback form',
     kind: 'Type of problem',

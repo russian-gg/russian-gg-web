@@ -1,18 +1,7 @@
 import { useState } from 'react'
 import { formatDate, session, useAdminQuery } from '../lib/api'
 import type { FeedbackItem, Paged } from '../lib/types'
-import {
-  Button,
-  Cell,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  Pager,
-  Row,
-  Select,
-  Table,
-} from '../components/ui'
+import { Button, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Pager, Row, Screen, Select, Table } from '../components/ui'
 
 const PAGE_SIZE = 20
 
@@ -28,7 +17,7 @@ export function Feedbacks() {
   const { data, error, isLoading } = useAdminQuery<Paged<FeedbackItem>>(query)
 
   if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (!data && isLoading) return <LoadingRows />
   if (!data) return null
 
   const issueTypes = Array.from(new Set(data.items.map((item) => item.issueType).filter(Boolean)))
@@ -66,7 +55,7 @@ export function Feedbacks() {
   }
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader title="Murojaatlar" subtitle="Feedback formasi orqali kelgan to'liq murojaatlar" />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -126,7 +115,7 @@ export function Feedbacks() {
         )}
       </Table>
 
-      <Pager page={page} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} />
-    </div>
+      <Pager page={page} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} />
+    </Screen>
   )
 }

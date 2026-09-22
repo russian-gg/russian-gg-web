@@ -121,6 +121,16 @@
   */
   --animate-ripple: ripple 2.4s ease-out infinite;
   --animate-rise: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  /**
+    A placeholder waiting on the network.
+
+    This one stays in CSS while the rest of the motion vocabulary lives in `lib/motion.ts`,
+    and the split is the one that file describes: an infinite decorative loop is cheap, needs
+    no state, and is stilled by the reduced-motion rule below. Driving it from JavaScript
+    would mean a running animation frame behind every loading screen in the product.
+  */
+  --animate-shimmer: shimmer 1.3s linear infinite;
+
   /*
     The full-bleed reels strip below the hero. Slow and linear — it is there to be felt at the
     edge of attention, not read like a ticker. Two identical halves translate by exactly one
@@ -225,6 +235,17 @@
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+/* A highlight travelling across a placeholder. Driven by background-position so it costs no
+   layout and no repaint of anything underneath. */
+@keyframes shimmer {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
   }
 }
 
@@ -381,6 +402,22 @@
 }
 
 @layer utilities {
+  /*
+    A placeholder while its data is in flight. The gradient is painted from the theme's own
+    surfaces, so it works in both themes without a second definition.
+  */
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-ground-sunken) 0%,
+      var(--color-hairline) 50%,
+      var(--color-ground-sunken) 100%
+    );
+    background-size: 220% 100%;
+    animation: var(--animate-shimmer);
+    border-radius: 8px;
+  }
+
   .answer-celebration__piece {
     position: absolute;
     top: 0;
@@ -503,6 +540,12 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+    }
+
+    /* A shimmer with no movement is a grey box, which is exactly what is wanted here. */
+    .skeleton {
+      background-image: none;
+      background-color: var(--color-ground-sunken);
     }
 
     /*

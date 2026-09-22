@@ -1,18 +1,7 @@
 import { useState } from 'react'
 import { adminFetch, formatDateTime, useAdminQuery } from '../lib/api'
 import type { AdminPortalUser, PortalRole } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  Cell,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  Row,
-  Table,
-} from '../components/ui'
+import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Row, Screen, Table } from '../components/ui'
 
 type FormState = {
   username: string
@@ -89,7 +78,7 @@ export function PortalUsers() {
   }
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader title="Xodimlar" subtitle="Panelga kim kira oladi va qaysi huquq bilan" />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
@@ -188,7 +177,7 @@ export function PortalUsers() {
 
         <div className="space-y-4">
           {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
-          {!data && isLoading && <Loading />}
+          {!data && isLoading && <LoadingRows />}
           {data?.length === 0 && (
             <EmptyNote>Hozircha alohida hisob yo'q — panelga faqat asosiy login bilan kirilyapti.</EmptyNote>
           )}
@@ -221,7 +210,7 @@ export function PortalUsers() {
             </Table>
           )}
         </div>
-      </div>
-    </div>
+      </div>
+    </Screen>
   )
 }

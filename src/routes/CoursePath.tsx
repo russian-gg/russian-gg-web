@@ -17,12 +17,12 @@ import {
   MissionCardAction,
   MissionProgress,
 } from '../components/MissionCard'
+import { CoursePathHero } from '../components/CoursePathHero'
+import { PreviewDialog } from '../components/PreviewDialog'
 import { Badge, Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
-import * as m from 'motion/react-m'
 import { Overlay, Reveal, SequenceInView } from '../components/motion'
-import { duration, ease, rise, stagger, useIsPhone } from '../lib/motion'
-import type { Variants } from 'motion/react'
+import { rise, stagger } from '../lib/motion'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -30,7 +30,7 @@ import type { Variants } from 'motion/react'
  */
 type LockedDay = { kind: 'pro' | 'progress'; day: number }
 type DayNotice = { day: number; text: string }
-type PathFilter = 'all' | 'active' | 'done'
+type PathFilter = 'all' | 'active' | 'done' | 'pro'
 type SelectedDay = { day: CourseDayView; lockKind: LockedDay['kind'] }
 
 const NO_LOCAL_PROGRESS: LessonOneProgress = { completed: [], isComplete: false }
@@ -43,6 +43,7 @@ export function CoursePath() {
   const queryClient = useQueryClient()
   const [locked, setLocked] = useState<LockedDay | null>(null)
   const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [openingDay, setOpeningDay] = useState<number | null>(null)
   const [notice, setNotice] = useState<DayNotice | null>(null)
   const [filter, setFilter] = useState<PathFilter>('all')
@@ -176,7 +177,10 @@ export function CoursePath() {
     const matchesFilter =
       filter === 'all' ||
       (filter === 'done' && isDone) ||
-      (filter === 'active' && day.isUnlocked && !isDone)
+      (filter === 'active' && day.isUnlocked && !isDone) ||
+      // The days Pro opens: shut, and shut because of the plan rather than because the learner
+      // has not reached them yet.
+      (filter === 'pro' && !day.isUnlocked && !isDone && day.day > maxUnlockedDay)
     const matchesSearch =
       !normalizedSearch ||
       String(day.day).includes(normalizedSearch) ||
@@ -198,6 +202,7 @@ export function CoursePath() {
     }
 
     setSelectedDay({ day, lockKind })
+    setPreviewOpen(true)
   }
 
   async function startDay(day: CourseDayView, lockKind: LockedDay['kind'], restart: boolean) {
@@ -224,7 +229,7 @@ export function CoursePath() {
         return
       }
 
-      setSelectedDay(null)
+      setPreviewOpen(false)
       navigate(`${missionPath(mission)}${restart ? '?start=1' : ''}`)
     } catch {
       setNotice({ day: day.day, text: t.common.loadFailed })
@@ -235,21 +240,21 @@ export function CoursePath() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <header className="relative flex items-start justify-between gap-3 pr-20 sm:pr-0">
-        <div className="min-w-0">
-          <h1 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">{t.path.title}</h1>
-          <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-ink-muted sm:mt-1 sm:text-base">{t.path.subtitle}</p>
-        </div>
-        <span className="absolute top-0 right-0 sm:static"><Badge tone="milestone">{completedDays}/90</Badge></span>
-      </header>
+      <CoursePathHero completedDays={completedDays} totalDays={90} />
 
+      {/*
+        The filters are pills on their own rather than a segmented control in a tray: there are
+        four of them now, and the fourth — the Pro days — is the one a learner on the free plan
+        goes looking for. A tray of four crowds the phone; pills wrap.
+      */}
       <div className="hidden flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-1 rounded-xl bg-ground-sunken p-1">
-          {(['all', 'active', 'done'] as const).map((value) => (
+          {(['all', 'active', 'done', 'pro'] as const).map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => setFilter(value)}
+              aria-pressed={filter === value}
               className={cx(
                 'rounded-lg px-3 py-2 text-sm font-bold transition-colors',
                 filter === value
@@ -261,7 +266,9 @@ export function CoursePath() {
                 ? t.path.filterAll
                 : value === 'active'
                   ? t.path.filterActive
-                  : t.path.filterDone}
+                  : value === 'done'
+                    ? t.path.filterDone
+                    : t.path.filterPro}
             </button>
           ))}
         </div>
@@ -342,60 +349,47 @@ export function CoursePath() {
       )}
 
       {/*
-        Both of these are held by `AnimatePresence` rather than rendered straight from the
-        condition. Without it the dialog and the drawer are removed from the tree in the same
-        commit the learner dismisses them, and an exit animation has nothing left to animate.
+        Held by `AnimatePresence` rather than rendered straight from the condition. Without it
+        the dialog is removed from the tree in the same commit the learner dismisses it, and an
+        exit animation has nothing left to animate.
       */}
       <AnimatePresence>
         {locked && <LockedDayDialog key="locked" locked={locked} onDismiss={() => setLocked(null)} />}
       </AnimatePresence>
-      <AnimatePresence>
-        {selectedDay && (
-          <DayPreviewDrawer
-            key="day-preview"
-            selected={selectedDay}
-            locale={locale}
-            isOpening={openingDay === selectedDay.day.day}
-            partialProgress={
-              foundationProgress[selectedDay.day.day] && !foundationProgress[selectedDay.day.day].isComplete
-                ? { value: foundationProgress[selectedDay.day.day].completed.length, max: LESSON_ONE_SECTIONS.length }
-                : null
-            }
-            onDismiss={() => setSelectedDay(null)}
-            onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
-          />
-        )}
-      </AnimatePresence>
+      {/*
+        The day preview keeps its content after being dismissed, and closes by flipping `open`.
+        Clearing `selectedDay` on dismiss would empty the panel in the same frame it starts to
+        leave, so the learner would watch a blank card slide away.
+      */}
+      {selectedDay && (
+        <DayPreviewDialog
+          open={previewOpen}
+          selected={selectedDay}
+          locale={locale}
+          isOpening={openingDay === selectedDay.day.day}
+          partialProgress={
+            foundationProgress[selectedDay.day.day] && !foundationProgress[selectedDay.day.day].isComplete
+              ? { value: foundationProgress[selectedDay.day.day].completed.length, max: LESSON_ONE_SECTIONS.length }
+              : null
+          }
+          onDismiss={() => setPreviewOpen(false)}
+          onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
+        />
+      )}
     </div>
   )
 }
 
 /**
- * The day drawer's entrance, which is two entrances.
+ * What day N holds, before the learner opens it: the focus of the lesson, what to expect from
+ * it, and how far through it they already are.
  *
- * It is a bottom sheet on a phone and a right-hand panel from `sm` up, and the travel is
- * expressed as a percentage of the panel itself so one variant covers both: `y: 100%` is
- * exactly its own height on a phone, `x: 100%` exactly its own width on a desktop. Which of
- * the two applies is decided by the same `sm` breakpoint the layout uses, read through
- * `useIsPhone` so the variant and the CSS can never disagree about where the panel is.
- *
- * It leaves the way it came. A panel that slides in from the right and fades out in place
- * reads as two different objects.
+ * This replaced a drawer that arrived from the screen edge. The content never needed the edge
+ * — it is three short lines and one button — and on a desktop it put the explanation as far
+ * from the card the learner just tapped as the display allows.
  */
-const drawerSlide: Variants = {
-  hidden: (phone: boolean) => (phone ? { y: '100%' } : { x: '100%' }),
-  shown: {
-    x: 0,
-    y: 0,
-    transition: { type: 'spring', duration: 0.55, bounce: 0.06 },
-  },
-  exit: (phone: boolean) =>
-    phone
-      ? { y: '100%', transition: { duration: duration.base, ease: ease.exit } }
-      : { x: '100%', transition: { duration: duration.base, ease: ease.exit } },
-}
-
-function DayPreviewDrawer({
+function DayPreviewDialog({
+  open,
   selected,
   locale,
   isOpening,
@@ -403,6 +397,7 @@ function DayPreviewDrawer({
   onDismiss,
   onStart,
 }: {
+  open: boolean
   selected: SelectedDay
   locale: Locale
   isOpening: boolean
@@ -410,8 +405,7 @@ function DayPreviewDrawer({
   onDismiss: () => void
   onStart: (restart: boolean) => void
 }) {
-  const dialogRef = useFocusTrap<HTMLElement>()
-  const phone = useIsPhone()
+  const t = useT()
   const { day } = selected
   const focus = getDayFocus(day, locale)
   const isDone = day.completedMissionCount >= day.requiredMissionCount
@@ -419,86 +413,33 @@ function DayPreviewDrawer({
   const total = partialProgress?.max ?? day.requiredMissionCount
   const hasProgress = completed > 0 && !isDone
   const restart = isDone || !hasProgress
-  const copy = useT().dayPreview
-  const description = copy.description
+  const copy = t.dayPreview
   const action = isDone ? copy.repeat : hasProgress ? copy.resume : copy.start
-  const close = copy.close
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onDismiss()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [onDismiss])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-end" role="presentation">
-      <m.button
-        type="button"
-        aria-label={close}
-        data-ui-sound="click"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: duration.base, ease: ease.enter }}
-        className="absolute inset-0 h-full w-full cursor-default bg-ink/45 backdrop-blur-[1px]"
-        onClick={onDismiss}
-      />
-      {/*
-        The drawer comes in from the edge it is attached to, and the edge is not the same on
-        every screen: it is a bottom sheet on a phone and a right-hand panel from `sm` up. A
-        single entrance would be wrong on one of the two - a panel that fades in while pinned
-        to an edge looks like it was always there and someone turned the lights on.
+    <PreviewDialog
+      open={open}
+      eyebrow={fill(copy.lessonDay, { day: day.day })}
+      title={focus}
+      closeLabel={copy.close}
+      primaryLabel={isOpening ? `${t.common.loading}…` : `${action} →`}
+      primaryDisabled={isOpening}
+      onPrimary={() => onStart(restart)}
+      onDismiss={onDismiss}
+    >
+      <div className="rounded-2xl bg-signal-soft/60 p-4">
+        <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{t.preview.whatToExpect}</p>
+        <p className="mt-2 text-base leading-7 text-ink-muted">{copy.description}</p>
+      </div>
 
-        `x`/`y` percentages rather than pixels, so the travel is the panel's own width or
-        height and the same variant works at every size.
-      */}
-      <m.aside
-        ref={dialogRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="day-preview-title"
-        variants={drawerSlide}
-        custom={phone}
-        initial="hidden"
-        animate="shown"
-        exit="exit"
-        className="relative flex max-h-[88dvh] w-full flex-col overflow-y-auto rounded-t-[2rem] bg-ground-raised p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-[2rem] sm:p-8"
-      >
-        <div className="flex items-start justify-between gap-5">
-          <div>
-            <h2 id="day-preview-title" className="text-3xl font-black text-ink">
-              {fill(copy.lessonDay, { day: day.day })}
-            </h2>
-          </div>
-          <button type="button" onClick={onDismiss} aria-label={close} className="flex size-10 shrink-0 items-center justify-center rounded-full text-2xl text-ink-muted transition hover:bg-ground-sunken hover:text-ink">×</button>
+      <div>
+        <div className="flex items-center justify-between gap-3 text-xs font-black text-ink-muted">
+          <span>{completed} / {total} {copy.sections}</span>
+          {isDone && <span className="text-milestone">✓ {copy.completed}</span>}
         </div>
-
-        <div className="mt-7 rounded-2xl bg-signal-soft/60 p-4">
-          <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{focus}</p>
-          <p className="mt-3 text-base leading-7 text-ink-muted">{description}</p>
-          <div className="mt-4 flex items-center justify-between gap-3 text-xs font-black text-ink-muted">
-            <span>{completed} / {total} {copy.sections}</span>
-            {isDone && <span className="text-milestone">✓ {copy.completed}</span>}
-          </div>
-          <MissionProgress value={completed} max={total} completed={isDone} label={focus} compact />
-        </div>
-
-        <div className="mt-6 border-t border-hairline pt-6 sm:mt-auto">
-          <Button block size="lg" disabled={isOpening} data-ui-sound="whoosh" onClick={() => onStart(restart)}>
-            {isOpening ? 'Yuklanmoqda…' : `${action} →`}
-          </Button>
-          <Button block variant="ghost" size="lg" className="mt-2" onClick={onDismiss}>{close}</Button>
-        </div>
-      </m.aside>
-    </div>
+        <MissionProgress value={completed} max={total} completed={isDone} label={focus} compact />
+      </div>
+    </PreviewDialog>
   )
 }
 
@@ -589,12 +530,21 @@ function DayCard({
   const isLocked = !day.isUnlocked && !isDone
   const dayLabel = fill(t.common.day, { day: day.day })
   const focus = getDayFocus(day, locale)
+  /*
+   * The day topic in Russian, as the second line. A course day carries one focus line per
+   * interface language and nothing else, so for a learner reading the Uzbek interface this is
+   * the only extra thing on hand — and it happens to be the day in the language being learnt.
+   */
+  const description = locale === 'ru' ? null : day.focusRu
   const progressValue = !isDone && partialProgress
     ? partialProgress.value
     : day.completedMissionCount
   const progressMax = !isDone && partialProgress
     ? partialProgress.max
     : day.requiredMissionCount
+
+  const inProgress = !isDone && !isLocked && progressValue > 0
+  const percent = Math.round((Math.min(progressValue, progressMax) / Math.max(1, progressMax)) * 100)
 
   return (
     <button
@@ -603,62 +553,89 @@ function DayCard({
       data-ui-sound="select"
       aria-label={`${dayLabel}: ${focus}`}
       aria-busy={isOpening}
+      aria-haspopup="dialog"
       className={cx(
-        'flex min-h-40 w-full flex-col rounded-[var(--radius-card)] border p-5 text-left sm:min-h-48 sm:p-6',
+        'flex min-h-44 w-full flex-col rounded-[var(--radius-card)] border p-5 text-left',
         'transition-[border-color,box-shadow,transform] duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
         isDone
-          ? 'border-milestone/20 bg-milestone-soft/45'
+          ? 'border-milestone/20 bg-milestone-soft/25'
           : isLocked
-            ? 'border-hairline bg-ground-raised opacity-65'
-            : isToday
-              ? 'border-signal/50 bg-signal-soft/45 shadow-[0_8px_24px_rgb(31_111_224/0.06)]'
+            ? 'border-hairline bg-ground-raised'
+            : isToday || inProgress
+              ? 'border-signal/45 bg-signal-soft/30 shadow-[0_8px_24px_rgb(31_111_224/0.06)]'
               : 'border-hairline bg-ground-raised hover:-translate-y-0.5 hover:border-signal/40 hover:shadow-[0_8px_24px_rgb(22_24_29/0.06)]',
       )}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
+          {/*
+            The number is the card's anchor — a learner scanning ninety of these is looking for
+            a day, not a title — so it keeps its own tile and takes the colour of the state.
+          */}
           <span
             className={cx(
-              'flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold tabular-nums',
+              'flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums',
               isDone
-                ? 'bg-milestone text-white'
-                : isToday && !isLocked
-                  ? 'bg-signal text-on-signal'
-                  : 'bg-ground-sunken text-ink-muted',
+                ? 'bg-milestone-soft text-milestone'
+                : isLocked
+                  ? 'bg-ground-sunken text-ink-faint'
+                  : 'bg-signal-soft text-signal-ink',
             )}
           >
             {day.day}
           </span>
-          <div className="min-w-0 pt-0.5">
-            <div className="flex items-start gap-2">
-            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug sm:text-lg', isLocked ? 'text-ink-muted' : 'text-ink')}>{focus}</h3>
-            {isDone && <CompletedGlyph label={t.path.done} />}
+
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-ink-faint">{dayLabel}</p>
+            <div className="mt-0.5 flex items-start gap-2">
+              <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
+                {focus}
+              </h3>
+              {isDone && <CompletedGlyph label={t.path.done} />}
             </div>
-            <p className="mt-1 text-xs font-semibold text-ink-faint">{dayLabel}</p>
+            {/*
+              The same topic in the language being learned. There is no separate blurb on a
+              course day — the server sends one focus line per language — and of the things we
+              do have, the Russian one is the only one that adds anything next to the title.
+            */}
+            {description && (
+              <p className="mt-1 line-clamp-1 text-sm text-ink-muted" lang="ru">{description}</p>
+            )}
           </div>
         </div>
 
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
-          {isToday && !isDone && !isLocked && <Badge tone="signal">{t.path.today}</Badge>}
-          {showFreeLabel && <Badge>{t.account.plan.free}</Badge>}
-          {isLocked && (
-            <Badge tone="caution">
-              {day.day > maxUnlockedDay ? t.path.needsPro : t.path.locked}
-            </Badge>
-          )}
+          {isDone && <Badge tone="milestone">{t.path.done}</Badge>}
+          {!isDone && !isLocked && (isToday || inProgress) && <Badge tone="signal">{t.path.inProgress}</Badge>}
+          {showFreeLabel && !isDone && <Badge>{t.account.plan.free}</Badge>}
         </div>
       </div>
 
-      <MissionProgress
-        value={progressValue}
-        max={progressMax}
-        completed={isDone}
-        label={`${dayLabel}: ${focus}`}
-        compact
-      />
+      {/* The bar and its count on one line, the way the design reads it: a ratio, not a caption. */}
+      <div className="mt-4 flex items-center gap-3">
+        <div
+          role="progressbar"
+          aria-label={`${dayLabel}: ${focus}`}
+          aria-valuenow={progressValue}
+          aria-valuemin={0}
+          aria-valuemax={progressMax}
+          className="h-2 flex-1 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/[0.03]"
+        >
+          <span
+            className={cx(
+              'block h-full rounded-full transition-[width] duration-300',
+              isDone ? 'bg-milestone' : 'bg-signal',
+            )}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <span className="text-xs font-bold text-ink-muted tabular-nums">
+          {progressValue}/{progressMax}
+        </span>
+      </div>
 
-      <div className={`mt-auto flex items-center gap-3 pt-3 ${notice ? 'justify-between' : 'justify-end'}`}>
+      <div className={`mt-auto flex items-center gap-3 pt-4 ${notice ? 'justify-between' : 'justify-end'}`}>
         {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
 
         {isDone ? (

@@ -1,4 +1,31 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Image,
+  Layers,
+  Mic,
+  PenLine,
+  Square,
+  Landmark,
+  Package,
+  PartyPopper,
+  Play,
+  ShoppingBag,
+  Turtle,
+  Users,
+  Zap,
+} from 'lucide-react'
+import {
+  bagFallbackIcon,
+  bagItemIcons,
+  cityFallbackIcon,
+  cityPlaceIcons,
+  pictureSceneIcons,
+  roomObjectIcons,
+  roomSlotIcons,
+} from '../lib/lesson-icons'
 import { fill, useT, type Dictionary } from '../lib/i18n'
 import { useFocusTrap } from '../lib/focus-trap'
 import type { CSSProperties, ReactNode } from 'react'
@@ -481,9 +508,9 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
 }
 
 const tongueTwisterSpeeds = [
-  { label: '🐢 Sekin', rate: 0.7 },
-  { label: '▶️ Oddiy', rate: 1 },
-  { label: '⚡ Tez', rate: 1.35 },
+  { icon: Turtle, key: 'slow', rate: 0.7 },
+  { icon: Play, key: 'normal', rate: 1 },
+  { icon: Zap, key: 'fast', rate: 1.35 },
 ] as const
 
 function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics']['tongueTwister']> }) {
@@ -495,15 +522,16 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
       <p className="mt-1 text-sm font-semibold text-ink-muted">{twister.uz}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {tongueTwisterSpeeds.map((speed) => (
+        {tongueTwisterSpeeds.map(({ icon: Icon, key, rate }) => (
           <SpeechButton
-            key={speed.label}
+            key={key}
             text={twister.ru}
             lang="ru-RU"
-            rate={speed.rate}
-            className="rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink shadow-sm"
+            rate={rate}
+            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink shadow-sm"
           >
-            {speed.label}
+            <Icon aria-hidden="true" strokeWidth={2} className="size-4" />
+            {t.speed[key]}
           </SpeechButton>
         ))}
       </div>
@@ -574,7 +602,7 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
               <span className="block font-black text-ink"><RussianText text={phrase.ru} /></span>
               <span className="mt-0.5 block text-xs font-bold text-signal-ink">{t.open}</span>
             </span>
-            {ratings[index] && <span className="text-sm text-milestone">✓</span>}
+            {ratings[index] && <Check aria-hidden="true" strokeWidth={3} className="size-4 text-milestone" />}
           </button>
         ))}
       </div>
@@ -879,7 +907,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
               <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.ink }}>{house.label}</span>
               <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.ink }}><RussianText text={house.name} /></span>
               <span className="mt-2 flex flex-1 flex-wrap content-start gap-1">
-                {placed.map((pair) => <span key={pair.left} className="h-fit rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black shadow-sm sm:px-2 sm:py-1 sm:text-xs" style={{ color: house.ink }}><RussianText text={pair.left} /> ✓</span>)}
+                {placed.map((pair) => <span key={pair.left} className="h-fit rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black shadow-sm sm:px-2 sm:py-1 sm:text-xs" style={{ color: house.ink }}><RussianText text={pair.left} /> <Check aria-hidden="true" strokeWidth={3} className="inline size-3" /></span>)}
               </span>
             </button>
           )
@@ -983,10 +1011,44 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
     </div>
   )
 }
+
+/* ------------------------------------------------------------------- lesson pictograms */
 
-const bagItemIcons: Record<string, string> = {
-  ключи: '🔑', телефон: '📱', зарядник: '🔌', кошелёк: '👛',
-  деньги: '💵', зонт: '☂️', очки: '👓', наушники: '🎧',
+/**
+ * The pictogram for a word in one of the games.
+ *
+ * Wrapped in a component per table rather than looked up inline, because every call site
+ * wants the same two things — resolve the word, fall back if the lesson names something the
+ * map has not been taught — and inlining that four times is four places for the fallback to
+ * be forgotten. Decorative in every position: the Russian word is always rendered beside it.
+ */
+function SceneIcon({ word, className }: { word: string; className?: string }) {
+  const Icon = pictureSceneIcons[word] ?? Package
+  return <Icon aria-hidden="true" strokeWidth={1.8} className={className} />
+}
+
+function BagIcon({ word, className }: { word: string; className?: string }) {
+  const Icon = bagItemIcons[word] ?? bagFallbackIcon
+  return <Icon aria-hidden="true" strokeWidth={1.8} className={className} />
+}
+
+function CityIcon({ word, className }: { word: string; className?: string }) {
+  const Icon = cityPlaceIcons[word] ?? cityFallbackIcon
+  return <Icon aria-hidden="true" strokeWidth={1.8} className={className} />
+}
+
+function RoomObjectIcon({ word, className }: { word: string; className?: string }) {
+  const Icon = roomObjectIcons[word] ?? Package
+  return <Icon aria-hidden="true" strokeWidth={1.8} className={className} />
+}
+
+/**
+ * A cell in the room grid: the object once something has been placed there, otherwise the
+ * slot's own hint of what belongs.
+ */
+function RoomCellIcon({ word, slot, className }: { word?: string; slot: string; className?: string }) {
+  const Icon = (word ? roomObjectIcons[word] : roomSlotIcons[slot]) ?? Package
+  return <Icon aria-hidden="true" strokeWidth={1.8} className={className} />
 }
 
 function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
@@ -1029,32 +1091,28 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
       <Card className="overflow-hidden p-3 sm:p-5">
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] sm:items-center">
           <div className="relative mx-auto flex aspect-square w-full max-w-56 items-center justify-center rounded-[2rem] bg-[linear-gradient(145deg,#dff3ff,#fff2c9)]">
-            <span className="text-8xl" aria-hidden="true">👜</span>
+            <ShoppingBag aria-hidden="true" strokeWidth={1.2} className="size-24 text-signal-ink/80" />
             <span className="absolute right-3 bottom-3 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-ink">{solved.length}/{lesson.game.pairs.length}</span>
           </div>
           <div>
             {current ? <>
               <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">{t.missingFromBag}</p>
               <div className="my-3 flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
-                <span className="text-4xl">{bagItemIcons[current.left] ?? '🎒'}</span>
+                <BagIcon word={current.left} className="size-10 text-signal-ink" />
                 <span className="text-xl font-black text-ink"><RussianText text={current.left} /></span>
               </div>
               <div className="grid gap-2">
                 {options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}
               </div>
-            </> : <div className="rounded-2xl bg-milestone-soft p-5 text-center"><span className="text-5xl">🏃‍♂️</span><h4 className="mt-2 text-xl font-black text-milestone">{t.bagReady}</h4><p className="mt-1 text-sm text-ink-muted">{t.bagBonus}</p></div>}
+            </> : <div className="rounded-2xl bg-milestone-soft p-5 text-center"><PartyPopper aria-hidden="true" strokeWidth={1.5} className="mx-auto size-12 text-milestone" /><h4 className="mt-2 text-xl font-black text-milestone">{t.bagReady}</h4><p className="mt-1 text-sm text-ink-muted">{t.bagBonus}</p></div>}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          {solved.map((pair) => <span key={pair.left} className="rounded-full bg-milestone-soft px-2.5 py-1 text-xs font-black text-milestone">{bagItemIcons[pair.left]} <RussianText text={pair.left} /> ✓</span>)}
+          {solved.map((pair) => <span key={pair.left} className="rounded-full bg-milestone-soft px-2.5 py-1 text-xs font-black text-milestone"><BagIcon word={pair.left} className="size-3.5" /> <RussianText text={pair.left} /> <Check aria-hidden="true" strokeWidth={3} className="inline size-3" /></span>)}
         </div>
       </Card>
     </div>
   )
-}
-
-const pictureDescriptionIcons: Record<string, string> = {
-  shahar: '🏙️', "bog'": '🌿', uy: '🏠', "ko'cha": '🛣️', "do'kon": '🏬', park: '🌳',
 }
 
 function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
@@ -1089,7 +1147,7 @@ function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonD
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {lesson.game.pairs.map((pair) => {
             const done = Boolean(matches[pair.left]?.trim())
-            return <button key={pair.left} type="button" onClick={() => selectPicture(pair.left)} className={cx('flex min-h-28 flex-col items-center justify-center rounded-2xl border-2 p-3 transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><span className="text-4xl">{pictureDescriptionIcons[pair.left] ?? '🖼️'}</span><span className="mt-2 text-sm font-black">{pair.left}</span>{done && <span className="mt-1 text-xs font-black">✓</span>}</button>
+            return <button key={pair.left} type="button" onClick={() => selectPicture(pair.left)} className={cx('flex min-h-28 flex-col items-center justify-center rounded-2xl border-2 p-3 transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><SceneIcon word={pair.left} className="size-9 text-signal-ink" /><span className="mt-2 text-sm font-black">{pair.left}</span>{done && <Check aria-hidden="true" strokeWidth={3} className="mt-1 size-3.5" />}</button>
           })}
         </div>
       </Card>
@@ -1102,11 +1160,6 @@ function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonD
       </Card>
     </div>
   )
-}
-
-const cityPlaceIcons: Record<string, string> = {
-  парк: '🌳', музей: '🏛️', кафе: '☕', улица: '🛣️', мост: '🌉',
-  фонтан: '⛲', магазин: '🏬', школа: '🏫', вокзал: '🚉', театр: '🎭',
 }
 
 function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
@@ -1150,14 +1203,14 @@ function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matche
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {lesson.game.pairs.map((pair) => {
               const done = matches[pair.left] === pair.right
-              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink' : 'border-white bg-white/75 text-ink hover:border-signal')}><span className="text-3xl">{cityPlaceIcons[pair.left]}</span><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 text-[10px] font-black">+10 ✓</span>}</button>
+              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink' : 'border-white bg-white/75 text-ink hover:border-signal')}><CityIcon word={pair.left} className="size-8" /><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-black">+10 <Check aria-hidden="true" strokeWidth={3} className="size-3" /></span>}</button>
             })}
           </div>
         </div>
       </Card>
 
-      {current && <Card className="p-3 sm:p-4"><p className="mb-3 text-sm font-black text-ink"><span className="mr-2 text-2xl">{cityPlaceIcons[current.left]}</span><RussianText text={current.left} /> {t.pickTrueSentenceSuffix}</p><div className="grid gap-2">{options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}</div></Card>}
-      {solved.length === lesson.game.pairs.length && <Card className="border-milestone bg-milestone-soft/50 p-5 text-center"><span className="text-5xl">🏙️</span><h4 className="mt-2 text-xl font-black text-milestone">{t.cityDone}</h4><p className="mt-1 text-sm text-ink-muted">{t.cityDoneBody}</p></Card>}
+      {current && <Card className="p-3 sm:p-4"><p className="mb-3 text-sm font-black text-ink"><CityIcon word={current.left} className="mr-2 inline size-6" /><RussianText text={current.left} /> {t.pickTrueSentenceSuffix}</p><div className="grid gap-2">{options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}</div></Card>}
+      {solved.length === lesson.game.pairs.length && <Card className="border-milestone bg-milestone-soft/50 p-5 text-center"><Landmark aria-hidden="true" strokeWidth={1.5} className="mx-auto size-12 text-milestone" /><h4 className="mt-2 text-xl font-black text-milestone">{t.cityDone}</h4><p className="mt-1 text-sm text-ink-muted">{t.cityDoneBody}</p></Card>}
     </div>
   )
 }
@@ -1200,7 +1253,7 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
         <div className="relative mx-auto aspect-[4/3] max-w-xl overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#fff7dc,#dff3ff)]">
           {lesson.sceneImage
             ? <img src={lesson.sceneImage} alt={t.guestsAndFamily} className="h-full w-full object-cover" />
-            : <div className="flex h-full items-center justify-center text-7xl">👨‍👩‍👧‍👦</div>}
+            : <div className="flex h-full items-center justify-center"><Users aria-hidden="true" strokeWidth={1.2} className="size-20 text-signal-ink/70" /></div>}
           <div className="absolute inset-0 grid grid-cols-3 grid-rows-2" aria-hidden="true">
             {lesson.game.pairs.map((pair) => (
               <span key={pair.left} className={cx('flex items-center justify-center border border-white/30 bg-ink/85 text-2xl font-black text-white transition-all duration-500', matches[pair.left] === pair.right && 'scale-0 opacity-0')}>
@@ -1216,7 +1269,9 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
           const done = matches[pair.left] === pair.right
           return (
             <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('rounded-xl border-2 px-3 py-2.5 text-left text-sm font-black transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>
-              <RussianText text={pair.left} /> {done ? '✓' : '→ ?'}
+              <RussianText text={pair.left} /> {done
+                ? <Check aria-hidden="true" strokeWidth={3} className="inline size-3.5" />
+                : <ArrowRight aria-hidden="true" strokeWidth={2.4} className="inline size-3.5 opacity-60" />}
             </button>
           )
         })}
@@ -1239,22 +1294,17 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
 }
 
 const roomSlots = [
-  { id: 'picture-wall', label: 'devorda', icon: '🖼️', gridColumn: '1', gridRow: '1' },
-  { id: 'tv-wall', label: 'devorda', icon: '📺', gridColumn: '2 / span 2', gridRow: '1' },
-  { id: 'near-window', label: 'deraza yonida', icon: '💐', gridColumn: '4', gridRow: '1' },
-  { id: 'corner', label: 'burchakda', icon: '🚪', gridColumn: '1', gridRow: '2' },
-  { id: 'room-centre', label: 'xona o‘rtasida', icon: '🪑', gridColumn: '2 / span 2', gridRow: '2' },
-  { id: 'beside-wall', label: 'devor yonida', icon: '🛏️', gridColumn: '4', gridRow: '2' },
-  { id: 'beside-table', label: 'stol yonida', icon: '🪑', gridColumn: '1', gridRow: '3' },
-  { id: 'on-desk', label: 'stol ustida', icon: '💡', gridColumn: '2', gridRow: '3' },
-  { id: 'computer-desk', label: 'stol ustida', icon: '💻', gridColumn: '3', gridRow: '3' },
-  { id: 'on-floor', label: 'polda', icon: '🧶', gridColumn: '4', gridRow: '3' },
+  { id: 'picture-wall', label: 'devorda', gridColumn: '1', gridRow: '1' },
+  { id: 'tv-wall', label: 'devorda', gridColumn: '2 / span 2', gridRow: '1' },
+  { id: 'near-window', label: 'deraza yonida', gridColumn: '4', gridRow: '1' },
+  { id: 'corner', label: 'burchakda', gridColumn: '1', gridRow: '2' },
+  { id: 'room-centre', label: 'xona o‘rtasida', gridColumn: '2 / span 2', gridRow: '2' },
+  { id: 'beside-wall', label: 'devor yonida', gridColumn: '4', gridRow: '2' },
+  { id: 'beside-table', label: 'stol yonida', gridColumn: '1', gridRow: '3' },
+  { id: 'on-desk', label: 'stol ustida', gridColumn: '2', gridRow: '3' },
+  { id: 'computer-desk', label: 'stol ustida', gridColumn: '3', gridRow: '3' },
+  { id: 'on-floor', label: 'polda', gridColumn: '4', gridRow: '3' },
 ] as const
-
-const roomObjectIcons: Record<string, string> = {
-  стол: '🪑', стул: '🪑', кровать: '🛏️', лампа: '💡', шкаф: '🚪',
-  телевизор: '📺', ковёр: '🧶', картина: '🖼️', цветы: '💐', компьютер: '💻',
-}
 
 function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
   const t = useT().lesson.game
@@ -1293,7 +1343,7 @@ function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matche
           <div className="flex w-max min-w-full gap-2">
             {remaining.length > 0 ? remaining.map((pair) => (
               <button key={pair.left} type="button" onClick={() => { setSelected(pair.left); setWrongSlot(null); playUiSound('select') }} className={cx('shrink-0 rounded-xl border-2 px-3 py-2.5 text-sm font-black transition', selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>
-                <span className="mr-1.5">{roomObjectIcons[pair.left]}</span><RussianText text={pair.left} />
+                <RoomObjectIcon word={pair.left} className="mr-1.5 inline size-4" /><RussianText text={pair.left} />
               </button>
             )) : <p className="w-full py-2 text-center text-sm font-black text-milestone">{t.roomReady}</p>}
           </div>
@@ -1317,7 +1367,7 @@ function RoomScene({ matches = {}, selected = null, wrongSlot = null, onSlot }: 
             const word = Object.entries(matches).find(([, value]) => value === slot.id)?.[0]
             return (
               <button key={slot.id} type="button" disabled={!onSlot} onClick={() => onSlot?.(slot.id)} style={{ gridColumn: slot.gridColumn, gridRow: slot.gridRow }} className={cx('flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed bg-white/72 p-1 text-center shadow-sm transition sm:p-2', selected && 'hover:border-signal hover:bg-white', wrongSlot === slot.id ? 'animate-pulse border-danger bg-danger-soft' : word ? 'border-milestone bg-milestone-soft/90' : 'border-white/90')}>
-                <span className="text-lg sm:text-2xl">{word ? roomObjectIcons[word] : slot.icon}</span>
+                <RoomCellIcon word={word} slot={slot.id} className="size-5 sm:size-6" />
                 <span className={cx('mt-0.5 text-[9px] font-black leading-tight sm:text-xs', word ? 'text-milestone' : 'text-ink-muted')}>{word ? <RussianText text={word} /> : slot.label}</span>
               </button>
             )
@@ -1378,7 +1428,9 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
                   placeholder={'_ '.repeat(answer.length).trim()}
                   className="min-w-0 flex-1 rounded-xl border border-hairline bg-ground px-3 py-2 text-sm font-black text-ink outline-none focus:border-signal disabled:text-milestone"
                 />
-                <button type="button" disabled={done} onClick={() => check(answer)} className="rounded-xl bg-signal px-3 text-sm font-black text-on-signal disabled:bg-milestone">{done ? '✓' : '→'}</button>
+                <button type="button" disabled={done} onClick={() => check(answer)} className="rounded-xl bg-signal px-3 text-sm font-black text-on-signal disabled:bg-milestone">{done
+                ? <Check aria-hidden="true" strokeWidth={3} className="size-4" />
+                : <ArrowRight aria-hidden="true" strokeWidth={2.4} className="size-4" />}</button>
               </div>
             </Card>
           )
@@ -1549,7 +1601,11 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
           <div className="grid gap-2">
             {lesson.dialogue.slice(0, revealed).map((line, index) => (
               <div key={`${line}-${index}`} className={cx('flex items-start gap-2 rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}>
-                <SpeechButton text={dialogueSpeechText(line)} lang="ru-RU" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ground-raised text-signal-ink shadow-sm">🔊</SpeechButton>
+                <SpeechButton
+                  text={dialogueSpeechText(line)}
+                  lang="ru-RU"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ground-raised text-signal-ink shadow-sm"
+                />
                 <span className="min-w-0 flex-1"><DialogueLine line={line} /></span>
               </div>
             ))}
@@ -1599,7 +1655,9 @@ function DialogueLine({ line }: { line: string }) {
 
 function MicButton({ listening, processing, onClick }: { listening: boolean; processing: boolean; onClick: () => void }) {
   const t = useT().lesson.missions
-  return <button type="button" onClick={onClick} disabled={processing} className={cx('mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white shadow-lg disabled:opacity-60', listening ? 'animate-pulse bg-danger' : 'bg-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening ? '■' : '🎙️'}</button>
+  return <button type="button" onClick={onClick} disabled={processing} className={cx('mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white shadow-lg disabled:opacity-60', listening ? 'animate-pulse bg-danger' : 'bg-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
+      ? <Square aria-hidden="true" strokeWidth={0} className="size-5 fill-current" />
+      : <Mic aria-hidden="true" strokeWidth={1.9} className="size-6" />}</button>
 }
 
 function VocabularySection({ words, reviewed, onReviewed }: {
@@ -1617,7 +1675,7 @@ function VocabularySection({ words, reviewed, onReviewed }: {
   return (
     <>
       <Card className="flex items-center gap-4 p-4 sm:p-5">
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-signal-soft text-4xl">🗂️</div>
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-signal-soft"><Layers aria-hidden="true" strokeWidth={1.6} className="size-8 text-signal-ink" /></div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{fill(t.cards, { count: words.length })}</p>
           <h3 className="mt-1 text-xl font-black text-ink">{t.deckTitle}</h3>
@@ -1707,7 +1765,9 @@ function ExerciseSection({ lesson, answer, onAnswerChange }: {
       {lesson.game.kind === 'room-builder' && <div className="mb-4"><RoomScene /></div>}
 
       <div className="flex items-start gap-3">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-2xl">{hasScene ? '🖼️' : '✍️'}</span>
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-signal-soft ">{hasScene
+            ? <Image aria-hidden="true" strokeWidth={1.8} className="size-6 text-signal-ink" />
+            : <PenLine aria-hidden="true" strokeWidth={1.8} className="size-6 text-signal-ink" />}</span>
         <p className="min-w-0 flex-1 text-sm leading-relaxed text-ink-muted">{lesson.exercise.instruction}</p>
       </div>
 
@@ -1850,7 +1910,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
         ))}
       </div>
       {lesson.reflection && <ReflectionQuestions reflection={lesson.reflection} />}
-      {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} ↗</a>}
+      {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="inline size-4" /></a>}
     </Card>
   )
 }
@@ -1917,7 +1977,11 @@ async function speak(text: string, lang: string) {
 function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken, rate }: {
   text: string
   lang: string
-  children: ReactNode
+  /**
+   * The label beside the glyph. Omitted for the icon-only buttons — the round ones in the
+   * dialogue and the matching game — where the play glyph is the whole control.
+   */
+  children?: ReactNode
   className?: string
   stopPropagation?: boolean
   autoPlayToken?: string
@@ -1978,7 +2042,7 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   return (
     <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? t.pause : t.play}>
       {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
-      <span>{children}</span>
+      {children != null && <span>{children}</span>}
     </button>
   )
 }
@@ -2081,7 +2145,7 @@ function RuleSpeechButton({ segments, className, children }: {
   return (
     <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? t.pause : t.play}>
       {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
-      <span>{children}</span>
+      {children != null && <span>{children}</span>}
     </button>
   )
 }

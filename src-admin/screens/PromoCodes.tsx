@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { adminFetch, formatDateTime, formatMoney, useAdminQuery } from '../lib/api'
 import type { AdminPromoCode, BillingPeriod, PromoDiscountType } from '../lib/types'
-import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, Loading, PageHeader, Row, Table } from '../components/ui'
+import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Row, Screen, Table } from '../components/ui'
 
 type FormState = {
   code: string
@@ -70,7 +70,7 @@ export function PromoCodes() {
   }
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader title="Promo kodlar" subtitle="Chegirma kodlarini yaratish va kuzatish" />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
@@ -181,7 +181,7 @@ export function PromoCodes() {
           </div>
 
           {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
-          {!data && isLoading && <Loading />}
+          {!data && isLoading && <LoadingRows />}
 
           {data && (
             <Table head={['Kod', 'Tarif', 'Chegirma', 'Muddat', 'Holat', 'Ishlatilgan', 'Yaratilgan']}>
@@ -215,7 +215,7 @@ export function PromoCodes() {
             </Table>
           )}
         </div>
-      </div>
-    </div>
+      </div>
+    </Screen>
   )
 }

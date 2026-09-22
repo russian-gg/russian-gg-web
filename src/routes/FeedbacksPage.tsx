@@ -1,4 +1,7 @@
 import { useRef, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { Reveal, Sequence } from '../components/motion'
+import { stagger } from '../lib/motion'
 import { useT } from '../lib/i18n'
 import { api, RequestError } from '../lib/api'
 import { Button, Card, ErrorNote, SectionHeading, UzHint } from '../components/ui'
@@ -65,21 +68,35 @@ export function FeedbacksPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.feedbackPage.title}</h1>
-        <p className="text-support mt-1">
-          Muammo, taklif yoki eʼtirozingizni shu yerda alohida forma orqali yuboring.
-        </p>
-      </header>
+    <Sequence gap={stagger.base} className="mx-auto max-w-5xl space-y-8">
+      <Reveal as="section">
+        <header>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.feedbackPage.title}</h1>
+          <p className="text-support mt-1">{t.feedbackPage.subtitle}</p>
+        </header>
+      </Reveal>
 
-      {error && <ErrorNote>{error}</ErrorNote>}
-      {success && (
-        <div className="rounded-[var(--radius-card)] border border-milestone/30 bg-milestone-soft px-4 py-3 text-sm text-milestone">
-          {success}
-        </div>
-      )}
+      {/*
+        The two outcomes of the form. Held in an `AnimatePresence` so a message that is
+        replaced — an error clearing as a submission succeeds — leaves instead of being
+        swapped underneath the reader mid-sentence.
+      */}
+      <AnimatePresence mode="wait">
+        {error && (
+          <Reveal key="error" drive>
+            <ErrorNote>{error}</ErrorNote>
+          </Reveal>
+        )}
+        {success && (
+          <Reveal key="success" drive>
+            <div className="rounded-[var(--radius-card)] border border-milestone/30 bg-milestone-soft px-4 py-3 text-sm text-milestone">
+              {success}
+            </div>
+          </Reveal>
+        )}
+      </AnimatePresence>
 
+      <Reveal as="section">
       <Card as="section">
         <SectionHeading>{t.feedbackPage.formTitle}</SectionHeading>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -156,6 +173,7 @@ export function FeedbacksPage() {
           </div>
         </div>
       </Card>
-    </div>
+      </Reveal>
+    </Sequence>
   )
 }
