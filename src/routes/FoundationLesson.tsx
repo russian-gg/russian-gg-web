@@ -2,12 +2,19 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
   ArrowUpRight,
+  AudioLines,
   Check,
+  Gamepad2,
   Image,
   Layers,
+  MessagesSquare,
   Mic,
   PenLine,
+  Repeat2,
+  SpellCheck,
   Square,
+  Sunrise,
+  Trophy,
   Landmark,
   Package,
   PartyPopper,
@@ -47,19 +54,21 @@ import { playUiSound, type UiSound } from '../lib/ui-sounds'
 import type { StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
 
 /**
- * The nine steps, in order. Ids only — the names are copy and live at
- * `t.lesson.sections[id]`, keyed by the same id.
+ * The nine steps, in order, each with the mark that stands for it. The names themselves are copy
+ * and live at `t.lesson.sections[id]`, keyed by the same id; the icon is here because it is not
+ * copy — it says the same thing in Uzbek, Russian and English, and it is what a learner picks the
+ * step out by once they have been through a few lessons.
  */
 const sections = [
-  { id: 'tests' },
-  { id: 'phonetics' },
-  { id: 'grammar' },
-  { id: 'phrases' },
-  { id: 'game' },
-  { id: 'missions' },
-  { id: 'vocabulary' },
-  { id: 'picture' },
-  { id: 'complete' },
+  { id: 'tests', icon: Sunrise },
+  { id: 'phonetics', icon: AudioLines },
+  { id: 'grammar', icon: SpellCheck },
+  { id: 'phrases', icon: Repeat2 },
+  { id: 'game', icon: Gamepad2 },
+  { id: 'missions', icon: MessagesSquare },
+  { id: 'vocabulary', icon: Layers },
+  { id: 'picture', icon: PenLine },
+  { id: 'complete', icon: Trophy },
 ] as const
 
 type SectionId = (typeof sections)[number]['id']
@@ -258,15 +267,36 @@ export function FoundationLesson() {
       <LessonHero lesson={lesson} progress={progress} compact={state.sectionIndex > 0} />
 
       <section aria-labelledby={`section-${active.id}`}>
-        <div className="mb-3 flex items-baseline gap-2 sm:mb-4">
-          <span className="text-sm font-black text-signal-ink">{state.sectionIndex + 1}</span>
-          <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-3xl">
-            {active.id === 'grammar' && day === 1
-              ? t.sections.genderTale
-              : active.id === 'picture'
+        {/*
+          The nine steps have names of their own — Просыпайся!, Говори чётко! — and they are the
+          same nine in every lesson, so the name alone does not say what this one asks for. The
+          line under it does: what the step is in general, or, where the lesson wrote something
+          more specific than the general case, that instead.
+        */}
+        <div className="mb-3 flex items-end gap-3 sm:mb-4">
+          {/*
+            Filled rather than tinted: this header sits on the page background, not on a card, and
+            `signal-soft` on `ground` is two pale greys apart — the tile disappeared and took the
+            mark with it.
+          */}
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-signal text-on-signal shadow-[0_6px_16px_rgb(31_111_224/0.25)] sm:size-14">
+            <active.icon aria-hidden="true" strokeWidth={1.9} className="size-6 sm:size-7" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black tracking-[.1em] text-ink-faint uppercase">
+              {fill(t.sectionsOf, { done: state.sectionIndex + 1, total: sections.length })}
+            </p>
+            <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-2xl">
+              {t.sections[active.id]}
+            </h2>
+            <p className="mt-0.5 text-sm leading-snug text-ink-muted">
+              {active.id === 'picture'
                 ? lesson.exercise.title
-                : t.sections[active.id]}
-          </h2>
+                : active.id === 'grammar' && day === 1
+                  ? t.sections.genderTale
+                  : t.sectionNotes[active.id]}
+            </p>
+          </div>
         </div>
 
         {active.id === 'tests' && (
@@ -1011,7 +1041,7 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
     </div>
   )
 }
-
+
 /* ------------------------------------------------------------------- lesson pictograms */
 
 /**
