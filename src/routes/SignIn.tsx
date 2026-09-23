@@ -567,9 +567,13 @@ function AuthLayout({ title, children, footer }: { title: string; children: Reac
   const navigate = useNavigate()
   const t = useT()
 
+  /*
+    Always the landing page, never `navigate(-1)`. The entry behind an auth screen is very often
+    a protected one — the learner signed out on /home, or a guard redirected them here — and
+    stepping back onto it only bounced them straight back to sign-in, so the link did nothing.
+  */
   function goBack() {
-    if (window.history.state?.idx > 0) navigate(-1)
-    else navigate('/', { replace: true })
+    navigate('/')
   }
 
   return (
