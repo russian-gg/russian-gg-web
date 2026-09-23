@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { adminFetch, useAdminQuery } from '../lib/api'
 import type { AdminGame } from '../lib/types'
-import { Badge, Button, Card, EmptyNote, ErrorNote, Loading, PageHeader } from '../components/ui'
+import { Badge, Button, Card, EmptyNote, ErrorNote, Loading, PageHeader, Screen } from '../components/ui'
 
 /**
  * The switchboard.
@@ -34,13 +34,13 @@ export function Games() {
   const open = data?.filter((game) => game.isEnabled).length ?? 0
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader
         title="O'yinlar"
         subtitle="Qaysi o'yin foydalanuvchilarga ochiq — hammasi standart holatda yopiq"
       />
 
-      {error && <ErrorNote>{error}</ErrorNote>}
+      {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {failure && <ErrorNote>{failure}</ErrorNote>}
       {!data && isLoading && <Loading />}
 
@@ -89,7 +89,7 @@ export function Games() {
             ))}
           </div>
         </>
-      )}
-    </div>
+      )}
+    </Screen>
   )
 }

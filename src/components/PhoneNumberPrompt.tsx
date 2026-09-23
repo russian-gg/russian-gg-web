@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { MessageCircle, X } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import { useLocation } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useT } from '../lib/i18n'
 import { Button, Card, ErrorNote } from './ui'
+import { Overlay } from './motion'
 
 const DISMISS_KEY_PREFIX = 'rgg.phone-prompt.dismissed-on'
 
@@ -16,6 +19,15 @@ export function PhoneNumberPrompt() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [todayKey, setTodayKey] = useState(getLocalDayKey)
+
+  /*
+    The prompt stays mounted while it is closed so it can animate *out* — see `Overlay`. That
+    makes the focus trap's own flag load-bearing rather than incidental: without it the trap
+    would be arming itself around a dialog nobody can see, and Tab would be held captive by
+    an invisible panel on every screen in the app.
+  */
+  const visible = open && !!user && !user.phoneNumber
+  const dialogRef = useFocusTrap<HTMLDivElement>(visible)
 
   useEffect(() => {
     if (!user || user.phoneNumber) {
@@ -44,10 +56,6 @@ export function PhoneNumberPrompt() {
 
     return () => window.clearInterval(interval)
   }, [])
-
-  if (!open || !user || user.phoneNumber) {
-    return null
-  }
 
   async function submit() {
     if (!user) {
@@ -85,11 +93,10 @@ export function PhoneNumberPrompt() {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-      onClick={dismiss}
-    >
+    <Overlay open={visible} onDismiss={dismiss}>
       <Card
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="phone-prompt-title"
@@ -148,7 +155,7 @@ export function PhoneNumberPrompt() {
 
         {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
       </Card>
-    </div>
+    </Overlay>
   )
 }
 
@@ -199,20 +206,12 @@ function normalizePhoneNumber(value: string) {
 
 function PhoneGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.9]">
-      <path
-        d="M6.9 17.4c.9.5 1.9.7 3 .7 4.6 0 8.3-3.4 8.3-7.6s-3.7-7.6-8.3-7.6-8.3 3.4-8.3 7.6c0 1.6.5 3 1.5 4.2L2.3 20l4.6-2.6Z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <MessageCircle aria-hidden="true" strokeWidth={1.9} className="size-4" />
   )
 }
 
 function CloseGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6 fill-none stroke-current stroke-[1.9]">
-      <path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" />
-    </svg>
+    <X aria-hidden="true" strokeWidth={1.9} className="size-6" />
   )
 }

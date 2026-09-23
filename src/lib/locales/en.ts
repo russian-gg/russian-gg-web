@@ -21,6 +21,452 @@ export const en: Dictionary = {
     loadFailedBody: 'Check your connection and refresh the page.',
   },
 
+  level: {
+    eyebrow: 'Your result',
+    speaking: 'Speaking',
+    comprehension: 'Comprehension',
+    longestRun: 'words — your longest run of Russian',
+    totalWords: 'Words in total',
+    russian: 'Russian',
+    uzbek: 'Uzbek',
+    other: 'Other language',
+    spokeFor: 'You spoke for',
+    gaps: "What you can't do yet",
+    strengths: 'What you already have',
+    showTranscript: 'See what you said',
+    disclaimer:
+      'This is a first estimate, not a language certificate. It updates after every speaking exercise.',
+    planTitle: 'With a subscription, in 90 days',
+    planChart: 'Speaking level over 90 days',
+    today: 'Today',
+    dayShort: 'Day {day}',
+    planNote:
+      'The first point is what was measured just now. The rest is where the plan takes you at ten minutes of speaking a day.',
+  },
+
+  arcade: {
+    title: 'Games',
+    subtitle: 'The shortest way to practise speaking is to play.',
+    newGame: 'New game',
+    record: 'Best',
+    runnerTitle: 'Penguin Ice Runner',
+    runnerTagline: 'A 3D run across the ice',
+    runnerBlurb:
+      'Steer the penguin across three lanes of ice, collect the coin waves, jump the floes, and pick the gender of each Russian noun.',
+    play: 'Play',
+
+    runner: {
+      exit: 'Leave the games',
+      soundOn: 'Turn sound on',
+      soundOff: 'Turn sound off',
+      fullscreen: 'Full screen',
+      findGender: 'Pick the gender',
+      listen: 'Hear the word',
+      introTitle: 'A 3D ice run through the genders',
+      introBody:
+        'Steer the penguin down three lanes of ice: find the gender of the Russian noun, gather the coin waves, and jump the ice barriers.',
+      rulesTitle: 'How it works:',
+      ruleLeft: '• Left lane = the gender on the left of the screen',
+      ruleMiddle: '• Middle lane = the gender in the middle',
+      ruleRight: '• Right lane = the gender on the right',
+      ruleCoins: '• Collect the coins, jump the floes',
+      gesture: 'Swipe left or right to change lane. Swipe up and the penguin jumps.',
+      start: 'Start the game',
+      paused: 'Paused',
+      resume: 'Resume',
+      restart: 'Start over',
+      falling: 'The ice cracked! The penguin slipped through…',
+      over: 'Game over',
+      score: 'Score',
+      coins: 'Coins',
+      again: 'Play again',
+      backToGames: 'Back to the games',
+      controlsHint: 'Swipe left / right to change lane · swipe up to jump',
+      left: 'Left (A)',
+      jump: 'Jump',
+      right: 'Right (D)',
+      speed: 'Speed level',
+      lives: '{count} lives',
+      difficulty: {
+        normal: { label: 'Normal', caption: 'Standard speed' },
+        high: { label: 'High', caption: '25% faster' },
+        expert: { label: 'Expert', caption: '50% faster' },
+      },
+      hitObstacle: 'You hit a barrier — remember to jump!',
+      correct: 'Right gender! +1',
+      wrong: 'Wrong: «{word}» — {gender}',
+    },
+
+    saw: {
+      back: 'Games',
+      score: 'Score',
+      question: 'Question {n}',
+      keepTalking: 'Keep talking — the laser closes in on silence.',
+      unsupported: "This browser can't recognise speech. Open it in Chrome or Safari.",
+      micDenied: 'Microphone access was refused. Allow it in your browser settings.',
+      start: 'Start',
+      lostTitle: 'Ouch! 😱',
+      lostBody: 'The laser got there. It closes in whenever you go quiet.',
+      retry: 'Try again',
+      wonTitle: 'You made it! 🎉',
+      wonBody: 'A full minute without stopping. That point is yours.',
+      next: 'Next question',
+    },
+  },
+
+  placement: {
+    analysing: 'Working out your level',
+    analysingBody: "We're reading what you said — a few seconds.",
+    briefTitle: 'Have a listen',
+    briefBody: "We'll tell you what to do — the microphone opens on its own afterwards.",
+    briefDone: 'Got it, let’s start',
+
+    typeTitle: 'Write it instead',
+    typeBody:
+      'A line or two about your Russian: where you need it and where you get stuck. Write the Russian words however you know them — mixing is fine.',
+    typePlaceholder:
+      "I work in a shop, customers ask in Russian, I тушунаман but I can't answer…",
+    typeSubmit: 'See my level',
+    typeSwitchToVoice: "I'll say it out loud",
+
+    speakingTitle: 'Tell us about your Russian',
+    connecting: 'Connecting the microphone…',
+    speakingHint: 'Mixing in Uzbek is fine — where do you get stuck?',
+    permissionHint: 'One moment — if you’re asked for permission, choose “Allow”.',
+    listening: 'Listening…',
+    listeningHint: 'Go ahead — one sentence is enough.',
+    finish: 'Finish',
+    remaining: 'Time left',
+
+    step: 'Step 1',
+    introTitle: 'Tell us about your level of Russian',
+    introBody:
+      'Press the microphone and talk for 40 seconds. Where is it hard — at work, out on the street? Mixing in Uzbek is fine. No questions, no test.',
+    start: 'Start speaking',
+    startAria: 'Press and speak',
+    shortIsFine: 'A short answer is plenty',
+    cantSpeak: "I can't speak right now, I'll write instead",
+
+    cues: [
+      'What is your name, where do you work or study?',
+      'Where do you need Russian — at work, on the street, travelling?',
+      'Speak in Uzbek, and add whatever Russian words you know.',
+    ],
+
+    mic: {
+      denied: 'Microphone access was refused. Allow it in your browser settings.',
+      blocked: 'The microphone is blocked. Allow it in your browser settings.',
+      notFound: 'No microphone found.',
+      busy: 'Another application is using the microphone.',
+      insecure: 'Open the page over https — the microphone will not work otherwise.',
+      failed: 'The audio did not connect. Try again shortly.',
+      scoreFailed: "We couldn't work out the result. Please try again.",
+    },
+  },
+
+  lessonOne: {
+    eyebrow: 'Lesson 1 · A1',
+    subtitle: 'Meeting the neighbour',
+    progress: 'Lesson progress',
+    sectionsDone: '{done} / {total} sections done',
+    overallLabel: 'Overall result for the lesson',
+    back: '← Back',
+    next: 'Continue →',
+    gateTests: 'Answer both quizzes correctly to continue.',
+    gatePhrases: 'Open and listen to all 15 phrases to continue.',
+    gateGame: 'Put all 10 words in the right coloured house to continue.',
+    sections: {
+      tests: { title: 'Просыпайся!', short: 'Просыпайся!' },
+      phonetics: { title: 'Говори чётко!', short: 'Говори чётко!' },
+      grammar: { title: 'Говори правильно!', short: 'Говори правильно!' },
+      phrases: { title: 'Подражай!', short: 'Подражай!' },
+      game: { title: 'Поиграй!', short: 'Поиграй!' },
+      missions: { title: 'Практикуй!', short: 'Практикуй!' },
+      vocabulary: { title: 'Учи слова!', short: 'Учи слова!' },
+      picture: { title: 'Дерзай!', short: 'Дерзай!' },
+      complete: { title: 'Похвастайся!', short: 'Похвастайся!' },
+    },
+    dayOneHeading: 'Day 1 · Lesson result',
+    sectionsCompleted: 'Completed sections',
+    correct: 'Верно! ',
+    tryAgain: 'Try again. ',
+
+    phonetics: {
+      eyebrow: 'A, O, U and stress',
+      title: 'Say the stressed vowel clearly and long',
+      body:
+        'Russian vowels sound different stressed and unstressed. Here we practise the stressed ones. Stress can change what a word means: *за́мок* — a castle, *замо́к* — a lock.',
+      tip: 'Every time you hear a new word, say the stressed syllable louder and longer!',
+    },
+
+    grammar: {
+      eyebrow: 'A tale of the genders',
+      title: 'Welcome to the kingdoms of gender!',
+      tale:
+        'Long ago there was a great kingdom called *NOUN (имя существительное)*, and every word answering "who?" or "what?" lived in it. There came to be so many words that ruling them grew difficult, so all the nouns were sorted into three smaller kingdoms.',
+      penguinTitle: '🐧 The Penguin kingdom · Мужской род',
+      penguinBody:
+        'It took the words ending in a consonant or in *-й* (for example *дом, сосед, ключ*). They say proudly: *"он мой"*.',
+      pandaTitle: '🐼 The Panda kingdom · Женский род',
+      pandaBody:
+        'It let in the words ending in *-а, -я, -ь* (for example *квартира, лестница, дверь*). They whisper softly: *"она моя"*.',
+      featherTitle: '🪶 The Feather kingdom · Средний род',
+      featherBody:
+        'From the inanimate words it picked exactly those ending in *-о, -е, -ё* (for example *окно, море, ружьё*). They say with confidence: *"оно моё"*.',
+      ending: 'Ending',
+      examples: 'Examples',
+      anchor: 'Cue',
+      noteTitle: "Penguin's note",
+      note:
+        'Pick the colour from the end of the word: blue — мужской, red — женский, yellow — средний. Words ending in a soft sign, like *дверь*, have to be checked in a dictionary.',
+    },
+
+    phrases: {
+      title: 'Open the 15 core phrases',
+      body: 'Open a situation card, listen with 🎧, and repeat it out loud.',
+      listen: 'Listen',
+      stopListening: 'Stop',
+      reveal: 'Open the phrase',
+    },
+
+    game: {
+      rulesTitle: 'How it works',
+      rules:
+        'Drag the word into the right coloured house. On a phone, tap the word and then the house. Every correct answer is 10 points.',
+      rulesNote:
+        'Use 🎧 to hear the stress and repeat it out loud. The AI mission checks your stress separately.',
+      words: 'Words',
+      points: 'points',
+      house: 'house',
+      dropHere: 'Drop the word here',
+      retryWord: '— try again',
+      solved: '✓ Excellent! All 10 genders correct — {points} points.',
+    },
+
+    missions: {
+      dialogueTitle: 'A model dialogue',
+      moreLines: 'Next lines',
+      aiAsksTitle: 'The AI will ask you',
+      expected: 'Expected answer: {answer}',
+      aiChecks:
+        'The AI checks your stress (сосе́д, кварти́ра, этаже́), your vowels, and whether the answer is complete.',
+      readyTitle: 'Ready for the speaking mission?',
+      readyBody:
+        'The AI asks the six questions above one after another. You answer into the microphone; it checks stress, pronunciation and completeness.',
+      startAi: '🎙️ Start the 6 AI questions',
+      rolePlayHint: 'Practise the model dialogue above in roles:',
+      startDialogue: '🐧🐼 Practise the dialogue with the AI',
+      dialogueLoading: 'Preparing the dialogue…',
+      dialogueFailed: "Couldn't load the dialogue. Try refreshing the page.",
+      dialogueMissing: 'The dialogue mission was not found.',
+    },
+
+    vocabulary: {
+      intro: 'Open a card, look at the translation, and mark whether you knew it.',
+      cards: '{count} cards',
+      tapToOpen: 'Tap to open',
+      deckTitle: 'A deck of new words',
+      deckBody: 'The translation is on the back. What you know goes right, what you do not goes left.',
+      startCards: 'Start the cards →',
+      close: 'Close',
+      finishedTitle: 'Deck finished',
+      finishedBody:
+        'You knew {known} words and will practise {unknown} again. The rest are saved for review.',
+      restart: 'Start over',
+      seeFront: 'See the front of the card',
+      seeTranslation: 'See the translation',
+      russianPhrase: 'Russian phrase',
+      tapForTranslation: 'Tap the card to see the translation',
+      translation: 'Translation',
+      sampleSentence: 'Example sentence',
+      hearIt: 'Hear it pronounced',
+    },
+
+    picture: {
+      sceneLabel: 'A person holding a key at a door, and their neighbour',
+      personWithKey: 'A person holding a key',
+      key: 'Key',
+      neighbour: 'Neighbour',
+      tea: 'Tea',
+      eyebrow: 'Exercise',
+      title: 'Describe the picture in Russian, in 3–4 sentences',
+      body: 'Look at the people at the door, the key and the offer of tea. Use the words below:',
+      sample: 'Example',
+    },
+
+    complete: {
+      badge: 'Lesson 1 complete',
+      title: 'Excellent!',
+      body:
+        'You can now meet your neighbour, introduce yourself, and invite someone in Russian. Keep going — this is your first step!',
+      meetTitle: 'Introductions',
+      meetBody: 'You can say your name.',
+      homeTitle: 'Home and neighbour',
+      homeBody: 'You can talk about where you live.',
+      inviteTitle: 'An invitation',
+      inviteBody: 'You can invite someone for tea.',
+      practiceAi: 'Practise the conversation with the AI',
+      seeProgress: 'See your progress',
+      restart: 'Start the lesson again',
+    },
+  },
+
+  lesson: {
+    eyebrow: 'Lesson {day} · A1',
+    progress: 'Lesson progress',
+    sectionsOf: '{done} / {total} sections',
+    back: '← Back',
+    next: 'Continue →',
+    finishLesson: 'Finish the lesson',
+    tryAgain: 'Try again.',
+
+    sections: {
+      tests: 'Просыпайся!',
+      phonetics: 'Говори чётко!',
+      grammar: 'Говори правильно!',
+      phrases: 'Подражай!',
+      game: 'Поиграй!',
+      missions: 'Практикуй!',
+      vocabulary: 'Учи слова!',
+      picture: 'Дерзай!',
+      complete: 'Похвастайся!',
+      genderTale: 'Говори правильно!',
+    },
+
+    /** One line under each step name: what the learner is about to do. */
+    sectionNotes: {
+      tests: "Warm-up dialogue and a quick test",
+      phonetics: "A pronunciation rule",
+      grammar: "How words join into sentences",
+      phrases: "15 phrases with GIFs, translation and colour coding",
+      game: "A new game on today's topic",
+      missions: "Read the dialogue, then question and answer with the AI",
+      vocabulary: "20 picture cards with word pairs",
+      picture: "A creative exercise: write a text or a dialogue",
+      complete: "Reflection and the lesson wrap-up",
+    },
+
+    gate: {
+      tests: 'Answer every quiz correctly to continue.',
+      phrases: 'Open and rate every phrase to continue.',
+      game: 'Finish the game to continue.',
+      dialogue: 'Practise the dialogue all the way through first.',
+      aiChat: 'Now move on to the conversation with the AI.',
+      vocabulary: 'Look through at least {count} cards to continue.',
+      picture: 'Write your answer to the exercise to continue.',
+    },
+
+    rule: {
+      listen: 'Hear the rule',
+      speed: { slow: 'Slow', normal: 'Normal', fast: 'Fast' },
+      tongueTwister: 'Скороговорка · a speed drill',
+      tongueTwisterHint: 'Slowly first, then at normal speed, then fast.',
+      penguinKingdom: 'The Penguin kingdom',
+      pandaKingdom: 'The Panda kingdom',
+      featherKingdom: 'The Feather kingdom',
+    },
+
+    phrases: {
+      intro:
+        'Pick a phrase. It opens as a card: the situation, the pronunciation, an example sentence and how well you knew it, all in one place.',
+      open: 'Open the card',
+      close: 'Close',
+      example: 'Example sentence',
+      repeat: 'Listen and repeat!',
+    },
+
+    game: {
+      words: 'Words',
+      swipe: 'Swipe sideways →',
+      hearWord: 'Hear the word {word}',
+      allPlaced: 'Every word is placed! ✓',
+      wrongHouse: "— that doesn't belong in this house, try again",
+      pairs: 'Pairs',
+      points: 'points',
+      missingFromBag: "What's missing from the bag?",
+      bagReady: 'Bag packed!',
+      bagBonus: 'You got to work on time. +30 bonus points!',
+      ready: 'Done',
+      cityMap: 'City map',
+      pickTrueSentenceSuffix: '— pick the true sentence:',
+      cityDone: 'The city map is finished!',
+      cityDoneBody: 'You built correct sentences about 10 favourite places — 100 points!',
+      guestsAndFamily: 'Guests and family in one room',
+      pickPluralSuffix: '— pick the plural:',
+      objects: 'Objects',
+      roomReady: 'The room is ready! ✓',
+      wrongPlace: 'That belongs somewhere else. Try again.',
+      pickSpotSuffix: '— tap the right spot in the room.',
+      familyPhoto: 'Family photo',
+      familyPhotoAlt: 'A family photo with Panda and Penguin',
+    },
+
+    missions: {
+      practiseDialogue: 'Practise the dialogue',
+      aiChat: 'Talk to the AI',
+      intro:
+        'Listen to each line and repeat it out loud. Once you have worked through the whole dialogue, you move on to the conversation with the AI.',
+      goToAi: 'Move on to the AI conversation →',
+      nextLine: 'Next line',
+      backToDialogue: '← Back to the dialogue',
+      step: 'Step {n}',
+      mic: 'Microphone',
+      stopRecording: 'Stop recording',
+      twoNeighbours: 'Two neighbours talking',
+    },
+
+    vocabulary: {
+      cards: '{count} cards',
+      deckTitle: 'A deck of new words',
+      open: 'Open',
+      resume: 'Resume',
+      listenAndRepeat: 'Listen and repeat',
+      tapForFront: 'Tap the card for the front',
+      known: 'выучил',
+      unknown: 'не знаю',
+      again: 'повторю',
+    },
+
+    exercise: {
+      familyPhoto: 'Family photo',
+      template: 'Template',
+      placeholder: 'Write your answer here…',
+      listenToText: 'Hear the text',
+      sample: 'Example',
+    },
+
+    complete: {
+      badge: 'Lesson {day} complete',
+      title: 'Excellent!',
+      body:
+        "Today's phrases, the rule, the game and the speaking drills are done. Use what is new in your next conversation.",
+    },
+
+    audio: {
+      play: 'Listen',
+      pause: 'Pause',
+    },
+  },
+
+  dayPreview: {
+    description:
+      'In this lesson you will learn new rules and phrases, then practise them in interactive activities.',
+    start: 'Start lesson',
+    resume: 'Continue lesson',
+    repeat: 'Repeat lesson',
+    close: 'Close',
+    lessonDay: 'Lesson {day}',
+    sections: 'sections',
+    completed: 'Completed',
+    dayBadge: 'Day {day}',
+    perDay: '/day',
+    telegram: 'Get in touch on Telegram',
+    stopListening: 'Stop playback',
+    geminiReply: 'Gemini reply',
+    attachmentNote:
+      'For now only the file name is kept alongside your comment. We can wire up a full upload later if it is needed.',
+  },
+
   nav: {
     today: "Today's lesson",
     todayShort: 'Today',
@@ -37,6 +483,7 @@ export const en: Dictionary = {
     main: 'Main',
     daysDone: '{count} days done',
     comingSoon: 'Coming soon',
+    skipToContent: 'Skip to content',
   },
 
   account: {
@@ -432,6 +879,49 @@ export const en: Dictionary = {
     empty: 'No lesson for today',
     emptyBody: 'Pick another lesson from the 90-day path, or open the task library.',
     streak: '{count} days in a row',
+    seeAll: 'See all',
+    more: 'Details',
+    search: {
+      label: 'Search the course',
+      placeholder: 'Search for a day or a topic...',
+      noResults: 'Nothing found.',
+      day: 'Day {day}',
+    },
+    features: {
+      title: 'Main features',
+      subtitle: 'Make learning enjoyable and effective',
+      today: { title: "Today's lesson", body: 'Learn something new' },
+      tasks: { title: 'Tasks', body: 'Practise more' },
+      tests: { title: 'Tests', body: 'Check what you know' },
+      games: { title: 'Games', body: 'Learn by playing' },
+      progress: { title: 'Progress', body: 'Follow your results' },
+    },
+    recommended: {
+      title: 'Recommended lessons',
+      minutes: '{count} min',
+    },
+    quote: {
+      show: 'Show quote {n}',
+    },
+    progressPanel: {
+      title: 'My progress',
+      days: 'days',
+      done: 'Completed',
+      left: 'Remaining',
+    },
+    achievements: {
+      title: 'Achievements',
+    },
+    recent: {
+      title: 'Recent activity',
+      day: 'Day {day}',
+    },
+    hero: {
+      eyebrow: 'LEARN RUSSIAN',
+      title: 'Small steps, big possibilities!',
+      subtitle: 'A little every day — towards fluent Russian.',
+      cta: "Start today's lesson",
+    },
     activity: {
       title: 'Activity',
       subtitle: 'Your visits and lessons over 7 weeks',
@@ -454,6 +944,14 @@ export const en: Dictionary = {
   },
 
   path: {
+    hero: {
+      eyebrow: 'LEARN RUSSIAN',
+      subtitle: 'A little every day — towards fluent Russian.',
+      dayUnit: 'days',
+      noteTitle: 'You can do this!',
+      noteBody: 'Every day of study is a step towards something new.',    },
+    filterPro: 'Pro needed',
+    inProgress: 'In progress',
     title: '90-day path',
     subtitle: 'One clear task per day — the path opens as you walk it.',
     today: 'Today',
@@ -484,6 +982,22 @@ export const en: Dictionary = {
     noResults: 'No matching days found.',
   },
 
+  preview: {
+    whatToExpect: 'What to expect',
+    missionEyebrow: 'Task',
+    goal: 'Goal',
+    time: 'Time',
+    phrases: 'Phrases',
+    phrasesValue: '{count} phrases',
+    passMark: 'Pass mark',
+    passValue: 'At least {score}%',
+    conversationBody:
+      'Your partner speaks and you answer out loud. The conversation ends once you reach the ' +
+      'goal or the time runs out.',
+    stepsBody:
+      'You go through the new phrases first, then practise them out loud.',
+    registerNote: 'Mind the register here — it does not fit every setting.',
+  },
   practice: {
     title: 'Ready to work through some tasks?',
     subtitle:
@@ -850,6 +1364,7 @@ export const en: Dictionary = {
   },
 
   feedbackPage: {
+    subtitle: 'Send a problem, a suggestion or a complaint here, on its own form.',
     title: 'Feedback',
     formTitle: 'Feedback form',
     kind: 'Type of problem',

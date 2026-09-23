@@ -1,6 +1,28 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  ClipboardCheck,
+  Clock,
+  Compass,
+  Gamepad2,
+  Gauge,
+  Globe,
+  LogOut,
+  MessageCircle,
+  Moon,
+  Settings,
+  Target,
+  Volume2,
+  VolumeX,
+} from 'lucide-react'
+import { Link, NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
 import { useAuth } from '../lib/auth-context'
 import {
   PLAYBACK_SPEEDS,
@@ -10,6 +32,7 @@ import {
 } from '../lib/audio-preferences'
 import { planLabel } from '../lib/format'
 import { useOpenGames } from '../lib/games'
+import { useRouteChange } from '../lib/route-change'
 import { useTheme } from '../lib/theme'
 import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
 import { useQuery } from '@tanstack/react-query'
@@ -17,6 +40,7 @@ import { api } from '../lib/api'
 import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { Badge, Switch } from './ui'
+import { duration, ease } from '../lib/motion'
 
 const NAV = [
   { to: '/home', key: 'today', icon: TodayGlyph },
@@ -29,6 +53,8 @@ const NAV = [
 
 export function AppShell() {
   const t = useT()
+  const mainRef = useRef<HTMLElement>(null)
+  useRouteChange(mainRef)
   /*
    * The games row exists only when the panel has opened at least one. Everything is off by
    * default, so the ordinary state is no row at all — and a menu item leading to an empty
@@ -53,6 +79,24 @@ export function AppShell() {
 
   return (
     <div className="app-shell min-h-dvh overflow-x-clip bg-ground-sunken md:flex">
+      {/*
+        The first tab stop on every screen. Hidden until it has focus, then it sits over the
+        header — without it, reaching the content by keyboard means tabbing past the whole
+        rail and the account menu on every single navigation.
+      */}
+      <a
+        href="#main"
+        onClick={(event) => {
+          // A same-page hash does not move focus on its own in several browsers, and the
+          // router would treat the href as a route besides.
+          event.preventDefault()
+          mainRef.current?.focus()
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-[var(--radius-control)] focus:bg-signal focus:px-4 focus:py-2 focus:text-sm focus:font-extrabold focus:text-on-signal"
+      >
+        {t.nav.skipToContent}
+      </a>
+
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-2">
@@ -100,9 +144,17 @@ export function AppShell() {
       {/*
         The bottom padding clears the tab bar plus the home indicator; without it the last
         card on every screen sits under the bar and cannot be reached.
+
+        `tabIndex={-1}` makes this focusable without putting it in the tab order, which is what
+        both the skip link and the route-change announcement need to move focus here.
       */}
-      <main className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12">
-        <Outlet />
+      <main
+        ref={mainRef}
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12"
+      >
+        <PageTransition />
       </main>
 
       <PhoneNumberPrompt />
@@ -188,14 +240,11 @@ function WelcomeDiscountCountdown() {
 
 function ClockGlyph({ pulsing }: { pulsing: boolean }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
+    <Clock
       aria-hidden="true"
-      className={`size-3.5 shrink-0 fill-none stroke-current stroke-[2.2] ${pulsing ? 'animate-pulse' : ''}`}
-    >
-      <circle cx="12" cy="13.5" r="7.5" />
-      <path d="M12 10v3.5l2.3 1.8M9.5 3h5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+      strokeWidth={2.2}
+      className={`size-3.5 shrink-0 ${pulsing ? 'animate-pulse' : ''}`}
+    />
   )
 }
 
@@ -317,9 +366,11 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         <ChevronGlyph direction={open ? 'up' : 'down'} />
       </button>
 
-      {open && (
-        <ProfilePopover
-          anchor={triggerRef}
+      <AnimatePresence>
+        {open && (
+          <ProfilePopover
+            key="profile-menu"
+            anchor={triggerRef}
           compact={compact}
           label={t.account.menu}
           onDismiss={() => setOpen(false)}
@@ -357,8 +408,9 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 
           <MenuItem label={t.account.feedback} icon={<ChatGlyph />} onClick={() => go('/feedbacks')} />
           <MenuItem label={t.account.signOut} icon={<ExitGlyph />} onClick={() => void logout()} danger />
-        </ProfilePopover>
-      )}
+          </ProfilePopover>
+        )}
+      </AnimatePresence>
     </>
   )
 }
@@ -420,17 +472,45 @@ function ProfilePopover({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onDismiss])
 
+  /*
+    The menu unfolds from the button that opened it, which means it scales from the corner it
+    is pinned to rather than from its own middle — a panel that grows from its centre reads as
+    a dialog that happened to land near the trigger.
+
+    The two placements need two origins, and they are the mirror of each other: on a phone the
+    menu hangs down from the avatar in the header, so it opens from its top-right and starts a
+    few pixels high; on desktop it opens upwards out of the rail's footer, so it grows from its
+    bottom-left and starts a few pixels low.
+
+    Exit matters more here than entrance. A menu that vanishes between two frames on a click
+    leaves the eye with no idea whether the click registered, which is why this is worth the
+    presence machinery at all.
+  */
+  const origin = compact ? 'top right' : 'bottom left'
+  const offset = compact ? -6 : 6
+
   return createPortal(
     <>
-      <div className="fixed inset-0 z-40" onClick={onDismiss} aria-hidden="true" />
-      <div
+      <m.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: duration.quick, ease: ease.exit }}
+        className="fixed inset-0 z-40"
+        onClick={onDismiss}
+        aria-hidden="true"
+      />
+      <m.div
         role="menu"
         aria-label={label}
-        style={style ?? { visibility: 'hidden' }}
+        initial={{ opacity: 0, scale: 0.95, y: offset }}
+        animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: duration.quick, ease: ease.enter } }}
+        exit={{ opacity: 0, scale: 0.97, y: offset * 0.6, transition: { duration: 0.12, ease: ease.exit } }}
+        style={{ ...(style ?? { visibility: 'hidden' }), transformOrigin: origin }}
         className="fixed z-50 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-2 shadow-2xl"
       >
         {children}
-      </div>
+      </m.div>
     </>,
     document.body,
   )
@@ -510,91 +590,56 @@ function MenuItem({
   )
 }
 
-/* Abstract line glyphs — circle, line and wave motifs only (PRD §7). No emoji, no icon font. */
+/*
+  The menu glyphs, from Lucide.
 
-const glyph = 'size-[18px] fill-none stroke-current stroke-[1.6]'
+  They were hand-drawn in a circle-line-and-wave register, and Lucide is that same register
+  with one consistent hand across four hundred shapes — so a glyph this product has not needed
+  yet no longer has to be invented before it can be used. The named wrappers stay: every call
+  site says what the icon *means* here, not what it depicts.
+
+  1.6 rather than Lucide's default 2. At 18px the default closes up the counters, and these sit
+  beside 15px text where a heavier icon reads as the louder thing in the row.
+*/
+
+const glyph = 'size-[18px] shrink-0'
+const STROKE = 1.6
 
 function ChevronGlyph({ direction }: { direction: 'up' | 'down' | 'right' }) {
-  const rotation = { up: 'rotate-180', down: '', right: '-rotate-90' }[direction]
+  const Icon = { up: ChevronUp, down: ChevronDown, right: ChevronRight }[direction]
 
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className={`size-4 shrink-0 fill-none stroke-current stroke-[1.8] text-ink-faint ${rotation}`}
-    >
-      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <Icon aria-hidden="true" strokeWidth={1.8} className="size-4 shrink-0 text-ink-faint" />
 }
 
-
-
 function GearGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <circle cx="12" cy="12" r="3.2" />
-      <circle cx="12" cy="12" r="8" strokeDasharray="2.6 3.1" />
-    </svg>
-  )
+  return <Settings aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function ChatGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.4-4.4A7.5 7.5 0 1 1 20 12Z" strokeLinejoin="round" />
-    </svg>
-  )
+  return <MessageCircle aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function MoonGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.5 8.5 0 1 0 20 14.2Z" strokeLinejoin="round" />
-    </svg>
-  )
+  return <Moon aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function GlobeGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M3.5 12h17M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5S14.2 18.1 12 20.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5Z" />
-    </svg>
-  )
+  return <Globe aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function ExitGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <path d="M14 5.5H6.5v13H14" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M13.5 12h6m0 0-2.6-2.6M19.5 12l-2.6 2.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <LogOut aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function SpeedGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <path d="M4 15.5a8.5 8.5 0 1 1 16 0" strokeLinecap="round" />
-      <path d="m12 13 4-4" strokeLinecap="round" />
-      <circle cx="12" cy="13" r="1.4" />
-    </svg>
-  )
+  return <Gauge aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function SoundGlyph({ muted }: { muted: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={glyph}>
-      <path d="M5 9.5h3l4-3v11l-4-3H5Z" strokeLinejoin="round" />
-      {muted ? (
-        <path d="m16 10 4 4m0-4-4 4" strokeLinecap="round" />
-      ) : (
-        <path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10" strokeLinecap="round" />
-      )}
-    </svg>
-  )
+  const Icon = muted ? VolumeX : Volume2
+  return <Icon aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
+
 
 /**
  * The phone tab bar. Icon-only by request, so every item carries an `aria-label` and
@@ -660,64 +705,89 @@ function TabLink({
   )
 }
 
-/* Abstract line glyphs for the tab bar — circle, line and wave motifs only (PRD §7). */
+/*
+  The tab bar and rail glyphs.
 
-const navGlyph = 'size-6 fill-none stroke-current stroke-[1.7]'
+  Each has to be told apart at 24px in peripheral vision, which is all the attention a tab bar
+  ever gets, so the difference between them is silhouette rather than detail. 1.7 for the same
+  reason the menu uses 1.6: Lucide's default weight is drawn for larger sizes than these.
+*/
+
+const navGlyph = 'size-6 shrink-0'
+const NAV_STROKE = 1.7
 
 function TodayGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <rect x="4.5" y="5.5" width="15" height="14" rx="2.5" />
-      <path d="M8 3.5v4M16 3.5v4M4.5 9.5h15" strokeLinecap="round" />
-    </svg>
-  )
+  return <CalendarDays aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
 }
 
 function PathGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="m15.5 7.5-2.2 5.8-5.8 2.2 2.2-5.8 5.8-2.2Z" strokeLinejoin="round" />
-    </svg>
-  )
+  return <Compass aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
 }
 
 function TasksGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <circle cx="12" cy="12" r="8.5" />
-      <circle cx="12" cy="12" r="5.25" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  )
+  return <Target aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
 }
 
-/** A controller, read as a silhouette: two grips, a cross and a button. */
 function GamesGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 5.4l-.6 3A2.6 2.6 0 0 1 16 17.2L14.6 15H9.4L8 17.2a2.6 2.6 0 0 1-4.7-.8l-.6-3A4.5 4.5 0 0 1 7.5 8Z" />
-      <path d="M7 10.6v2.2M5.9 11.7h2.2" strokeLinecap="round" />
-      <circle cx="16.4" cy="11.6" r="1" />
-    </svg>
-  )
+  return <Gamepad2 aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
 }
 
 function TestsGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <rect x="5" y="3.5" width="14" height="17" rx="2.5" />
-      <path d="M8.5 9h4M8.5 12.5h7" strokeLinecap="round" />
-      <path d="m8.5 16.4 1.6 1.6 3.2-3.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <ClipboardCheck aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
 }
 
 function ProgressGlyph() {
+  return <BarChart3 aria-hidden="true" strokeWidth={NAV_STROKE} className={navGlyph} />
+}
+
+
+/**
+ * The screen underneath the shell, changing.
+ *
+ * Only the `main` region animates. The rail, the header and the tab bar are furniture — they
+ * did not change, and fading them out and back in on every navigation would say they did,
+ * which is both a lie and the thing that makes a single-page app feel like it is reloading.
+ *
+ * `mode="wait"` rather than a crossfade. Two screens of different heights overlapping in
+ * normal flow makes the page jump to the taller one and back; waiting costs the exit duration
+ * and nothing else. That exit is deliberately the short one — the learner has already decided
+ * to leave, so the only honest thing to do is get out of the way.
+ *
+ * Keyed on `pathname`, not on the whole location: `/settings/billing` and `/settings/general`
+ * are the same screen with a different tab selected, and re-mounting it between them would
+ * throw away the panel the learner is reading. They are separate paths, so they *are* keyed
+ * apart here — but the search string is excluded for the same reason, so a query parameter
+ * changing under a screen never restarts it.
+ */
+function PageTransition() {
+  const { pathname } = useLocation()
+  /*
+    `useOutlet()` rather than `<Outlet />`, and this is load-bearing rather than a style
+    preference.
+
+    `AnimatePresence` holds the leaving screen on stage by re-rendering the element it saved
+    from the previous render. An `<Outlet />` in that saved element is not a screen — it is an
+    instruction to look up whatever screen the router is pointing at *now*, and by the time
+    the exit runs the router is already pointing at the new one. The result is the screen the
+    learner just opened playing the leaving animation, and then immediately playing the
+    arriving one: a visible double flash on every single navigation.
+
+    `useOutlet()` resolves the match to a concrete element while the old location is still
+    current, so what gets held on stage is the screen that is actually leaving.
+  */
+  const outlet = useOutlet()
+
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={navGlyph}>
-      <path d="M4 20h16M6 17v-6M12 17V5M18 17V9" strokeLinecap="round" />
-    </svg>
+    <AnimatePresence mode="wait" initial={false}>
+      <m.div
+        key={pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.enter } }}
+        exit={{ opacity: 0, y: -6, transition: { duration: 0.13, ease: ease.exit } }}
+      >
+        {outlet}
+      </m.div>
+    </AnimatePresence>
   )
 }
 

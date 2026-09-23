@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, setRequestLanguage, tokenStore } from './api'
 import {
-  DEFAULT_LOCALE,
   LocaleContext,
   isLocale,
   readStoredLocale,
@@ -12,11 +11,22 @@ import {
   type Dictionary,
   type Locale,
 } from './i18n'
-import { en } from './locales/en'
-import { ru } from './locales/ru'
 import { uz } from './locales/uz'
 
-const DICTIONARIES: Record<Locale, Dictionary> = { uz, ru, en }
+/**
+ * Uzbek is compiled in; Russian and English are fetched when somebody asks for them.
+ *
+ * The three dictionaries are 802 keys each and were all three in the entry chunk, so every
+ * learner downloaded two languages they had not chosen. Uzbek stays static because it is the
+ * default and the overwhelming majority case — making it async too would put a loading state
+ * in front of the first paint for everyone, to save nobody anything.
+ */
+const LOADERS: Record<Exclude<Locale, 'uz'>, () => Promise<Dictionary>> = {
+  ru: () => import('./locales/ru').then((module) => module.ru),
+  en: () => import('./locales/en').then((module) => module.en),
+}
+
+const loaded: Partial<Record<Locale, Dictionary>> = { uz }
 
 /**
  * Sits above the router so every screen can read the language. Uzbek is where every visitor
@@ -26,6 +36,41 @@ const DICTIONARIES: Record<Locale, Dictionary> = { uz, ru, en }
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [locale, setLocaleState] = useState<Locale>(startingLocale)
+  /*
+   * What is actually on screen, which is not the same as `locale` for the moment between
+   * choosing Russian and its dictionary arriving. Holding the previous language for those few
+   * hundred milliseconds is the right behaviour: the alternative is every label on the page
+   * blanking or falling back to Uzbek and then changing again.
+   */
+  const [dictionary, setDictionary] = useState<Dictionary>(() => loaded[startingLocale()] ?? uz)
+
+  /*
+   * Fetches whatever `locale` needs and is not held yet. A learner whose account or stored
+   * choice is Russian lands here on the first render, so the switch below is not the only
+   * path that can need a load.
+   */
+  useEffect(() => {
+    const held = loaded[locale]
+    if (held) {
+      setDictionary(held)
+      return
+    }
+
+    let current = true
+
+    void LOADERS[locale as Exclude<Locale, 'uz'>]()
+      .then((next) => {
+        loaded[locale] = next
+        if (current) setDictionary(next)
+      })
+      // A failed chunk leaves the previous language up rather than an empty screen. The next
+      // switch tries again.
+      .catch(() => {})
+
+    return () => {
+      current = false
+    }
+  }, [locale])
 
   // `lang` matters for hyphenation, spell-check and screen-reader pronunciation. The same
   // value goes onto every request so the server answers its messages in this language too.
@@ -75,11 +120,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       locale,
-      t: DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE],
+      t: dictionary,
       setLocale,
       adoptAccountLocale,
     }),
-    [locale, setLocale, adoptAccountLocale],
+    [locale, dictionary, setLocale, adoptAccountLocale],
   )
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>

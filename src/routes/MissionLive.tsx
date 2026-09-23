@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, Clock } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
@@ -10,7 +11,7 @@ import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/l
 import type { LiveFunctionDeclaration, LiveVoiceStatus } from '../lib/liveVoice'
 import type { MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
 import { CharacterOrb, type OrbState } from '../components/CharacterOrb'
-import { Button, ErrorNote, Spinner } from '../components/ui'
+import { Button, ErrorNote, QueryError, Spinner } from '../components/ui'
 
 type Phase = 'ready' | 'connecting' | 'live' | 'finishing' | 'unavailable'
 
@@ -64,7 +65,7 @@ export function MissionLive() {
   const navigate = useNavigate()
   const { missionId } = useParams<{ missionId: string }>()
 
-  const { data: mission, isLoading } = useQuery({
+  const { data: mission, isLoading, isError, refetch } = useQuery({
     queryKey: ['mission-detail', missionId],
     queryFn: () => api.get<MissionDetail>(`/missions/${missionId}`),
     enabled: Boolean(missionId),
@@ -346,6 +347,12 @@ export function MissionLive() {
       sessionRef.current = session
       await session.start()
     } catch (caught) {
+      // A session that failed half-way still holds the microphone it opened. Closing it hands
+      // that back; without this the recording indicator stayed lit until the tab was closed.
+      const started = sessionRef.current
+      sessionRef.current = null
+      await started?.close().catch(() => {})
+
       releaseMicrophone()
       setPhase('ready')
       setError(caught instanceof RequestError ? caught.message : copy.startFailed)
@@ -366,6 +373,7 @@ export function MissionLive() {
   }
 
   if (isLoading) return <Spinner />
+  if (isError || !mission) return <QueryError onRetry={() => void refetch()} />
   if (!mission?.dialogue) {
     navigate(`/missions/${missionId}`, { replace: true })
     return null
@@ -570,18 +578,11 @@ export function MissionLive() {
 /** Points at the drawer: left when it is closed and there is more to pull out, right when open. */
 function ChevronGlyph({ open }: { open: boolean }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={cx('size-4 text-ink-muted transition-transform duration-300', open && 'rotate-180')}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <ChevronLeft
       aria-hidden="true"
-    >
-      <path d="M15 6l-6 6 6 6" />
-    </svg>
+      strokeWidth={2.5}
+      className={cx('size-4 text-ink-muted transition-transform duration-300', open && 'rotate-180')}
+    />
   )
 }
 
@@ -600,17 +601,12 @@ function formatClock(seconds: number) {
 
 function BackGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 5l-7 7 7 7" />
-    </svg>
+    <ChevronLeft aria-hidden="true" strokeWidth={2} className="size-4" />
   )
 }
 
 function ClockGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-2" strokeLinecap="round">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 1.8" />
-    </svg>
+    <Clock aria-hidden="true" strokeWidth={2} className="size-3.5" />
   )
 }

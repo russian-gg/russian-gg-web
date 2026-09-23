@@ -18,7 +18,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist-admin',
-    sourcemap: true,
+    /*
+      The map is still written for local debugging, but no `sourceMappingURL` comment points
+      at it — the panel was serving 1.2 MB of readable admin source to anyone who opened dev
+      tools on admin.russian.gg.
+    */
+    sourcemap: 'hidden',
     rollupOptions: {
       input: { admin: fileURLToPath(new URL('./admin.html', import.meta.url)) },
     },

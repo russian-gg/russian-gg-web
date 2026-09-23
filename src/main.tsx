@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from './App'
 import { AuthProvider } from './lib/auth'
 import { LocaleProvider } from './lib/locale-provider'
+import { MotionProvider } from './components/motion'
 import { RequestError } from './lib/api'
 import { registerServiceWorker } from './lib/pwa'
 import './styles.css'
@@ -33,11 +34,18 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <LocaleProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </BrowserRouter>
+        {/*
+          Outermost of the UI providers on purpose: it carries the reduced-motion contract, and
+          anything rendered outside it — a dialog portalled from a gate, a toast — would animate
+          without consulting the operating system. See lib/motion.tsx.
+        */}
+        <MotionProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </BrowserRouter>
+        </MotionProvider>
       </LocaleProvider>
     </QueryClientProvider>
   </StrictMode>,

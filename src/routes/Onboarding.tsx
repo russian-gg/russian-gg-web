@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Mic } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { pickAudioSource } from '../lib/audio-source'
+import { useT, type Dictionary } from '../lib/i18n'
 import { useAuth } from '../lib/auth-context'
 import { onboardingDraft } from '../lib/onboardingDraft'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
@@ -20,30 +23,29 @@ type Stage = 'intro' | 'briefing' | 'speaking' | 'analysing' | 'result' | 'typin
  * once rather than per visitor: it is the same forty words every time, and paying a model to
  * say them again for each person is paying for a constant.
  *
- * Recorded by scripts/build-onboarding-audio.py. If the file is missing the microphone still
- * opens — a brief that fails to load must not cost somebody their turn.
+ * Recorded by scripts/build-onboarding-audio.py, then encoded to Opus and MP3 by
+ * scripts/optimize-assets.mjs — the WAV it records is 1 MB, which is not a reasonable thing to
+ * put in front of somebody who has not yet decided to use the product. `pickAudioSource`
+ * chooses between the two at runtime. If neither loads the microphone still opens: a brief
+ * that fails to arrive must not cost somebody their turn.
  */
-const BRIEFING_AUDIO = '/audio/onboarding-intro.wav'
+const BRIEFING_AUDIO = pickAudioSource('/audio/onboarding-intro')
 
 /**
- * What to say, for the person staring at a microphone with nothing in their head.
+ * Which sentence a voice-layer failure gets. The codes belong to `liveVoice`; the words
+ * belong to the dictionary, so this is only the mapping between them.
  *
- * Most people here have never been asked to speak Russian on purpose, and an empty forty
- * seconds is its own kind of panic: "what do I say?", "what if I get it wrong?". Three plain
- * questions remove the blank page without turning this back into a questionnaire.
+ * (The cues a learner reads while deciding what to say are `t.placement.cues`. Most people
+ * here have never been asked to speak Russian on purpose, and an empty forty seconds is its
+ * own kind of panic — three plain questions remove the blank page without turning this back
+ * into a questionnaire.)
  */
-const CUES = [
-  'Ismingiz nima, qayerda ishlaysiz yoki o\'qiysiz?',
-  'Rus tili qayerda kerak — ishdami, ko\'chadami yoki sayohatdami?',
-  'O\'zbekcha gapiravering, bilgan ruscha so\'zlaringizni qo\'shing.',
-]
-
-const MIC_MESSAGE: Partial<Record<VoiceErrorCode, string>> = {
-  mic_denied: "Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.",
-  mic_blocked: "Mikrofon bloklangan. Brauzer sozlamalaridan ruxsat bering.",
-  mic_not_found: 'Mikrofon topilmadi.',
-  mic_busy: 'Mikrofonni boshqa dastur band qilgan.',
-  mic_insecure: "Sahifani https orqali oching — mikrofon aks holda ishlamaydi.",
+const MIC_MESSAGE: Partial<Record<VoiceErrorCode, keyof Dictionary['placement']['mic']>> = {
+  mic_denied: 'denied',
+  mic_blocked: 'blocked',
+  mic_not_found: 'notFound',
+  mic_busy: 'busy',
+  mic_insecure: 'insecure',
 }
 
 /**
@@ -59,6 +61,9 @@ const MIC_MESSAGE: Partial<Record<VoiceErrorCode, string>> = {
  * halfway is itself the finding rather than a failure.
  */
 export function Onboarding() {
+  const t = useT().placement
+  const copy = useRef(t)
+  copy.current = t
   const navigate = useNavigate()
   const { user, completePendingOnboarding } = useAuth()
 
@@ -146,7 +151,7 @@ export function Onboarding() {
         setAssessment(result.assessment)
         setStage('result')
       } catch {
-        setFailure("Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.")
+        setFailure(copy.current.mic.scoreFailed)
         setStage('intro')
       }
     },
@@ -314,7 +319,8 @@ export function Onboarding() {
       // from its side — and printing it would compete with the learner's own words.
       onOutputTranscript: () => {},
       onError: (code) => {
-        setFailure(MIC_MESSAGE[code] ?? "Ovoz ulanmadi. Birozdan keyin urinib ko'ring.")
+        const key = MIC_MESSAGE[code]
+        setFailure(key ? copy.current.mic[key] : copy.current.mic.failed)
         void finish()
       },
       // Forty seconds is too short to reconnect through. Whatever was said already counts.
@@ -365,10 +371,8 @@ export function Onboarding() {
       <Layout>
         <div className="space-y-4 py-10 text-center">
           <Spinner />
-          <h1 className="text-xl font-black text-ink">Darajangiz tahlil qilinmoqda</h1>
-          <p className="text-[15px] text-ink-muted">
-            Aytganlaringizni o'qiyapmiz — bir necha soniya.
-          </p>
+          <h1 className="text-xl font-black text-ink">{t.analysing}</h1>
+          <p className="text-[15px] text-ink-muted">{t.analysingBody}</p>
         </div>
       </Layout>
     )
@@ -378,10 +382,8 @@ export function Onboarding() {
     return (
       <Layout>
         <div className="space-y-5 text-center">
-          <h1 className="text-xl font-black text-ink">Tinglang</h1>
-          <p className="text-[15px] text-ink-muted">
-            Nima qilish kerakligini aytib beramiz — tugagach, mikrofon o'zi ochiladi.
-          </p>
+          <h1 className="text-xl font-black text-ink">{t.briefTitle}</h1>
+          <p className="text-[15px] text-ink-muted">{t.briefBody}</p>
 
           <div className="relative mx-auto grid size-28 place-items-center">
             <svg viewBox="0 0 112 112" className="absolute inset-0 -rotate-90">
@@ -410,7 +412,7 @@ export function Onboarding() {
             onClick={skipBriefing}
             className="text-sm font-bold text-ink-muted underline underline-offset-4 transition-colors hover:text-ink"
           >
-            Tushundim, boshlaymiz
+            {t.briefDone}
           </button>
         </div>
       </Layout>
@@ -421,18 +423,15 @@ export function Onboarding() {
     return (
       <Layout>
         <div className="space-y-4">
-          <h1 className="text-xl font-black text-ink">Yozib bering</h1>
-          <p className="text-[15px] text-ink-muted">
-            Rus tilingiz haqida bir-ikki gap: qayerda kerak, qayerda qiynalasiz. Ruscha
-            so'zlarni bilganingizcha yozing — aralashtirsangiz ham bo'ladi.
-          </p>
+          <h1 className="text-xl font-black text-ink">{t.typeTitle}</h1>
+          <p className="text-[15px] text-ink-muted">{t.typeBody}</p>
 
           <textarea
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
             rows={6}
             autoFocus
-            placeholder="Men do'konda ishlayman, mijozlar ruscha so'raydi, men тушунаман lekin javob berolmayman…"
+            placeholder={t.typePlaceholder}
             className="w-full rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
           />
 
@@ -443,11 +442,11 @@ export function Onboarding() {
             words-per-minute figure on a screen that is supposed to only show measurements.
           */}
           <Button block disabled={typed.trim().length < 10} onClick={() => void send(typed.trim(), 0)}>
-            Darajamni ko'rish
+            {t.typeSubmit}
           </Button>
 
           <Button variant="secondary" block onClick={() => setStage('intro')}>
-            Ovoz bilan aytaman
+            {t.typeSwitchToVoice}
           </Button>
         </div>
       </Layout>
@@ -474,12 +473,10 @@ export function Onboarding() {
           )}
 
           <p className="text-center text-lg font-black text-ink">
-            {connected ? 'Rus tilingiz haqida gapiring' : 'Mikrofon ulanmoqda…'}
+            {connected ? t.speakingTitle : t.connecting}
           </p>
           <p className="-mt-3 text-center text-sm text-ink-muted">
-            {connected
-              ? "O'zbekcha aralashtirsangiz ham bo'ladi — qayerda qiynalasiz?"
-              : 'Bir soniya — ruxsat so\'ralsa, "Ruxsat berish"ni bosing.'}
+            {connected ? t.speakingHint : t.permissionHint}
           </p>
 
           <div className="flex justify-center">
@@ -495,13 +492,13 @@ export function Onboarding() {
               <p className="text-[15px] leading-relaxed text-ink">{said}</p>
             ) : (
               <p className="text-[15px] text-ink-faint">
-                {elapsed < 4 ? 'Tinglayapmiz…' : 'Boshlang — bir gap ham yetadi.'}
+                {elapsed < 4 ? t.listening : t.listeningHint}
               </p>
             )}
           </div>
 
           <Button variant="secondary" block onClick={() => void finish()}>
-            Yakunlash
+            {t.finish}
           </Button>
         </div>
       </Layout>
@@ -511,14 +508,9 @@ export function Onboarding() {
   return (
     <Layout>
       <div className="space-y-5 text-center">
-        <p className="text-xs font-black tracking-[0.16em] text-ink-faint uppercase">1 qadam</p>
-        <h1 className="text-2xl leading-tight font-black text-ink sm:text-3xl">
-          Rus tili darajangiz haqida aytib bering
-        </h1>
-        <p className="text-[15px] leading-relaxed text-ink-muted">
-          Mikrofonni bosing va 40 soniya gapiring. Qayerda qiynalasiz — ishdami, ko'chadami?
-          O'zbekcha aralashtirsangiz ham bo'ladi, savol yo'q, test yo'q.
-        </p>
+        <p className="text-xs font-black tracking-[0.16em] text-ink-faint uppercase">{t.step}</p>
+        <h1 className="text-2xl leading-tight font-black text-ink sm:text-3xl">{t.introTitle}</h1>
+        <p className="text-[15px] leading-relaxed text-ink-muted">{t.introBody}</p>
 
         {failure && <ErrorNote>{failure}</ErrorNote>}
 
@@ -526,19 +518,19 @@ export function Onboarding() {
           type="button"
           onClick={begin}
           className="mx-auto grid size-24 place-items-center rounded-full bg-signal text-on-signal transition-transform hover:scale-105 active:scale-95"
-          aria-label="Gapirishni boshlash"
+          aria-label={t.start}
         >
           <MicGlyph />
         </button>
 
-        <p className="text-sm font-bold text-ink">Bosing va gapiring</p>
+        <p className="text-sm font-bold text-ink">{t.startAria}</p>
 
         {/*
           The blank page, removed. Somebody who has never been asked to speak Russian on
           purpose freezes on "what do I say?" long before they freeze on the Russian.
         */}
         <ul className="space-y-1.5 text-left">
-          {CUES.map((cue) => (
+          {t.cues.map((cue) => (
             <li
               key={cue}
               className="rounded-[var(--radius-control)] bg-ground-raised px-3.5 py-2 text-sm text-ink-muted"
@@ -548,7 +540,7 @@ export function Onboarding() {
           ))}
         </ul>
 
-        <p className="text-xs text-ink-faint">Qisqa javob ham yetadi</p>
+        <p className="text-xs text-ink-faint">{t.shortIsFine}</p>
 
         {/*
           For the person on a bus, in an open-plan office, or beside a sleeping child. Speaking
@@ -560,7 +552,7 @@ export function Onboarding() {
           onClick={() => setStage('typing')}
           className="text-sm font-bold text-ink-muted underline underline-offset-4 transition-colors hover:text-ink"
         >
-          Hozir gapira olmayman, yozib beraman
+          {t.cantSpeak}
         </button>
       </div>
     </Layout>
@@ -576,6 +568,7 @@ export function Onboarding() {
  * them a figure to fail against.
  */
 function Remaining({ secondsLeft, total }: { secondsLeft: number; total: number }) {
+  const t = useT().placement
   const fraction = total === 0 ? 0 : Math.max(0, Math.min(1, secondsLeft / total))
 
   return (
@@ -584,7 +577,7 @@ function Remaining({ secondsLeft, total }: { secondsLeft: number; total: number 
       aria-valuenow={secondsLeft}
       aria-valuemin={0}
       aria-valuemax={total}
-      aria-label="Qolgan vaqt"
+      aria-label={t.remaining}
       className="h-2.5 w-full overflow-hidden rounded-full bg-ground-sunken"
     >
       <div
@@ -602,17 +595,7 @@ function Remaining({ secondsLeft, total }: { secondsLeft: number; total: number 
 
 function MicGlyph() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden
-      className="size-10 fill-none stroke-current stroke-[1.8]"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5 11a7 7 0 0 0 14 0" />
-      <path d="M12 18v3" />
-    </svg>
+    <Mic aria-hidden className="size-10" strokeWidth={1.8} />
   )
 }
 

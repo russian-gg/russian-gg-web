@@ -1,12 +1,14 @@
 import { SUPPORT_TELEGRAM_URL } from '../lib/support'
+import { useT } from '../lib/i18n'
 
 export function TelegramFloatingButton() {
+  const t = useT().dayPreview
   return (
     <a
       href={SUPPORT_TELEGRAM_URL}
       target="_blank"
       rel="noreferrer"
-      aria-label="Telegram orqali bog'lanish"
+      aria-label={t.telegram}
       /*
         Lifted while the install sheet is open. The sheet sets `--install-lift` and nothing
         else does, so the two share a corner without either knowing about the other.

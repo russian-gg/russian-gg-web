@@ -1,11 +1,41 @@
 import { Link } from 'react-router-dom'
+import {
+  ArrowRight,
+  Dices,
+  Footprints,
+  Gamepad2,
+  Headphones,
+  MessageSquare,
+  Play,
+  Swords,
+  Target,
+  Trophy,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import { useOpenGames } from '../../lib/games'
 import { Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
 import { mascotImage } from '../../lib/mascot-images'
-import { useLocale } from '../../lib/i18n'
+import { useLocale, useT } from '../../lib/i18n'
 import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
 import { GameMark } from './speaking/visuals'
+import * as m from 'motion/react-m'
+import { Reveal, Sequence } from '../../components/motion'
+import { rise, stagger, tactile } from '../../lib/motion'
+
+/**
+ * The card links, animated in place.
+ *
+ * `m.create` rather than a `<m.div>` wrapped around each `<Link>`, and the distinction is not
+ * cosmetic: these links are grid items. The runner card carries `sm:col-span-2` and the others
+ * rely on the grid stretching them, so putting a div between the grid and the link hands the
+ * grid-item role to the div — the span stops applying, the runner card collapses to a single
+ * column, and its fixed-height artwork spills out of a box half its width.
+ *
+ * Making the link itself the motion element keeps the DOM exactly as it was.
+ */
+const MotionLink = m.create(Link)
 
 /**
  * The shelf. Built like a store rather than a menu: a grid of tiles, each with its own mark,
@@ -14,20 +44,28 @@ import { GameMark } from './speaking/visuals'
  * What is on it is the panel's decision, not this file's. Only the artwork lives here — a game
  * the server has not opened is not drawn at all, so nobody is shown a door that does not open.
  */
-/** Everything the app can draw, keyed by the slug the server switches on. */
-const ART: Record<string, { emoji: string; tint: string; to?: string }> = {
-  arra: { emoji: '🪚', tint: 'from-signal/25 to-signal/5', to: '/games/arra' },
-  'rod-runner': { emoji: '🏃', tint: 'from-caution/30 to-signal/10', to: '/games/rod-runner' },
-  'soz-ovi': { emoji: '🎯', tint: 'from-milestone/25 to-milestone/5' },
-  'tez-javob': { emoji: '⚡️', tint: 'from-caution/25 to-caution/5' },
-  dialog: { emoji: '💬', tint: 'from-signal/25 to-signal/5' },
-  'eshitib-top': { emoji: '🎧', tint: 'from-milestone/25 to-milestone/5' },
-  xotira: { emoji: '🃏', tint: 'from-caution/25 to-caution/5' },
+/**
+ * Everything the app can draw, keyed by the slug the server switches on.
+ *
+ * Drawn marks rather than emoji: this shelf is the first thing a learner sees of a game, and
+ * an emoji here rendered at whatever size and colour the platform font felt like — the saw
+ * (🪚) in particular is a recent addition that simply does not exist on older Android, so the
+ * tile for it was an empty box.
+ */
+const ART: Record<string, { icon: LucideIcon; tint: string; to?: string }> = {
+  arra: { icon: Swords, tint: 'from-signal/25 to-signal/5', to: '/games/arra' },
+  'rod-runner': { icon: Footprints, tint: 'from-caution/30 to-signal/10', to: '/games/rod-runner' },
+  'soz-ovi': { icon: Target, tint: 'from-milestone/25 to-milestone/5' },
+  'tez-javob': { icon: Zap, tint: 'from-caution/25 to-caution/5' },
+  dialog: { icon: MessageSquare, tint: 'from-signal/25 to-signal/5' },
+  'eshitib-top': { icon: Headphones, tint: 'from-milestone/25 to-milestone/5' },
+  xotira: { icon: Dices, tint: 'from-caution/25 to-caution/5' },
 }
 
 export function Games() {
   const open = useOpenGames()
   const { locale } = useLocale()
+  const t = useT().arcade
 
   if (!open) {
     return (
@@ -38,15 +76,20 @@ export function Games() {
   }
 
   return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-black text-ink sm:text-3xl">O'yinlar</h1>
-        <p className="mt-1 text-[15px] text-ink-muted">
-          Gapirishni mashq qilishning eng qisqa yo'li — o'ynab.
-        </p>
-      </header>
+    <Sequence className="space-y-5" gap={stagger.base}>
+      <Reveal>
+        <header>
+          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.title}</h1>
+          <p className="mt-1 text-[15px] text-ink-muted">{t.subtitle}</p>
+        </header>
+      </Reveal>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/*
+        A shelf of games, dealt out. These are the most toy-like surfaces in the product, so
+        they get the spring entrance and a press that answers a thumb - the arcade is the one
+        place where a card behaving like an object is the entire point.
+      */}
+      <Sequence className="grid gap-4 sm:grid-cols-2" gap={stagger.base}>
         {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
           const art = ART[game.slug]
 
@@ -54,41 +97,47 @@ export function Games() {
 
           if (isSpeakingGame(game.slug)) {
             const label = gameLabels[game.slug][locale]
-            return <Link key={game.slug} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
+            return <MotionLink key={game.slug} variants={rise} {...tactile} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
               <GameMark game={game.slug} className="size-16 shrink-0 text-signal-ink" />
-              <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 block text-sm font-extrabold text-signal-ink">{copies[locale].start} →</span></span>
-            </Link>
+              <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
+            </MotionLink>
           }
 
           return (
-            <Link
+            <MotionLink
               key={game.slug}
+              variants={rise}
+              {...tactile}
               to={art?.to ?? '/home'}
               className="flex items-center gap-3.5 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-3.5 text-left transition-colors hover:border-signal"
             >
               <span
                 className={cx(
-                  'grid size-14 shrink-0 place-items-center rounded-[var(--radius-card)] bg-gradient-to-br text-3xl',
+                  'grid size-14 shrink-0 place-items-center rounded-[var(--radius-card)] bg-gradient-to-br',
                   art?.tint ?? 'from-signal/25 to-signal/5',
                 )}
                 aria-hidden
               >
-                {art?.emoji ?? '🎮'}
+                {(() => {
+                  const Icon = art?.icon ?? Gamepad2
+                  return <Icon aria-hidden="true" strokeWidth={1.7} className="size-7 text-signal-ink" />
+                })()}
               </span>
 
               <span className="min-w-0">
                 <span className="block truncate text-base font-black text-ink">{game.titleUz}</span>
                 <span className="mt-0.5 block text-sm leading-snug text-ink-muted">{game.bodyUz}</span>
               </span>
-            </Link>
+            </MotionLink>
           )
         })}
-      </div>
-    </div>
+      </Sequence>
+    </Sequence>
   )
 }
 
 function RunnerCard({ body }: { body: string }) {
+  const t = useT().arcade
   let highScore = 0
   try {
     const saved = Number(localStorage.getItem('rgg_gender_runner_highscore'))
@@ -98,7 +147,13 @@ function RunnerCard({ body }: { body: string }) {
   }
 
   return (
-    <Link
+    /*
+      The card is the grid item, so `sm:col-span-2` stays on it and the entrance rides on the
+      same element. No `tactile` here: this one already lifts on hover in CSS, and a second
+      hover transform would just be two rules arguing about the same pixels.
+    */
+    <MotionLink
+      variants={rise}
       to="/games/rod-runner"
       className="group relative overflow-hidden rounded-[32px] border border-cyan-300/25 bg-gradient-to-br from-[#071c4a] via-[#0c4a6e] to-[#082f49] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:col-span-2 sm:p-7"
     >
@@ -107,9 +162,12 @@ function RunnerCard({ body }: { body: string }) {
 
       <span className="relative flex items-center justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/20 px-3 py-1 text-[11px] font-black tracking-wider text-rose-300 uppercase">
-          <span className="size-2 animate-pulse rounded-full bg-rose-500" /> Yangi o‘yin
+          <span className="size-2 animate-pulse rounded-full bg-rose-500" /> {t.newGame}
         </span>
-        <span className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">🏆 Rekord: {highScore}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
+          <Trophy aria-hidden="true" className="size-3.5 fill-amber-400/40" strokeWidth={2} />
+          {t.record}: {highScore}
+        </span>
       </span>
 
       <span className="relative mt-4 grid gap-5 md:grid-cols-[1.25fr_1fr] md:items-center">
@@ -127,15 +185,16 @@ function RunnerCard({ body }: { body: string }) {
         </span>
 
         <span>
-          <strong className="block text-2xl font-black sm:text-3xl">Penguin Ice Runner</strong>
+          <strong className="block text-2xl font-black sm:text-3xl">{t.runnerTitle}</strong>
           <span className="mt-2 block text-sm leading-relaxed text-slate-300">{body}</span>
-          <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">Pingvinni uchta muz yo‘lakda boshqaring, Z-shakldagi tangalarni yig‘ing, muzlardan sakrang va ruscha otlarning rodini toping.</span>
+          <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">{t.runnerBlurb}</span>
           <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 text-sm font-black shadow-lg shadow-rose-500/20 transition group-hover:scale-105">
-            ▶ O‘ynash
+            <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} />
+            {t.play}
           </span>
-          <span className="ml-3 text-xs font-bold text-cyan-100/60">3D muzlik yugurishi</span>
+          <span className="ml-3 text-xs font-bold text-cyan-100/60">{t.runnerTagline}</span>
         </span>
       </span>
-    </Link>
+    </MotionLink>
   )
 }

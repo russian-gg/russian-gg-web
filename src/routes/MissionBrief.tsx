@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Clock } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
@@ -8,6 +10,9 @@ import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import type { Mascot } from '../lib/foundation-lessons'
 import type { MissionDetail } from '../lib/types'
 import { Button, Card, Spinner } from '../components/ui'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
+import { backdrop, sheet } from '../lib/motion'
 import { MissionPlayer } from './MissionPlayer'
 
 /**
@@ -40,6 +45,7 @@ const MASCOT_BY_CHARACTER: Record<string, Mascot> = {
 }
 
 export function MissionBrief({ mission }: MissionBriefProps) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const navigate = useNavigate()
   const [showCooldown, setShowCooldown] = useState(false)
@@ -157,14 +163,22 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         came back for another go should be told when they can have one, not met with a control
         that silently does nothing.
       */}
-      {showCooldown && (
-        <div
+      <AnimatePresence>
+        {showCooldown && (
+        <m.div
+          key="cooldown"
+          ref={dialogRef}
+          tabIndex={-1}
+          variants={backdrop}
+          initial="hidden"
+          animate="shown"
+          exit="exit"
           className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="mission-cooldown-title"
         >
-          <div className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl">
+          <m.div variants={sheet} className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl">
             <div
               className="grid size-12 place-items-center rounded-full"
               style={{ background: `${palette.light}26`, color: palette.deep }}
@@ -180,9 +194,10 @@ export function MissionBrief({ mission }: MissionBriefProps) {
             <Button block className="mt-5" onClick={() => setShowCooldown(false)}>
               {copy.cooldownOk}
             </Button>
-          </div>
-        </div>
-      )}
+          </m.div>
+        </m.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -203,10 +218,7 @@ function Stat({ label, value }: StatProps) {
 
 function ClockGlyph() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6 fill-none stroke-current stroke-[1.8]" strokeLinecap="round">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 1.8" />
-    </svg>
+    <Clock aria-hidden="true" strokeWidth={1.8} className="size-6" />
   )
 }
 

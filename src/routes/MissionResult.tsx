@@ -5,10 +5,14 @@ import { api, track } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
 import type { MissionResult as MissionResultDto, MissionRetryState, SkillArea } from '../lib/types'
-import { Badge, Card, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Card, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { AnimatePresence } from 'motion/react'
+import { CountUp, Reveal, Sequence } from '../components/motion'
+import { pop, rise, stagger } from '../lib/motion'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
 export function MissionResult() {
+  const geminiReply = useT().dayPreview.geminiReply
   const t = useT()
   const { locale } = useLocale()
   const { attemptId = '' } = useParams()
@@ -16,14 +20,15 @@ export function MissionResult() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['attempt-result', attemptId],
     queryFn: () => api.get<MissionResultDto>(`/missions/attempts/${attemptId}/result`),
     // The enrichment job fills in detail shortly after completion; poll until it lands.
     refetchInterval: (query) => (query.state.data?.enrichmentPending ? 3000 : false),
   })
 
-  if (isLoading || !data) return <Spinner label={t.result.preparing} />
+  if (isLoading) return <Spinner label={t.result.preparing} />
+  if (isError || !data) return <QueryError onRetry={() => void refetch()} />
 
   // A conversation that fell short is not a completed mission: say so, and say when the next
   // attempt is allowed rather than leaving a learner to guess.
@@ -40,24 +45,50 @@ export function MissionResult() {
   }
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8">
-      <header className="xl:col-span-2">
-        <Badge tone={failed ? 'caution' : 'milestone'}>
-          {failed ? t.result.notPassed : t.result.completed}
-        </Badge>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">
-          {data.overallScore} <span className="text-lg font-medium text-ink-faint">/ 100</span>
-        </h1>
-        <UzHint>{failed ? t.result.notPassedBody : data.strengthNoteUz}</UzHint>
-      </header>
+    /*
+      The screen a learner reaches the end of a mission for, so it is the one place in the
+      product where the sequence is allowed to be a small performance: the verdict, then the
+      score, then the reason, then everything that explains it.
+    */
+    <Sequence className="grid items-start gap-6 xl:grid-cols-2 xl:gap-8" gap={stagger.wide}>
+      <Reveal className="xl:col-span-2">
+        <Sequence gap={stagger.wide}>
+          <Reveal as="span" variants={pop}>
+            <Badge tone={failed ? 'caution' : 'milestone'}>
+              {failed ? t.result.notPassed : t.result.completed}
+            </Badge>
+          </Reveal>
+          <Reveal>
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">
+              {/*
+                The one number in this product that earns a count-up.
+
+                It is a standalone figure rather than a digit inside a translated sentence, it
+                is the thing the learner came to this screen to find out, and counting to it
+                is the difference between being handed a mark and watching it be totted up.
+
+                A failed attempt counts too. Withholding the animation from a low score would
+                make the interface visibly disappointed in somebody, which is not this course's
+                job - and the number is the same kind of fact either way.
+              */}
+              <CountUp value={data.overallScore} />{' '}
+              <span className="text-lg font-medium text-ink-faint">/ 100</span>
+            </h1>
+          </Reveal>
+          <Reveal>
+            <UzHint>{failed ? t.result.notPassedBody : data.strengthNoteUz}</UzHint>
+          </Reveal>
+        </Sequence>
+      </Reveal>
 
       {failed && (
-        <div className="xl:col-span-2">
+        <Reveal className="xl:col-span-2">
           <RetryPanel missionId={data.missionId} retry={data.retry ?? null} />
-        </div>
+        </Reveal>
       )}
 
       {data.unlockedMilestone && (
+        <Reveal variants={rise}>
         <Card>
           <Badge tone="milestone">{fill(t.result.milestoneUnlocked, { day: data.unlockedMilestone.day })}</Badge>
           <h2 className="mt-3 text-lg font-extrabold text-ink">{pickContent(locale, {
@@ -71,9 +102,10 @@ export function MissionResult() {
               en: data.unlockedMilestone.outcomeEn,
             })}</UzHint>
         </Card>
+        </Reveal>
       )}
 
-      <section>
+      <Reveal as="section">
         <SectionHeading>{t.result.mainCorrection}</SectionHeading>
         <Card>
           <p className="text-base text-ink">{pickContent(locale, { uz: data.headlineFeedbackUz, ru: data.headlineFeedbackRu })}</p>
@@ -82,26 +114,28 @@ export function MissionResult() {
         <p className="text-support mt-2">
           {t.result.aiDisclaimer}
         </p>
-      </section>
+      </Reveal>
 
       {skills.length > 0 && (
-        <section>
+        <Reveal as="section">
           <SectionHeading>{t.result.skills}</SectionHeading>
           <Card>
-            {skills.map(([skill, score]) => (
-              <div
-                key={skill}
-                className="flex items-center justify-between border-b border-hairline py-2.5 last:border-b-0"
-              >
-                <span className="text-sm font-medium text-ink">{t.labels.skill[skill]}</span>
-                <span className="text-sm tabular-nums text-ink-muted">{score}</span>
-              </div>
-            ))}
+            <Sequence gap={stagger.tight}>
+              {skills.map(([skill, score]) => (
+                <Reveal
+                  key={skill}
+                  className="flex items-center justify-between border-b border-hairline py-2.5 last:border-b-0"
+                >
+                  <span className="text-sm font-medium text-ink">{t.labels.skill[skill]}</span>
+                  <span className="text-sm tabular-nums text-ink-muted">{score}</span>
+                </Reveal>
+              ))}
+            </Sequence>
           </Card>
-        </section>
+        </Reveal>
       )}
 
-      <section>
+      <Reveal as="section">
         <SectionHeading
           action={
             <button
@@ -119,10 +153,23 @@ export function MissionResult() {
           {t.result.yourAnswers}
         </SectionHeading>
 
+        {/*
+          The transcript opens and closes, so it has to be able to do both.
+
+          Held by `AnimatePresence` and keyed on which of the two states is showing, so the
+          summary line and the full list hand over to each other rather than one of them
+          simply ceasing to exist. `mode="wait"` because they occupy the same slot and would
+          otherwise overlap while the taller of the two is mid-flight.
+
+          Inside, the turns arrive on the tight beat. A long conversation can be a dozen of
+          them, and this is a list to be read down rather than a set of separate claims.
+        */}
+        <AnimatePresence mode="wait" initial={false}>
         {expanded ? (
-          <div className="space-y-3">
+          <Sequence drive key="turns" className="space-y-3" gap={stagger.tight}>
             {data.turns.map((turn) => (
-              <Card key={turn.turnIndex} as="article">
+              <Reveal key={turn.turnIndex}>
+              <Card as="article">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
                     {fill(t.result.step, { index: turn.stepIndex + 1 })}
@@ -138,7 +185,7 @@ export function MissionResult() {
                 {turn.tutorTranscript ? (
                   <div className="mt-3 rounded-lg bg-ground-sunken px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-                      Gemini javobi
+                      {geminiReply}
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-ink">{turn.tutorTranscript}</p>
                   </div>
@@ -150,14 +197,18 @@ export function MissionResult() {
                   {turn.grammarNote && <Note term={t.result.grammar} value={turn.grammarNote} />}
                 </dl>
               </Card>
+              </Reveal>
             ))}
-          </div>
+          </Sequence>
         ) : (
-          <p className="text-support">{fill(t.result.turnsRecorded, { count: data.turns.length })}</p>
+          <Reveal drive key="summary">
+            <p className="text-support">{fill(t.result.turnsRecorded, { count: data.turns.length })}</p>
+          </Reveal>
         )}
-      </section>
+        </AnimatePresence>
+      </Reveal>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <Reveal className="flex flex-col gap-2 sm:flex-row">
         <button
           type="button"
           onClick={() => void goHome()}
@@ -171,12 +222,14 @@ export function MissionResult() {
         >
           {t.result.practiceMore}
         </Link>
-      </div>
+      </Reveal>
 
       {data.newCurrentDay && (
-        <p className="text-support text-center">{fill(t.result.movedToDay, { day: data.newCurrentDay })}</p>
+        <Reveal>
+          <p className="text-support text-center">{fill(t.result.movedToDay, { day: data.newCurrentDay })}</p>
+        </Reveal>
       )}
-    </div>
+    </Sequence>
   )
 }
 

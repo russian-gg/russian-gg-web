@@ -2,21 +2,7 @@ import { useState } from 'react'
 import { useStickyTab } from '../lib/sticky-tab'
 import { formatDate, formatNumber, useAdminQuery } from '../lib/api'
 import type { Audience, Paged, UserItem } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  Cell,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  Pager,
-  Row,
-  Table,
-  Tabs,
-  TextField,
-} from '../components/ui'
+import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Pager, Row, Screen, Table, Tabs, TextField } from '../components/ui'
 import { BarList, Donut } from '../components/charts'
 import { UserDrawer } from '../components/UserDrawer'
 
@@ -28,7 +14,7 @@ export function Users() {
   const [tab, setTab] = useStickyTab('users', USER_TABS)
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader title="Foydalanuvchilar" subtitle="Foydalanuvchilar ro'yxati va auditoriya" />
 
       <Tabs
@@ -40,8 +26,8 @@ export function Users() {
         ]}
       />
 
-      {tab === 'list' ? <UserList /> : <AudienceTab />}
-    </div>
+      {tab === 'list' ? <UserList /> : <AudienceTab />}
+    </Screen>
   )
 }
 
@@ -61,7 +47,7 @@ function UserList() {
   }
 
   return (
-    <div className="space-y-4">
+    <Screen className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <TextField
           value={draft}
@@ -74,8 +60,8 @@ function UserList() {
         {data && <span className="text-sm text-ink-muted">Jami: {formatNumber(data.total)}</span>}
       </div>
 
-      {error && <ErrorNote>{error}</ErrorNote>}
-      {!data && isLoading && <Loading />}
+      {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
+      {!data && isLoading && <LoadingRows />}
 
       {data && (
         <>
@@ -93,7 +79,11 @@ function UserList() {
             ]}
           >
             {data.items.map((user) => (
-              <Row key={user.id} onClick={() => setSelected(user.id)}>
+              <Row
+                key={user.id}
+                onClick={() => setSelected(user.id)}
+                label={`${user.displayName ?? 'Ismsiz'} — ma'lumotini ochish`}
+              >
                 <Cell>
                   <span className="block font-bold text-ink">{user.displayName ?? 'Ismsiz'}</span>
                   <span className="block text-xs text-ink-faint">{user.email}</span>
@@ -141,15 +131,15 @@ function UserList() {
           }}
         />
       )}
-    </div>
+    </Screen>
   )
 }
 
 function AudienceTab() {
-  const { data, error, isLoading } = useAdminQuery<Audience>('/api/admin-portal/audience')
+  const { data, error, isLoading, refresh } = useAdminQuery<Audience>('/api/admin-portal/audience')
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
+  if (!data && isLoading) return <LoadingRows />
   if (!data) return null
 
   const languageNames: Record<string, string> = { uz: "O'zbek", ru: 'Rus', en: 'Ingliz' }

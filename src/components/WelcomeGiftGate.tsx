@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useFocusTrap } from '../lib/focus-trap'
 import type { CSSProperties } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -47,7 +48,7 @@ const BLUE_RIBBON: Ribbon = {
 const BOX_WRAPS: BoxWrap[] = [
   { light: '#8dbdfb', mid: '#5b9bf5', dark: '#2d76dd', pattern: 'dots', ink: '#ffffff', inkOpacity: 0.28, ribbon: GOLD_RIBBON },
   { light: '#ffa58f', mid: '#f2735a', dark: '#cf4a35', pattern: 'stripes', ink: '#ffffff', inkOpacity: 0.2, ribbon: GOLD_RIBBON },
-  // Pero's gold, sampled from public/characters/pero.png.
+  // Pero's gold, sampled from public/characters/pero.webp.
   { light: '#fae462', mid: '#f2b409', dark: '#d18f04', pattern: 'cross', ink: '#ffffff', inkOpacity: 0.5, ribbon: BLUE_RIBBON },
 ]
 
@@ -139,6 +140,7 @@ const ROSETTE_POINTS = Array.from({ length: 48 }, (_, index) => {
 }).join(' ')
 
 export function WelcomeGiftGate() {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const { user } = useAuth()
   const location = useLocation()
@@ -284,7 +286,7 @@ export function WelcomeGiftGate() {
   }
 
   return (
-    <div className={`welcome-gift-overlay welcome-gift-${phase}${touchOnly ? ' welcome-gift-touch' : ''}`} role="dialog" aria-modal="true" aria-labelledby="welcome-gift-title">
+    <div ref={dialogRef} tabIndex={-1} className={`welcome-gift-overlay welcome-gift-${phase}${touchOnly ? ' welcome-gift-touch' : ''}`} role="dialog" aria-modal="true" aria-labelledby="welcome-gift-title">
       <div className="welcome-gift-glow" aria-hidden="true" />
 
       <div className="welcome-gift-ambient" aria-hidden="true">

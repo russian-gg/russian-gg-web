@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import * as m from 'motion/react-m'
+import { duration, ease, spring } from '../../src/lib/motion'
 import type { ReactNode } from 'react'
 import { cx } from '../../src/lib/cx'
 
@@ -142,8 +144,30 @@ export function LineChart({
             />
           ))}
 
-          <path d={area} fill={SERIES[0]} opacity={0.08} />
-          <path d={line} fill="none" stroke={SERIES[0]} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <m.path
+            d={area}
+            fill={SERIES[0]}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.08 }}
+            transition={{ duration: duration.slow, ease: ease.enter, delay: 0.25 }}
+          />
+          {/*
+            The line draws itself in. A chart that simply appears is read as a picture; one
+            that is drawn is read as a series going somewhere, which is the only reason this
+            screen has a line chart rather than a table.
+          */}
+          <m.path
+            d={line}
+            fill="none"
+            stroke={SERIES[0]}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            pathLength={1}
+            initial={{ strokeDasharray: 1, strokeDashoffset: 1 }}
+            animate={{ strokeDashoffset: 0 }}
+            transition={{ duration: duration.deliberate, ease: ease.enter }}
+          />
 
           {active && (
             <g>
@@ -160,7 +184,16 @@ export function LineChart({
           )}
 
           {/* The end of the line is the number people came for, so it is labelled directly. */}
-          <circle cx={x(points.length - 1)} cy={y(last.value)} r={4} fill={SERIES[0]} />
+          <m.circle
+            cx={x(points.length - 1)}
+            cy={y(last.value)}
+            r={4}
+            fill={SERIES[0]}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{ transformOrigin: `${x(points.length - 1)}px ${y(last.value)}px` }}
+            transition={{ ...spring, delay: duration.deliberate * 0.85 }}
+          />
 
           <text x={padding.left} y={height - 6} fontSize={11} fill={INK_FAINT}>
             {shortDay(points[0].date)}
@@ -243,14 +276,31 @@ export function ColumnChart({
                 {/* Hit target the full height of the plot: a 3px column is not a target. */}
                 <rect x={padding.left + slot * index} y={padding.top} width={slot} height={plotHeight} fill="transparent" />
                 {barHeight > 0 && (
-                  <rect
+                  /*
+                    Bars grow out of the baseline, left to right across the series. Animating
+                    `height` alone would grow them downward from the top, so `y` moves with it —
+                    an SVG rect is positioned from its top edge, and a column chart that grows
+                    the wrong way reads as a drain rather than a total.
+
+                    The stagger is capped so a ninety-day chart does not take four seconds to
+                    finish drawing.
+                  */
+                  <m.rect
                     x={left}
-                    y={padding.top + plotHeight - barHeight}
                     width={barWidth}
-                    height={barHeight}
                     rx={Math.min(4, barWidth / 2)}
                     fill={SERIES[0]}
-                    opacity={hover === null || hover === index ? 1 : 0.45}
+                    initial={{ height: 0, y: padding.top + plotHeight }}
+                    animate={{
+                      height: barHeight,
+                      y: padding.top + plotHeight - barHeight,
+                      opacity: hover === null || hover === index ? 1 : 0.45,
+                    }}
+                    transition={{
+                      height: { duration: duration.base, ease: ease.enter, delay: Math.min(index * 0.012, 0.4) },
+                      y: { duration: duration.base, ease: ease.enter, delay: Math.min(index * 0.012, 0.4) },
+                      opacity: { duration: duration.quick },
+                    }}
                   />
                 )}
               </g>

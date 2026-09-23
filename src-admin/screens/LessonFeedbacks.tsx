@@ -2,21 +2,7 @@ import { useState } from 'react'
 import { formatDateTime, formatNumber, formatPercent, useAdminQuery } from '../lib/api'
 import type { LessonFeedbackReport } from '../lib/types'
 import { BarList } from '../components/charts'
-import {
-  Badge,
-  Card,
-  Cell,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  Pager,
-  Row,
-  SectionHeading,
-  Select,
-  Stat,
-  Table,
-} from '../components/ui'
+import { Badge, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Pager, Row, Screen, SectionHeading, Select, Stat, Table } from '../components/ui'
 
 const PAGE_SIZE = 20
 
@@ -54,11 +40,11 @@ export function LessonFeedbacks() {
   const { data, error, isLoading } = useAdminQuery<LessonFeedbackReport>(query)
 
   if (error) return <ErrorNote>{error}</ErrorNote>
-  if (!data && isLoading) return <Loading />
+  if (!data && isLoading) return <LoadingRows />
   if (!data) return null
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <PageHeader
         title="Dars fikrlari"
         subtitle="O'quvchilar har 3 kunlik darsdan keyin qoldirgan baholar va izohlar"
@@ -138,7 +124,7 @@ export function LessonFeedbacks() {
       </Table>
 
       <Pager page={page} total={data.responses} pageSize={PAGE_SIZE} onPage={setPage} />
-    </div>
+    </Screen>
   )
 }
 

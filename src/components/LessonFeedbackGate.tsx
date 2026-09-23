@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, Star } from 'lucide-react'
+import { useFocusTrap } from '../lib/focus-trap'
 import type { FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
@@ -7,6 +9,10 @@ import { useAuth } from '../lib/auth-context'
 import { fill, useT } from '../lib/i18n'
 import type { LessonFeedbackStatus, SubmitLessonFeedbackRequest } from '../lib/types'
 import { Button, ErrorNote } from './ui'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
+import type { Variants } from 'motion/react'
+import { backdrop, duration, ease, sheet } from '../lib/motion'
 
 type Score = 1 | 2 | 3 | 4 | 5
 type ChoiceOption = { title: string; hint: string }
@@ -18,8 +24,6 @@ const STEPS: Step[] = ['satisfaction', 'recommendation', 'rating', 'note']
 const NOTE_MAX_LENGTH = 2000
 /** Long enough to see the choice land before the next question slides in. */
 const AUTO_ADVANCE_MS = 320
-/** Matches `lf-panel-out` below: the dialog is removed only once it has finished leaving. */
-const CLOSE_MS = 240
 
 /** Screens where the learner is mid-lesson or mid-game. The survey waits until they come out. */
 function isBusyPath(pathname: string) {
@@ -49,10 +53,19 @@ export function LessonFeedbackGate() {
     if (enabled) void refetch()
   }, [enabled, location.pathname, refetch])
 
-  const checkpoint = data?.isDue ? data.checkpointDay ?? null : null
-  if (!enabled || checkpoint === null) return null
+  const checkpoint = enabled && data?.isDue ? data.checkpointDay ?? null : null
 
-  return <LessonFeedbackDialog key={checkpoint} checkpoint={checkpoint} />
+  /*
+    The gate no longer returns `null` when nothing is due: it returns an empty
+    `AnimatePresence`. That is the whole reason the dialog can now play an exit at all — an
+    answered survey used to be torn out of the tree in the same commit that recorded the
+    answer, so the only way to see it leave was to keep it alive by hand on a timer.
+  */
+  return (
+    <AnimatePresence>
+      {checkpoint !== null && <LessonFeedbackDialog key={checkpoint} checkpoint={checkpoint} />}
+    </AnimatePresence>
+  )
 }
 
 type LessonFeedbackDialogProps = {
@@ -61,6 +74,7 @@ type LessonFeedbackDialogProps = {
 
 /** One question per step, in order. The last step — the note — is optional and sends the lot. */
 function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const copy = t.lessonFeedback
   const { user } = useAuth()
@@ -73,7 +87,6 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
   const [hoveredStar, setHoveredStar] = useState<Score | null>(null)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
-  const [closing, setClosing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const advanceTimer = useRef<number | undefined>(undefined)
 
@@ -134,11 +147,13 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
         note: note.trim() || null,
       }
       const result = await api.post<LessonFeedbackStatus>('/lesson-feedback', body)
-      // Play the exit first; once no feedback is due the gate unmounts this dialog.
-      setClosing(true)
-      window.setTimeout(() => {
-        queryClient.setQueryData<LessonFeedbackStatus>(['lesson-feedback', user?.id], result)
-      }, CLOSE_MS)
+      /*
+        Recorded immediately. The answer flipping `isDue` is what removes the dialog, and
+        `AnimatePresence` in the gate above holds it on screen until its exit has finished —
+        so the exit no longer has to be choreographed against a `setTimeout` that had to be
+        kept equal to a CSS duration in another file.
+      */
+      queryClient.setQueryData<LessonFeedbackStatus>(['lesson-feedback', user?.id], result)
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : copy.error)
       setBusy(false)
@@ -146,17 +161,22 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
   }
 
   return (
-    <div
-      className={`lf-backdrop fixed inset-0 z-[200] flex items-end justify-center bg-black/55 p-3 backdrop-blur-sm sm:items-center sm:p-6${
-        closing ? ' lf-closing' : ''
-      }`}
+    <m.div
+      variants={backdrop}
+      initial="hidden"
+      animate="shown"
+      exit="exit"
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/55 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="lesson-feedback-title"
     >
-      <form
+      <m.form
+        variants={sheet}
         onSubmit={(event) => void submit(event)}
-        className="lf-panel flex max-h-[calc(100dvh-24px)] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-ground-raised shadow-2xl"
+        className="flex max-h-[calc(100dvh-24px)] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-ground-raised shadow-2xl"
       >
         <header className="px-5 pt-5 sm:px-8 sm:pt-7">
           <div className="flex items-center justify-between gap-4">
@@ -184,7 +204,25 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
         </header>
 
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 pb-5 sm:px-8">
-          <div key={step} className={direction === 'forward' ? 'lf-step-forward' : 'lf-step-back'}>
+          {/*
+            One question at a time, and the pair of them moves as one gesture: the answered
+            question leaves towards the side the learner came from while the next arrives from
+            the other. `mode="wait"` is what makes that legible — two questions crossing in the
+            same column would overlap their text, and the step is the only thing on screen
+            worth reading.
+
+            `custom` carries the direction into the variants, so Back is not simply Next played
+            again; it retraces. Without it a wizard reads as a stack of unrelated screens.
+          */}
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            <m.div
+              key={step}
+              custom={direction}
+              variants={stepSlide}
+              initial="hidden"
+              animate="shown"
+              exit="exit"
+            >
             {step === 'satisfaction' && (
               <ChoiceGroup
                 name="satisfaction"
@@ -264,7 +302,8 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
             )}
 
             {!canContinue && <p className="mt-3 text-xs text-ink-faint">{copy.requiredHint}</p>}
-          </div>
+            </m.div>
+          </AnimatePresence>
 
           {error && (
             <div className="mt-4">
@@ -287,10 +326,8 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
             {isLastStep ? (busy ? copy.sending : copy.submit) : copy.next}
           </Button>
         </footer>
-      </form>
-
-      <style>{LESSON_FEEDBACK_STYLES}</style>
-    </div>
+      </m.form>
+    </m.div>
   )
 }
 
@@ -363,9 +400,7 @@ function Legend({ text, requiredLabel }: LegendProps) {
 
 function CheckGlyph() {
   return (
-    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3.5 8.5l3 3 6-7" />
-    </svg>
+    <Check aria-hidden="true" strokeWidth={2.5} className="size-3.5" />
   )
 }
 
@@ -375,36 +410,38 @@ type StarGlyphProps = {
 
 function StarGlyph({ filled }: StarGlyphProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={`size-11 transition-colors sm:size-12 ${filled ? 'text-coin' : 'text-hairline'}`}
+    <Star
       aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        stroke={filled ? 'var(--color-coin-strong)' : 'var(--color-control-depth)'}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-        d="M12 2.8l2.8 5.7 6.3.9-4.55 4.43 1.07 6.27L12 17.13 6.38 20.1l1.07-6.27L2.9 9.4l6.3-.9z"
-      />
-    </svg>
+      className={`size-11 fill-current transition-colors sm:size-12 ${filled ? 'text-coin' : 'text-hairline'}`}
+      stroke={filled ? 'var(--color-coin-strong)' : 'var(--color-control-depth)'}
+      strokeWidth={1.2}
+    />
   )
 }
 
-const LESSON_FEEDBACK_STYLES = `
-  .lf-backdrop{animation:lf-backdrop-in .25s ease-out both}
-  .lf-backdrop.lf-closing{animation:lf-backdrop-out .24s ease-in both}
-  .lf-panel{animation:lf-panel-in .42s cubic-bezier(.2,.85,.25,1.1) both}
-  .lf-closing .lf-panel{animation:lf-panel-out .24s ease-in both}
-  .lf-step-forward{animation:lf-step-forward .32s cubic-bezier(.2,.8,.3,1) both}
-  .lf-step-back{animation:lf-step-back .32s cubic-bezier(.2,.8,.3,1) both}
-  @keyframes lf-backdrop-in{from{opacity:0}to{opacity:1}}
-  @keyframes lf-backdrop-out{from{opacity:1}to{opacity:0}}
-  @keyframes lf-panel-in{from{opacity:0;transform:translateY(28px) scale(.95)}to{opacity:1;transform:none}}
-  @keyframes lf-panel-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(18px) scale(.96)}}
-  @keyframes lf-step-forward{from{opacity:0;transform:translateX(32px)}to{opacity:1;transform:none}}
-  @keyframes lf-step-back{from{opacity:0;transform:translateX(-32px)}to{opacity:1;transform:none}}
-  @media(prefers-reduced-motion:reduce){
-    .lf-backdrop,.lf-panel,.lf-step-forward,.lf-step-back,.lf-closing .lf-panel{animation-duration:.01ms!important}
-  }
-`
+/**
+ * The step transition, as a pair of mirrored slides.
+ *
+ * `custom` arrives here as the direction the learner is travelling, which is the only way a
+ * wizard can retrace rather than replay: going forward, the answered question exits left and
+ * the next enters from the right; going back, both reverse. A variant that ignored direction
+ * would send every step off the same side, so Back would look exactly like Next and the
+ * learner would lose the thread of where they are in four questions.
+ *
+ * 28px of travel, not the 32 the old keyframes used. The panel is narrow on a phone and the
+ * questions are short; past roughly this distance the text is still visibly sliding when it
+ * becomes readable, which is what makes a carousel tiring to read.
+ */
+const stepSlide: Variants = {
+  hidden: (direction: Direction) => ({ opacity: 0, x: direction === 'forward' ? 28 : -28 }),
+  shown: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: duration.base, ease: ease.enter },
+  },
+  exit: (direction: Direction) => ({
+    opacity: 0,
+    x: direction === 'forward' ? -28 : 28,
+    transition: { duration: duration.quick, ease: ease.exit },
+  }),
+}

@@ -15,6 +15,7 @@
  */
 const SHELL = 'rgg-shell'
 const ASSETS = 'rgg-assets'
+const MEDIA = 'rgg-media'
 
 /** The offline fallback, and the only page kept by hand. */
 const SHELL_URL = '/index.html'
@@ -26,6 +27,27 @@ const SHELL_URL = '/index.html'
  */
 const ASSET_LIMIT = 80
 
+/**
+ * Artwork and recordings served straight from `public/`. Unlike `/assets/` these filenames
+ * carry no content hash, so cache-first would pin a replaced character illustration onto a
+ * phone until the cache was cleared by hand.
+ *
+ * They get stale-while-revalidate instead: the cached copy answers immediately — which is the
+ * whole point, because a learner opening their fifth lesson on mobile data should not pay for
+ * the same penguin a fifth time — and the network copy replaces it in the background for next
+ * time. One deploy behind on a decorative image is a trade worth making; one deploy behind on
+ * anything under `/api/` is not, which is why that list is untouched.
+ */
+const MEDIA_PREFIXES = [
+  '/characters/',
+  '/reels/',
+  '/games/',
+  '/lesson-scenes/',
+  '/mobile/',
+  '/audio/',
+]
+const MEDIA_LIMIT = 40
+
 self.addEventListener('install', (event) => {
   // Ready on first load, so an install that happens straight away still has a shell to open.
   event.waitUntil(caches.open(SHELL).then((cache) => cache.add(SHELL_URL)))
@@ -36,7 +58,13 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((names) => Promise.all(names.filter((name) => name !== SHELL && name !== ASSETS).map((name) => caches.delete(name))))
+      .then((names) =>
+        Promise.all(
+          names
+            .filter((name) => name !== SHELL && name !== ASSETS && name !== MEDIA)
+            .map((name) => caches.delete(name)),
+        ),
+      )
       // Takes over open tabs rather than waiting for every one of them to close.
       .then(() => self.clients.claim()),
   )
@@ -51,11 +79,15 @@ function isOffLimits(url) {
   )
 }
 
-async function trim(cache) {
+async function trim(cache, limit) {
   const keys = await cache.keys()
-  if (keys.length <= ASSET_LIMIT) return
+  if (keys.length <= limit) return
 
-  await Promise.all(keys.slice(0, keys.length - ASSET_LIMIT).map((key) => cache.delete(key)))
+  await Promise.all(keys.slice(0, keys.length - limit).map((key) => cache.delete(key)))
+}
+
+function isMedia(url) {
+  return MEDIA_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))
 }
 
 self.addEventListener('fetch', (event) => {
@@ -99,10 +131,46 @@ self.addEventListener('fetch', (event) => {
         if (response.ok) {
           const cache = await caches.open(ASSETS)
           await cache.put(request, response.clone())
-          await trim(cache)
+          await trim(cache, ASSET_LIMIT)
         }
 
         return response
+      })(),
+    )
+
+    return
+  }
+
+  /*
+    Unhashed artwork and recordings: answer from the cache the moment there is one, and put the
+    fresh copy back for next time regardless. The revalidation is deliberately not awaited — a
+    learner opening a lesson should not wait on a network round trip for a picture we already
+    have, and if it fails there is nothing to do about it here.
+  */
+  if (isMedia(url)) {
+    event.respondWith(
+      (async () => {
+        const cached = await caches.match(request)
+
+        const revalidate = fetch(request)
+          .then(async (response) => {
+            if (response.ok) {
+              const cache = await caches.open(MEDIA)
+              await cache.put(request, response.clone())
+              await trim(cache, MEDIA_LIMIT)
+            }
+
+            return response
+          })
+          // Offline with nothing cached is the one case the caller still has to see fail.
+          .catch(() => cached ?? Response.error())
+
+        if (cached) {
+          event.waitUntil(revalidate)
+          return cached
+        }
+
+        return revalidate
       })(),
     )
   }

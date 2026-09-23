@@ -6,9 +6,9 @@ import type { Mascot } from './foundation-lessons'
  * explicit map rather than interpolating the mascot key into the path.
  */
 const MASCOT_IMAGES: Record<Mascot, string> = {
-  penguin: '/characters/pingvin.png',
-  panda: '/characters/panda.png',
-  pero: '/characters/pero.png',
+  penguin: '/characters/pingvin.webp',
+  panda: '/characters/panda.webp',
+  pero: '/characters/pero.webp',
 }
 
 const MASCOT_ALT: Record<Mascot, string> = {

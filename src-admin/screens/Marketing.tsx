@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import type {
   MarketingCategory,
@@ -11,17 +12,7 @@ import type {
   MarketingPlanSummary,
   MarketingStatus,
 } from '../lib/types'
-import {
-  Badge,
-  Button,
-  Card,
-  ConfirmDialog,
-  EmptyNote,
-  ErrorNote,
-  Loading,
-  PageHeader,
-  SectionHeading,
-} from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, EmptyNote, ErrorNote, Loading, PageHeader, Screen, SectionHeading } from '../components/ui'
 import { cx } from '../../src/lib/cx'
 
 const PROGRAMME_WEEKS = 12
@@ -136,7 +127,7 @@ export function Marketing() {
     }
   }, [data, selected])
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
@@ -158,7 +149,7 @@ export function Marketing() {
   }
 
   return (
-    <div className="space-y-6">
+    <Screen className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader
           title="Marketing strategiya"
@@ -235,8 +226,8 @@ export function Marketing() {
             />
           )}
         </div>
-      )}
-    </div>
+      )}
+    </Screen>
   )
 }
 
@@ -315,9 +306,7 @@ function StepMark({ state }: { state: MarketingRunStep['state'] }) {
         aria-hidden="true"
         className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-milestone"
       >
-        <svg viewBox="0 0 24 24" className="size-3 fill-none stroke-on-signal stroke-[3.5]">
-          <path d="m5 13 5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <Check aria-hidden="true" className="size-3 text-on-signal" strokeWidth={3.5} />
       </span>
     )
   }
@@ -345,7 +334,7 @@ function PlanDetail({
   const [failure, setFailure] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  if (error) return <ErrorNote>{error}</ErrorNote>
+  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
@@ -398,7 +387,7 @@ function PlanDetail({
   }
 
   return (
-    <div className="space-y-4">
+    <Screen className="space-y-4">
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -535,7 +524,7 @@ function PlanDetail({
           onCancel={() => setConfirmingDelete(false)}
         />
       )}
-    </div>
+    </Screen>
   )
 }
 

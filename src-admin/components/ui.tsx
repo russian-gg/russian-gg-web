@@ -1,6 +1,10 @@
-import { useEffect } from 'react'
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
+import { Children, isValidElement, useEffect } from 'react'
+import { LoaderCircle } from 'lucide-react'
+import { useFocusTrap } from '../../src/lib/focus-trap'
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react'
 import { cx } from '../../src/lib/cx'
+import { Overlay, Reveal, Sequence } from '../../src/components/motion'
+import { fadeUp, rise, stagger } from '../../src/lib/motion'
 
 /**
  * The admin panel's pieces, built from the learner product's own tokens rather than a second
@@ -67,7 +71,12 @@ export function Card({
   className,
   as: Tag = 'section',
   ...props
-}: HTMLAttributes<HTMLElement> & { children: ReactNode; as?: 'section' | 'article' | 'div' }) {
+}: HTMLAttributes<HTMLElement> & {
+  children: ReactNode
+  as?: 'section' | 'article' | 'div'
+  /* React 19 passes `ref` through as an ordinary prop; `HTMLAttributes` just does not say so. */
+  ref?: Ref<HTMLDivElement>
+}) {
   return (
     <Tag
       {...props}
@@ -78,6 +87,35 @@ export function Card({
     >
       {children}
     </Tag>
+  )
+}
+
+/**
+ * An admin screen's outermost element. Its top-level blocks arrive in order.
+ *
+ * Every screen in the panel is a stack of sections — a header, a row of figures, a table —
+ * and before this they all appeared in the same frame, which on a screen with twelve cards
+ * reads as a flash rather than as a page. `Sequence` gives them a beat.
+ *
+ * The children are wrapped here rather than at each call site. Twelve screens rewriting their
+ * own section list into `<Reveal>`s is twelve chances to miss one and leave a section that
+ * jumps in ahead of its neighbours — and a screen should not have to know it is being
+ * animated in order to be animated correctly.
+ *
+ * `tight` because these stacks run long. At the base gap a ten-section screen would still be
+ * arriving 600ms in, which is the panel feeling slow rather than feeling considered.
+ *
+ * Anything that is not an element — a `false` from a conditional section, a bare string — is
+ * passed through untouched. Wrapping `{error && <ErrorNote/>}` when `error` is null would put
+ * an empty animated div in the middle of the stack and break the spacing above it.
+ */
+export function Screen({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <Sequence gap={stagger.tight} className={className}>
+      {Children.map(children, (child) =>
+        isValidElement(child) ? <Reveal variants={fadeUp}>{child}</Reveal> : child,
+      )}
+    </Sequence>
   )
 }
 
@@ -142,14 +180,21 @@ export function Stat({
   badge?: ReactNode
 }) {
   return (
-    <Card className="flex flex-col gap-1">
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">{label}</span>
-        {badge}
-      </div>
-      <div className="text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">{value}</div>
-      {note && <div className="text-sm text-ink-muted">{note}</div>}
-    </Card>
+    /*
+      A `Reveal` rather than a bare card, so a row of figures arrives in order when it sits
+      inside a `Sequence` — and still animates on its own when it does not. The context in
+      `components/motion.tsx` is what decides which; nothing here has to know.
+    */
+    <Reveal variants={rise}>
+      <Card className="flex h-full flex-col gap-1">
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">{label}</span>
+          {badge}
+        </div>
+        <div className="text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">{value}</div>
+        {note && <div className="text-sm text-ink-muted">{note}</div>}
+      </Card>
+    </Reveal>
   )
 }
 
@@ -301,6 +346,9 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
             {head.map((column) => (
               <th
                 key={column}
+                /* Without `scope` a screen reader reads a cell as a bare value with nothing
+                   naming it — on a twelve-column table that is a list of numbers. */
+                scope="col"
                 className="border-b-2 border-hairline px-3 py-3 text-xs font-extrabold whitespace-nowrap uppercase tracking-[0.12em] text-ink-faint sm:px-4"
               >
                 {column}
@@ -314,19 +362,53 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
   )
 }
 
+/**
+ * A table row, optionally one that opens something.
+ *
+ * A clickable row used to be a bare `<tr onClick>` wearing `cursor-pointer`: it looked like a
+ * control, and to a keyboard it was not one. On Foydalanuvchilar and Tranzaksiyalar the row
+ * *is* the only way into the user drawer, so an operator working by keyboard could not open a
+ * record at all.
+ *
+ * `role="button"` and a tab stop fix the reachability; Enter and Space are handled because a
+ * click handler on a non-button element gets neither for free. `label` names the row for
+ * anyone who cannot see which one has focus — "Row 4" is not an answer to "open what?".
+ *
+ * A row with no `onClick` stays a plain `<tr>`: adding a tab stop to every row of a
+ * two-hundred-row table would bury the pager behind two hundred presses of Tab.
+ */
 export function Row({
   children,
   onClick,
+  label,
 }: {
   children: ReactNode
   onClick?: () => void
+  /** Accessible name for a clickable row — usually the thing it opens. */
+  label?: string
 }) {
+  if (!onClick) {
+    return <tr className="border-b border-hairline last:border-b-0">{children}</tr>
+  }
+
   return (
     <tr
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        // Space scrolls the page otherwise, which is the opposite of activating the row.
+        event.preventDefault()
+        onClick()
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
       className={cx(
         'border-b border-hairline last:border-b-0',
-        onClick && 'cursor-pointer hover:bg-ground-sunken',
+        'cursor-pointer hover:bg-ground-sunken',
+        // The global `:focus-visible` outline is drawn outside the element, and a table row
+        // clips it against its neighbours. Inset instead, so the focused row is unmistakable.
+        'focus-visible:outline-none focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-signal',
       )}
     >
       {children}
@@ -418,6 +500,7 @@ export function ConfirmDialog({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const dialogRef = useFocusTrap<HTMLDivElement>()
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCancel()
@@ -429,13 +512,24 @@ export function ConfirmDialog({
   }, [onCancel])
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onCancel}
-    >
+    /*
+      The dim and the panel animate in and — the part CSS could never do — out. `Overlay` holds
+      the subtree mounted until the exit finishes; before it, confirming or cancelling made the
+      dialog disappear between two frames, which reads as the panel having crashed rather than
+      having been answered.
+
+      The focus trap, Escape and the aria wiring stay here on purpose: `Overlay` animates a
+      layer, it is not a dialog framework. See the note on it in `components/motion.tsx`.
+    */
+    <Overlay open onDismiss={onCancel} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-md"
+      >
       <Card
         as="div"
         className="w-full max-w-md"
@@ -455,27 +549,93 @@ export function ConfirmDialog({
           </Button>
         </div>
       </Card>
-    </div>
+      </div>
+    </Overlay>
   )
 }
 
 export function Loading({ label = 'Yuklanmoqda' }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 py-8 text-sm text-ink-muted" role="status">
-      <span
-        aria-hidden="true"
-        className="size-4 animate-spin rounded-full border-2 border-hairline border-t-signal"
-      />
+      <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-signal" strokeWidth={2.4} />
       {label}
     </div>
   )
 }
 
-export function ErrorNote({ children }: { children: ReactNode }) {
+/**
+ * The shape of the thing that is coming, drawn in grey while it is fetched.
+ *
+ * A spinner says "wait"; this says "wait, and here is what for". On the panel that matters
+ * more than it sounds — most of these screens resolve into a table or a row of figures, and a
+ * placeholder with the right geometry means the page does not jump when the data lands.
+ *
+ * `role="status"` with the same label the spinner used, so nothing changes for a screen
+ * reader: the bars are decoration and are hidden from it entirely.
+ */
+export function LoadingRows({
+  rows = 5,
+  label = 'Yuklanmoqda',
+}: {
+  rows?: number
+  label?: string
+}) {
   return (
-    <p className="rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft px-4 py-3 text-sm text-danger">
-      {children}
-    </p>
+    <div role="status" aria-label={label} className="space-y-2 py-2">
+      {Array.from({ length: rows }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="skeleton h-12 w-full"
+          /*
+            Each bar's shimmer starts a beat after the one above it, so the highlight travels
+            down the list instead of every row pulsing in lockstep — which reads as a strobe.
+          */
+          style={{ animationDelay: `${index * 90}ms` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** The same idea for a row of figures: three cards' worth of grey. */
+export function LoadingStats({ count = 3 }: { count?: number }) {
+  return (
+    <div role="status" aria-label="Yuklanmoqda" className="grid gap-4 md:grid-cols-3">
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="skeleton h-28 w-full"
+          style={{ animationDelay: `${index * 90}ms` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * `role="alert"` so a failure that arrives after the page has settled is announced rather
+ * than only drawn — an operator who has tabbed into a filter is told the table underneath did
+ * not load. The learner app's note has always done this; this one had not.
+ *
+ * `onRetry` takes `useAdminQuery`'s `refresh`. Every failure here is a fetch that can simply
+ * be run again, and sending somebody to the reload button costs them their filters and their
+ * place in a list.
+ */
+export function ErrorNote({ children, onRetry }: { children: ReactNode; onRetry?: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft px-4 py-3 text-sm text-danger"
+    >
+      <span>{children}</span>
+      {onRetry && (
+        <Button variant="secondary" size="sm" onClick={onRetry}>
+          Qayta urinish
+        </Button>
+      )}
+    </div>
   )
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight, LogOut, Moon, Sun } from 'lucide-react'
 import { adminApiPath, adminSectionKey, session, useSession } from './lib/api'
 import type { PortalRole } from './lib/types'
 import { Button, Card, ErrorNote } from './components/ui'
@@ -9,7 +10,9 @@ import {
   ClicksGlyph,
   DashboardGlyph,
   FeedbackGlyph,
+  GamesGlyph,
   MarketingGlyph,
+  PromoGlyph,
   SalesGlyph,
   StarGlyph,
   TransactionsGlyph,
@@ -75,11 +78,11 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   sales: SalesGlyph,
   transactions: TransactionsGlyph,
   'ai-usage': AiGlyph,
-  'promo-codes': TransactionsGlyph,
+  'promo-codes': PromoGlyph,
   feedbacks: FeedbackGlyph,
   'lesson-feedbacks': StarGlyph,
   'portal-users': UsersGlyph,
-  games: ClicksGlyph,
+  games: GamesGlyph,
 }
 
 function visibleSections(role: PortalRole) {
@@ -191,13 +194,11 @@ export function AdminApp() {
           aria-label={collapsed ? 'Menyuni yoyish' : "Menyuni yig'ish"}
           className="hidden items-center justify-center rounded-[var(--radius-control)] border-2 border-hairline py-1.5 text-ink-muted transition-colors hover:border-ink-faint hover:text-ink lg:flex"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.8]">
-            <path
-              d={collapsed ? 'm10 6 6 6-6 6' : 'm14 6-6 6 6 6'}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          {collapsed ? (
+            <ChevronRight aria-hidden="true" className="size-4" strokeWidth={1.8} />
+          ) : (
+            <ChevronLeft aria-hidden="true" className="size-4" strokeWidth={1.8} />
+          )}
         </button>
 
         <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:gap-5 lg:overflow-visible lg:px-0">
@@ -258,13 +259,11 @@ export function AdminApp() {
           <ThemeToggle collapsed={collapsed} />
           <Button variant="secondary" size="sm" onClick={() => session.signOut()} title="Chiqish">
             <span className={cx(collapsed && 'lg:hidden')}>Chiqish</span>
-            <svg
-              viewBox="0 0 24 24"
+            <LogOut
               aria-hidden="true"
-              className={cx('size-4 fill-none stroke-current stroke-[1.8]', !collapsed && 'lg:hidden')}
-            >
-              <path d="M15 17v1.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2V7M10 12h10m0 0-3-3m3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+              strokeWidth={1.8}
+              className={cx('size-4', !collapsed && 'lg:hidden')}
+            />
           </Button>
         </div>
       </aside>
@@ -308,21 +307,13 @@ function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
       aria-label={label}
     >
       <span className={cx('flex items-center justify-center gap-2', collapsed && 'lg:gap-0')}>
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.8]">
-          {next === 'dark' ? (
-            // A moon means "go dark", a sun means "go light" — the icon is the destination,
-            // which is what the word beside it says too.
-            <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" strokeLinejoin="round" />
-          ) : (
-            <>
-              <circle cx="12" cy="12" r="4" />
-              <path
-                d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"
-                strokeLinecap="round"
-              />
-            </>
-          )}
-        </svg>
+        {/* A moon means "go dark", a sun means "go light" — the icon is the destination,
+            which is what the word beside it says too. */}
+        {next === 'dark' ? (
+          <Moon aria-hidden="true" className="size-4" strokeWidth={1.8} />
+        ) : (
+          <Sun aria-hidden="true" className="size-4" strokeWidth={1.8} />
+        )}
         <span className={cx(collapsed && 'lg:hidden')}>{label}</span>
       </span>
     </Button>
