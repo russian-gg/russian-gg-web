@@ -749,8 +749,17 @@
     two ink weights the copy is drawn in and the stops of the veil behind it.
   */
   .plan-hero {
-    --plan-sky-top: #eef6ff;
-    --plan-sky-bottom: #d8e9fd;
+    /*
+      The artwork's own field colour, sampled from its left edge — #c2ddfd, #c7dffc and
+      #c2dbfb across the three, and flat top to bottom in all of them.
+
+      Flat rather than a gradient, and that exact value rather than a prettier one, because
+      this is what the picture butts up against. The artwork is fitted to the banner's height
+      and anchored right, so on a wide screen it covers a little over half the width and this
+      colour is the other half; any other value would draw a vertical seam down the middle of
+      the banner at the point the picture starts.
+    */
+    --plan-field: #c4ddfc;
     --plan-ink: #12315f;
     /*
       A step darker than it looks like it needs to be, and the scrim below is why. Thinning the
@@ -773,8 +782,9 @@
   }
 
   :root[data-theme='dark'] .plan-hero {
-    --plan-sky-top: #131c2c;
-    --plan-sky-bottom: #1a2a45;
+    /* No matching to do here — the artwork has no dark variant, so the field is the page's
+       own dark blue and `.plan-hero__art` dissolves the picture's edge into it. */
+    --plan-field: #16223a;
     --plan-ink: #eaf1fb;
     --plan-ink-muted: #a3b8d4;
     /*
@@ -790,32 +800,65 @@
   }
 
   /*
-    Vertical on a phone, where the copy sits above the subject, and horizontal from `sm`, where
-    it sits beside it. `--plan-scrim-end` is unset in the light theme, so the light banner
-    opens out into clear picture on the right.
+    The artwork, fitted to the banner's height rather than to its box.
 
-    The two orientations clear at different rates on purpose. Side by side the copy stops around
-    the 45% mark and the artwork owns everything past it, so the veil is gone by 58% — that is
-    what puts the crown and the calendars fully in view. Stacked, the copy is sitting directly
-    on top of the subject rather than beside it, so that one holds on longer; there is nowhere
-    else for the text to be.
+    `object-cover` was the wrong tool. These pictures are 2.65:1 and the banner renders near
+    4.9:1, so cover scaled them to the width and threw away nearly half the height — the crown
+    lost its base and the top of the calendars went with it. Height-fitting with a free width
+    keeps every picture whole: on a wide screen it sits in the right half and the field colour
+    carries the rest, and on a phone it overflows to the left and is clipped there, where the
+    artwork is empty anyway. Nothing is ever letterboxed, because the width is never forced.
+
+    `max-width: none` is load-bearing. The base stylesheet caps images at the width of their
+    container, which would squash this one back to a fraction of its height on a phone.
+
+    The left edge dissolves rather than stopping. In the light theme it stops against its own
+    colour and the fade is doing nothing; it is here for the dark theme, where the picture's
+    pale field would otherwise end in a hard bright vertical line partway across the banner.
+  */
+  .plan-hero__art {
+    max-width: none;
+  }
+
+  /*
+    Vertical on a phone, where the copy sits on top of the picture, and horizontal from `sm`,
+    where it sits beside it. `--plan-scrim-end` is unset in the light theme, so the light
+    banner opens out into clear picture.
+
+    The two hold on for very different distances, and that is the point. Side by side, the copy
+    stops around 40% and everything past it is the subject, so the veil is gone by 64% — that
+    is what puts the crown and the calendars fully in the open. Stacked, there is nowhere for
+    the text to be *except* over the picture, so that one stays at full strength through the
+    whole copy block and only clears underneath it.
   */
   .plan-hero__scrim {
     background: linear-gradient(
       to bottom,
       var(--plan-scrim-strong) 0%,
-      var(--plan-scrim-soft) 55%,
-      var(--plan-scrim-end, transparent) 84%
+      var(--plan-scrim-strong) 55%,
+      var(--plan-scrim-soft) 85%,
+      var(--plan-scrim-end, transparent) 100%
     );
   }
 
   @media (min-width: 40rem) {
+    /*
+      Only from here. On a phone the picture is anchored right and overflowing, so a fade over
+      the left quarter of the *element* lands in the middle of the banner rather than at its
+      edge — and there is nothing to blend into there, because the picture is covering the
+      full width.
+    */
+    .plan-hero__art {
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 26%);
+      mask-image: linear-gradient(to right, transparent 0%, #000 26%);
+    }
+
     .plan-hero__scrim {
       background: linear-gradient(
         to right,
         var(--plan-scrim-strong) 0%,
-        var(--plan-scrim-soft) 38%,
-        var(--plan-scrim-end, transparent) 58%
+        var(--plan-scrim-soft) 46%,
+        var(--plan-scrim-end, transparent) 64%
       );
     }
   }

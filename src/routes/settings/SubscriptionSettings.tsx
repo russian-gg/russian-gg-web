@@ -129,16 +129,24 @@ function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t
     <section
       /* No border. The artwork fades to its own pale edge on every side, and a hairline drawn
          round a soft gradient is a box outlining something that has no edge to outline. */
-      className="plan-hero relative isolate overflow-hidden rounded-[var(--radius-card)]"
-      style={{
-        // Shows through while the picture loads, and fills any sliver cover leaves behind.
-        background: 'linear-gradient(160deg, var(--plan-sky-top) 0%, var(--plan-sky-bottom) 100%)',
-      }}
+      /* `min-h` so a one-line plan note cannot shrink the banner to a strip: the height is what
+         the artwork is scaled by, and a short-copy banner would otherwise show a tiny crown. */
+      className="plan-hero relative isolate min-h-[13rem] overflow-hidden rounded-[var(--radius-card)] sm:min-h-[14rem]"
+      /* The artwork's own field colour, so the half of the banner the picture does not reach
+         is indistinguishable from the half it does. Also what shows while it loads. */
+      style={{ background: 'var(--plan-field)' }}
     >
       {/*
-        The object-position is the whole trick. The picture is roughly 8:3; the banner is
-        squarer than that on a phone, so cover crops the sides and the framing shifts onto the
-        subject, which is the part worth keeping when there is only room for one thing.
+        Two arrangements, because a phone and a desktop are not looking at the same shape.
+
+        From `sm` the picture is anchored right and given the banner's full height with its
+        width left free, so it keeps its proportions and nothing is cut — see `.plan-hero__art`
+        for what that replaced and why.
+
+        On a phone the banner is nearly square and the copy is stacked on top of the picture
+        rather than beside it, so the same treatment would blow the subject up to several times
+        the banner's width for the sake of a crown nobody can see behind the text. There it
+        goes back to covering the box, framed towards the subject.
 
         Keyed on the source so swapping plans remounts the element rather than repainting one
         in place — a decorative backdrop has no business cross-fading under live copy.
@@ -149,7 +157,11 @@ function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t
         alt=""
         aria-hidden="true"
         decoding="async"
-        className="pointer-events-none absolute inset-0 -z-10 size-full object-cover object-[78%_50%] sm:object-[100%_50%]"
+        className={
+          'plan-hero__art pointer-events-none absolute -z-10 ' +
+          'inset-0 size-full object-cover object-[78%_50%] ' +
+          'sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:w-auto'
+        }
       />
 
       <div aria-hidden="true" className="plan-hero__scrim pointer-events-none absolute inset-0 -z-10" />
