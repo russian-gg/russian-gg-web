@@ -1271,6 +1271,13 @@ export const en: Dictionary = {
     missionsDone: 'Lessons completed',
     streakDays: 'Days in a row',
     keepGoing: 'Keep up this rhythm',
+    editProfile: 'Edit profile',
+    displayNameLabel: 'Name',
+    save: 'Save',
+    asOfToday: 'As of today',
+    aboutLevel: 'About levels',
+    totalMissions: 'Exercises in total',
+    currentPlan: 'Current plan',
     subscription: 'Subscription',
     unlockedDays: 'Days unlocked',
     nextPayment: 'Next payment',
@@ -1301,6 +1308,12 @@ export const en: Dictionary = {
 
   settings: {
     voice: "The tutor's voice",
+    voiceGenderLabel: 'Tutor voice',
+    voiceMoodLabel: 'Tutor manner',
+    voiceGenderHint: {
+      Female: 'Patient and encouraging.',
+      Male: 'Alert, with clear pronunciation.',
+    },
     voiceGender: { Female: 'Female', Male: 'Male' },
     voiceMood: {
       Gentle: 'Gentle',
@@ -1318,6 +1331,10 @@ export const en: Dictionary = {
     tabProfile: 'Profile',
     tabGeneral: 'General',
     tabBilling: 'Subscription',
+    appearanceHint: 'Set the app up the way you like it.',
+    languageHint: 'Choose the language of the platform.',
+    voiceHint: 'Choose the voice used in lessons.',
+    privacyHint: 'Manage the settings below to make the experience work for you.',
     appearance: 'Appearance',
     themeLight: 'Light',
     themeLightHint: 'The default look',

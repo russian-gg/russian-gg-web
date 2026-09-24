@@ -1282,6 +1282,13 @@ export const ru: Dictionary = {
     missionsDone: 'Выполнено занятий',
     streakDays: 'Дней подряд',
     keepGoing: 'Продолжайте в том же ритме',
+    editProfile: 'Редактировать профиль',
+    displayNameLabel: 'Имя',
+    save: 'Сохранить',
+    asOfToday: 'На сегодня',
+    aboutLevel: 'Об уровне',
+    totalMissions: 'Всего заданий',
+    currentPlan: 'Текущий план',
     subscription: 'Подписка',
     unlockedDays: 'Открыто дней',
     nextPayment: 'Следующий платёж',
@@ -1312,6 +1319,12 @@ export const ru: Dictionary = {
 
   settings: {
     voice: 'Голос наставника',
+    voiceGenderLabel: 'Голос наставника',
+    voiceMoodLabel: 'Манера наставника',
+    voiceGenderHint: {
+      Female: 'Терпеливый и поддерживающий.',
+      Male: 'Собранный, с чёткой дикцией.',
+    },
     voiceGender: { Female: 'Женский', Male: 'Мужской' },
     voiceMood: {
       Gentle: 'Мягкий',
@@ -1329,6 +1342,10 @@ export const ru: Dictionary = {
     tabProfile: 'Профиль',
     tabGeneral: 'Общие',
     tabBilling: 'Подписка',
+    appearanceHint: 'Настройте внешний вид приложения под себя.',
+    languageHint: 'Выберите язык платформы.',
+    voiceHint: 'Выберите тип голоса в уроках.',
+    privacyHint: 'Управляйте настройками ниже, чтобы сделать работу удобнее.',
     appearance: 'Внешний вид',
     themeLight: 'Светлая',
     themeLightHint: 'Тема по умолчанию',

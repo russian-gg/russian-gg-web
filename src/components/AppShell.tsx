@@ -99,9 +99,9 @@ export function AppShell() {
 
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-2">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 sm:gap-3">
           <Wordmark />
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
             <WelcomeDiscountCountdown />
             <ProfileMenu compact />
           </div>
@@ -142,8 +142,19 @@ export function AppShell() {
       </div>
 
       {/*
-        The bottom padding clears the tab bar plus the home indicator; without it the last
-        card on every screen sits under the bar and cannot be reached.
+        The bottom padding has to clear everything that floats over the content, and there are
+        two such things — the tab bar and the Telegram button. It was sized for the tab bar
+        alone, and the button was added later at a height nobody re-checked, so the last row of
+        every screen sat underneath it.
+
+        The arithmetic, so the next person can redo it rather than guess:
+
+          phone   tab bar 56px, then the button at `bottom-24` (96px) and 44px tall, so it
+                  occupies 96–140px. 148px clears its top edge with a little air.
+          desktop no tab bar; the button sits at `bottom-6` (24px) and is 56px tall, so it
+                  occupies 24–80px. 96px clears it.
+
+        Both are `TelegramFloatingButton`'s numbers. If that moves, these move with it.
 
         `tabIndex={-1}` makes this focusable without putting it in the tab order, which is what
         both the skip link and the route-change announcement need to move focus here.
@@ -152,7 +163,7 @@ export function AppShell() {
         ref={mainRef}
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12"
+        className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-24 lg:px-10 2xl:px-12"
       >
         <PageTransition />
       </main>
@@ -256,7 +267,15 @@ function formatCountdown(seconds: number) {
 
 function Wordmark() {
   return (
-    <NavLink to="/home" className="text-xl font-semibold tracking-tight text-ink">
+    <NavLink
+      to="/home"
+      /*
+        Truncates rather than pushing its neighbours out. On the phone header it shares a row
+        with the countdown and the account button, and it is the only one of the three that can
+        afford to lose a character.
+      */
+      className="min-w-0 truncate text-xl font-semibold tracking-tight text-ink"
+    >
       russian<span className="text-signal">.gg</span>
     </NavLink>
   )
@@ -678,7 +697,7 @@ function TabLink({
         <span className="flex h-6 items-center" aria-hidden="true">
           <Icon />
         </span>
-        <span aria-hidden="true" className="text-[11px] leading-none">
+        <span aria-hidden="true" className="w-full truncate px-0.5 text-center text-[11px] leading-none">
           {short}
         </span>
       </span>
