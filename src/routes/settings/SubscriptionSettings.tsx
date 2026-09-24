@@ -7,7 +7,9 @@ import { formatDate } from '../../lib/format'
 import { fill, useLocale, useT, type Dictionary } from '../../lib/i18n'
 import type { EntitlementView, SubscriptionStatus } from '../../lib/types'
 import { Badge, Button, Card, QueryError, Spinner } from '../../components/ui'
-import planBackdrop from '../../assets/images/subscription_container_bg.webp'
+import freeBackdrop from '../../assets/images/subscription_container_bg.webp'
+import monthlyBackdrop from '../../assets/images/month_subscription.webp'
+import ninetyDayBackdrop from '../../assets/images/3_months_subscription.webp'
 import planArtwork from '../../assets/images/subscription_informaton.webp'
 
 /**
@@ -81,19 +83,47 @@ export function SubscriptionSettings() {
 /* -------------------------------------------------------------------------- banner */
 
 /**
+ * The artwork for a plan.
+ *
+ * Three pictures drawn to one template — the subject on the right, an open field on the left —
+ * so the banner swaps between them with nothing to re-lay out. A crown for somebody with no
+ * subscription, a calendar for a monthly one, and three calendars marked "3 months" for the
+ * ninety-day plan, which is the one that covers the whole course.
+ *
+ * The fallback is the crown, and it is reached in two cases that are worth telling apart. A
+ * free account has no plan to picture, and a subscriber whose `period` the server did not send
+ * has one this client cannot name — a server older than the field, most likely. Guessing
+ * "monthly" there would put a picture of the wrong plan in front of somebody paying for the
+ * other one, which is worse than the neutral crown both of them read correctly.
+ */
+function backdropFor(entitlement: EntitlementView): string {
+  if (!entitlement.hasProAccess) return freeBackdrop
+
+  switch (entitlement.period) {
+    case 'NinetyDay':
+      return ninetyDayBackdrop
+    case 'Monthly':
+      return monthlyBackdrop
+    default:
+      return freeBackdrop
+  }
+}
+
+/**
  * The plan name, large, over the artwork.
  *
- * The picture is laid in as one covering layer with the crown on its right and an open field
+ * The picture is laid in as one covering layer with its subject on the right and an open field
  * on its left, so the copy sits over the empty half — the same arrangement as the home hero,
  * and for the same reason: no seam to line up and nothing to keep in step as the card resizes.
  *
  * The status badge carries a word rather than only a colour. "No subscription" and "Active"
  * are different facts, and a grey pill versus a blue one is not a way to tell somebody which
- * of them they are on.
+ * of them they are on — and neither is a different picture behind them.
  */
 function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t: Dictionary }) {
   const { locale } = useLocale()
   const navigate = useNavigate()
+  const backdrop = backdropFor(entitlement)
 
   return (
     <section
@@ -108,10 +138,14 @@ function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t
       {/*
         The object-position is the whole trick. The picture is roughly 8:3; the banner is
         squarer than that on a phone, so cover crops the sides and the framing shifts onto the
-        crown, which is the part worth keeping when there is only room for one thing.
+        subject, which is the part worth keeping when there is only room for one thing.
+
+        Keyed on the source so swapping plans remounts the element rather than repainting one
+        in place — a decorative backdrop has no business cross-fading under live copy.
       */}
       <img
-        src={planBackdrop}
+        key={backdrop}
+        src={backdrop}
         alt=""
         aria-hidden="true"
         decoding="async"

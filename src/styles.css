@@ -744,17 +744,29 @@
     Subscription banner.
 
     The same problem as the home hero and solved the same way, but its own scope: this artwork
-    is a crown on a pale blue field rather than a skyline, so it wants its own scrim geometry
-    and none of the illustration tokens above. Only the four values that matter are declared —
-    the two ink weights the copy is drawn in and the two stops of the veil behind it.
+    is a subject on a pale blue field rather than a skyline, so it wants its own scrim geometry
+    and none of the illustration tokens above. Only the values that matter are declared — the
+    two ink weights the copy is drawn in and the stops of the veil behind it.
   */
   .plan-hero {
     --plan-sky-top: #eef6ff;
     --plan-sky-bottom: #d8e9fd;
     --plan-ink: #12315f;
-    --plan-ink-muted: #4b6c96;
-    --plan-scrim-strong: rgb(238 246 255 / 0.94);
-    --plan-scrim-soft: rgb(238 246 255 / 0.5);
+    /*
+      A step darker than it looks like it needs to be, and the scrim below is why. Thinning the
+      veil to let the artwork through also thins it under the end of the description, where the
+      background lands around #e4eefd — the old #4b6c96 measured about 4.5:1 there, which is AA
+      by rounding and not by margin. This is nearer 5:1 across the whole run of the text.
+    */
+    --plan-ink-muted: #456490;
+    /*
+      Light enough to read as haze rather than as a panel. These are the artwork's own sky
+      colour at low opacity: the picture is three-quarters empty field on the left, so the veil
+      only has to guarantee the narrow band the copy actually occupies, and carrying it across
+      the whole banner was hiding the subject the banner exists to show.
+    */
+    --plan-scrim-strong: rgb(238 246 255 / 0.82);
+    --plan-scrim-soft: rgb(238 246 255 / 0.24);
     /* A shade of the sky, not a tint of white: the pill has to read as part of the picture
        at every crop, and white goes chalky where the artwork is already pale. */
     --plan-pill: #d5e6fb;
@@ -768,24 +780,32 @@
     /*
       Never reaches transparent here. The picture is a fixed daylight render with no dark
       variant, so on a dark page the veil is what stops it burning a hole in the layout.
+      Thinned along with the light theme, but nothing like as far: the floor is set by how
+      bright the artwork is against the page, not by how much of it one would like to see.
     */
     --plan-pill: #24364f;
-    --plan-scrim-strong: rgb(19 28 44 / 0.94);
-    --plan-scrim-soft: rgb(19 28 44 / 0.72);
-    --plan-scrim-end: rgb(19 28 44 / 0.5);
+    --plan-scrim-strong: rgb(19 28 44 / 0.9);
+    --plan-scrim-soft: rgb(19 28 44 / 0.62);
+    --plan-scrim-end: rgb(19 28 44 / 0.42);
   }
 
   /*
-    Vertical on a phone, where the copy sits above the crown, and horizontal from `sm`, where
+    Vertical on a phone, where the copy sits above the subject, and horizontal from `sm`, where
     it sits beside it. `--plan-scrim-end` is unset in the light theme, so the light banner
     opens out into clear picture on the right.
+
+    The two orientations clear at different rates on purpose. Side by side the copy stops around
+    the 45% mark and the artwork owns everything past it, so the veil is gone by 58% — that is
+    what puts the crown and the calendars fully in view. Stacked, the copy is sitting directly
+    on top of the subject rather than beside it, so that one holds on longer; there is nowhere
+    else for the text to be.
   */
   .plan-hero__scrim {
     background: linear-gradient(
       to bottom,
       var(--plan-scrim-strong) 0%,
-      var(--plan-scrim-soft) 52%,
-      var(--plan-scrim-end, transparent) 82%
+      var(--plan-scrim-soft) 55%,
+      var(--plan-scrim-end, transparent) 84%
     );
   }
 
@@ -794,8 +814,8 @@
       background: linear-gradient(
         to right,
         var(--plan-scrim-strong) 0%,
-        var(--plan-scrim-soft) 48%,
-        var(--plan-scrim-end, transparent) 74%
+        var(--plan-scrim-soft) 38%,
+        var(--plan-scrim-end, transparent) 58%
       );
     }
   }
