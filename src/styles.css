@@ -739,4 +739,64 @@
       display: none;
     }
   }
+
+  /*
+    Subscription banner.
+
+    The same problem as the home hero and solved the same way, but its own scope: this artwork
+    is a crown on a pale blue field rather than a skyline, so it wants its own scrim geometry
+    and none of the illustration tokens above. Only the four values that matter are declared —
+    the two ink weights the copy is drawn in and the two stops of the veil behind it.
+  */
+  .plan-hero {
+    --plan-sky-top: #eef6ff;
+    --plan-sky-bottom: #d8e9fd;
+    --plan-ink: #12315f;
+    --plan-ink-muted: #4b6c96;
+    --plan-scrim-strong: rgb(238 246 255 / 0.94);
+    --plan-scrim-soft: rgb(238 246 255 / 0.5);
+    /* A shade of the sky, not a tint of white: the pill has to read as part of the picture
+       at every crop, and white goes chalky where the artwork is already pale. */
+    --plan-pill: #d5e6fb;
+  }
+
+  :root[data-theme='dark'] .plan-hero {
+    --plan-sky-top: #131c2c;
+    --plan-sky-bottom: #1a2a45;
+    --plan-ink: #eaf1fb;
+    --plan-ink-muted: #a3b8d4;
+    /*
+      Never reaches transparent here. The picture is a fixed daylight render with no dark
+      variant, so on a dark page the veil is what stops it burning a hole in the layout.
+    */
+    --plan-pill: #24364f;
+    --plan-scrim-strong: rgb(19 28 44 / 0.94);
+    --plan-scrim-soft: rgb(19 28 44 / 0.72);
+    --plan-scrim-end: rgb(19 28 44 / 0.5);
+  }
+
+  /*
+    Vertical on a phone, where the copy sits above the crown, and horizontal from `sm`, where
+    it sits beside it. `--plan-scrim-end` is unset in the light theme, so the light banner
+    opens out into clear picture on the right.
+  */
+  .plan-hero__scrim {
+    background: linear-gradient(
+      to bottom,
+      var(--plan-scrim-strong) 0%,
+      var(--plan-scrim-soft) 52%,
+      var(--plan-scrim-end, transparent) 82%
+    );
+  }
+
+  @media (min-width: 40rem) {
+    .plan-hero__scrim {
+      background: linear-gradient(
+        to right,
+        var(--plan-scrim-strong) 0%,
+        var(--plan-scrim-soft) 48%,
+        var(--plan-scrim-end, transparent) 74%
+      );
+    }
+  }
 }

@@ -1231,6 +1231,13 @@ export const en: Dictionary = {
       'that open with a Pro subscription through Click or Payme.',
     proUnlocks: 'What Pro opens',
     freeLimits: 'On the free plan',
+    viewPlans: "View plans",
+    planTagline: "Start learning Russian today and open up what the course can do.",
+    yourProgress: "Your progress",
+    freePlanTitle: "What the free plan includes",
+    proPlanTitle: "What does Pro give you?",
+    upsellTitle: "Subscribe to unlock more",
+    upsellBody: "Pro takes your Russian further, faster.",
     cancelNote:
       'You can cancel any time in Settings. If you cancel, Pro stays open until the end of ' +
       'the period you paid for.',

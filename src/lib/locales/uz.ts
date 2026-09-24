@@ -1263,6 +1263,13 @@ export const uz = {
       "Pro obuna bilan ochiladi.",
     proUnlocks: 'Pro nimani ochadi',
     freeLimits: 'Bepul rejada',
+    viewPlans: "Reja turlarini ko‘rish",
+    planTagline: "Rus tilini o‘rganishga bugunoq boshlang va imkoniyatlaringizni kengaytiring.",
+    yourProgress: "Sizning progressingiz",
+    freePlanTitle: "Free reja imkoniyatlari",
+    proPlanTitle: "Pro reja nimalarni beradi?",
+    upsellTitle: "Ko‘proq imkoniyatlar uchun obuna bo‘ling",
+    upsellBody: "Pro reja bilan rus tilini yanada samarali o‘rganing.",
     cancelNote:
       "Obunani istalgan vaqtda Sozlamalar bo'limidan bekor qilishingiz mumkin. Bekor qilganingizda " +
       "to'langan muddat oxirigacha Pro ochiq qoladi.",

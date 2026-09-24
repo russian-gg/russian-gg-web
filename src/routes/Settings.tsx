@@ -50,8 +50,21 @@ export function Settings() {
         Keyed on the active tab so switching re-runs the entrance. Without the key React sees
         one element whose props changed and swaps the contents in place, which reads as the
         panel being overwritten rather than as a different panel arriving.
+
+        `drive` is not optional here, and it is the one place on this screen that needs it.
+        A `Reveal` inside a `Sequence` carries no `initial`/`animate` of its own — it is moved
+        by the variants the `Sequence` propagates, and a `Sequence` propagates them once, when
+        it mounts. This child outlives that moment: changing the key remounts it under a
+        parent whose `animate` has not changed since it finished, so nothing tells the new
+        panel to move. It mounted at `fadeUp`'s hidden state — `opacity: 0` — and stayed
+        there, present in the DOM and focusable but invisible, until a reload remounted the
+        whole tree. Owning its own entrance means it animates on every mount, which is what
+        "re-runs the entrance" was supposed to mean.
+
+        The delay is the two beats the header and the tabs take, so the staircase on first
+        paint survives the panel stepping out of the `Sequence`'s stagger.
       */}
-      <Reveal key={active}>
+      <Reveal key={active} drive delay={stagger.tight * 2}>
         {active === TAB_PROFILE && <ProfileSettings />}
         {active === TAB_GENERAL && <GeneralSettings />}
         {active === TAB_BILLING && <SubscriptionSettings />}

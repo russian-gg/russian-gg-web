@@ -1,28 +1,30 @@
-import { CalendarClock, Check, LockOpen, Minus } from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
-import { formatDate, formatPrice } from '../../lib/format'
+import { formatDate } from '../../lib/format'
 import { fill, useLocale, useT, type Dictionary } from '../../lib/i18n'
-import type { EntitlementView, PlansView, SubscriptionStatus } from '../../lib/types'
-import { Badge, Button, Card, QueryError, SectionHeading, Spinner } from '../../components/ui'
-import { StatTile } from './stats'
+import type { EntitlementView, SubscriptionStatus } from '../../lib/types'
+import { Badge, Button, Card, QueryError, Spinner } from '../../components/ui'
+import planBackdrop from '../../assets/images/subscription_container_bg.webp'
+import planArtwork from '../../assets/images/subscription_informaton.webp'
 
 /**
- * The plan, what it has unlocked, and what happens next.
+ * The plan, what it has unlocked, and what the other plan would add.
  *
- * Four questions in the order somebody arriving here asks them: what am I on, how much of the
- * course does that open, when is money next involved, and where do I change it. They were
- * previously one card with the answers in a row, which is the same information with none of
- * the order.
+ * Four blocks in the order somebody arriving here asks for them: what am I on, how far has
+ * that got me, what does it actually include, and what is on the other side. The banner
+ * answers the first because it is the one thing a learner opened this tab to check;
+ * everything below it is the detail they came for second.
  *
- * Nothing here is invented. The figures come from `/billing/entitlement`, the prices from
- * `/billing/plans`, and the two feature lists are `t.billing.freeLimitItems` and
- * `t.billing.proBenefits` — existing product copy the paywall already renders. Nothing on
- * this screen states a price, a period or an inclusion that is not in one of those.
+ * Nothing about the account is invented. The tier, the status, the unlocked days and the
+ * renewal date all come from `/billing/entitlement`, and the two feature lists are
+ * `t.billing.freeLimitItems` and `t.billing.proBenefits` — existing product copy the paywall
+ * already renders, so the two screens cannot drift into describing different products.
  *
- * Buying still happens on the paywall. This screen answers "what am I on and what else is
- * there"; that one takes the payment, and duplicating a checkout is how two of them drift.
+ * Buying happens on the paywall. This screen answers "what am I on and what else is there";
+ * that one takes the payment, and a second checkout is two flows to keep in step.
  */
 export function SubscriptionSettings() {
   const t = useT()
@@ -35,81 +37,187 @@ export function SubscriptionSettings() {
   })
 
   if (isLoading) return <Spinner />
-  /* The card below has a "no subscription" branch. Showing it to somebody who is paying,
+  /* The banner below has a "no subscription" branch. Showing it to somebody who is paying,
      because one request failed, is the one outcome this screen must not produce. */
   if (isError) return <QueryError onRetry={() => void refetch()} />
 
+  if (!entitlement) {
+    return (
+      <Card>
+        <p className="text-support">{t.profile.subscriptionUnavailable}</p>
+      </Card>
+    )
+  }
+
+  const hasPro = entitlement.hasProAccess
+
   return (
-    <section className="space-y-4">
-      <SectionHeading>{t.profile.subscription}</SectionHeading>
+    <div className="space-y-4">
+      <CurrentPlanBanner entitlement={entitlement} t={t} />
+      <ProgressCard entitlement={entitlement} t={t} />
 
-      {entitlement ? (
-        /*
-          Two columns from `xl`, split by what the reader is doing. The left is their account —
-          the plan they are on and what it has opened. The right is the offer — what each plan
-          includes and what it costs. Stacked, the offer sat below the fold on a laptop, which
-          is the one thing on this tab that has to be seen to do anything.
-        */
-        <div className="grid items-start gap-4 xl:grid-cols-2">
-          <div className="space-y-4">
-            <CurrentPlanCard entitlement={entitlement} t={t} />
-            <UsageSummary entitlement={entitlement} t={t} />
-          </div>
+      {/*
+        The plan in hand beside the offer, from `lg`. Two 50/50 columns is the point of the
+        pairing — "here is what you have" answered immediately by "here is what you don't" —
+        and below `lg` they stack, because a four-item list in a half of a tablet is four
+        wrapped fragments.
+      */}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <FeatureCard
+          title={hasPro ? t.billing.proPlanTitle : t.billing.freePlanTitle}
+          items={hasPro ? t.billing.proBenefits : t.billing.freeLimitItems}
+        />
+        {/* Only worth putting to somebody who is not already on it. */}
+        {!hasPro && <UpsellCard t={t} />}
+      </div>
 
-          <div className="space-y-4">
-            <PlanFeatures hasPro={entitlement.hasProAccess} t={t} />
-            {!entitlement.hasProAccess && <PlanOptions t={t} />}
-          </div>
+      {/* The full case for Pro, wide, so the list runs in two columns instead of one long
+          leg. Suppressed for a subscriber, who is reading their own list above. */}
+      {!hasPro && <FeatureCard title={t.billing.proPlanTitle} items={t.billing.proBenefits} columns />}
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- banner */
+
+/**
+ * The plan name, large, over the artwork.
+ *
+ * The picture is laid in as one covering layer with the crown on its right and an open field
+ * on its left, so the copy sits over the empty half — the same arrangement as the home hero,
+ * and for the same reason: no seam to line up and nothing to keep in step as the card resizes.
+ *
+ * The status badge carries a word rather than only a colour. "No subscription" and "Active"
+ * are different facts, and a grey pill versus a blue one is not a way to tell somebody which
+ * of them they are on.
+ */
+function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t: Dictionary }) {
+  const { locale } = useLocale()
+  const navigate = useNavigate()
+
+  return (
+    <section
+      /* No border. The artwork fades to its own pale edge on every side, and a hairline drawn
+         round a soft gradient is a box outlining something that has no edge to outline. */
+      className="plan-hero relative isolate overflow-hidden rounded-[var(--radius-card)]"
+      style={{
+        // Shows through while the picture loads, and fills any sliver cover leaves behind.
+        background: 'linear-gradient(160deg, var(--plan-sky-top) 0%, var(--plan-sky-bottom) 100%)',
+      }}
+    >
+      {/*
+        The object-position is the whole trick. The picture is roughly 8:3; the banner is
+        squarer than that on a phone, so cover crops the sides and the framing shifts onto the
+        crown, which is the part worth keeping when there is only room for one thing.
+      */}
+      <img
+        src={planBackdrop}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        className="pointer-events-none absolute inset-0 -z-10 size-full object-cover object-[78%_50%] sm:object-[100%_50%]"
+      />
+
+      <div aria-hidden="true" className="plan-hero__scrim pointer-events-none absolute inset-0 -z-10" />
+
+      <div className="relative px-6 py-7 sm:max-w-[60%] sm:px-8 sm:py-9">
+        {/* Sentence case at body size, not the uppercase micro-label the cards below use.
+            This one sits on artwork rather than on a card, and it reads as the first line of a
+            sentence that the tier name finishes. */}
+        <p className="text-base leading-none" style={{ color: 'var(--plan-ink-muted)' }}>
+          {t.profile.currentPlan}
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span
+            className="text-[2.5rem] leading-none font-extrabold tracking-tight sm:text-5xl"
+            style={{ color: 'var(--plan-ink)' }}
+          >
+            {entitlement.tier}
+          </span>
+          <PlanPill>{statusLabel(entitlement.status, t)}</PlanPill>
+          {entitlement.paymentProcessing && <Badge tone="caution">{t.profile.paymentChecking}</Badge>}
         </div>
-      ) : (
-        <Card>
-          <p className="text-support">{t.profile.subscriptionUnavailable}</p>
-        </Card>
-      )}
 
-      <SubscriptionActions />
+        <p
+          className="mt-3 max-w-sm text-base leading-relaxed"
+          style={{ color: 'var(--plan-ink-muted)' }}
+        >
+          {planNote(entitlement, t, locale)}
+        </p>
+
+        {/* Full width on a phone, hugging its label from `sm` — what this product already says
+            a primary action does on a phone; see `block` on `Button`. */}
+        <Button block className="mt-6 sm:w-auto sm:px-7" onClick={() => navigate('/paywall')}>
+          {t.profile.manage}
+        </Button>
+      </div>
     </section>
   )
 }
 
-/* ---------------------------------------------------------------------------- plan */
-
 /**
- * The plan name, large, with its state beside it.
+ * The status word beside the tier.
  *
- * The tier is the headline because it is the one thing a learner came to check. The status
- * badge carries a word rather than only a colour — "Obuna yo'q" and "Faol" are different
- * facts, and a grey pill versus a blue one is not a way to tell somebody which they are on.
+ * Not `Badge`, which is built for a card: its neutral tone is grey on grey and its shape is
+ * the control radius, and both are wrong against artwork. This one is drawn in the banner's
+ * own palette — a soft pill in the sky colour, lettered in the same muted ink as the line
+ * under it — so it belongs to the picture rather than sitting on top of it.
+ *
+ * It carries a word, not only a colour: "No subscription" and "Active" are different facts,
+ * and a paler pill is not a way to tell somebody which of them they are on.
  */
-function CurrentPlanCard({ entitlement, t }: { entitlement: EntitlementView; t: Dictionary }) {
+function PlanPill({ children }: { children: ReactNode }) {
   return (
-    <Card>
-      <p className="text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
-        {t.profile.currentPlan}
-      </p>
-
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <span className="text-3xl leading-none font-extrabold text-ink">{entitlement.tier}</span>
-        <Badge tone={entitlement.hasProAccess ? 'signal' : 'neutral'}>
-          {statusLabel(entitlement.status, t)}
-        </Badge>
-        {entitlement.paymentProcessing && (
-          <Badge tone="caution">{t.profile.paymentChecking}</Badge>
-        )}
-      </div>
-    </Card>
+    <span
+      className="inline-flex items-center rounded-full px-3.5 py-1.5 text-sm font-bold"
+      style={{ background: 'var(--plan-pill)', color: 'var(--plan-ink-muted)' }}
+    >
+      {children}
+    </span>
   )
 }
 
-/* --------------------------------------------------------------------------- usage */
+/**
+ * The one line under the plan name.
+ *
+ * On free it is an invitation, and it makes no claim about limits — the card below states
+ * those, from the product's own list, and saying it twice in two wordings is how two
+ * descriptions of one plan end up disagreeing. On a paid plan it is the fact that matters:
+ * when it runs out, and whether it is going to renew. Every paid branch is existing
+ * dictionary copy filled with a date the server sent.
+ */
+function planNote(
+  entitlement: EntitlementView,
+  t: Dictionary,
+  locale: Parameters<typeof formatDate>[1],
+): string {
+  if (!entitlement.hasProAccess) return t.billing.planTagline
+  if (entitlement.cancelAtPeriodEnd) return t.billing.cancelled
+
+  const until = entitlement.currentPeriodEnd ?? entitlement.trialEndsAt
+  /* No date to quote, so it falls back to how cancelling works — true of every paid plan, and
+     better than an "active until —" with a dash where the date should be. */
+  if (!until) return t.billing.cancelNote
+
+  return fill(entitlement.status === 'Trialing' ? t.billing.trialUntil : t.billing.activeUntil, {
+    date: formatDate(until, locale),
+  })
+}
+
+/* ------------------------------------------------------------------------ progress */
 
 /**
  * How much of the ninety days the plan has opened, and when money is next involved.
  *
  * The bar is the point. "3/90" is a fraction somebody has to do arithmetic on; the same
  * number drawn as a track is read at a glance, and this screen exists to be glanced at.
+ *
+ * No icons on either figure. There are two of them, they are already named, and a pictogram
+ * beside a number this large is decoration competing with the thing it decorates — the rule
+ * between the columns does the separating that the icon tiles were doing by accident.
  */
-function UsageSummary({ entitlement, t }: { entitlement: EntitlementView; t: Dictionary }) {
+function ProgressCard({ entitlement, t }: { entitlement: EntitlementView; t: Dictionary }) {
   const { locale } = useLocale()
   const unlocked = Math.max(0, Math.min(90, entitlement.maxUnlockedDay))
   const percent = Math.round((unlocked / 90) * 100)
@@ -118,28 +226,40 @@ function UsageSummary({ entitlement, t }: { entitlement: EntitlementView; t: Dic
 
   return (
     <Card>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <StatTile
-          icon={LockOpen}
-          label={t.profile.unlockedDays}
-          value={`${unlocked}/90`}
-          hint={
-            <span
-              aria-hidden="true"
-              className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-ground-sunken"
-            >
-              <span
-                className="block h-full rounded-full bg-signal"
-                style={{ width: `${percent}%` }}
-              />
-            </span>
-          }
-        />
-        <StatTile
-          icon={CalendarClock}
-          label={entitlement.cancelAtPeriodEnd ? t.profile.validUntil : t.profile.nextPayment}
-          value={nextDate ? formatDate(nextDate, locale) : null}
-        />
+      <h2 className="text-lg font-extrabold tracking-tight text-ink">{t.billing.yourProgress}</h2>
+
+      {/* The divider is horizontal when they stack and vertical when they sit side by side,
+          which `divide-*` handles without a second element to position. */}
+      <div className="mt-5 grid divide-y divide-hairline sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="pb-4 sm:pr-8 sm:pb-0">
+          <p className="text-xs font-extrabold tracking-[0.1em] text-ink-faint uppercase">
+            {t.profile.unlockedDays}
+          </p>
+          <p className="mt-1 text-3xl leading-none font-extrabold tabular-nums text-ink">
+            {unlocked}/90
+          </p>
+          <div
+            aria-hidden="true"
+            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-ground-sunken"
+          >
+            <div className="h-full rounded-full bg-signal" style={{ width: `${percent}%` }} />
+          </div>
+        </div>
+
+        <div className="pt-4 sm:pt-0 sm:pl-8">
+          <p className="text-xs font-extrabold tracking-[0.1em] text-ink-faint uppercase">
+            {entitlement.cancelAtPeriodEnd ? t.profile.validUntil : t.profile.nextPayment}
+          </p>
+          <p
+            className={
+              nextDate
+                ? 'mt-1 text-3xl leading-none font-extrabold tabular-nums text-ink'
+                : 'mt-1 text-3xl leading-none font-extrabold text-ink-faint'
+            }
+          >
+            {nextDate ? formatDate(nextDate, locale) : '—'}
+          </p>
+        </div>
       </div>
     </Card>
   )
@@ -148,128 +268,84 @@ function UsageSummary({ entitlement, t }: { entitlement: EntitlementView; t: Dic
 /* ------------------------------------------------------------------------ features */
 
 /**
- * What the current plan includes, and what the other one adds.
+ * What a plan covers.
  *
- * Both lists are existing dictionary copy — `freeLimitItems` and `proBenefits` — and they are
- * the same two the paywall shows. They are here because "what am I actually on?" is the
- * question this tab is opened with, and a tier name alone does not answer it.
+ * `columns` splits the list in two from `sm`. A six-item list down one side of a full-width
+ * card is a column of text with half a card of nothing beside it; the same six in two legs
+ * are read in one pass.
  *
- * Marks are blue, not green. Green is this product's *completion* colour — a finished lesson,
- * a passed step — and a feature list is a description, not an achievement.
+ * The marks are blue, not green. Green is this product's *completion* colour — a finished
+ * lesson, a passed step — and a feature list is a description, not an achievement.
  */
-function PlanFeatures({ hasPro, t }: { hasPro: boolean; t: Dictionary }) {
+function FeatureCard({
+  title,
+  items,
+  columns = false,
+}: {
+  title: string
+  items: readonly string[]
+  columns?: boolean
+}) {
   return (
     <Card>
-      <p className="text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
-        {hasPro ? t.billing.proUnlocks : t.billing.freeLimits}
-      </p>
+      <h2 className="text-lg font-extrabold tracking-tight text-ink">{title}</h2>
 
-      <ul className="mt-3 space-y-2">
-        {(hasPro ? t.billing.proBenefits : t.billing.freeLimitItems).map((item) => (
-          <li key={item} className="flex items-start gap-2.5 text-sm text-ink">
-            <Check aria-hidden="true" strokeWidth={2.6} className="mt-0.5 size-4 shrink-0 text-signal-ink" />
+      <ul className={columns ? 'mt-5 grid gap-2 sm:grid-cols-2 sm:gap-x-8' : 'mt-5 grid gap-2'}>
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-3 text-[15px] leading-snug text-ink">
+            <CircleCheck
+              aria-hidden="true"
+              strokeWidth={2}
+              className="mt-px size-5 shrink-0 text-signal"
+            />
             {item}
           </li>
         ))}
       </ul>
-
-      {/* Only worth showing to somebody who is not already on it. */}
-      {!hasPro && (
-        <>
-          <p className="mt-6 text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
-            {t.billing.proUnlocks}
-          </p>
-          <ul className="mt-3 space-y-2">
-            {t.billing.proBenefits.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm text-ink-muted">
-                <Minus aria-hidden="true" strokeWidth={2.6} className="mt-0.5 size-4 shrink-0 text-ink-faint" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
     </Card>
   )
 }
 
-/* -------------------------------------------------------------------------- prices */
+/* -------------------------------------------------------------------------- upsell */
 
 /**
- * The plans that exist, at the prices the server quotes.
+ * The case for Pro, made once, with the artwork carrying it.
  *
- * Read-only, and its own query rather than props: this is the one block on the screen that is
- * not about the learner's current state, and a tab that is mostly entitlement should not wait
- * on a second request before rendering any of it. If the prices do not arrive, the rest of the
- * tab is unaffected and this simply does not appear — no error, because nothing here is
- * broken by not knowing what Pro costs.
- */
-function PlanOptions({ t }: { t: Dictionary }) {
-  const { locale } = useLocale()
-  const { data } = useQuery({
-    queryKey: ['plans'],
-    queryFn: () => api.get<PlansView>('/billing/plans'),
-    staleTime: 60 * 60_000,
-    retry: false,
-  })
-
-  if (!data || data.options.length === 0) return null
-
-  return (
-    <Card>
-      <p className="text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">
-        {t.billing.title}
-      </p>
-
-      <ul className="mt-3 space-y-2">
-        {data.options.map((option) => (
-          <li
-            key={option.period}
-            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl border border-hairline p-4"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-extrabold text-ink">{t.billing.periodLabel[option.period]}</p>
-              {option.effectiveMonthlyTiyin > 0 && (
-                <p className="text-support text-xs">
-                  {fill(t.billing.perMonth, {
-                    amount: formatPrice(option.effectiveMonthlyTiyin, option.currency, locale),
-                  })}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {option.savingsPercent > 0 && (
-                <Badge tone="signal">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
-              )}
-              <span className="text-base font-extrabold tabular-nums text-ink">
-                {formatPrice(option.amountTiyin, option.currency, locale)}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  )
-}
-
-/* ------------------------------------------------------------------------- actions */
-
-/**
- * Where the money actually changes hands.
+ * Tinted rather than white, because it is the one card on this tab that is asking for
+ * something rather than reporting something, and it has to be told apart from the plain
+ * statement of fact sitting beside it.
  *
- * The prices above are read-only on purpose. Checkout is the paywall's — promo codes, the
- * welcome discount, Click and Payme all live there — and a second checkout is two flows to
- * keep in step for no capability this screen needs.
+ * The illustration is decorative and marked so. It is `lazy` — it is below the fold at every
+ * width this card is drawn at — and it drops out below `sm`, where giving a picture a third of
+ * a phone screen pushes the button it is arguing for off the bottom.
  */
-function SubscriptionActions() {
-  const t = useT()
+function UpsellCard({ t }: { t: Dictionary }) {
   const navigate = useNavigate()
 
   return (
-    <Button block className="sm:w-auto" onClick={() => navigate('/paywall')}>
-      {t.profile.manage}
-    </Button>
+    <Card className="relative overflow-hidden border-signal-soft bg-signal-soft/70">
+      <div className="relative flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-extrabold tracking-tight text-ink">{t.billing.upsellTitle}</h2>
+          <p className="text-support mt-1.5 text-sm leading-relaxed">{t.billing.upsellBody}</p>
+
+          <Button block className="mt-5 sm:w-auto sm:px-6" onClick={() => navigate('/paywall')}>
+            {t.billing.viewPlans}
+          </Button>
+        </div>
+
+        {/* Negative margins let it run to the card's own edge rather than sitting inside the
+            padding with a gutter of empty tint around it. */}
+        <img
+          src={planArtwork}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="-my-5 -mr-5 hidden w-44 shrink-0 self-center sm:block lg:w-48"
+        />
+      </div>
+    </Card>
   )
 }
 

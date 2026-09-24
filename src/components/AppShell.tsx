@@ -772,11 +772,9 @@ function ProgressGlyph() {
  * and nothing else. That exit is deliberately the short one — the learner has already decided
  * to leave, so the only honest thing to do is get out of the way.
  *
- * Keyed on `pathname`, not on the whole location: `/settings/billing` and `/settings/general`
- * are the same screen with a different tab selected, and re-mounting it between them would
- * throw away the panel the learner is reading. They are separate paths, so they *are* keyed
- * apart here — but the search string is excluded for the same reason, so a query parameter
- * changing under a screen never restarts it.
+ * Keyed on the *screen*, not on the URL. The search string is excluded, so a query parameter
+ * changing under a screen never restarts it — and so is the tab segment of a tabbed screen,
+ * for the stronger version of the same reason: see `screenKey`.
  */
 function PageTransition() {
   const { pathname } = useLocation()
@@ -799,7 +797,7 @@ function PageTransition() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <m.div
-        key={pathname}
+        key={screenKey(pathname)}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.enter } }}
         exit={{ opacity: 0, y: -6, transition: { duration: 0.13, ease: ease.exit } }}
@@ -808,6 +806,33 @@ function PageTransition() {
       </m.div>
     </AnimatePresence>
   )
+}
+
+/**
+ * Which screen a path belongs to, for the purpose of the transition above.
+ *
+ * Settings is one screen with three tabs, and its tabs are separate paths so that each can be
+ * reloaded, linked and reached with the back button. Those two facts used to collide here:
+ * the transition keyed on the raw pathname, so pressing a tab was a full screen change —
+ * the whole page exited to `opacity: 0`, and `mode="wait"` held the replacement back until
+ * that exit reported it had finished. When it did not report, nothing arrived: a faded-out
+ * screen with no successor, which is a blank page with the shell still around it. A reload
+ * was the only thing that put it right, because a reload remounts the tree from nothing.
+ *
+ * Collapsing the tab segment takes the transition out of it entirely. A tab press is now what
+ * it always looked like — one screen swapping a panel — so there is no exit to wait on, no
+ * remount, and the scroll position and panel state survive the press. The panel's own
+ * entrance is handled where it belongs, by the keyed `Reveal` in `routes/Settings.tsx`.
+ *
+ * `TABBED` is a list because there will be a second one eventually, not because there is now.
+ * A path only matches on a segment boundary: `/settingsomething` is a different screen, and
+ * `startsWith` alone would have said otherwise.
+ */
+const TABBED = ['/settings']
+
+function screenKey(pathname: string): string {
+  const screen = TABBED.find((base) => pathname === base || pathname.startsWith(`${base}/`))
+  return screen ?? pathname
 }
 
 function RailLink({
