@@ -469,6 +469,15 @@ export interface EntitlementView {
   cancelAtPeriodEnd: boolean
   maxUnlockedDay: number
   paymentProcessing: boolean
+  /**
+   * Which plan is being paid for. `tier` is only Free or Pro, so this is the only thing that
+   * tells a monthly subscriber from a ninety-day one.
+   *
+   * Optional because a server that predates the field simply will not send it, and a client
+   * that treats absence as an error would break against it. Absence means "not known", never
+   * "monthly" — anything reading this has to have an answer for undefined.
+   */
+  period?: BillingPeriod | null
 }
 
 export type PaymentProvider = 'click' | 'payme'

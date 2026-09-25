@@ -405,9 +405,11 @@ function LessonHero({ lesson, progress, compact }: { lesson: LessonData; progres
         <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
         <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
       </>}
-      <div className={cx('flex items-center justify-between gap-3 text-xs font-bold sm:text-sm', !compact && 'mt-4')}>
-        <span className="text-ink">{t.progress}</span>
-        <span className="text-ink-faint">{fill(t.sectionsOf, { done: progress, total: sections.length })}</span>
+      <div className={cx('flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs font-bold sm:text-sm', !compact && 'mt-4')}>
+        <span className="min-w-0 text-ink">{t.progress}</span>
+        <span className="shrink-0 whitespace-nowrap text-ink-faint">
+          {fill(t.sectionsOf, { done: progress, total: sections.length })}
+        </span>
       </div>
       <div className="mt-2"><ProgressBar value={progress} max={sections.length} label={t.progress} /></div>
     </Card>

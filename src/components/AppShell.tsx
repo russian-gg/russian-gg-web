@@ -99,9 +99,9 @@ export function AppShell() {
 
       {/* Phone: identity at the top, navigation at the bottom where the thumb is. */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-ground/95 backdrop-blur md:hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-2">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 sm:gap-3">
           <Wordmark />
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
             <WelcomeDiscountCountdown />
             <ProfileMenu compact />
           </div>
@@ -142,8 +142,19 @@ export function AppShell() {
       </div>
 
       {/*
-        The bottom padding clears the tab bar plus the home indicator; without it the last
-        card on every screen sits under the bar and cannot be reached.
+        The bottom padding has to clear everything that floats over the content, and there are
+        two such things — the tab bar and the Telegram button. It was sized for the tab bar
+        alone, and the button was added later at a height nobody re-checked, so the last row of
+        every screen sat underneath it.
+
+        The arithmetic, so the next person can redo it rather than guess:
+
+          phone   tab bar 56px, then the button at `bottom-24` (96px) and 44px tall, so it
+                  occupies 96–140px. 148px clears its top edge with a little air.
+          desktop no tab bar; the button sits at `bottom-6` (24px) and is 56px tall, so it
+                  occupies 24–80px. 96px clears it.
+
+        Both are `TelegramFloatingButton`'s numbers. If that moves, these move with it.
 
         `tabIndex={-1}` makes this focusable without putting it in the tab order, which is what
         both the skip link and the route-change announcement need to move focus here.
@@ -152,7 +163,7 @@ export function AppShell() {
         ref={mainRef}
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-12 lg:px-10 2xl:px-12"
+        className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-24 lg:px-10 2xl:px-12"
       >
         <PageTransition />
       </main>
@@ -256,7 +267,15 @@ function formatCountdown(seconds: number) {
 
 function Wordmark() {
   return (
-    <NavLink to="/home" className="text-xl font-semibold tracking-tight text-ink">
+    <NavLink
+      to="/home"
+      /*
+        Truncates rather than pushing its neighbours out. On the phone header it shares a row
+        with the countdown and the account button, and it is the only one of the three that can
+        afford to lose a character.
+      */
+      className="min-w-0 truncate text-xl font-semibold tracking-tight text-ink"
+    >
       russian<span className="text-signal">.gg</span>
     </NavLink>
   )
@@ -678,7 +697,7 @@ function TabLink({
         <span className="flex h-6 items-center" aria-hidden="true">
           <Icon />
         </span>
-        <span aria-hidden="true" className="text-[11px] leading-none">
+        <span aria-hidden="true" className="w-full truncate px-0.5 text-center text-[11px] leading-none">
           {short}
         </span>
       </span>
@@ -753,11 +772,9 @@ function ProgressGlyph() {
  * and nothing else. That exit is deliberately the short one — the learner has already decided
  * to leave, so the only honest thing to do is get out of the way.
  *
- * Keyed on `pathname`, not on the whole location: `/settings/billing` and `/settings/general`
- * are the same screen with a different tab selected, and re-mounting it between them would
- * throw away the panel the learner is reading. They are separate paths, so they *are* keyed
- * apart here — but the search string is excluded for the same reason, so a query parameter
- * changing under a screen never restarts it.
+ * Keyed on the *screen*, not on the URL. The search string is excluded, so a query parameter
+ * changing under a screen never restarts it — and so is the tab segment of a tabbed screen,
+ * for the stronger version of the same reason: see `screenKey`.
  */
 function PageTransition() {
   const { pathname } = useLocation()
@@ -780,7 +797,7 @@ function PageTransition() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <m.div
-        key={pathname}
+        key={screenKey(pathname)}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.enter } }}
         exit={{ opacity: 0, y: -6, transition: { duration: 0.13, ease: ease.exit } }}
@@ -789,6 +806,33 @@ function PageTransition() {
       </m.div>
     </AnimatePresence>
   )
+}
+
+/**
+ * Which screen a path belongs to, for the purpose of the transition above.
+ *
+ * Settings is one screen with three tabs, and its tabs are separate paths so that each can be
+ * reloaded, linked and reached with the back button. Those two facts used to collide here:
+ * the transition keyed on the raw pathname, so pressing a tab was a full screen change —
+ * the whole page exited to `opacity: 0`, and `mode="wait"` held the replacement back until
+ * that exit reported it had finished. When it did not report, nothing arrived: a faded-out
+ * screen with no successor, which is a blank page with the shell still around it. A reload
+ * was the only thing that put it right, because a reload remounts the tree from nothing.
+ *
+ * Collapsing the tab segment takes the transition out of it entirely. A tab press is now what
+ * it always looked like — one screen swapping a panel — so there is no exit to wait on, no
+ * remount, and the scroll position and panel state survive the press. The panel's own
+ * entrance is handled where it belongs, by the keyed `Reveal` in `routes/Settings.tsx`.
+ *
+ * `TABBED` is a list because there will be a second one eventually, not because there is now.
+ * A path only matches on a segment boundary: `/settingsomething` is a different screen, and
+ * `startsWith` alone would have said otherwise.
+ */
+const TABBED = ['/settings']
+
+function screenKey(pathname: string): string {
+  const screen = TABBED.find((base) => pathname === base || pathname.startsWith(`${base}/`))
+  return screen ?? pathname
 }
 
 function RailLink({

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useReducedMotion } from 'motion/react'
 import { BookOpen, CircleCheck, Flame, Lock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -22,6 +23,13 @@ const QUOTE_ROTATE_MS = 12_000
 export function QuoteCard() {
   const t = useT()
   const [index, setIndex] = useState(0)
+  /*
+    A bar sweeping for twelve seconds is motion, and somebody who asked for less of it should
+    get the filled pill the row used to show rather than a permanent animation in the corner
+    of their eye. `MotionConfig` cannot make this call for us: it drops transforms, and this
+    animates width.
+  */
+  const reduced = useReducedMotion()
 
   const { data } = useQuery({
     queryKey: ['course-quotes'],
@@ -33,12 +41,12 @@ export function QuoteCard() {
 
   useEffect(() => {
     if (quotes.length < 2) return
-    const id = window.setInterval(
+    const id = window.setTimeout(
       () => setIndex((current) => (current + 1) % quotes.length),
       QUOTE_ROTATE_MS,
     )
-    return () => window.clearInterval(id)
-  }, [quotes.length])
+    return () => window.clearTimeout(id)
+  }, [quotes.length, index])
 
   if (quotes.length === 0) return null
 
@@ -58,6 +66,13 @@ export function QuoteCard() {
       </blockquote>
 
       {quotes.length > 1 && (
+        /*
+          The current dot is a track rather than a filled pill: blue runs across the grey over
+          the twelve seconds until the quote turns over, so the row says how long is left
+          rather than only which one is up. It is the same information the rotation already
+          had, and it was previously invisible — a line changing itself with no warning reads
+          as a glitch the first time somebody catches it mid-sentence.
+        */
         <div className="mt-3 flex items-center gap-1.5">
           {quotes.map((item, i) => (
             <button
@@ -66,10 +81,30 @@ export function QuoteCard() {
               aria-label={t.home.quote.show.replace('{n}', String(i + 1))}
               aria-current={i === index}
               onClick={() => setIndex(i)}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? 'w-4 bg-signal' : 'w-1.5 bg-hairline'
+              className={`h-1.5 overflow-hidden rounded-full bg-hairline transition-[width] duration-300 ${
+                i === index ? 'w-6' : 'w-1.5'
               }`}
-            />
+            >
+              {i === index && (
+                <m.span
+                  /*
+                    Keyed on the index so each new quote starts the sweep from empty. Without
+                    the key Motion sees the same element with the same target and leaves it
+                    sitting at full width.
+                  */
+                  key={index}
+                  aria-hidden="true"
+                  className="block h-full rounded-full bg-signal"
+                  initial={{ width: reduced ? '100%' : 0 }}
+                  animate={{ width: '100%' }}
+                  transition={
+                    reduced
+                      ? { duration: 0 }
+                      : { duration: QUOTE_ROTATE_MS / 1000, ease: 'linear' }
+                  }
+                />
+              )}
+            </button>
           ))}
         </div>
       )}
@@ -174,15 +209,26 @@ export function AchievementsPanel() {
   if (tiles.length === 0) return null
 
   return (
-    <Card>
+    /*
+      A container query, not a breakpoint.
+
+      This panel is one of the few in the product whose width does not follow the viewport: it
+      is full width on a phone and then moves into a 21rem rail from `xl`, which is *narrower*
+      than the phone. Four columns keyed to the viewport therefore broke in both places at once
+      — a `sm:grid-cols-4` would have gone back to four the moment the rail appeared. Asking
+      the card how wide it actually is gets the answer right in both.
+
+      Below 24rem of card it is a 2×2 block, which is what the labels need: "Kun ketma-ket"
+      does not fit on one line in a quarter of 296px, and it was spilling out of the card.
+    */
+    <Card className="@container">
       <SectionHeading>{t.home.achievements.title}</SectionHeading>
 
       {/*
-        A row of small square badges, so they swell in rather than sliding: `pop` is the
-        variant for a thing asserting itself, and an achievement is exactly that. Tight beat -
-        four of them across a narrow rail read as one group.
+        Small square badges, so they swell in rather than sliding: `pop` is the variant for a
+        thing asserting itself, and an achievement is exactly that.
       */}
-      <Sequence as="ul" className="mt-3 grid grid-cols-4 gap-2" gap={stagger.tight}>
+      <Sequence as="ul" className="mt-3 grid grid-cols-2 gap-x-2 gap-y-4 @[24rem]:grid-cols-4" gap={stagger.tight}>
         {tiles.map((tile) => {
           // Nullish, not `=== null`: the API drops null keys entirely, so an unavailable
           // track arrives as a missing property rather than an explicit null.
@@ -200,7 +246,11 @@ export function AchievementsPanel() {
               <span className="mt-1.5 block text-base font-black text-ink">
                 {locked ? '?' : tile.value}
               </span>
-              <span className="text-support block text-[10px] leading-tight">{tile.titleUz}</span>
+              {/* Two lines is the normal case here, so it wraps rather than truncating —
+                  a clipped achievement name is worse than a tall one. */}
+              <span className="text-support block text-[11px] leading-tight text-balance">
+                {tile.titleUz}
+              </span>
             </Reveal>
           )
         })}

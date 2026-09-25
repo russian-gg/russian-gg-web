@@ -162,7 +162,10 @@ export type AdminPromoCode = {
   amountOffTiyin?: number | null
   validFrom: string
   validUntil: string
+  /** The time window and the switch together — whether a checkout would accept it right now. */
   isActive: boolean
+  /** The operator's on/off switch, independent of the dates. */
+  isEnabled: boolean
   usageCount: number
   createdAt: string
 }

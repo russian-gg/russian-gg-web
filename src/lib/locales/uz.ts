@@ -1263,6 +1263,13 @@ export const uz = {
       "Pro obuna bilan ochiladi.",
     proUnlocks: 'Pro nimani ochadi',
     freeLimits: 'Bepul rejada',
+    viewPlans: "Reja turlarini ko‘rish",
+    planTagline: "Rus tilini o‘rganishga bugunoq boshlang va imkoniyatlaringizni kengaytiring.",
+    yourProgress: "Sizning progressingiz",
+    freePlanTitle: "Free reja imkoniyatlari",
+    proPlanTitle: "Pro reja nimalarni beradi?",
+    upsellTitle: "Ko‘proq imkoniyatlar uchun obuna bo‘ling",
+    upsellBody: "Pro reja bilan rus tilini yanada samarali o‘rganing.",
     cancelNote:
       "Obunani istalgan vaqtda Sozlamalar bo'limidan bekor qilishingiz mumkin. Bekor qilganingizda " +
       "to'langan muddat oxirigacha Pro ochiq qoladi.",
@@ -1302,6 +1309,13 @@ export const uz = {
     missionsDone: 'Bajarilgan mashqlar',
     streakDays: 'Ketma-ket kunlar',
     keepGoing: 'Shu maromda davom eting',
+    editProfile: 'Profilni tahrirlash',
+    displayNameLabel: 'Ism',
+    save: 'Saqlash',
+    asOfToday: 'Bugungi kunga ko‘ra',
+    aboutLevel: 'Daraja haqida',
+    totalMissions: 'Jami mashqlar',
+    currentPlan: 'Hozirgi reja',
     subscription: 'Obuna',
     unlockedDays: 'Ochilgan kunlar',
     nextPayment: "Keyingi to'lov",
@@ -1332,6 +1346,12 @@ export const uz = {
 
   settings: {
     voice: 'Ustoz ovozi',
+    voiceGenderLabel: 'Ustoz ovozi',
+    voiceMoodLabel: 'Ustoz uslubi',
+    voiceGenderHint: {
+      Female: 'Sabrli va dalda beradi.',
+      Male: 'Hushyor va aniq talaffuz.',
+    },
     voiceGender: { Female: 'Ayol', Male: 'Erkak' },
     voiceMood: {
       Gentle: 'Muloyim',
@@ -1349,6 +1369,10 @@ export const uz = {
     tabProfile: 'Profil',
     tabGeneral: 'Umumiy',
     tabBilling: 'Obuna',
+    appearanceHint: 'Ilova ko‘rinishini o‘zingizga moslang.',
+    languageHint: 'Platforma tilini tanlang.',
+    voiceHint: 'Darslardagi ovoz turini tanlang.',
+    privacyHint: 'O‘z tajribangizni qulayroq qilish uchun quyidagi sozlamalarni boshqaring.',
     appearance: "Ko'rinish",
     themeLight: "Yorug'",
     themeLightHint: "Standart ko'rinish",

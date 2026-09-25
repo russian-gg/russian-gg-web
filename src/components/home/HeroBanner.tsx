@@ -65,7 +65,20 @@ export function HeroBanner({ to }: { to: string }) {
       */}
       <div aria-hidden="true" className="home-hero__scrim pointer-events-none absolute inset-0 -z-10" />
 
-      <div className="relative px-5 pt-7 pb-32 sm:px-8 sm:pt-8 sm:pb-36 md:max-w-[58%] md:py-9 md:pb-9 lg:py-10 lg:pl-10">
+      {/*
+        A column with a floor, so the action sits at the bottom of the banner rather than
+        halfway down it.
+
+        The space under the button was previously just padding — `pb-32` — held open so the
+        domes had somewhere to be. That put the one thing on this screen worth pressing in the
+        middle of the picture, with a hand's width of empty sky beneath it. Now the block
+        carries the height instead and the button is pushed to the floor of it, which is both
+        nearer the thumb and where the eye ends up after reading the two lines above.
+
+        From `md` the banner is side-by-side rather than stacked, the copy no longer sits over
+        the artwork, and the button goes back into normal flow directly under the subtitle.
+      */}
+      <div className="relative flex min-h-[20rem] flex-col px-5 pt-7 pb-6 sm:min-h-[22rem] sm:px-8 sm:pt-8 sm:pb-8 md:min-h-0 md:max-w-[58%] md:py-9 lg:py-10 lg:pl-10">
         <p
           className="text-[11px] font-black tracking-[0.18em] uppercase sm:text-xs"
           style={{ color: 'var(--hero-script)' }}
@@ -91,26 +104,39 @@ export function HeroBanner({ to }: { to: string }) {
           The product's own primary control, not a second one that looks like it: `LinkButton`
           is skipped only because this needs a size between `md` and `lg` and its own icons, so
           the variant's classes are borrowed directly rather than re-declared.
+
+          Full width on a phone, hugging its label from `sm`. It used to be `inline-flex` at
+          every size with `whitespace-nowrap`, and the label is translated: "Bugungi darsni
+          boshlash" plus the play disc, the arrow and the padding comes to about 263px against
+          roughly 248px of room inside the banner on a 320px screen. The banner clips its
+          overflow, so the arrow was cut off — and the Russian label is longer still. Going
+          full width is what this product already says a primary action does on a phone; see
+          `block` on `Button` in `components/ui.tsx`.
         */}
-        <Link
-          to={to}
-          data-ui-sound="whoosh"
-          className={
-            'mt-5 inline-flex h-12 items-center gap-2.5 rounded-[var(--radius-control)] ' +
-            'border border-transparent bg-signal pr-5 pl-2 text-[15px] font-extrabold ' +
-            'tracking-[0.01em] whitespace-nowrap text-on-signal select-none ' +
-            'shadow-[0_4px_0_0_var(--color-signal-depth)] ' +
-            'transition-[background-color,box-shadow,transform] duration-150 ' +
-            'hover:-translate-y-0.5 hover:bg-signal-hover hover:shadow-[0_6px_0_0_var(--color-signal-depth)] ' +
-            'active:translate-y-1 active:shadow-none'
-          }
-        >
-          <span className="grid size-8 place-items-center rounded-full bg-white/22">
-            <PlayGlyph />
-          </span>
-          {t.home.hero.cta}
-          <ArrowGlyph />
-        </Link>
+        {/* `mt-auto` is what pins it to the floor; the padding guarantees a gap from the
+            subtitle even on a screen short enough that the two would otherwise meet. */}
+        <div className="mt-auto pt-8 md:mt-0 md:pt-5">
+          <Link
+            to={to}
+            data-ui-sound="whoosh"
+            className={
+              'flex h-12 w-full items-center justify-center gap-2.5 rounded-[var(--radius-control)] ' +
+              'sm:inline-flex sm:w-auto sm:justify-start ' +
+              'border border-transparent bg-signal px-4 text-[15px] font-extrabold sm:pr-5 sm:pl-2 ' +
+              'tracking-[0.01em] text-on-signal select-none ' +
+              'shadow-[0_4px_0_0_var(--color-signal-depth)] ' +
+              'transition-[background-color,box-shadow,transform] duration-150 ' +
+              'hover:-translate-y-0.5 hover:bg-signal-hover hover:shadow-[0_6px_0_0_var(--color-signal-depth)] ' +
+              'active:translate-y-1 active:shadow-none'
+            }
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/22">
+              <PlayGlyph />
+            </span>
+            <span className="truncate">{t.home.hero.cta}</span>
+            <ArrowGlyph />
+          </Link>
+        </div>
       </div>
     </section>
   )

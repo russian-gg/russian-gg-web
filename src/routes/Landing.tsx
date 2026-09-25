@@ -123,7 +123,7 @@ function TopBar() {
           <LinkButton to="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
             {t.nav.signIn}
           </LinkButton>
-          <LinkButton to="/signup" size="md">
+          <LinkButton to="/signin" size="md">
             {t.nav.getStarted}
           </LinkButton>
         </div>
@@ -173,7 +173,7 @@ function Hero() {
           </Reveal>
 
           <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <LinkButton to="/signup" className="w-full sm:w-auto">
+            <LinkButton to="/signin" className="w-full sm:w-auto">
               {t.hero.primaryCta}
             </LinkButton>
             <LinkButton to="/onboarding" variant="secondary" className="w-full sm:w-auto">
@@ -277,7 +277,7 @@ function Characters() {
             <h3 className="text-lg font-extrabold text-ink sm:text-xl">{t.ctaTitle}</h3>
             <p className="mt-1 text-sm text-ink-muted">{t.ctaBody}</p>
           </div>
-          <LinkButton to="/signup" className="w-full shrink-0 sm:w-auto">
+          <LinkButton to="/signin" className="w-full shrink-0 sm:w-auto">
             {t.ctaButton}
           </LinkButton>
         </m.div>
@@ -673,7 +673,7 @@ function Pricing() {
             unit={t.pricing.freeUnit}
             body={t.pricing.freeBody}
             features={t.pricing.freeFeatures}
-            cta={<LinkButton to="/signup" variant="secondary" block>{t.pricing.freeCta}</LinkButton>}
+            cta={<LinkButton to="/signin" variant="secondary" block>{t.pricing.freeCta}</LinkButton>}
           />
           </Reveal>
           <Reveal variants={rise}>
@@ -686,7 +686,7 @@ function Pricing() {
             body={t.pricing.proBody}
             features={t.pricing.proFeatures}
             note={t.pricing.proAlt}
-            cta={<LinkButton to="/signup" block>{t.pricing.proCta}</LinkButton>}
+            cta={<LinkButton to="/signin" block>{t.pricing.proCta}</LinkButton>}
           />
           </Reveal>
         </SequenceInView>
@@ -784,7 +784,7 @@ function FinalCta() {
             <p className="mt-3 max-w-md text-base text-white/90">{t.final.body}</p>
             <div className="mt-7 flex flex-col items-start gap-3">
               <Link
-                to="/signup"
+                to="/signin"
                 className="inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-9 text-base font-extrabold text-[#1c8fe0] shadow-[0_5px_0_0_rgb(19_120_205/0.28)] transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-1 active:shadow-none"
               >
                 {t.final.cta}

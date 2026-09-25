@@ -173,10 +173,22 @@ export function Card({
   )
 }
 
+/**
+ * A quiet label over a block, with an optional action opposite it.
+ *
+ * The row wraps. These headings are uppercase with wide tracking, and the languages this
+ * product ships in disagree sharply about how long the same label is — "BUGUNGI OVOZLI MASHQ"
+ * beside "Barchasini ko'rish" has nowhere to go on a 360px phone, and without wrapping the
+ * two simply collided. Dropping the action onto its own line is not as tidy as one row, but it
+ * is legible, and one row was not.
+ *
+ * `min-w-0` on the heading so a long word breaks rather than pushing the action off the edge;
+ * the asymmetric gap keeps the two lines close when it does wrap.
+ */
 export function SectionHeading({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-4">
-      <h2 className="text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">
+    <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <h2 className="min-w-0 text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">
         {children}
       </h2>
       {action}

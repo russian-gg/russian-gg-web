@@ -130,8 +130,8 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle: strin
 
 export function SectionHeading({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-xs font-extrabold uppercase tracking-[0.14em] text-ink-faint">{children}</h2>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <h2 className="min-w-0 text-xs font-extrabold uppercase tracking-[0.14em] text-ink-faint">{children}</h2>
       {action}
     </div>
   )
