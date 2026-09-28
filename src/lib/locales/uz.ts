@@ -718,6 +718,9 @@ export const uz = {
   auth: {
     signInTitle: 'Kirish',
     signUpTitle: "Ro'yxatdan o'tish",
+    signInSubtitle: "Hisobingizga kiring va davom eting.",
+    welcomeTitle: "Xush kelibsiz!",
+    welcomeBody: "Hisobingizga kiring va barcha imkoniyatlardan foydalaning.",
     email: 'Email',
     loginIdentifier: 'Telefon raqami yoki email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 yoki email',

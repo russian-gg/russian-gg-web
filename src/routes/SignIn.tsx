@@ -2,8 +2,10 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import googleGIcon from '../assets/google-g-dark.svg'
+import { GoogleMark } from '../components/GoogleMark'
 import { OtpInput } from '../components/OtpInput'
+import { BrandMark, WelcomeArt } from './auth/AuthArt'
+import { FlagUz } from './settings/choices'
 import { Button, ErrorNote, Field } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
@@ -107,6 +109,7 @@ export function SignIn() {
   return (
     <AuthLayout
       title={t.auth.signInTitle}
+      subtitle={t.auth.signInSubtitle}
       footer={
         <>
           {t.auth.noAccount}{' '}
@@ -226,6 +229,7 @@ export function SignUp() {
   return (
     <AuthLayout
       title={t.auth.signUpTitle}
+      subtitle={t.auth.phone.registrationSubtitle}
       footer={
         <>
           {t.auth.haveAccount}{' '}
@@ -242,7 +246,6 @@ export function SignUp() {
       )}
 
       <PhoneCredentialSetupFlow
-        subtitle={t.auth.phone.registrationSubtitle}
         requestCode={requestPhoneCode}
         confirmCode={confirmPhoneCode}
         completeSetup={async (verificationToken, name, newPassword) => {
@@ -275,6 +278,7 @@ export function ResetPasswordPage() {
   return (
     <AuthLayout
       title={t.auth.reset.title}
+      subtitle={t.auth.reset.subtitle}
       footer={
         <>
           {t.auth.reset.remembered}{' '}
@@ -285,7 +289,6 @@ export function ResetPasswordPage() {
       }
     >
       <PhoneCredentialSetupFlow
-        subtitle={t.auth.reset.subtitle}
         requestCode={requestPasswordReset}
         confirmCode={confirmPasswordResetCode}
         collectName={false}
@@ -322,7 +325,7 @@ export function LinkPhonePage() {
   }
 
   return (
-    <AuthLayout title={t.auth.phone.linkTitle}>
+    <AuthLayout title={t.auth.phone.linkTitle} subtitle={t.auth.phone.linkSubtitle}>
       {/*
         Every route redirects here until a number is verified, so somebody whose number is on
         another account had nowhere left to go: the only screen they could reach was the one
@@ -340,7 +343,6 @@ export function LinkPhonePage() {
       )}
 
       <PhoneCredentialSetupFlow
-        subtitle={t.auth.phone.linkSubtitle}
         requestCode={async (phoneE164) => {
           setNumberBelongsElsewhere(false)
           try {
@@ -365,7 +367,6 @@ export function LinkPhonePage() {
 }
 
 function PhoneCredentialSetupFlow({
-  subtitle,
   requestCode,
   confirmCode,
   completeSetup,
@@ -373,7 +374,6 @@ function PhoneCredentialSetupFlow({
   collectName = true,
   submitLabel,
 }: {
-  subtitle: string
   requestCode: (phoneE164: string) => Promise<{ resendInSeconds: number }>
   confirmCode: (phoneE164: string, code: string) => Promise<{ verificationToken: string }>
   completeSetup: (verificationToken: string, displayName: string, password: string) => Promise<void>
@@ -554,7 +554,9 @@ function PhoneCredentialSetupFlow({
   return (
     <form onSubmit={sendCode} className="space-y-4">
       {error && <ErrorNote>{error}</ErrorNote>}
-      <p className="text-support">{subtitle}</p>
+      {/* The line saying what this screen is for now belongs to `AuthLayout`, directly under
+          the heading, so it sits in the same place on all four auth screens. It used to be
+          printed here as well, which put it twice on the sign-up page. */}
       <PhoneNumberInput label={tp.label} value={local} onChange={setLocal} />
       <Button type="submit" size="lg" block disabled={!canRequest || busy}>
         {busy ? tp.sending : tp.getCode}
@@ -563,45 +565,120 @@ function PhoneCredentialSetupFlow({
   )
 }
 
-function AuthLayout({ title, children, footer }: { title: string; children: ReactNode; footer?: ReactNode }) {
-  const navigate = useNavigate()
+/**
+ * Every auth screen in the product: sign in, sign up, password reset and phone linking.
+ *
+ * One card, split. The left half is the welcome — a picture and a sentence, and nothing to do;
+ * the right half is the entire job. That division is the point of the layout rather than
+ * decoration: an account form is short, and a short form alone in the middle of a wide screen
+ * reads as an interruption. Giving it a companion panel makes it a destination.
+ *
+ * Below `lg` the left half is gone entirely, not stacked. On a phone the form is the screen,
+ * and a welcome picture above it is one scroll between the learner and the keyboard.
+ *
+ * These screens sit outside the app shell, so they get no page transition of their own — this
+ * beat is the only thing standing between a learner and a form that snaps into existence.
+ */
+function AuthLayout({
+  title,
+  subtitle,
+  children,
+  footer,
+}: {
+  title: string
+  /** One line under the heading saying what this screen is for. */
+  subtitle?: string
+  children: ReactNode
+  footer?: ReactNode
+}) {
+  return (
+    <div className="auth-page relative isolate min-h-dvh px-4 py-8 sm:px-6 sm:py-12">
+      <AuthBackdrop />
+
+      <Sequence
+        className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-5xl items-center"
+        gap={stagger.base}
+      >
+        <Reveal className="w-full">
+          <div className="overflow-hidden rounded-[2rem] border border-hairline bg-ground-raised shadow-[0_32px_80px_-40px_rgb(31_111_224/0.35)] lg:grid lg:grid-cols-2">
+            <AuthAside />
+
+            <div className="flex flex-col justify-center p-6 sm:p-10 lg:p-12">
+              <BrandLockup />
+
+              <h1 className="mt-8 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+                {title}
+              </h1>
+              {subtitle && <p className="text-support mt-2 leading-relaxed">{subtitle}</p>}
+
+              <div className="mt-7">{children}</div>
+
+              {footer && <p className="text-support mt-7 text-sm">{footer}</p>}
+            </div>
+          </div>
+        </Reveal>
+      </Sequence>
+    </div>
+  )
+}
+
+/**
+ * The product's name, and the way back out.
+ *
+ * It is a link to the landing page rather than an arrow captioned "back", and never
+ * `navigate(-1)`. What sits behind an auth screen is very often a protected one — the learner
+ * signed out on `/home`, or a guard sent them here — and stepping back onto it only bounced
+ * them straight back to sign-in, so the control did nothing. A wordmark that goes home is both
+ * the exit and the thing the screen ought to be signed with anyway.
+ */
+function BrandLockup() {
   const t = useT()
 
-  /*
-    Always the landing page, never `navigate(-1)`. The entry behind an auth screen is very often
-    a protected one — the learner signed out on /home, or a guard redirected them here — and
-    stepping back onto it only bounced them straight back to sign-in, so the link did nothing.
-  */
-  function goBack() {
-    navigate('/')
-  }
+  return (
+    <Link
+      to="/"
+      aria-label={t.common.back}
+      className="inline-flex items-center gap-2.5 self-start rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal"
+    >
+      <BrandMark className="size-9" />
+      <span className="text-lg font-semibold tracking-tight text-ink">
+        russian<span className="text-signal">.gg</span>
+      </span>
+    </Link>
+  )
+}
+
+/** The welcome half. Decorative throughout, so none of it is announced. */
+function AuthAside() {
+  const t = useT()
 
   return (
-    /*
-      Every auth screen in the product is this layout - sign in, sign up, password reset and
-      phone linking - so animating it here is the whole set.
+    <aside className="auth-aside relative hidden flex-col justify-between px-10 py-12 lg:flex">
+      <div className="flex flex-1 items-center justify-center">
+        <WelcomeArt className="w-full max-w-[26rem]" />
+      </div>
 
-      They sit outside the shell, which means they get no page transition of their own: this
-      is the only thing standing between a learner and a form that snaps into existence. The
-      beat runs back link, title, form, footer, which is the order the screen is read in and
-      the order the tab key will visit them in.
-    */
-    <Sequence className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-12" gap={stagger.base}>
-      <Reveal className="self-start">
-        <button type="button" onClick={goBack} aria-label={t.common.back} className="text-sm font-medium text-ink-faint">
-          ← russian.gg
-        </button>
-      </Reveal>
-      <Reveal>
-        <h1 className="mt-6 mb-7 text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
-      </Reveal>
-      <Reveal>{children}</Reveal>
-      {footer && (
-        <Reveal>
-          <p className="text-support mt-6">{footer}</p>
-        </Reveal>
-      )}
-    </Sequence>
+      <div>
+        <p className="text-3xl font-extrabold tracking-tight text-ink">{t.auth.welcomeTitle}</p>
+        <p className="text-support mt-2 leading-relaxed">{t.auth.welcomeBody}</p>
+      </div>
+    </aside>
+  )
+}
+
+/**
+ * The page behind the card.
+ *
+ * Two very large, very soft blooms at opposite corners. They are `-z-10` under an `isolate`
+ * parent so they can never land on top of a form control, and they are marked decorative
+ * because they are: the screen reads identically on a flat background.
+ */
+function AuthBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="auth-bloom absolute -top-40 -right-32 size-[34rem] rounded-full" />
+      <div className="auth-bloom absolute -bottom-48 -left-40 size-[38rem] rounded-full" />
+    </div>
   )
 }
 
@@ -720,13 +797,23 @@ export function GoogleContinueButton({
 
   return (
     <div className="space-y-3">
+      {/*
+        Google's own button is the one that is actually pressed — it is rendered into the div
+        below and held at `opacity-0`, because Google's terms do not allow their sign-in to be
+        driven from a control of our own. What the learner sees is the overlay on top of it,
+        which is `pointer-events-none` so every press lands on the real thing underneath.
+
+        That makes the overlay purely a costume, and it has to match the height of the button
+        it is covering or the hit area drifts away from what is drawn. `min-h-12` on both is
+        what keeps them in register.
+      */}
       <div className="relative">
         <div
           ref={buttonRef}
-          className={`min-h-[44px] ${busy ? 'pointer-events-none opacity-70' : 'opacity-0'}`}
+          className={`min-h-12 ${busy ? 'pointer-events-none opacity-70' : 'opacity-0'}`}
         />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full border-2 border-hairline bg-ground-raised px-5 text-[15px] font-medium text-ink shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <img src={googleGIcon} alt="" className="mr-3 size-6 shrink-0" />
+        <div className="pointer-events-none absolute inset-0 flex min-h-12 items-center justify-center gap-3 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-5 text-[15px] font-bold text-ink transition-colors">
+          <GoogleMark className="size-6" />
           <span>{buttonLabel}</span>
         </div>
       </div>
@@ -808,9 +895,21 @@ function PhoneNumberInput({
   const t = useT()
   return (
     <label className="block" htmlFor={id}>
-      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
-      <div className="flex items-center gap-2 rounded-2xl border-2 border-hairline bg-ground-raised pl-4 transition-colors focus-within:border-signal">
-        <span className="text-base font-semibold text-ink-muted">+998</span>
+      <span className="mb-2 block text-sm font-bold text-ink">{label}</span>
+      <div className="flex items-center rounded-2xl border-2 border-hairline bg-ground-raised transition-colors focus-within:border-signal">
+        {/*
+          The flag and the country code are a label, not a control. Uzbekistan is the only
+          country this product takes numbers from — `toUzLocalDigits` is built around a nine
+          digit local number and a 998 prefix — so a picker here would open onto a list with
+          one entry in it. It is drawn to look like the rest of the field and nothing more.
+        */}
+        <span aria-hidden="true" className="flex items-center gap-2 py-3 pr-3 pl-4">
+          <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full border border-hairline">
+            <FlagUz />
+          </span>
+          <span className="text-base font-bold text-ink-muted">+998</span>
+        </span>
+
         <input
           id={id}
           name="phone"
@@ -820,7 +919,7 @@ function PhoneNumberInput({
           placeholder={t.auth.phone.placeholder}
           value={formatUzPhone(value)}
           onChange={(event) => onChange(toUzLocalDigits(event.target.value))}
-          className="h-12 w-full rounded-r-2xl bg-transparent pr-4 text-base tracking-[0.02em] text-ink placeholder:text-ink-faint focus:outline-none"
+          className="h-12 w-full min-w-0 rounded-r-2xl bg-transparent pr-4 text-base tracking-[0.02em] text-ink placeholder:font-normal placeholder:text-ink-faint focus:outline-none"
         />
       </div>
     </label>

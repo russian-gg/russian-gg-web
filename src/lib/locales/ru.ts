@@ -698,6 +698,9 @@ export const ru: Dictionary = {
   auth: {
     signInTitle: 'Вход',
     signUpTitle: 'Регистрация',
+    signInSubtitle: "Войдите в аккаунт и продолжайте.",
+    welcomeTitle: "Добро пожаловать!",
+    welcomeBody: "Войдите в аккаунт и пользуйтесь всеми возможностями.",
     email: 'Email',
     loginIdentifier: 'Номер телефона или email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 или email',
