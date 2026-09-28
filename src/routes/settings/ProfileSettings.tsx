@@ -8,9 +8,6 @@ import { useT, type Dictionary } from '../../lib/i18n'
 import type { ProgressView } from '../../lib/types'
 import { useLocale, LOCALE_NAMES } from '../../lib/i18n'
 import { Button, Card, ErrorNote, Field, QueryError, Spinner } from '../../components/ui'
-import { GoogleMark } from '../../components/GoogleMark'
-import { GoogleContinueButton } from '../SignIn'
-import type { GoogleCredentialResponse } from '../../lib/google-auth'
 import { InfoNote, LevelTile, SectionCard, StatTile } from './stats'
 
 /**
@@ -76,12 +73,7 @@ export function ProfileSettings() {
       <LanguageLevelCard progress={progress} t={t} />
       <CourseProgressCard progress={progress} t={t} />
 
-      {/*
-        Linking a Google account and leaving one are both "this account", so they are one card
-        with a rule between them rather than two cards under two captions.
-      */}
-      <Card className="divide-y divide-hairline py-0">
-        <GoogleAccountRow />
+      <Card className="py-0">
         <AccountActions
           busy={busy}
           onSignOut={() => void signOut().then(() => navigate('/'))}
@@ -296,89 +288,6 @@ function CourseProgressCard({ progress, t }: { progress?: ProgressView; t: Dicti
     </SectionCard>
   )
 }
-
-/* -------------------------------------------------------------------------- google */
-
-/**
- * Attaches a Google account to the one already signed in.
- *
- * The missing half of the account model: sign-in by Google can only find somebody by their
- * Google subject or their email, and a learner who registered by phone has neither. Tapping
- * "Continue with Google" therefore read as a new person and opened a second account on the
- * same learner. Linking from inside a session settles who they are first, so the next tap
- * lands on this account instead of making another one.
- */
-function GoogleAccountRow() {
-  const t = useT()
-  const { user, linkGoogle } = useAuth()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // A successful link updates the profile in context, so the card re-renders into the state
-  // below rather than needing a success flag of its own.
-  if (user?.googleLinked) {
-    return (
-      <div className="flex items-start gap-3 py-5">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-hairline">
-          <GoogleMark />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-ink">{t.settings.googleLinked}</p>
-          {user.email && <p className="text-support mt-0.5 truncate text-sm">{user.email}</p>}
-        </div>
-        {/*
-          No "unlink" button, though the design asked for one. `AuthController` has a link
-          route and no inverse, so the control would have had nothing to call. It needs a
-          server endpoint before it can exist here.
-        */}
-      </div>
-    )
-  }
-
-  async function handleCredential(response: GoogleCredentialResponse) {
-    if (!response.credential) {
-      setError(t.auth.googleNoToken)
-      return
-    }
-
-    setBusy(true)
-    setError(null)
-    try {
-      await linkGoogle(response.credential)
-    } catch (caught) {
-      setError(
-        caught instanceof RequestError
-          ? (t.auth.phone.errors[caught.code as keyof typeof t.auth.phone.errors] ??
-              caught.message ??
-              t.settings.googleLinkFailed)
-          : t.settings.googleLinkFailed,
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="py-5">
-      <p className="text-sm font-bold text-ink">{t.settings.googleSection}</p>
-      <p className="text-support mt-1 text-sm">{t.settings.googleLinkBody}</p>
-      {error && (
-        <div className="mt-3">
-          <ErrorNote>{error}</ErrorNote>
-        </div>
-      )}
-      <div className="mt-4 max-w-sm">
-        <GoogleContinueButton
-          busy={busy}
-          text="continue_with"
-          label={t.settings.googleLinkAction}
-          onCredential={handleCredential}
-        />
-      </div>
-    </div>
-  )
-}
-
 
 /* ------------------------------------------------------------------------- account */
 
