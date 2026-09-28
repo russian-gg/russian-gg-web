@@ -1225,6 +1225,9 @@ export const en: Dictionary = {
     perDay: '{amount} per day',
     payWithClick: 'Pay with Click — {amount}',
     payWithPayme: 'Pay with Payme — {amount}',
+    paymentMethod: "Choose a payment method",
+    clickHint: "Fast, secure payment with Click",
+    paymeHint: "Convenient payment with Payme",
     opening: 'Opening...',
     freeNote:
       'The free plan opens the level test and the first 3 days of the path. The days after ' +

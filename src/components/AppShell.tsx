@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 import {
   BarChart3,
@@ -39,7 +47,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
-import { Badge, Switch } from './ui'
+import { Badge, Spinner, Switch } from './ui'
 import { duration, ease } from '../lib/motion'
 
 const NAV = [
@@ -767,10 +775,27 @@ function ProgressGlyph() {
  * did not change, and fading them out and back in on every navigation would say they did,
  * which is both a lie and the thing that makes a single-page app feel like it is reloading.
  *
- * `mode="wait"` rather than a crossfade. Two screens of different heights overlapping in
- * normal flow makes the page jump to the taller one and back; waiting costs the exit duration
- * and nothing else. That exit is deliberately the short one — the learner has already decided
- * to leave, so the only honest thing to do is get out of the way.
+ * The entrance is the whole transition. There is no exit, and that is the fix for a bug that
+ * took three attempts to find, so it is worth writing down why rather than leaving it as an
+ * absence somebody restores `AnimatePresence` on top of.
+ *
+ * This used to be `<AnimatePresence mode="wait">`. `mode="wait"` means exactly one thing: do
+ * not mount the incoming screen until the outgoing one reports that its exit has finished.
+ * `AnimatePresence` collects that report from *every* `motion` element on the leaving screen —
+ * each one registers with the presence context, and the swap only happens once all of them
+ * have called back. So the question "does the next page appear?" was answered by "did several
+ * dozen independent animations all report in?", and any single one that was slow, that never
+ * ran, or that was still waiting on a viewport observer held the whole navigation open. What
+ * the learner saw was the URL change and the page go blank under an intact shell, with the old
+ * screen still mounted at `opacity: 0` and the new one never created. Reloading fixed it,
+ * because a reload mounts a screen without anything having to exit first.
+ *
+ * Mounting the next screen must not be conditional on an animation. Keying a plain `m.div` on
+ * the screen gives the same arriving fade with none of that: React swaps the subtree the
+ * instant the route changes, and the animation is decoration on something that has already
+ * happened. The cost is the 130ms leaving fade, which is the cheapest thing on this screen to
+ * give up — and the crossfade overlap `mode="wait"` was there to avoid cannot occur either,
+ * since only one screen is ever mounted.
  *
  * Keyed on the *screen*, not on the URL. The search string is excluded, so a query parameter
  * changing under a screen never restarts it — and so is the tab segment of a tabbed screen,
@@ -778,33 +803,23 @@ function ProgressGlyph() {
  */
 function PageTransition() {
   const { pathname } = useLocation()
-  /*
-    `useOutlet()` rather than `<Outlet />`, and this is load-bearing rather than a style
-    preference.
-
-    `AnimatePresence` holds the leaving screen on stage by re-rendering the element it saved
-    from the previous render. An `<Outlet />` in that saved element is not a screen — it is an
-    instruction to look up whatever screen the router is pointing at *now*, and by the time
-    the exit runs the router is already pointing at the new one. The result is the screen the
-    learner just opened playing the leaving animation, and then immediately playing the
-    arriving one: a visible double flash on every single navigation.
-
-    `useOutlet()` resolves the match to a concrete element while the old location is still
-    current, so what gets held on stage is the screen that is actually leaving.
-  */
   const outlet = useOutlet()
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <m.div
-        key={screenKey(pathname)}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.enter } }}
-        exit={{ opacity: 0, y: -6, transition: { duration: 0.13, ease: ease.exit } }}
-      >
-        {outlet}
-      </m.div>
-    </AnimatePresence>
+    <m.div
+      key={screenKey(pathname)}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.enter } }}
+    >
+      {/*
+        Under the animation, not above it. Almost every screen is `React.lazy`, so the first
+        visit to one suspends while its chunk downloads; with the only boundary up in
+        `App.tsx` that suspension unmounted the whole shell to show a spinner, and the sidebar
+        and tab bar flickered away on every first navigation. Here the animated box stays put
+        and holds the spinner in the content area, which is where the waiting actually is.
+      */}
+      <Suspense fallback={<Spinner />}>{outlet}</Suspense>
+    </m.div>
   )
 }
 

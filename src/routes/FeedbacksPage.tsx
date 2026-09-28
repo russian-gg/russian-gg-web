@@ -68,7 +68,7 @@ export function FeedbacksPage() {
   }
 
   return (
-    <Sequence gap={stagger.base} className="mx-auto max-w-5xl space-y-8">
+    <Sequence gap={stagger.base} className="space-y-8">
       <Reveal as="section">
         <header>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.feedbackPage.title}</h1>

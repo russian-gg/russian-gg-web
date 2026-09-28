@@ -1237,6 +1237,9 @@ export const ru: Dictionary = {
     perDay: '{amount} в день',
     payWithClick: 'Оплатить через Click — {amount}',
     payWithPayme: 'Оплатить через Payme — {amount}',
+    paymentMethod: "Выберите способ оплаты",
+    clickHint: "Быстрая и безопасная оплата через Click",
+    paymeHint: "Удобная оплата через Payme",
     opening: 'Открываем...',
     freeNote:
       'На бесплатном плане открыты тест уровня и первые 3 дня пути. Дальнейшие дни ' +

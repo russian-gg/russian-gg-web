@@ -1257,6 +1257,9 @@ export const uz = {
     perDay: 'Kuniga {amount}',
     payWithClick: "Click orqali to'lash - {amount}",
     payWithPayme: "Payme orqali to'lash - {amount}",
+    paymentMethod: "To‘lov usulini tanlang",
+    clickHint: "Click orqali tez va xavfsiz to‘lov",
+    paymeHint: "Payme orqali qulay to‘lov",
     opening: 'Ochilmoqda...',
     freeNote:
       "Bepul rejada daraja testi va yo'lning birinchi 3 kuni ochiq. Keyingi kunlar Click yoki Payme orqali " +
