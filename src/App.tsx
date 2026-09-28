@@ -62,7 +62,6 @@ const Progress = route(() => import('./routes/Progress'), 'Progress')
 const Settings = route(() => import('./routes/Settings'), 'Settings')
 const SignIn = route(() => import('./routes/SignIn'), 'SignIn')
 const SignUp = route(() => import('./routes/SignIn'), 'SignUp')
-const ResetPasswordPage = route(() => import('./routes/SignIn'), 'ResetPasswordPage')
 const LinkPhonePage = route(() => import('./routes/SignIn'), 'LinkPhonePage')
 
 export function App() {
@@ -85,7 +84,6 @@ export function App() {
             <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
             <Route path="/signin" element={<PublicOnly><SignIn /></PublicOnly>} />
             <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
-            <Route path="/reset-password" element={<PublicOnly><ResetPasswordPage /></PublicOnly>} />
 
             {/*
               Outside the shell, because nothing should compete with the forty seconds, and public,

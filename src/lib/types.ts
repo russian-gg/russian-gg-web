@@ -82,8 +82,6 @@ export interface UserProfile {
   timeZoneId: string
   hasCompletedDiagnostic: boolean
   tier: PlanTier
-  /** Whether a Google account is attached, so the profile can offer to link or show it linked. */
-  googleLinked: boolean
 }
 
 export interface AuthResponse {
