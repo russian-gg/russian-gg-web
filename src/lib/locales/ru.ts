@@ -698,6 +698,9 @@ export const ru: Dictionary = {
   auth: {
     signInTitle: 'Вход',
     signUpTitle: 'Регистрация',
+    signInSubtitle: "Войдите в аккаунт и продолжайте.",
+    welcomeTitle: "Добро пожаловать!",
+    welcomeBody: "Войдите в аккаунт и пользуйтесь всеми возможностями.",
     email: 'Email',
     loginIdentifier: 'Номер телефона или email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 или email',
@@ -1237,6 +1240,9 @@ export const ru: Dictionary = {
     perDay: '{amount} в день',
     payWithClick: 'Оплатить через Click — {amount}',
     payWithPayme: 'Оплатить через Payme — {amount}',
+    paymentMethod: "Выберите способ оплаты",
+    clickHint: "Быстрая и безопасная оплата через Click",
+    paymeHint: "Удобная оплата через Payme",
     opening: 'Открываем...',
     freeNote:
       'На бесплатном плане открыты тест уровня и первые 3 дня пути. Дальнейшие дни ' +

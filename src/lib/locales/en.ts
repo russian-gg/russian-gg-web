@@ -692,6 +692,9 @@ export const en: Dictionary = {
   auth: {
     signInTitle: 'Sign in',
     signUpTitle: 'Create an account',
+    signInSubtitle: "Sign in to your account and carry on.",
+    welcomeTitle: "Welcome back!",
+    welcomeBody: "Sign in and pick the course up where you left it.",
     email: 'Email',
     loginIdentifier: 'Phone number or email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 or email',
@@ -1225,6 +1228,9 @@ export const en: Dictionary = {
     perDay: '{amount} per day',
     payWithClick: 'Pay with Click — {amount}',
     payWithPayme: 'Pay with Payme — {amount}',
+    paymentMethod: "Choose a payment method",
+    clickHint: "Fast, secure payment with Click",
+    paymeHint: "Convenient payment with Payme",
     opening: 'Opening...',
     freeNote:
       'The free plan opens the level test and the first 3 days of the path. The days after ' +

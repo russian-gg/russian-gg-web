@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Gift } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, RequestError, track } from '../lib/api'
@@ -9,15 +10,20 @@ import type {
   CheckoutResponse,
   EntitlementView,
   PaymentProvider,
+  PlanOption,
   PlansView,
   PromoCodePreview,
   SubscriptionActionResponse,
   WelcomeGiftStatus,
 } from '../lib/types'
-import { Badge, Button, Card, ErrorNote, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { Badge, Button, Card, ErrorNote, QueryError, Spinner } from '../components/ui'
 import { Reveal, Sequence } from '../components/motion'
-import * as m from 'motion/react-m'
-import { rise, stagger } from '../lib/motion'
+import { stagger } from '../lib/motion'
+import { PlanSelector, type PlanPricing } from './paywall/PlanSelector'
+import { PromoCode } from './paywall/PromoCode'
+import { PaymentMethodSelector } from './paywall/PaymentMethodSelector'
+import { PaymentButton } from './paywall/PaymentButton'
+import { FeatureComparison } from './paywall/FeatureComparison'
 
 const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
   id: index,
@@ -36,27 +42,24 @@ const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
           : '#fb7185',
 }))
 
-function daysForPeriod(period: BillingPeriod) {
-  return period === 'Monthly' ? 30 : 90
-}
-
-function monthsForPeriod(period: BillingPeriod) {
-  return period === 'Monthly' ? 1 : 3
-}
-
-function perDayAmountTiyin(amountTiyin: number, period: BillingPeriod) {
-  return Math.max(1, Math.round(amountTiyin / daysForPeriod(period)))
-}
-
-function perMonthAmountTiyin(amountTiyin: number, period: BillingPeriod) {
-  return Math.max(1, Math.round(amountTiyin / monthsForPeriod(period)))
-}
-
+/**
+ * The checkout.
+ *
+ * One decision per block, in the order it is made: which plan, any code, which provider, then
+ * a single commitment. The screen used to end in two full-width pay buttons, one per provider,
+ * which made "which app do I pay with" and "am I buying this" the same press and put two
+ * primary actions on a page that has exactly one.
+ *
+ * The money is the server's throughout. `/billing/plans` quotes the prices, `/billing/promo`
+ * prices a code, the welcome gift's percentage comes from `/billing/welcome-gift`, and
+ * `/billing/checkout` is told the period and provider rather than an amount — this screen
+ * never computes what will be charged, only what to show.
+ */
 export function Paywall() {
-  const perDay = useT().dayPreview.perDay
   const t = useT()
   const { locale } = useLocale()
   const [period, setPeriod] = useState<BillingPeriod>('NinetyDay')
+  const [provider, setProvider] = useState<PaymentProvider>('click')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [promoCode, setPromoCode] = useState('')
@@ -164,13 +167,52 @@ export function Paywall() {
       ? Math.max(1, Math.round((promoPreview.discountAmountTiyin / promoPreview.originalAmountTiyin) * 100))
       : 0
 
+  /**
+   * What one plan costs after whatever discount actually reaches it.
+   *
+   * Three cases, and they are mutually exclusive by design. The welcome gift is a percentage
+   * the server has already committed to and it only applies to the ninety-day plan, so it is
+   * checked first and a code is not stacked on top of it — `checkout` sends no promo code when
+   * the gift applies, and a card that showed both would be promising a discount the server
+   * would decline to give. A code prices exactly one period, so it only marks that card. Any
+   * other plan is at list price.
+   */
+  function pricingFor(option: PlanOption): PlanPricing {
+    if (giftActive && option.period === 'NinetyDay') {
+      const percent = welcomeGift!.discountPercent
+      return {
+        listAmountTiyin: option.amountTiyin,
+        amountTiyin: option.amountTiyin - Math.floor((option.amountTiyin * percent) / 100),
+        currency: option.currency,
+        discountPercent: percent,
+      }
+    }
+
+    if (promoPreview?.isValid && promoPreview.period === option.period) {
+      return {
+        listAmountTiyin: promoPreview.originalAmountTiyin,
+        amountTiyin: promoPreview.finalAmountTiyin,
+        currency: promoPreview.currency,
+        discountPercent: promoPercent,
+      }
+    }
+
+    return {
+      listAmountTiyin: option.amountTiyin,
+      amountTiyin: option.amountTiyin,
+      currency: option.currency,
+      discountPercent: 0,
+    }
+  }
+
   return (
     /*
       The screen where somebody decides to pay, so nothing here is hurried and nothing here is
-      a flourish. The sections arrive in the order the decision is made in: what this is, what
-      it costs, what you get, what you lose without it.
+      a flourish. The blocks arrive in the order the decision is made in: what this is, what it
+      costs, whether a code applies, who takes the money, what it buys, and then the one press
+      that commits to all of it.
     */
-    <Sequence className="mx-auto max-w-5xl space-y-8" gap={stagger.base}>
+    <Sequence className="space-y-6" gap={stagger.base}>
       {showPromoCelebration && promoPreview?.isValid && (
         <PromoCelebration
           discountAmount={formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale)}
@@ -182,229 +224,94 @@ export function Paywall() {
         />
       )}
 
-      <Reveal>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t.billing.title}</h1>
-        <p className="text-support mt-1">
-          {t.billing.subtitle}
-        </p>
+      <Reveal as="section">
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t.billing.title}</h1>
+        <p className="text-support mt-2 max-w-2xl leading-relaxed">{t.billing.subtitle}</p>
       </Reveal>
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
       {giftActive && (
-        <div className="rounded-[var(--radius-card)] border border-amber-300 bg-gradient-to-r from-amber-50 to-blue-50 p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+        <Reveal>
+          <Card className="border-coin-strong/30 bg-coin-faint/60">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <Badge tone="milestone">
                 {fill(t.welcomeGift.discountPrize, { percent: welcomeGift!.discountPercent })}
               </Badge>
+              <Gift aria-hidden="true" strokeWidth={1.9} className="size-7 text-coin-strong" />
             </div>
-            <span className="text-3xl" aria-hidden="true">🎁</span>
-          </div>
-        </div>
+          </Card>
+        </Reveal>
       )}
 
       {entitlement?.paymentProcessing && (
-        <Card>
-          <Badge tone="caution">{t.billing.processing}</Badge>
-          <p className="mt-3 text-base text-ink">
-            {t.billing.processingBody}
-          </p>
-        </Card>
+        <Reveal>
+          <Card>
+            <Badge tone="caution">{t.billing.processing}</Badge>
+            <p className="mt-3 text-base text-ink">{t.billing.processingBody}</p>
+          </Card>
+        </Reveal>
       )}
 
       {entitlement?.hasProAccess ? (
-        <ActiveSubscription entitlement={entitlement} />
+        <Reveal>
+          <ActiveSubscription entitlement={entitlement} />
+        </Reveal>
       ) : (
         <>
-          {/*
-            The plans are a comparison, so they land together on a wide beat rather than
-            racing each other. Two options, one decision.
-          */}
-          <Sequence className="grid gap-3 md:grid-cols-2" gap={stagger.wide}>
-            {plans.options.map((option) => (
-              (() => {
-                const giftDiscounted = giftActive && option.period === 'NinetyDay'
-                const promoDiscounted = promoPreview?.isValid && promoPreview.period === option.period
-                const discounted = giftDiscounted || promoDiscounted
-                const discountPercent = giftDiscounted ? welcomeGift!.discountPercent : promoPercent
-                const discountedAmount = giftDiscounted
-                  ? option.amountTiyin - Math.floor((option.amountTiyin * welcomeGift!.discountPercent) / 100)
-                  : promoDiscounted
-                    ? promoPreview.finalAmountTiyin
-                    : option.amountTiyin
-                const shownAmount = discountedAmount
-                const shownCurrency = promoDiscounted && !giftDiscounted ? promoPreview.currency : option.currency
-                const perDayPrice = formatPrice(
-                  perDayAmountTiyin(shownAmount, option.period),
-                  shownCurrency,
-                  locale,
-                )
-                const currentPrice = formatPrice(option.amountTiyin, option.currency, locale)
+          <Reveal as="section">
+            <PlanSelector
+              options={plans.options}
+              period={period}
+              onSelect={setPeriod}
+              pricingFor={pricingFor}
+            />
+          </Reveal>
 
-                return (
-                  /*
-                    The button itself carries the variant rather than sitting inside a wrapper.
-                    A sequence reaches its children by propagating a variant label, so a plain
-                    `<button>` here would be skipped by the beat — and a wrapper div would take
-                    over the grid-item role from the button, which is what sizes it.
-                  */
-                  <m.button
-                    key={option.period}
-                    variants={rise}
-                    type="button"
-                    aria-pressed={period === option.period}
-                    onClick={() => setPeriod(option.period)}
-                    className={`w-full rounded-[var(--radius-card)] border p-5 text-left transition ${
-                      period === option.period
-                        ? 'border-signal bg-signal-soft'
-                        : 'border-hairline bg-ground-raised'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-base font-semibold text-ink">{t.billing.periodLabel[option.period]}</span>
-                      {option.savingsPercent > 0 && (
-                        <Badge tone="milestone">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
-                      )}
-                    </div>
-                    {discounted ? (
-                      <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-                        <p className="text-base font-semibold text-ink-muted line-through decoration-2">
-                          {formatPrice(option.amountTiyin, option.currency, locale)}
-                        </p>
-                        <p className="text-2xl font-semibold tracking-tight text-ink">
-                          {formatPrice(discountedAmount, shownCurrency, locale)}
-                        </p>
-                        <Badge tone="signal">{fill(t.billing.promoPercent, { percent: discountPercent })}</Badge>
-                      </div>
-                    ) : (
-                      <div className="mt-2">
-                        <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
-                          <span className="text-2xl font-semibold tracking-tight text-ink">{currentPrice}</span>
-                        </div>
-                        <div className="mt-4 border-t border-hairline pt-4">
-                          <div className="flex flex-wrap items-end gap-x-1 gap-y-1">
-                            <span className="text-3xl font-extrabold tracking-tight text-ink">{perDayPrice}</span>
-                            <span className="pb-1 text-lg font-semibold text-ink-muted">{perDay}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="mt-1 space-y-0.5 text-support">
-                      {option.period === 'NinetyDay' && (
-                        <p>
-                          {fill(t.billing.perMonth, {
-                            amount: formatPrice(perMonthAmountTiyin(shownAmount, option.period), shownCurrency, locale),
-                          })}
-                        </p>
-                      )}
-                      <p>
-                        {fill(t.billing.perDay, {
-                          amount: formatPrice(perDayAmountTiyin(shownAmount, option.period), shownCurrency, locale),
-                        })}
-                      </p>
-                    </div>
-                  </m.button>
-                )
-              })()
-            ))}
-          </Sequence>
-
-          {!giftActive && <Card>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex-1">
-                <span className="mb-1.5 block text-sm font-bold text-ink">{t.billing.promoTitle}</span>
-                <input
-                  value={promoCode}
-                  onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
-                  placeholder={t.billing.promoPlaceholder}
-                  className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
-                />
-              </label>
-              <Button variant="secondary" disabled={promoBusy} onClick={() => void applyPromoCode()}>
-                {promoBusy ? t.billing.opening : t.billing.promoApply}
-              </Button>
-            </div>
-
-            {promoFeedback && (
-              <p className={`mt-3 text-sm ${promoPreview?.isValid ? 'text-milestone' : 'text-ink-muted'}`}>{promoFeedback}</p>
-            )}
-
-            {promoPreview?.isValid && (
-              <div className="mt-4 rounded-[var(--radius-card)] border border-signal/30 bg-signal-soft/60 p-4 text-sm text-ink">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Badge tone="signal">{fill(t.billing.promoPercent, { percent: promoPercent })}</Badge>
-                  <span className="font-semibold text-ink">{promoPreview.code}</span>
-                </div>
-                <div>{fill(t.billing.promoDiscount, { amount: formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale) })}</div>
-                <div className="font-bold">
-                  {fill(t.billing.promoFinal, { amount: formatPrice(promoPreview.finalAmountTiyin, promoPreview.currency, locale) })}
-                </div>
-              </div>
-            )}
-          </Card>}
-
-          {!giftActive && promoPreview?.isValid && (
-            <div className="rounded-[var(--radius-card)] border border-signal/30 bg-signal-soft/50 px-4 py-3 text-sm text-ink">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold">{fill(t.billing.promoPercent, { percent: promoPercent })}</span>
-                <span>{fill(t.billing.promoDiscount, { amount: formatPrice(promoPreview.discountAmountTiyin, promoPreview.currency, locale) })}</span>
-              </div>
-            </div>
+          {/* A code cannot be stacked on the welcome gift, so while the gift is live the
+              field is not offered rather than offered and then refused. */}
+          {!giftActive && (
+            <Reveal as="section">
+              <PromoCode
+                code={promoCode}
+                onCodeChange={setPromoCode}
+                onApply={() => void applyPromoCode()}
+                busy={promoBusy}
+                feedback={promoFeedback}
+                preview={promoPreview}
+                percent={promoPercent}
+              />
+            </Reveal>
           )}
 
-          <Button size="lg" block disabled={busy} onClick={() => void checkout('click')}>
-            {busy
-              ? t.billing.opening
-              : fill(t.billing.payWithClick, {
-                  amount: formatPrice(amountToPay, selected.currency, locale),
-                })}
-          </Button>
+          <Reveal as="section">
+            <Card>
+              <h2 className="text-lg font-extrabold tracking-tight text-ink">
+                {t.billing.paymentMethod}
+              </h2>
+              <div className="mt-4">
+                <PaymentMethodSelector provider={provider} onSelect={setProvider} />
+              </div>
+            </Card>
+          </Reveal>
 
-          <Button size="lg" variant="secondary" block disabled={busy} onClick={() => void checkout('payme')}>
-            {busy
-              ? t.billing.opening
-              : fill(t.billing.payWithPayme, {
-                  amount: formatPrice(amountToPay, selected.currency, locale),
-                })}
-          </Button>
+          <Reveal as="section">
+            <FeatureComparison />
+          </Reveal>
 
-          <UzHint>
-            {t.billing.freeNote}
-          </UzHint>
+          <Reveal>
+            <PaymentButton
+              provider={provider}
+              amount={formatPrice(amountToPay, selected.currency, locale)}
+              busy={busy}
+              onPay={() => void checkout(provider)}
+            />
+          </Reveal>
         </>
       )}
 
-      <Reveal as="section">
-        <SectionHeading>{t.billing.proUnlocks}</SectionHeading>
-        {/* What is being bought, one line at a time. */}
-        <Sequence as="ul" className="space-y-2" gap={stagger.tight}>
-          {t.billing.proBenefits.map((benefit) => (
-            <Reveal as="li" key={benefit} className="flex gap-3 text-base text-ink">
-              <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-signal" />
-              {benefit}
-            </Reveal>
-          ))}
-        </Sequence>
-      </Reveal>
-
-      <Reveal as="section">
-        <SectionHeading>{t.billing.freeLimits}</SectionHeading>
-        <Sequence as="ul" className="space-y-2" gap={stagger.tight}>
-          {t.billing.freeLimitItems.map((limit) => (
-            <Reveal as="li" key={limit} className="flex gap-3 text-base text-ink-muted">
-              <span
-                aria-hidden="true"
-                className="mt-2 size-1.5 shrink-0 rounded-full bg-ink-faint"
-              />
-              {limit}
-            </Reveal>
-          ))}
-        </Sequence>
-      </Reveal>
-
       <Reveal>
-        <p className="text-support border-t border-hairline pt-5">
+        <p className="text-support border-t border-hairline pt-5 text-sm leading-relaxed">
           {t.billing.cancelNote}
         </p>
       </Reveal>

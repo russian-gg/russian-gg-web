@@ -718,6 +718,9 @@ export const uz = {
   auth: {
     signInTitle: 'Kirish',
     signUpTitle: "Ro'yxatdan o'tish",
+    signInSubtitle: "Hisobingizga kiring va davom eting.",
+    welcomeTitle: "Xush kelibsiz!",
+    welcomeBody: "Hisobingizga kiring va barcha imkoniyatlardan foydalaning.",
     email: 'Email',
     loginIdentifier: 'Telefon raqami yoki email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 yoki email',
@@ -1257,6 +1260,9 @@ export const uz = {
     perDay: 'Kuniga {amount}',
     payWithClick: "Click orqali to'lash - {amount}",
     payWithPayme: "Payme orqali to'lash - {amount}",
+    paymentMethod: "To‘lov usulini tanlang",
+    clickHint: "Click orqali tez va xavfsiz to‘lov",
+    paymeHint: "Payme orqali qulay to‘lov",
     opening: 'Ochilmoqda...',
     freeNote:
       "Bepul rejada daraja testi va yo'lning birinchi 3 kuni ochiq. Keyingi kunlar Click yoki Payme orqali " +
