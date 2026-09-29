@@ -457,17 +457,39 @@ export type TestCategory = 'Grammar' | 'Phonetics' | 'Vocabulary'
 
 export type TestDifficulty = 'Easy' | 'Medium' | 'Hard'
 
-/** A question in the learner Tests bank. The text is Russian, the explanation Uzbek. */
+/** A row in the admin list of tests. */
+export type AdminTest = {
+  id: string
+  title: string
+  courseDay: number
+  category: TestCategory
+  difficulty: TestDifficulty
+  isActive: boolean
+  /** Every question, switched off or not. */
+  questionCount: number
+  /** The ones a learner can actually get. */
+  activeQuestionCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** A question inside a test. The text is Russian, the explanation Uzbek. */
 export type AdminTestQuestion = {
   id: string
-  courseDay: number
+  testId: string
   text: string
   options: string[]
   correctOptionIndex: number
   explanation: string
-  category: TestCategory
-  difficulty: TestDifficulty
   isActive: boolean
   createdAt: string
   updatedAt: string
 }
+
+/** One test with its questions, in the order they were added. */
+export type AdminTestDetail = Omit<AdminTest, 'questionCount' | 'activeQuestionCount'> & {
+  questions: AdminTestQuestion[]
+}
+
+/** What a delete did: gone, or switched off because learners had already been given it. */
+export type AdminDeleteResult = { deleted: boolean; deactivated: boolean }

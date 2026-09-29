@@ -31,7 +31,7 @@ import { Marketing } from './screens/Marketing'
 import { Sales } from './screens/Sales'
 import { PortalUsers } from './screens/PortalUsers'
 import { Games } from './screens/Games'
-import { TestQuestions } from './screens/TestQuestions'
+import { Tests } from './screens/Tests'
 
 type Section =
   | 'dashboard'
@@ -112,6 +112,12 @@ const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
 export function AdminApp() {
   const { token, name, role } = useSession()
   const [section, setSection] = useState<Section>(() => readStoredSection(session.role()))
+  /*
+   * Bumped when the section already open is clicked again, and used as the screen's key, so
+   * that click takes a screen back to its start — out of a test's page to the list of tests —
+   * the way a sidebar link is expected to.
+   */
+  const [visit, setVisit] = useState(0)
   // Remembered, because a sidebar that reopens on every reload is one nobody bothers closing.
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true')
 
@@ -227,7 +233,10 @@ export function AdminApp() {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setSection(item.id)}
+                        onClick={() => {
+                          if (item.id === active) setVisit((value) => value + 1)
+                          setSection(item.id)
+                        }}
                         aria-current={active === item.id ? 'page' : undefined}
                         // The label is the tooltip when it is not on screen: an icon rail
                         // nobody can read is a guessing game.
@@ -273,7 +282,7 @@ export function AdminApp() {
         </div>
       </aside>
 
-      <main className="min-w-0 p-4 sm:p-6 lg:p-8">
+      <main key={visit} className="min-w-0 p-4 sm:p-6 lg:p-8">
         {active === 'dashboard' && <Dashboard />}
         {active === 'users' && <Users />}
         {active === 'clicks' && <Clicks />}
@@ -286,7 +295,7 @@ export function AdminApp() {
         {active === 'lesson-feedbacks' && <LessonFeedbacks />}
         {active === 'portal-users' && <PortalUsers />}
         {active === 'games' && <Games />}
-        {active === 'tests' && <TestQuestions />}
+        {active === 'tests' && <Tests />}
       </main>
     </div>
   )
