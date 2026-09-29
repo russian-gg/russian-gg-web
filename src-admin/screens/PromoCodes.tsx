@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { useFocusTrap } from '../../src/lib/focus-trap'
 import { cx } from '../../src/lib/cx'
 import { Overlay } from '../../src/components/motion'
@@ -14,12 +13,17 @@ import {
   ConfirmDialog,
   EmptyNote,
   ErrorNote,
+  FieldLabel,
+  IconButton,
+  inputClass,
   LoadingRows,
   LoadingStats,
   PageHeader,
   Row,
   Screen,
+  Segmented,
   Stat,
+  Switch,
   Table,
   Tabs,
   TextField,
@@ -368,94 +372,6 @@ function ValidityWindow({ item, now }: { item: AdminPromoCode; now: number }) {
         </div>
         <span className="text-xs whitespace-nowrap text-ink-faint">{note}</span>
       </div>
-    </div>
-  )
-}
-
-function Switch({ checked }: { checked: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cx(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-        checked ? 'bg-milestone' : 'bg-hairline',
-      )}
-    >
-      <span
-        className={cx(
-          'inline-block size-5 rounded-full bg-white shadow transition-transform',
-          checked ? 'translate-x-[22px]' : 'translate-x-0.5',
-        )}
-      />
-    </span>
-  )
-}
-
-function IconButton({
-  label,
-  onClick,
-  tone = 'neutral',
-  children,
-}: {
-  label: string
-  onClick: () => void
-  tone?: 'neutral' | 'danger'
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={cx(
-        'inline-flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted transition-colors',
-        tone === 'danger' ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-ground-sunken hover:text-ink',
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
-const inputClass =
-  'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
-
-function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-bold text-ink">{label}</span>
-      {children}
-    </label>
-  )
-}
-
-/** Two-way choice drawn as a segmented control: both options stay visible, unlike a select. */
-function Segmented<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T
-  onChange: (value: T) => void
-  options: Array<{ id: T; label: string }>
-}) {
-  return (
-    <div className="grid grid-cols-2 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1">
-      {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          aria-pressed={value === option.id}
-          onClick={() => onChange(option.id)}
-          className={cx(
-            'rounded-[var(--radius-control)] py-1.5 text-sm font-bold transition-colors',
-            value === option.id ? 'bg-signal text-on-signal' : 'text-ink-muted hover:text-ink',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
     </div>
   )
 }

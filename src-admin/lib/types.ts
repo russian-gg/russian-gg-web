@@ -452,3 +452,22 @@ export type AdminGame = {
   isBuilt: boolean
   isEnabled: boolean
 }
+
+export type TestCategory = 'Grammar' | 'Phonetics' | 'Vocabulary'
+
+export type TestDifficulty = 'Easy' | 'Medium' | 'Hard'
+
+/** A question in the learner Tests bank. The text is Russian, the explanation Uzbek. */
+export type AdminTestQuestion = {
+  id: string
+  courseDay: number
+  text: string
+  options: string[]
+  correctOptionIndex: number
+  explanation: string
+  category: TestCategory
+  difficulty: TestDifficulty
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}

@@ -54,8 +54,7 @@ const NAV = [
   { to: '/home', key: 'today', icon: TodayGlyph },
   { to: '/path', key: 'path', icon: PathGlyph },
   { to: '/practice', key: 'practice', icon: TasksGlyph },
-  // No route: the chip says it is not built yet, so the row must not lead anywhere.
-  { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
+  { to: '/tests', key: 'tests', icon: TestsGlyph },
   { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 
@@ -127,7 +126,7 @@ export function AppShell() {
               icon={item.icon}
               trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
               trailingHint={fill(t.nav.daysDone, { count: completedDays })}
-              comingSoon={'comingSoon' in item && item.comingSoon}
+              comingSoon={'comingSoon' in item && Boolean(item.comingSoon)}
               comingSoonLabel={t.nav.comingSoon}
             >
               {t.nav[item.key]}
@@ -195,7 +194,7 @@ export function AppShell() {
                   ? fill(t.nav.daysDone, { count: completedDays })
                   : undefined
               }
-              comingSoon={'comingSoon' in item && item.comingSoon}
+              comingSoon={'comingSoon' in item && Boolean(item.comingSoon)}
               comingSoonHint={t.nav.comingSoon}
             />
           ))}

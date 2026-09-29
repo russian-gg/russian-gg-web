@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, ClipboardList, Clock, Gamepad2, GraduationCap, Target } from 'lucide-react'
 import { useT } from '../../lib/i18n'
@@ -24,13 +25,19 @@ const MotionLink = m.create(Link)
 export function FeatureTiles() {
   const t = useT()
 
-  const tiles = [
+  // Typed rather than `as const`, so a door can go back to "coming soon" (`to: null`) later.
+  const tiles: ReadonlyArray<{
+    key: 'today' | 'tasks' | 'tests' | 'games' | 'progress'
+    to: string | null
+    icon: ReactElement
+    tone: 'signal' | 'muted'
+  }> = [
     { key: 'today', to: '/path', icon: <CapGlyph />, tone: 'signal' as const },
     { key: 'tasks', to: '/practice', icon: <TargetGlyph />, tone: 'signal' as const },
-    { key: 'tests', to: null, icon: <TestGlyph />, tone: 'muted' as const },
+    { key: 'tests', to: '/tests', icon: <TestGlyph />, tone: 'signal' as const },
     { key: 'games', to: '/games', icon: <GameGlyph />, tone: 'signal' as const },
     { key: 'progress', to: '/progress', icon: <ChartGlyph />, tone: 'signal' as const },
-  ] as const
+  ]
 
   return (
     /*

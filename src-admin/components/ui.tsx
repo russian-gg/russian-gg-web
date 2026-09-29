@@ -335,6 +335,99 @@ export function Select({
   )
 }
 
+/* ------------------------------------------------------------------------------- controls */
+
+export function Switch({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cx(
+        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+        checked ? 'bg-milestone' : 'bg-hairline',
+      )}
+    >
+      <span
+        className={cx(
+          'inline-block size-5 rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+        )}
+      />
+    </span>
+  )
+}
+
+export function IconButton({
+  label,
+  onClick,
+  tone = 'neutral',
+  children,
+}: {
+  label: string
+  onClick: () => void
+  tone?: 'neutral' | 'danger'
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cx(
+        'inline-flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted transition-colors',
+        tone === 'danger' ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-ground-sunken hover:text-ink',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+export const inputClass =
+  'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
+
+export function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-bold text-ink">{label}</span>
+      {children}
+    </label>
+  )
+}
+
+/** A few-way choice drawn as a segmented control: every option stays visible, unlike a select. */
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T
+  onChange: (value: T) => void
+  options: Array<{ id: T; label: string }>
+}) {
+  return (
+    <div
+      className="grid rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          aria-pressed={value === option.id}
+          onClick={() => onChange(option.id)}
+          className={cx(
+            'rounded-[var(--radius-control)] py-1.5 text-sm font-bold transition-colors',
+            value === option.id ? 'bg-signal text-on-signal' : 'text-ink-muted hover:text-ink',
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------------------------- tables */
 
 export function Table({ head, children }: { head: string[]; children: ReactNode }) {
