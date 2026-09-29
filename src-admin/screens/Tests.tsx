@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { ArrowLeft, Check, ChevronRight, ListPlus, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { useFocusTrap } from '../../src/lib/focus-trap'
 import { cx } from '../../src/lib/cx'
 import { Overlay } from '../../src/components/motion'
 import { adminFetch, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
-import { BULK_EXAMPLE, MAX_OPTIONS, MIN_OPTIONS, parseBulkQuestions } from '../lib/bulk-questions'
+import {
+  MAX_EXPLANATION_LENGTH,
+  MAX_OPTION_LENGTH,
+  MAX_OPTIONS,
+  MAX_QUESTIONS,
+  MAX_TEXT_LENGTH,
+  MIN_OPTIONS,
+  clearDraft,
+  emptyQuestion,
+  hasDraft,
+  loadDraft,
+  questionProblems,
+  saveDraft,
+  toRequest,
+} from '../lib/question-draft'
+import type { QuestionDraft } from '../lib/question-draft'
 import type {
   AdminDeleteResult,
   AdminTest,
@@ -324,8 +339,9 @@ function TestDetail({ id, onBack }: { id: string; onBack: () => void }) {
   useEffect(() => setTest(loaded), [loaded])
 
   const [editing, setEditing] = useState(false)
-  const [question, setQuestion] = useState<AdminTestQuestion | 'new' | null>(null)
-  const [bulk, setBulk] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState<AdminTestQuestion | null>(null)
+  // An unsaved draft from before a refresh reopens the form, so the typing is right where it was.
+  const [adding, setAdding] = useState(() => hasDraft(id))
   const [deletingTest, setDeletingTest] = useState(false)
   const [deletingQuestion, setDeletingQuestion] = useState<AdminTestQuestion | null>(null)
   const [busy, setBusy] = useState(false)
@@ -471,16 +487,10 @@ function TestDetail({ id, onBack }: { id: string; onBack: () => void }) {
               {test.questions.length} ta savol · {activeQuestions} ta faol
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setBulk(true)}>
-              <ListPlus aria-hidden="true" className="size-4" />
-              Ommaviy qo'shish
-            </Button>
-            <Button onClick={() => setQuestion('new')}>
-              <Plus aria-hidden="true" className="size-4" strokeWidth={2.6} />
-              Savol qo'shish
-            </Button>
-          </div>
+          <Button onClick={() => setAdding(true)}>
+            <Plus aria-hidden="true" className="size-4" strokeWidth={2.6} />
+            {hasDraft(test.id) ? 'Qoralamani davom ettirish' : "Savol qo'shish"}
+          </Button>
         </div>
 
         {test.questions.length === 0 ? (
@@ -496,7 +506,7 @@ function TestDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 number={index + 1}
                 busy={busy}
                 onToggle={() => void setQuestionStatus(item)}
-                onEdit={() => setQuestion(item)}
+                onEdit={() => setEditingQuestion(item)}
                 onDelete={() => setDeletingQuestion(item)}
               />
             ))}
@@ -515,24 +525,23 @@ function TestDetail({ id, onBack }: { id: string; onBack: () => void }) {
         />
       )}
 
-      {question && (
-        <QuestionFormDialog
-          testId={test.id}
-          item={question === 'new' ? null : question}
-          onClose={() => setQuestion(null)}
+      {editingQuestion && (
+        <EditQuestionDialog
+          item={editingQuestion}
+          onClose={() => setEditingQuestion(null)}
           onSaved={(next) => {
-            setQuestion(null)
+            setEditingQuestion(null)
             setTest(next)
           }}
         />
       )}
 
-      {bulk && (
-        <BulkDialog
+      {adding && (
+        <AddQuestionsDialog
           testId={test.id}
-          onClose={() => setBulk(false)}
+          onClose={() => setAdding(false)}
           onSaved={(next, added) => {
-            setBulk(false)
+            setAdding(false)
             setTest(next)
             setNotice(`${added} ta savol qo'shildi.`)
           }}
@@ -588,7 +597,7 @@ function BackLink({ onBack }: { onBack: () => void }) {
 
 function Notice({ children }: { children: ReactNode }) {
   return (
-    <p role="status" className="animate-in rounded-[var(--radius-control)] bg-signal-soft px-4 py-3 text-sm text-ink fade-in-0">
+    <p role="status" className="animate-in rounded-control bg-signal-soft px-4 py-3 text-sm text-ink fade-in-0">
       {children}
     </p>
   )
@@ -697,14 +706,20 @@ function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={cx('max-h-full w-full overflow-y-auto', wide ? 'max-w-3xl' : 'max-w-2xl')}
+        className={cx('flex max-h-full w-full', wide ? 'max-w-3xl' : 'max-w-2xl')}
       >
-        <Card as="div" className="w-full" onClick={(event) => event.stopPropagation()}>
-          <div className="mb-4">
+        {/* The header stays put and only the body scrolls, so a long form never pushes the title off screen. */}
+        <Card
+          as="div"
+          className="flex max-h-[calc(100dvh-2rem)] w-full min-w-0 flex-col"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="mb-4 shrink-0">
             <h2 className="text-lg font-extrabold text-ink">{title}</h2>
             {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
           </div>
-          {children}
+          {/* The padding keeps focus rings from being clipped by the scroll edge. */}
+          <div className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">{children}</div>
         </Card>
       </div>
     </Overlay>
@@ -713,7 +728,8 @@ function Dialog({
 
 function DialogActions({ busy, canSubmit, label, onClose }: { busy: boolean; canSubmit: boolean; label: string; onClose: () => void }) {
   return (
-    <div className="flex flex-wrap justify-end gap-2 pt-1">
+    // Pinned to the bottom of the scrolling body, so saving never needs a scroll down.
+    <div className="sticky bottom-0 z-10 flex flex-wrap justify-end gap-2 border-t-2 border-hairline bg-ground-raised pt-3 pb-1">
       <Button variant="secondary" onClick={onClose} disabled={busy}>
         Bekor qilish
       </Button>
@@ -816,51 +832,141 @@ function TestFormDialog({
   )
 }
 
-function QuestionFormDialog({
-  testId,
-  item,
-  onClose,
-  onSaved,
+/**
+ * The inputs for one question — text, 3 to 8 options with the right one marked, and the rule —
+ * shared by the edit dialog and every card of the add dialog.
+ */
+function QuestionFields({
+  value,
+  onChange,
+  idPrefix,
+  autoFocus = false,
 }: {
-  testId: string
-  item: AdminTestQuestion | null
-  onClose: () => void
-  onSaved: (test: AdminTestDetail) => void
+  value: QuestionDraft
+  onChange: (next: QuestionDraft) => void
+  idPrefix: string
+  autoFocus?: boolean
 }) {
-  const [text, setText] = useState(item?.text ?? '')
-  const [options, setOptions] = useState<string[]>(item ? [...item.options] : ['', '', ''])
-  const [correct, setCorrect] = useState(item?.correctOptionIndex ?? 0)
-  const [explanation, setExplanation] = useState(item?.explanation ?? '')
-  const [busy, setBusy] = useState(false)
-  const [failure, setFailure] = useState('')
+  const { options, correctOptionIndex: correct } = value
 
   /** The right-answer mark follows its option when one above it is removed. */
   function removeOption(index: number) {
     if (options.length <= MIN_OPTIONS) return
-    setOptions((state) => state.filter((_, i) => i !== index))
-    setCorrect((value) => (index === value ? 0 : index < value ? value - 1 : value))
+    onChange({
+      ...value,
+      options: options.filter((_, i) => i !== index),
+      correctOptionIndex: index === correct ? 0 : index < correct ? correct - 1 : correct,
+    })
   }
 
-  const complete = text.trim() !== '' && explanation.trim() !== '' && options.every((option) => option.trim() !== '')
+  return (
+    <div className="space-y-4">
+      <FieldLabel label="Savol">
+        <Textarea
+          value={value.text}
+          onChange={(event) => onChange({ ...value, text: event.target.value })}
+          placeholder="Masalan: Выберите правильное окончание: Я живу в Ташкент__."
+          maxLength={MAX_TEXT_LENGTH}
+          autoFocus={autoFocus}
+        />
+      </FieldLabel>
+
+      <fieldset className="space-y-2">
+        <legend className="mb-1.5 text-sm font-bold text-ink">
+          Javob variantlari <span className="font-normal text-ink-muted">— to'g'ri javobni belgilang</span>
+        </legend>
+        {options.map((option, index) => {
+          const isCorrect = index === correct
+          return (
+            <div key={index} className="flex items-center gap-2">
+              <label
+                className={cx(
+                  'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-control border-2 transition-colors',
+                  isCorrect ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline text-ink-faint hover:border-ink-faint',
+                )}
+                title="To'g'ri javob"
+              >
+                <input
+                  type="radio"
+                  name={`${idPrefix}-correct-option`}
+                  checked={isCorrect}
+                  onChange={() => onChange({ ...value, correctOptionIndex: index })}
+                  aria-label={`${index + 1}-variant to'g'ri javob`}
+                  className="sr-only"
+                />
+                {isCorrect ? (
+                  <Check aria-hidden="true" className="size-4 animate-in zoom-in-50 fade-in-0" strokeWidth={3} />
+                ) : (
+                  index + 1
+                )}
+              </label>
+              <Input
+                value={option}
+                onChange={(event) =>
+                  onChange({ ...value, options: options.map((current, i) => (i === index ? event.target.value : current)) })
+                }
+                placeholder={`${index + 1}-variant`}
+                aria-label={`${index + 1}-variant`}
+                maxLength={MAX_OPTION_LENGTH}
+              />
+              <IconButton label={`${index + 1}-variantni olib tashlash`} tone="danger" onClick={() => removeOption(index)}>
+                <X aria-hidden="true" className={cx('size-4', options.length <= MIN_OPTIONS && 'opacity-30')} />
+              </IconButton>
+            </div>
+          )
+        })}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onChange({ ...value, options: options.length >= MAX_OPTIONS ? options : [...options, ''] })}
+          disabled={options.length >= MAX_OPTIONS}
+        >
+          <Plus aria-hidden="true" className="size-4" strokeWidth={2.6} />
+          Variant qo'shish
+        </Button>
+      </fieldset>
+
+      <FieldLabel label="Qoida / izoh">
+        <Textarea
+          value={value.explanation}
+          onChange={(event) => onChange({ ...value, explanation: event.target.value })}
+          placeholder="Javobdan keyin va natijalar sahifasida ko'rsatiladi."
+          maxLength={MAX_EXPLANATION_LENGTH}
+        />
+      </FieldLabel>
+    </div>
+  )
+}
+
+/** Edits one saved question in place. */
+function EditQuestionDialog({
+  item,
+  onClose,
+  onSaved,
+}: {
+  item: AdminTestQuestion
+  onClose: () => void
+  onSaved: (test: AdminTestDetail) => void
+}) {
+  const [question, setQuestion] = useState<QuestionDraft>(() => ({
+    key: item.id,
+    text: item.text,
+    options: [...item.options],
+    correctOptionIndex: item.correctOptionIndex,
+    explanation: item.explanation,
+  }))
+  const [busy, setBusy] = useState(false)
+  const [failure, setFailure] = useState('')
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     setFailure('')
     try {
-      const saved = await adminFetch<AdminTestDetail>(
-        item ? `/api/admin-portal/tests/questions/${item.id}` : `/api/admin-portal/tests/${testId}/questions`,
-        {
-          method: item ? 'PUT' : 'POST',
-          body: JSON.stringify({
-            text: text.trim(),
-            options: options.map((option) => option.trim()),
-            correctOptionIndex: correct,
-            explanation: explanation.trim(),
-            isActive: item?.isActive ?? true,
-          }),
-        },
-      )
+      const saved = await adminFetch<AdminTestDetail>(`/api/admin-portal/tests/questions/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...toRequest(question), isActive: item.isActive }),
+      })
       onSaved(saved)
     } catch (caught) {
       setFailure(errorText(caught, "Savolni saqlab bo'lmadi."))
@@ -870,100 +976,22 @@ function QuestionFormDialog({
   }
 
   return (
-    <Dialog
-      title={item ? 'Savolni tahrirlash' : "Savol qo'shish"}
-      subtitle="Savol rus tilida, izoh esa o'zbek tilida yoziladi."
-      busy={busy}
-      onClose={onClose}
-    >
+    <Dialog title="Savolni tahrirlash" subtitle="Savol rus tilida, izoh esa o'zbek tilida yoziladi." busy={busy} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
-        <FieldLabel label="Savol">
-          <Textarea
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Masalan: Выберите правильное окончание: Я живу в Ташкент__."
-            maxLength={1000}
-            required
-            autoFocus
-          />
-        </FieldLabel>
-
-        <fieldset className="space-y-2">
-          <legend className="mb-1.5 text-sm font-bold text-ink">
-            Javob variantlari <span className="font-normal text-ink-muted">— to'g'ri javobni belgilang</span>
-          </legend>
-          {options.map((option, index) => {
-            const isCorrect = index === correct
-            return (
-              <div key={index} className="flex items-center gap-2">
-                <label
-                  className={cx(
-                    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border-2 transition-colors',
-                    isCorrect ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline text-ink-faint hover:border-ink-faint',
-                  )}
-                  title="To'g'ri javob"
-                >
-                  <input
-                    type="radio"
-                    name="correct-option"
-                    checked={isCorrect}
-                    onChange={() => setCorrect(index)}
-                    aria-label={`${index + 1}-variant to'g'ri javob`}
-                    className="sr-only"
-                  />
-                  {isCorrect ? (
-                    <Check aria-hidden="true" className="size-4 animate-in zoom-in-50 fade-in-0" strokeWidth={3} />
-                  ) : (
-                    index + 1
-                  )}
-                </label>
-                <Input
-                  value={option}
-                  onChange={(event) => setOptions((state) => state.map((value, i) => (i === index ? event.target.value : value)))}
-                  placeholder={`${index + 1}-variant`}
-                  aria-label={`${index + 1}-variant`}
-                  maxLength={300}
-                  required
-                />
-                <IconButton label={`${index + 1}-variantni olib tashlash`} tone="danger" onClick={() => removeOption(index)}>
-                  <X aria-hidden="true" className={cx('size-4', options.length <= MIN_OPTIONS && 'opacity-30')} />
-                </IconButton>
-              </div>
-            )
-          })}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOptions((state) => (state.length >= MAX_OPTIONS ? state : [...state, '']))}
-            disabled={options.length >= MAX_OPTIONS}
-          >
-            <Plus aria-hidden="true" className="size-4" strokeWidth={2.6} />
-            Variant qo'shish
-          </Button>
-        </fieldset>
-
-        <FieldLabel label="Qoida / izoh">
-          <Textarea
-            value={explanation}
-            onChange={(event) => setExplanation(event.target.value)}
-            placeholder="Javobdan keyin va natijalar sahifasida ko'rsatiladi."
-            maxLength={2000}
-            required
-          />
-        </FieldLabel>
-
+        <QuestionFields value={question} onChange={setQuestion} idPrefix="edit" autoFocus />
         {failure && <ErrorNote>{failure}</ErrorNote>}
-        <DialogActions busy={busy} canSubmit={complete} label="Saqlash" onClose={onClose} />
+        <DialogActions busy={busy} canSubmit={questionProblems(question).length === 0} label="Saqlash" onClose={onClose} />
       </form>
     </Dialog>
   )
 }
 
 /**
- * Paste many questions at once. The text is parsed as it is typed, so every mistake shows —
- * with its question number — before anything is sent; the batch is saved whole or not at all.
+ * Adds one or more questions in a single request: it opens with one card, and "Yana savol
+ * qo'shish" adds another. Whatever is typed is kept as a draft in this browser until it is
+ * saved or cleared, so a refresh or closing the dialog loses nothing. Saved whole or not at all.
  */
-function BulkDialog({
+function AddQuestionsDialog({
   testId,
   onClose,
   onSaved,
@@ -972,22 +1000,51 @@ function BulkDialog({
   onClose: () => void
   onSaved: (test: AdminTestDetail, added: number) => void
 }) {
-  const [source, setSource] = useState('')
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() => loadDraft(testId) ?? [emptyQuestion()])
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  const parsed = useMemo(() => parseBulkQuestions(source), [source])
-  const ready = parsed.questions.length > 0 && parsed.problems.length === 0
+  // Problems stay hidden on a card until the admin tries to save, so a fresh card is not all red.
+  const [showProblems, setShowProblems] = useState(false)
+
+  useEffect(() => saveDraft(testId, questions), [testId, questions])
+
+  const problems = questions.map(questionProblems)
+  const ready = problems.every((list) => list.length === 0)
+
+  function update(index: number, next: QuestionDraft) {
+    setQuestions((state) => state.map((question, i) => (i === index ? next : question)))
+  }
+
+  function addQuestion() {
+    setQuestions((state) => (state.length >= MAX_QUESTIONS ? state : [...state, emptyQuestion()]))
+  }
+
+  function removeQuestion(index: number) {
+    setQuestions((state) => (state.length <= 1 ? [emptyQuestion()] : state.filter((_, i) => i !== index)))
+  }
+
+  function clearAll() {
+    clearDraft(testId)
+    setQuestions([emptyQuestion()])
+    setShowProblems(false)
+    setFailure('')
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (!ready) {
+      setShowProblems(true)
+      return
+    }
     setBusy(true)
     setFailure('')
     try {
       const saved = await adminFetch<AdminTestDetail>(`/api/admin-portal/tests/${testId}/questions/bulk`, {
         method: 'POST',
-        body: JSON.stringify({ questions: parsed.questions }),
+        body: JSON.stringify({ questions: questions.map(toRequest) }),
       })
-      onSaved(saved, parsed.questions.length)
+      clearDraft(testId)
+      onSaved(saved, questions.length)
     } catch (caught) {
       setFailure(errorText(caught, "Savollarni saqlab bo'lmadi."))
     } finally {
@@ -997,49 +1054,52 @@ function BulkDialog({
 
   return (
     <Dialog
-      title="Ommaviy qo'shish"
-      subtitle="Har bir savolni bo'sh qator bilan ajrating. Belgisiz qator — savol, «+» — to'g'ri variant, «-» — boshqa variantlar, «=» — izoh."
+      title="Savol qo'shish"
+      subtitle="Savol rus tilida, izoh esa o'zbek tilida yoziladi. Yozilganlar shu brauzerda qoralama sifatida saqlanadi."
       busy={busy}
       onClose={onClose}
       wide
     >
       <form onSubmit={submit} className="space-y-4">
-        <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
-          <Textarea
-            value={source}
-            onChange={(event) => setSource(event.target.value)}
-            placeholder={BULK_EXAMPLE}
-            aria-label="Savollar matni"
-            spellCheck={false}
-            autoFocus
-            className="min-h-80 font-mono text-[13px] leading-relaxed"
-          />
-          <div className="space-y-3 text-sm">
-            <div className="rounded-2xl bg-ground-sunken p-4">
-              <div className="text-xs font-bold tracking-wide text-ink-faint uppercase">Tayyor</div>
-              <div className="mt-1 text-3xl font-black text-ink tabular-nums">{parsed.questions.length}</div>
-              <div className="text-ink-muted">ta savol</div>
+        {questions.map((question, index) => (
+          <div key={question.key} className="space-y-4 rounded-2xl border border-hairline p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-extrabold text-ink">{index + 1}-savol</h3>
+              <IconButton label={`${index + 1}-savolni olib tashlash`} tone="danger" onClick={() => removeQuestion(index)}>
+                <Trash2 aria-hidden="true" className="size-4" />
+              </IconButton>
             </div>
-            <Button variant="secondary" size="sm" block onClick={() => setSource(BULK_EXAMPLE)} disabled={busy}>
-              Namunani qo'yish
-            </Button>
-            {parsed.problems.length > 0 && (
-              <ul className="max-h-60 space-y-1.5 overflow-y-auto" aria-live="polite">
-                {parsed.problems.map((problem, index) => (
-                  <li key={index} className="animate-in rounded-xl bg-danger-soft px-3 py-2 text-danger fade-in-0">
-                    <span className="font-bold">{problem.number}-savol:</span> {problem.message}
-                  </li>
+            <QuestionFields
+              value={question}
+              onChange={(next) => update(index, next)}
+              idPrefix={question.key}
+              autoFocus={index === 0}
+            />
+            {showProblems && problems[index].length > 0 && (
+              <ul className="space-y-1 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" aria-live="polite">
+                {problems[index].map((problem) => (
+                  <li key={problem}>{problem}</li>
                 ))}
               </ul>
             )}
           </div>
+        ))}
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button variant="secondary" onClick={addQuestion} disabled={busy || questions.length >= MAX_QUESTIONS}>
+            <Plus aria-hidden="true" className="size-4" strokeWidth={2.6} />
+            Yana savol qo'shish
+          </Button>
+          <Button variant="secondary" size="sm" onClick={clearAll} disabled={busy}>
+            Qoralamani tozalash
+          </Button>
         </div>
 
         {failure && <ErrorNote>{failure}</ErrorNote>}
         <DialogActions
           busy={busy}
-          canSubmit={ready}
-          label={parsed.questions.length > 0 ? `${parsed.questions.length} ta savolni qo'shish` : "Qo'shish"}
+          canSubmit
+          label={questions.length > 1 ? `${questions.length} ta savolni saqlash` : 'Saqlash'}
           onClose={onClose}
         />
       </form>
