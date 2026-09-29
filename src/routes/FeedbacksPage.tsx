@@ -5,6 +5,8 @@ import { stagger } from '../lib/motion'
 import { useT } from '../lib/i18n'
 import { api, RequestError } from '../lib/api'
 import { Button, Card, ErrorNote, SectionHeading, UzHint } from '../components/ui'
+import { FileInput } from '../components/forms/FileInput'
+import { Select } from '../components/forms/Select'
 
 const ISSUE_TYPES = [
   'Xatolik haqida xabar',
@@ -100,20 +102,17 @@ export function FeedbacksPage() {
       <Card as="section">
         <SectionHeading>{t.feedbackPage.formTitle}</SectionHeading>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <label className="block">
+          <div>
             <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.kind}</span>
-            <select
+            <Select
+              label={t.feedbackPage.kind}
+              size="lg"
+              block
               value={issueType}
-              onChange={(event) => setIssueType(event.target.value as (typeof ISSUE_TYPES)[number])}
-              className="h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 text-base text-ink"
-            >
-              {ISSUE_TYPES.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(value) => setIssueType(value as (typeof ISSUE_TYPES)[number])}
+              options={ISSUE_TYPES.map((option) => ({ value: option, label: option }))}
+            />
+          </div>
 
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.subject}</span>
@@ -125,19 +124,18 @@ export function FeedbacksPage() {
             />
           </label>
 
-          <label className="block">
+          <div>
             <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.attach}</span>
-            <input
-              ref={fileRef}
-              type="file"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null
-                setAttachmentFile(file)
-              }}
-              className="block w-full rounded-xl border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink"
+            <FileInput
+              inputRef={fileRef}
+              file={attachmentFile}
+              onChange={setAttachmentFile}
+              chooseLabel={t.feedbackPage.attachChoose}
+              emptyLabel={t.feedbackPage.attachEmpty}
+              clearLabel={t.feedbackPage.attachClear}
             />
             <UzHint>{hint.attachmentNote}</UzHint>
-          </label>
+          </div>
 
           <label className="block lg:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-ink">{t.feedbackPage.details}</span>

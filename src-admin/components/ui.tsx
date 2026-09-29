@@ -1,7 +1,14 @@
 import { Children, isValidElement, useEffect } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { useFocusTrap } from '../../src/lib/focus-trap'
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react'
+import type {
+  ButtonHTMLAttributes,
+  HTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  Ref,
+  TextareaHTMLAttributes,
+} from 'react'
 import { cx } from '../../src/lib/cx'
 import { Overlay, Reveal, Sequence } from '../../src/components/motion'
 import { fadeUp, rise, stagger } from '../../src/lib/motion'
@@ -308,32 +315,11 @@ export function TextField({
   )
 }
 
-export function Select({
-  value,
-  onChange,
-  options,
-  label,
-}: {
-  value: string
-  onChange: (value: string) => void
-  options: Array<{ value: string; label: string }>
-  label: string
-}) {
-  return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="h-11 max-w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 text-sm font-semibold text-ink focus:border-signal focus:outline-none"
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  )
-}
+/*
+ * The dropdown is shared with the learner app (`src/components/forms`), so both products open
+ * the same list with the same animation. Re-exported here so screens keep one import site.
+ */
+export { Select } from '../../src/components/forms/Select'
 
 /* ------------------------------------------------------------------------------- controls */
 
@@ -385,6 +371,35 @@ export function IconButton({
 
 export const inputClass =
   'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
+
+/** A text input in the panel's style. Every native attribute passes through. */
+export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={cx(
+        inputClass,
+        // Numbers are typed, not nudged: the browser's spinner arrows are hidden, as in shadcn.
+        props.type === 'number' &&
+          '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+        className,
+      )}
+    />
+  )
+}
+
+/** Multi-line text, same frame as `Input` but with a card's corners rather than a pill's. */
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className={cx(
+        'min-h-24 w-full resize-y rounded-2xl border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none',
+        className,
+      )}
+    />
+  )
+}
 
 export function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
   return (

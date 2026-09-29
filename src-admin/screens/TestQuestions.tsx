@@ -15,7 +15,7 @@ import {
   ErrorNote,
   FieldLabel,
   IconButton,
-  inputClass,
+  Input,
   LoadingRows,
   LoadingStats,
   PageHeader,
@@ -27,6 +27,7 @@ import {
   Switch,
   Table,
   Tabs,
+  Textarea,
   TextField,
 } from '../components/ui'
 
@@ -49,6 +50,11 @@ const DIFFICULTY: Record<TestDifficulty, { label: string; tone: 'milestone' | 's
 }
 
 const CATEGORIES = Object.keys(CATEGORY) as TestCategory[]
+
+const DAY_OPTIONS = Array.from({ length: LAST_DAY - FIRST_DAY + 1 }, (_, i) => {
+  const day = FIRST_DAY + i
+  return { value: String(day), label: `${day}-kun` }
+})
 const DIFFICULTIES = Object.keys(DIFFICULTY) as TestDifficulty[]
 
 type CategoryFilter = 'all' | TestCategory
@@ -351,9 +357,6 @@ export function TestQuestions() {
 
 /* -------------------------------------------------------------------------------- form */
 
-const textareaClass =
-  'min-h-24 w-full rounded-2xl border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
-
 /** Create and edit share one form: an edit is a create that starts filled in. */
 function QuestionFormDialog({
   item,
@@ -458,28 +461,23 @@ function QuestionFormDialog({
             </div>
 
             <FieldLabel label="Dars (kun)">
-              <select
-                value={form.courseDay}
-                onChange={(event) => set('courseDay', Number(event.target.value))}
-                className={cx(inputClass, 'px-3 font-semibold')}
-              >
-                {Array.from({ length: LAST_DAY - FIRST_DAY + 1 }, (_, i) => FIRST_DAY + i).map((value) => (
-                  <option key={value} value={value}>
-                    {value}-kun
-                  </option>
-                ))}
-              </select>
+              <Select
+                label="Dars (kun)"
+                block
+                value={String(form.courseDay)}
+                onChange={(value) => set('courseDay', Number(value))}
+                options={DAY_OPTIONS}
+              />
             </FieldLabel>
 
             <FieldLabel label="Savol">
-              <textarea
+              <Textarea
                 value={form.text}
                 onChange={(event) => set('text', event.target.value)}
                 placeholder="Masalan: Выберите правильное окончание: Я живу в Ташкент__."
                 maxLength={1000}
                 required
                 autoFocus
-                className={textareaClass}
               />
             </FieldLabel>
 
@@ -508,13 +506,13 @@ function QuestionFormDialog({
                       />
                       {correct ? <Check aria-hidden="true" className="size-4" strokeWidth={3} /> : index + 1}
                     </label>
-                    <input
+                    <Input
                       value={option}
                       onChange={(event) => setOption(index, event.target.value)}
                       placeholder={`${index + 1}-variant`}
+                      aria-label={`${index + 1}-variant`}
                       maxLength={300}
                       required
-                      className={inputClass}
                     />
                     <IconButton
                       label={`${index + 1}-variantni olib tashlash`}
@@ -538,13 +536,12 @@ function QuestionFormDialog({
             </fieldset>
 
             <FieldLabel label="Qoida / izoh">
-              <textarea
+              <Textarea
                 value={form.explanation}
                 onChange={(event) => set('explanation', event.target.value)}
                 placeholder="Javobdan keyin va natijalar sahifasida ko'rsatiladi."
                 maxLength={2000}
                 required
-                className={textareaClass}
               />
             </FieldLabel>
 

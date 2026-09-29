@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { adminFetch, formatDateTime, useAdminQuery } from '../lib/api'
 import type { AdminPortalUser, PortalRole } from '../lib/types'
-import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Row, Screen, Table } from '../components/ui'
+import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Row, Screen, Select, Table } from '../components/ui'
 
 type FormState = {
   username: string
@@ -115,17 +115,19 @@ export function PortalUsers() {
               />
             </label>
 
-            <label className="block">
+            <div>
               <span className="mb-1.5 block text-sm font-bold text-ink">Huquq</span>
-              <select
+              <Select
+                label="Huquq"
+                block
                 value={form.role}
-                onChange={(event) => setForm((state) => ({ ...state, role: event.target.value as PortalRole }))}
-                className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 text-sm font-semibold text-ink focus:border-signal focus:outline-none"
-              >
-                <option value="Sales">Sotuv — faqat Telegram suhbatlari</option>
-                <option value="Admin">Administrator — hamma bo'lim</option>
-              </select>
-            </label>
+                onChange={(value) => setForm((state) => ({ ...state, role: value as PortalRole }))}
+                options={[
+                  { value: 'Sales', label: 'Sotuv — faqat Telegram suhbatlari' },
+                  { value: 'Admin', label: "Administrator — hamma bo'lim" },
+                ]}
+              />
+            </div>
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-bold text-ink">Parol</span>
@@ -210,7 +212,7 @@ export function PortalUsers() {
             </Table>
           )}
         </div>
-      </div>
+      </div>
     </Screen>
   )
 }

@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /*
+  shadcn/ui's enter and exit animations (`animate-in fade-in-0 zoom-in-95` and friends), used by
+  the Radix-based form controls in `components/forms`. The global reduced-motion rule below
+  already shortens them to nothing for anybody who asked for less motion.
+*/
+@import 'tw-animate-css';
+
+/*
   Nunito, self-hosted. It is the free web alternative to the rounded typeface this kind of
   interface is built on, and rounded letterforms are most of why the product reads as
   encouraging rather than clinical.
