@@ -37,17 +37,41 @@ export type TestListItem = {
   best?: TestScore
 }
 
+/** How long the player gives each question. The sitting carries the server's own figure; this is for before one exists. */
+export const SECONDS_PER_QUESTION = 60
+
 /**
- * The server keeps the right answer until the learner commits; an answered item carries it,
- * an unanswered one does not. Option indexes are places on screen in this sitting: the options
- * arrive already shuffled.
+ * What the learner is told about a closed question. The server keeps the right answer until
+ * the learner commits — and, in a sitting that shows answers at the end, until the whole
+ * sitting is finished: until then `isCorrect`, `correctOptionIndex` and `explanation` are
+ * simply absent. Option indexes are places on screen in this sitting: the options arrive
+ * already shuffled.
  */
 export type TestAnswerResult = {
-  chosenOptionIndex: number
-  isCorrect: boolean
-  correctOptionIndex: number
-  explanation: string
+  /** Absent when the question's time ran out before the learner chose. */
+  chosenOptionIndex?: number
+  isCorrect?: boolean
+  correctOptionIndex?: number
+  explanation?: string
   blockCompleted: boolean
+}
+
+/** How one option is painted once its question is closed. */
+export type TestOptionState = 'idle' | 'chosen' | 'correct' | 'wrong' | 'missed'
+
+/**
+ * What an option shows for a closed question. While the right answer is still kept back, all
+ * the learner may see is what they picked; once it is known, the right option is marked — as
+ * praise if they chose it, as information if they did not — and a wrong choice is marked wrong.
+ */
+export function testOptionState(
+  answer: Pick<TestAnswerResult, 'chosenOptionIndex' | 'correctOptionIndex'> | undefined,
+  optionIndex: number,
+): TestOptionState {
+  if (!answer) return 'idle'
+  if (answer.correctOptionIndex === undefined) return optionIndex === answer.chosenOptionIndex ? 'chosen' : 'idle'
+  if (optionIndex === answer.correctOptionIndex) return answer.chosenOptionIndex === optionIndex ? 'correct' : 'missed'
+  return optionIndex === answer.chosenOptionIndex ? 'wrong' : 'idle'
 }
 
 export type TestBlockItem = {
@@ -66,6 +90,9 @@ export type TestBlock = {
   /** Missing only on sittings from before tests were sat one at a time. */
   testId?: string
   testTitle: string
+  /** Chosen when the sitting started: right answers are kept back until it is finished. */
+  showAnswersAtEnd: boolean
+  secondsPerQuestion: number
   startedAt: string
   completedAt?: string
   items: TestBlockItem[]
@@ -97,10 +124,15 @@ export type TestBlockReview = {
 
 export const testsApi = {
   list: () => api.get<TestListItem[]>('/tests'),
-  /** Continues the unfinished sitting of this test if there is one, otherwise starts a new one. */
-  start: (testId: string) => api.post<TestBlock>(`/tests/${testId}/blocks`),
+  /**
+   * Continues the unfinished sitting of this test if there is one, otherwise starts a new one.
+   * The answer mode only applies to a new sitting; a resumed one keeps its own.
+   */
+  start: (testId: string, showAnswersAtEnd: boolean) =>
+    api.post<TestBlock>(`/tests/${testId}/blocks`, { showAnswersAtEnd }),
   block: (blockId: string) => api.get<TestBlock>(`/tests/blocks/${blockId}`),
-  answer: (blockId: string, itemId: string, optionIndex: number) =>
+  /** `null` closes the question unanswered: its time ran out. */
+  answer: (blockId: string, itemId: string, optionIndex: number | null) =>
     api.post<TestAnswerResult>(`/tests/blocks/${blockId}/items/${itemId}/answer`, { optionIndex }),
   review: (blockId: string) => api.get<TestBlockReview>(`/tests/blocks/${blockId}/review`),
 }
