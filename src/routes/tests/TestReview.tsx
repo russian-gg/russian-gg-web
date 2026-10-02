@@ -9,8 +9,8 @@ import { stagger } from '../../lib/motion'
 import { testQueryKeys, testsApi, useLearnerDay, type TestReviewItem } from '../../lib/tests'
 
 /**
- * The "Itoglar" screen after the ninth answer: the score, then every question with what the
- * learner chose, the right answer and the rule. Wrong answers are the point of the screen, so
+ * The "Itoglar" screen after the last answer of a sitting: the score, then every question with
+ * what the learner chose, the right answer and the rule. Wrong answers are the point of the screen, so
  * each one shows both options side by side rather than only the correct one.
  */
 export function TestReview() {
@@ -25,10 +25,11 @@ export function TestReview() {
   })
 
   const again = useMutation({
-    mutationFn: testsApi.start,
+    // The same test again: a new sitting, with its questions and options shuffled afresh.
+    mutationFn: (testId: string) => testsApi.start(testId),
     onSuccess: (block) => {
       queryClient.setQueryData(testQueryKeys.block(block.id), block)
-      void queryClient.invalidateQueries({ queryKey: testQueryKeys.summary })
+      void queryClient.invalidateQueries({ queryKey: testQueryKeys.list })
       navigate(`/tests/blocks/${block.id}`)
     },
   })
@@ -41,6 +42,7 @@ export function TestReview() {
     <Sequence className="mx-auto max-w-2xl space-y-6" gap={stagger.base}>
       <Reveal>
         <Card className="text-center">
+          {data.testTitle && <h1 className="mb-1 text-lg font-extrabold text-ink">{data.testTitle}</h1>}
           <p className="text-sm font-bold text-ink-muted">{t.reviewTitle}</p>
           <p className="mt-2 text-5xl font-black text-ink tabular-nums">
             {data.correctCount}/{data.totalCount}
@@ -56,9 +58,12 @@ export function TestReview() {
       ))}
 
       <Reveal className="flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" block onClick={() => again.mutate()} disabled={again.isPending}>
-          {t.newBlock}
-        </Button>
+        {/* A sitting from before tests were sat one at a time has no single test to retake. */}
+        {data.testId && (
+          <Button size="lg" block onClick={() => again.mutate(data.testId!)} disabled={again.isPending}>
+            {t.retake}
+          </Button>
+        )}
         <LinkButton to="/tests" variant="secondary" block>
           {t.backToTests}
         </LinkButton>

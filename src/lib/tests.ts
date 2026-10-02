@@ -6,28 +6,47 @@ export type TestCategory = 'Grammar' | 'Phonetics' | 'Vocabulary'
 
 export type TestDifficulty = 'Easy' | 'Medium' | 'Hard'
 
-/** What the Tests tab shows before a block starts. `availableQuestions` 0 means nothing to start. */
-export type TestSummary = {
-  availableQuestions: number
-  learnedQuestions: number
-  openBlockId?: string
-}
-
 /*
  * The API leaves null fields out of its JSON (`WhenWritingNull`), so every "may be empty" field
  * here is optional rather than `| null` — an unanswered item has no `answer` key at all.
  */
 
+/** The result of one finished sitting of a test. */
+export type TestScore = {
+  blockId: string
+  correctCount: number
+  totalCount: number
+  completedAt: string
+}
+
+/**
+ * One test on the Tests tab. Each test is sat on its own, as often as the learner likes; the
+ * server lists only active tests that have questions, in the order they were created.
+ */
+export type TestListItem = {
+  id: string
+  title: string
+  difficulty: TestDifficulty
+  /** How long a sitting started now would be. */
+  questionCount: number
+  /** An unfinished sitting of this test to continue. */
+  openBlockId?: string
+  /** Finished sittings. */
+  attempts: number
+  last?: TestScore
+  best?: TestScore
+}
+
 /**
  * The server keeps the right answer until the learner commits; an answered item carries it,
- * an unanswered one does not. `correctStreak` is only set on the response to the answer itself.
+ * an unanswered one does not. Option indexes are places on screen in this sitting: the options
+ * arrive already shuffled.
  */
 export type TestAnswerResult = {
   chosenOptionIndex: number
   isCorrect: boolean
   correctOptionIndex: number
   explanation: string
-  correctStreak?: number
   blockCompleted: boolean
 }
 
@@ -41,8 +60,12 @@ export type TestBlockItem = {
   answer?: TestAnswerResult
 }
 
+/** One sitting of one test, its questions in the order shuffled for this sitting. */
 export type TestBlock = {
   id: string
+  /** Missing only on sittings from before tests were sat one at a time. */
+  testId?: string
+  testTitle: string
   startedAt: string
   completedAt?: string
   items: TestBlockItem[]
@@ -63,6 +86,8 @@ export type TestReviewItem = {
 
 export type TestBlockReview = {
   id: string
+  testId?: string
+  testTitle: string
   correctCount: number
   totalCount: number
   startedAt: string
@@ -70,13 +95,10 @@ export type TestBlockReview = {
   items: TestReviewItem[]
 }
 
-/** A question is learned after this many right answers in a row; mirrors the server. */
-export const LEARNED_STREAK = 3
-
 export const testsApi = {
-  summary: () => api.get<TestSummary>('/tests/summary'),
-  /** Continues the unfinished block if there is one, otherwise starts a new one. */
-  start: () => api.post<TestBlock>('/tests/blocks'),
+  list: () => api.get<TestListItem[]>('/tests'),
+  /** Continues the unfinished sitting of this test if there is one, otherwise starts a new one. */
+  start: (testId: string) => api.post<TestBlock>(`/tests/${testId}/blocks`),
   block: (blockId: string) => api.get<TestBlock>(`/tests/blocks/${blockId}`),
   answer: (blockId: string, itemId: string, optionIndex: number) =>
     api.post<TestAnswerResult>(`/tests/blocks/${blockId}/items/${itemId}/answer`, { optionIndex }),
@@ -99,25 +121,24 @@ export function useLearnerDay() {
 }
 
 /**
- * Whether the Tests tab has anything behind it: at least one active question in an active
- * test — the same condition the Tests screen uses to offer a block. While there is none, the
- * menu shows the tab as "coming soon" instead of leading to an empty screen.
+ * Whether the Tests tab has anything behind it: at least one test the learner can sit. While
+ * there is none, the menu shows the tab as "coming soon" instead of leading to an empty screen.
  *
- * Unknown counts as available — while the summary is loading, or if it fails — so the tab does
+ * Unknown counts as available — while the list is loading, or if it fails — so the tab does
  * not flash "coming soon" on every load for the ordinary case where tests exist.
  */
 export function useTestsAvailable() {
   const { data } = useQuery({
-    queryKey: testQueryKeys.summary,
-    queryFn: testsApi.summary,
+    queryKey: testQueryKeys.list,
+    queryFn: testsApi.list,
     staleTime: 60_000,
     retry: false,
   })
-  return !data || data.availableQuestions > 0
+  return !data || data.length > 0
 }
 
 export const testQueryKeys = {
-  summary: ['tests', 'summary'] as const,
+  list: ['tests', 'list'] as const,
   block: (blockId: string) => ['tests', 'block', blockId] as const,
   review: (blockId: string) => ['tests', 'review', blockId] as const,
 }

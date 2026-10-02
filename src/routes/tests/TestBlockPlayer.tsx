@@ -10,7 +10,6 @@ import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { playUiSound } from '../../lib/ui-sounds'
 import {
-  LEARNED_STREAK,
   testQueryKeys,
   testsApi,
   type TestAnswerResult,
@@ -20,9 +19,10 @@ import {
 } from '../../lib/tests'
 
 /**
- * One block, one question at a time. The answer is scored on the server, so the right option
- * is only known — and only lit green — after the learner commits. A refresh lands on the first
- * unanswered question, because the block and its answers live on the server.
+ * One sitting of one test, a question at a time, in the order the server shuffled for this
+ * sitting. The answer is scored on the server, so the right option is only known — and only lit
+ * green — after the learner commits. A refresh lands on the first unanswered question, because
+ * the sitting and its answers live on the server.
  */
 export function TestBlockPlayer() {
   const { blockId = '' } = useParams()
@@ -65,7 +65,7 @@ export function TestBlockPlayer() {
       } else {
         playUiSound('wrong')
       }
-      if (result.blockCompleted) void queryClient.invalidateQueries({ queryKey: testQueryKeys.summary })
+      if (result.blockCompleted) void queryClient.invalidateQueries({ queryKey: testQueryKeys.list })
     },
     onError: (error) => {
       // Answered in another tab: the server has the answer, so show that instead.
@@ -102,6 +102,7 @@ export function TestBlockPlayer() {
       {burst > 0 && <Celebration key={burst} />}
 
       <div>
+        {block.testTitle && <p className="mb-2 text-lg font-extrabold text-ink">{block.testTitle}</p>}
         <div className="flex items-baseline justify-between gap-3 text-sm font-bold">
           <span className="text-ink">{fill(t.questionOf, { current: index + 1, total: block.items.length })}</span>
           <span className="text-ink-faint tabular-nums">
@@ -199,8 +200,6 @@ function OptionButton({
 
 function AnswerNote({ result }: { result: TestAnswerResult }) {
   const t = useT().tests
-  const streak = result.correctStreak ?? 0
-  const learned = streak >= LEARNED_STREAK
 
   return (
     <div
@@ -209,11 +208,6 @@ function AnswerNote({ result }: { result: TestAnswerResult }) {
     >
       <p className={cx('font-extrabold', result.isCorrect ? 'text-milestone' : 'text-danger')}>
         {result.isCorrect ? t.correct : t.wrong}
-        {result.isCorrect && streak > 1 && (
-          <span className="ml-2 font-bold">
-            · {learned ? t.learnedNow : fill(t.streak, { count: streak })}
-          </span>
-        )}
       </p>
       <p className="text-ink">
         <span className="font-bold">{t.rule}: </span>
