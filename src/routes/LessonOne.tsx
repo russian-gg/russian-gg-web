@@ -373,7 +373,7 @@ function PhoneticsSection() {
                   key={example}
                   type="button"
                   onClick={() => speakRussian(example)}
-                  className="inline-flex items-center gap-2 rounded-full bg-ground-raised px-3 py-2 font-black text-ink shadow-sm"
+                  className="raised raised-sm inline-flex items-center gap-2 rounded-full bg-ground-raised px-3 py-2 font-black text-ink"
                 >
                   <PlayGlyph /> {example}
                 </button>
@@ -618,7 +618,7 @@ function PhrasesSection({ state, setState }: { state: LessonState; setState: Set
                 <button
                   type="button"
                   onClick={() => discover(index)}
-                  className="mt-4 rounded-full bg-signal-soft px-4 py-2 text-sm font-extrabold text-signal-ink hover:bg-signal hover:text-on-signal"
+                  className="raised raised-sm raised-signal-soft mt-4 rounded-full bg-signal-soft px-4 py-2 text-sm font-extrabold text-signal-ink hover:bg-signal hover:text-on-signal"
                 >
                   {t.reveal}
                 </button>
@@ -983,7 +983,7 @@ function VocabularyStudy({
             type="button"
             onClick={onClose}
             aria-label={t.close}
-            className="flex size-11 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-2xl font-bold text-ink hover:border-ink-faint"
+            className="raised flex size-11 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-2xl font-bold text-ink hover:border-ink-faint"
           >
             ×
           </button>
@@ -1067,7 +1067,7 @@ function VocabularyStudy({
                           event.stopPropagation()
                           speakRussian(word.phrase)
                         }}
-                        className="mt-5 inline-flex items-center gap-3 rounded-full bg-signal px-5 py-3 font-extrabold text-on-signal"
+                        className="raised raised-signal mt-5 inline-flex items-center gap-3 rounded-full bg-signal px-5 py-3 font-extrabold text-on-signal"
                       >
                         <span className="flex size-7 items-center justify-center rounded-full bg-white/20"><PlayGlyph /></span>
                         {t.hearIt}
@@ -1237,11 +1237,11 @@ function QuizCard({
                 onAnswer(value)
               }}
               className={cx(
-                'flex items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition',
+                'raised flex items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left',
                 selected
                   ? isCorrectOption
-                    ? 'border-milestone bg-milestone-soft'
-                    : 'border-danger bg-danger-soft'
+                    ? 'border-milestone bg-milestone-soft raised-milestone-soft'
+                    : 'border-danger bg-danger-soft raised-danger-soft'
                   : 'border-hairline bg-ground-raised hover:border-signal',
               )}
             >

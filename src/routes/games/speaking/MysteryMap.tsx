@@ -9,7 +9,7 @@ export function MysteryMap({ session, copy, busy, visit, accuse }: { session: Ga
       <CharacterPortrait character={location.character} />
       <strong lang="ru">{location.titleRu}</strong><small>{copy.questions}: {location.questionsAsked}/{location.maxQuestions}</small>{location.visited && <small className="text-milestone">✓ {copy.investigated}</small>}
     </button>)}</div>
-    <button type="button" className="mt-5 w-full rounded-2xl bg-signal px-5 py-4 font-extrabold text-on-signal disabled:opacity-40" disabled={busy || !session.locations.every((l) => l.visited)} onClick={accuse}>{copy.accuse}</button>
+    <button type="button" className="raised raised-signal mt-5 w-full rounded-2xl bg-signal px-5 py-4 font-extrabold text-on-signal disabled:opacity-40" disabled={busy || !session.locations.every((l) => l.visited)} onClick={accuse}>{copy.accuse}</button>
   </section><Evidence session={session} copy={copy} /></div>
 }
 

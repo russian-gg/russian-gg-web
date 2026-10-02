@@ -119,7 +119,7 @@ export function LevelDashboard({
       <button
         type="button"
         onClick={onContinue}
-        className="w-full rounded-[var(--radius-control)] bg-signal px-6 py-4 text-base font-black text-on-signal transition-colors hover:bg-signal-hover"
+        className="raised raised-signal w-full rounded-[var(--radius-control)] bg-signal px-6 py-4 text-base font-black text-on-signal hover:bg-signal-hover"
       >
         {continueLabel}
       </button>

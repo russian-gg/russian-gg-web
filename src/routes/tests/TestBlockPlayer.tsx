@@ -184,11 +184,11 @@ function OptionButton({
       disabled={disabled}
       lang="ru"
       className={cx(
-        'rounded-xl border-2 px-4 py-3 text-left text-base font-bold transition',
-        state === 'correct' && 'border-milestone bg-milestone-soft',
+        'raised rounded-xl border-2 px-4 py-3 text-left text-base font-bold',
+        state === 'correct' && 'border-milestone bg-milestone-soft raised-milestone-soft',
         // The right answer the learner did not pick is outlined, not filled: it is information, not praise.
-        state === 'missed' && 'border-milestone',
-        state === 'wrong' && 'border-danger bg-danger-soft',
+        state === 'missed' && 'border-milestone raised-milestone-soft',
+        state === 'wrong' && 'border-danger bg-danger-soft raised-danger-soft',
         state === 'idle' && 'border-hairline bg-ground-raised',
         !disabled && 'hover:border-signal',
       )}

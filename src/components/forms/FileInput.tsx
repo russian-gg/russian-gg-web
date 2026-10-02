@@ -51,7 +51,7 @@ export function FileInput({
       />
       <label
         htmlFor={id}
-        className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-ground-sunken px-3 text-sm font-bold text-ink transition-colors hover:bg-signal-soft hover:text-signal-ink"
+        className="raised raised-sm inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-ground-sunken px-3 text-sm font-bold text-ink hover:bg-signal-soft hover:text-signal-ink"
       >
         <Paperclip aria-hidden="true" className="size-4" />
         {chooseLabel}

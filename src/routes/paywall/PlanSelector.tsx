@@ -118,10 +118,10 @@ function PlanCard({
   return (
     <label
       className={cx(
-        'relative flex cursor-pointer flex-col rounded-[var(--radius-card)] border-2 p-5 transition-colors',
+        'raised relative flex cursor-pointer flex-col rounded-[var(--radius-card)] border-2 p-5',
         'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-signal',
         checked
-          ? 'border-signal bg-signal-soft/60'
+          ? 'border-signal bg-signal-soft/60 raised-signal-soft'
           : 'border-hairline bg-ground-raised hover:border-ink-faint',
       )}
     >

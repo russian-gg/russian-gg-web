@@ -7,6 +7,7 @@ import {
   CircleDashed,
   ClipboardList,
   FileText,
+  Play,
   Timer,
 } from 'lucide-react'
 import { Badge, Button, Card, ErrorNote, QueryError, Spinner } from '../../components/ui'
@@ -380,22 +381,12 @@ function TestCard({
         )}
       </div>
 
-      <div className="mt-auto pt-4">
-        {status === 'completed' ? (
-          // A retake is offered, not urged: the test is done, so its button steps back.
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={busy}
-            className="h-11 w-full rounded-[var(--radius-control)] bg-signal-soft text-sm font-extrabold text-signal-ink transition-[background-color,transform] duration-150 hover:bg-signal/20 active:translate-y-px disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
-          >
-            {t.retake}
-          </button>
-        ) : (
-          <Button block onClick={onStart} disabled={busy}>
-            {status === 'inProgress' ? t.continue : t.start}
-          </Button>
-        )}
+      <div className="mt-auto pt-4 pb-1">
+        {/* A retake is offered, not urged: the test is done, so it gets the quieter button. */}
+        <Button block variant={status === 'completed' ? 'secondary' : 'primary'} onClick={onStart} disabled={busy}>
+          {status !== 'completed' && <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current" />}
+          {status === 'completed' ? t.retake : status === 'inProgress' ? t.continue : t.start}
+        </Button>
       </div>
     </Card>
   )

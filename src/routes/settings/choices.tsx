@@ -24,8 +24,8 @@ const dot = (checked: boolean) =>
 
 const surface = (checked: boolean) =>
   cx(
-    'relative cursor-pointer rounded-2xl border-2 transition-colors',
-    checked ? 'border-signal bg-signal-soft/50' : 'border-hairline bg-ground-raised hover:border-ink-faint',
+    'raised relative cursor-pointer rounded-2xl border-2',
+    checked ? 'border-signal bg-signal-soft/50 raised-signal-soft' : 'border-hairline bg-ground-raised hover:border-ink-faint',
   )
 
 /**

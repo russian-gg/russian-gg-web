@@ -190,7 +190,7 @@ export function InstallPrompt() {
           <button
             type="button"
             onClick={() => void download()}
-            className="h-11 flex-1 rounded-[var(--radius-control)] bg-signal px-5 text-sm font-extrabold text-on-signal transition-colors hover:bg-signal-hover"
+            className="raised raised-signal h-11 flex-1 rounded-[var(--radius-control)] bg-signal px-5 text-sm font-extrabold text-on-signal hover:bg-signal-hover"
           >
             {t.install.action}
           </button>

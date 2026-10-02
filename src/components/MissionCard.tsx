@@ -124,8 +124,8 @@ export function MissionCard({
         ) : (
           <span
             className={cx(
-              'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-4 py-2 text-sm font-extrabold text-on-signal',
-              featured ? 'bg-milestone' : 'bg-signal',
+              'raised-group inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-4 py-2 text-sm font-extrabold text-on-signal',
+              featured ? 'bg-milestone raised-milestone' : 'bg-signal raised-signal',
             )}
           >
             {featured ? t.home.start : t.practice.start}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Variants } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   ArrowDownUp,
   CircleCheck,
@@ -22,7 +22,7 @@ import type { EntitlementView, MissionSummary, MissionTopic } from '../lib/types
 import { FilterPills, SearchField, StatTile } from '../components/Catalog'
 import { Select } from '../components/forms/Select'
 import { MissionPreviewDialog } from '../components/MissionCard'
-import { Badge, Card, EmptyState, LinkButton, QueryError, Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, LinkButton, QueryError, Spinner } from '../components/ui'
 import { CountUp, Meter, Reveal, Sequence, SequenceInView } from '../components/motion'
 import { pop, rise, spring, stagger } from '../lib/motion'
 import clipboardArt from '../assets/images/missions_main_card.webp'
@@ -393,38 +393,28 @@ function PracticeCard({
         {pass !== null && <span>{fill(copy.passMark, { score: pass })}</span>}
       </div>
 
-      <div className="mt-auto flex justify-end pt-4">
+      <div className="mt-auto flex justify-end pt-4 pb-1">
         {mission.isLocked ? (
-          <Link
-            to={isProLock ? '/paywall' : '/path'}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-caution/30 bg-ground-raised px-5 text-sm font-extrabold text-caution transition-colors hover:bg-caution-soft"
-          >
+          <LinkButton to={isProLock ? '/paywall' : '/path'} variant="secondary" size="md">
             <Lock aria-hidden="true" strokeWidth={2} className="size-4" />
             {isProLock ? t.path.buyPro : t.nav.path}
-          </Link>
+          </LinkButton>
         ) : (
-          <button
-            type="button"
+          // A finished mission offers its repeat on the quieter button; the others lead with
+          // the action.
+          <Button
+            variant={status === 'done' ? 'secondary' : 'primary'}
             onClick={() => setPreviewOpen(true)}
             data-ui-sound="select"
             aria-haspopup="dialog"
-            className={cx(
-              'inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-extrabold',
-              'transition-[transform,background-color,box-shadow] duration-150 active:translate-y-px',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
-              // A finished mission offers its repeat quietly; the others lead with the action.
-              status === 'done'
-                ? 'border border-milestone/25 bg-ground-raised text-milestone hover:bg-milestone-soft'
-                : 'bg-signal text-on-signal shadow-[0_6px_16px_rgb(31_111_224/0.25)] hover:bg-signal-hover',
-            )}
           >
             {status === 'done' ? (
               <RotateCcw aria-hidden="true" strokeWidth={2.2} className="size-4" />
             ) : (
-              <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current transition-transform duration-150 group-hover:translate-x-0.5" />
+              <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current" />
             )}
             {status === 'done' ? copy.repeat : status === 'inProgress' ? copy.continue : copy.start}
-          </button>
+          </Button>
         )}
       </div>
 

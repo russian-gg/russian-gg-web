@@ -124,10 +124,7 @@ export function HeroBanner({ to }: { to: string }) {
               'sm:inline-flex sm:w-auto sm:justify-start ' +
               'border border-transparent bg-signal px-4 text-[15px] font-extrabold sm:pr-5 sm:pl-2 ' +
               'tracking-[0.01em] text-on-signal select-none ' +
-              'shadow-[0_4px_0_0_var(--color-signal-depth)] ' +
-              'transition-[background-color,box-shadow,transform] duration-150 ' +
-              'hover:-translate-y-0.5 hover:bg-signal-hover hover:shadow-[0_6px_0_0_var(--color-signal-depth)] ' +
-              'active:translate-y-1 active:shadow-none'
+              'raised raised-signal hover:bg-signal-hover'
             }
           >
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/22">

@@ -17,7 +17,7 @@ import { MissionProgress } from '../components/MissionCard'
 import { FilterPills, SearchField, StatTile } from '../components/Catalog'
 import { CoursePathHero } from '../components/CoursePathHero'
 import { PreviewDialog } from '../components/PreviewDialog'
-import { Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
+import { Button, ButtonFace, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
 import { CountUp, Meter, Overlay, Reveal, Sequence, SequenceInView } from '../components/motion'
 import { pop, rise, stagger } from '../lib/motion'
@@ -39,11 +39,11 @@ const LAST_AUTHORED_DAY = 30
 const DAY_CARD_FRAME = 'flex h-full min-h-[13.75rem] w-full rounded-[var(--radius-card)]'
 
 /**
- * What a card ends in: one pill, one height, whatever it says — start, continue, repeat, locked,
- * Pro, loading. The whole card is the button, so these are its face rather than controls of
- * their own.
+ * What a shut or busy card ends in: a flat pill, the height of the button an open card ends in.
+ * Flat on purpose — an open day's footer is a button's face, sitting on its edge, and a day
+ * that will not open should not look like something to push.
  */
-const DAY_CARD_ACTION = 'inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-extrabold'
+const DAY_CARD_ACTION = 'inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-extrabold'
 
 /** The state pill in a card's corner, the same shape the missions shelf uses. */
 const DAY_CARD_STATE = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold'
@@ -672,15 +672,16 @@ function DayCard({
         button for the open one made the open card a few pixels taller than its neighbours,
         and the row stopped reading as a row.
       */}
-      <div className={`mt-auto flex min-h-14 items-center gap-3 pt-4 ${notice ? 'justify-between' : 'justify-end'}`}>
+      <div className={`mt-auto flex min-h-16 items-center gap-3 pt-4 pb-1 ${notice ? 'justify-between' : 'justify-end'}`}>
         {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
 
         {isDone ? (
-          // A finished day offers its repeat quietly; the others lead with the action.
-          <span className={cx(DAY_CARD_ACTION, 'border border-milestone/25 bg-ground-raised text-milestone transition-colors group-hover:bg-milestone-soft')}>
+          // A finished day offers its repeat on the quieter button; the others lead with the
+          // action. Both sit on the product's own pressed edge, moved by the card around them.
+          <ButtonFace variant="secondary">
             <RotateCcw aria-hidden="true" strokeWidth={2.2} className="size-4" />
             {t.dayPreview.repeat}
-          </span>
+          </ButtonFace>
         ) : isLocked ? (
           // Two different shut doors: Pro is something the learner can act on, so it keeps
           // the warm tone; a day that opens by itself is only waiting, and stays quiet.
@@ -698,10 +699,10 @@ function DayCard({
         ) : isOpening ? (
           <span className={cx(DAY_CARD_ACTION, 'bg-signal-soft text-signal-ink')}>{t.common.loading}…</span>
         ) : (
-          <span className={cx(DAY_CARD_ACTION, 'bg-signal text-on-signal shadow-[0_6px_16px_rgb(31_111_224/0.25)] transition-colors group-hover:bg-signal-hover')}>
-            <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current transition-transform duration-150 group-hover:translate-x-0.5" />
+          <ButtonFace>
+            <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current" />
             {inProgress ? t.dayPreview.resume : t.dayPreview.start}
-          </span>
+          </ButtonFace>
         )}
       </div>
     </button>

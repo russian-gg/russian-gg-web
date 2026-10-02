@@ -1,6 +1,7 @@
 import { Search, type LucideIcon } from 'lucide-react'
 import { cx } from '../lib/cx'
 import { CountUp, Reveal } from './motion'
+import { Button } from './ui'
 import { rise } from '../lib/motion'
 
 /*
@@ -77,6 +78,10 @@ export function SearchField({
 /**
  * The filters, as pills that wrap: each carries its own count, and four of those do not fit a
  * phone in one row.
+ *
+ * They are the product's own buttons — the chosen one primary, the others secondary — so they
+ * sit on the same pressed edge as everything else that can be pushed. The row gap is a little
+ * deeper than the column gap to leave that edge room when the pills wrap.
  */
 export function FilterPills<Value extends string>({
   value,
@@ -88,22 +93,16 @@ export function FilterPills<Value extends string>({
   options: ReadonlyArray<{ value: Value; label: string; count: number }>
 }) {
   return (
-    <div className="flex flex-1 flex-wrap gap-2">
+    <div className="flex flex-1 flex-wrap gap-x-2 gap-y-3 pb-1">
       {options.map((option) => (
-        <button
+        <Button
           key={option.value}
-          type="button"
+          variant={value === option.value ? 'primary' : 'secondary'}
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
-          className={cx(
-            'h-11 rounded-full px-4 text-sm font-bold transition-colors',
-            value === option.value
-              ? 'bg-signal text-on-signal shadow-[0_6px_16px_rgb(31_111_224/0.22)]'
-              : 'border border-hairline bg-ground-raised text-ink-muted hover:border-signal/40 hover:text-ink',
-          )}
         >
           {option.label} ({option.count})
-        </button>
+        </Button>
       ))}
     </div>
   )

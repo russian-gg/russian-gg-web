@@ -244,10 +244,10 @@ function WelcomeDiscountCountdown() {
     <Link
       to="/paywall"
       aria-label={fill(t.welcomeGift.expiresIn, { time })}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[13px] font-extrabold tabular-nums shadow-sm transition-colors ${
+      className={`raised raised-sm inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[13px] font-extrabold tabular-nums ${
         urgent
-          ? 'border-danger/25 bg-danger-soft text-danger'
-          : 'border-signal/20 bg-signal-soft text-signal-ink hover:border-signal/45'
+          ? 'border-danger/25 bg-danger-soft text-danger raised-danger-soft'
+          : 'border-signal/20 bg-signal-soft text-signal-ink hover:border-signal/45 raised-signal-soft'
       }`}
     >
       <span
@@ -382,7 +382,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left transition hover:border-signal ${
+        className={`raised flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left hover:border-signal ${
           compact ? 'max-w-[10.5rem] px-2.5 py-2' : 'w-full px-3 py-2'
         }`}
       >
