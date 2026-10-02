@@ -995,6 +995,7 @@ export const uz = {
     filterDone: 'Bajarilgan',
     search: 'Kun yoki mavzuni qidiring',
     noResults: 'Mos keladigan kun topilmadi.',
+    comingSoon: 'Tez orada',
   },
 
   preview: {

@@ -1,8 +1,10 @@
+import { hasFoundationLesson } from './foundation-days'
 import type { MissionSummary } from './types'
 
 /**
- * The first fifteen curriculum days use the complete mobile lesson journey. Later days keep
- * using the focused voice player until their extended lesson content is authored.
+ * The curriculum days with an authored lesson use the complete mobile lesson journey. The
+ * other days keep using the focused voice player until their extended lesson content is
+ * authored.
  *
  * A converted mission is the exception: it is one live conversation with a character and opens
  * on its own brief screen, whatever day it belongs to. The lessons are untouched — a day whose
@@ -15,7 +17,7 @@ export function missionPath(
     return `/missions/${mission.id}`
   }
 
-  if (mission.courseDay != null && mission.courseDay >= 1 && mission.courseDay <= 15) {
+  if (hasFoundationLesson(mission.courseDay)) {
     return `/lessons/${mission.courseDay}/${mission.id}`
   }
 

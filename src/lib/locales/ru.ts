@@ -976,6 +976,7 @@ export const ru: Dictionary = {
     filterDone: 'Завершённые',
     search: 'Найти день или тему',
     noResults: 'Подходящих дней не найдено.',
+    comingSoon: 'Скоро',
   },
 
   preview: {

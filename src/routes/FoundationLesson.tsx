@@ -230,7 +230,7 @@ export function FoundationLesson() {
   const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate) : null
   const canContinue = blockReason === null
 
-  if (!lesson || day < 1 || day > 15) return <Navigate to="/path" replace />
+  if (!lesson) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)

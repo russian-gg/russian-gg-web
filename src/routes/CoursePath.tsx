@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Search } from 'lucide-react'
+import { Crown, Lock, Search } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { LESSON_ONE_SECTIONS, readFoundationLessonProgress, type LessonOneProgress } from '../lib/demo-lesson-one'
+import { FOUNDATION_LESSON_DAYS } from '../lib/foundation-days'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
@@ -23,6 +24,25 @@ import { Badge, Button, Card, LinkButton, QueryError, Spinner } from '../compone
 import { AnimatePresence } from 'motion/react'
 import { Overlay, Reveal, SequenceInView } from '../components/motion'
 import { rise, stagger } from '../lib/motion'
+import lockArt from '../assets/images/lock.webp'
+
+/**
+ * The last day with anything behind it. Days 31-90 are on the map so the ninety-day timeline is
+ * honest about its length, but the server holds only a generic focus line for them — no lesson
+ * and no mission — so they are drawn as "coming soon" rather than as a day that looks openable.
+ */
+const LAST_AUTHORED_DAY = 30
+
+/**
+ * The outline every card on the map shares, whatever its state. The floor is the height of a
+ * card with a two-line title, so a row of short titles and a row with a long one match; `h-full`
+ * then stretches each card to its own row, which is what keeps an open day (a button in its
+ * footer) and a shut one (a word) the same size side by side.
+ */
+const DAY_CARD_FRAME = 'flex h-full min-h-[12.75rem] w-full rounded-[var(--radius-card)]'
+
+/** The footer chip: one height for "done", "locked", "Pro" and "loading", matching the button. */
+const DAY_CARD_CHIP = 'inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] px-3.5 text-sm font-extrabold'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -83,10 +103,9 @@ export function CoursePath() {
    */
   const serverUnlockedDays = new Set((days ?? []).filter((day) => day.isUnlocked).map((day) => day.day))
   const foundationProgress = Object.fromEntries(
-    Array.from({ length: 15 }, (_, index) => {
-      const day = index + 1
-      return [day, serverUnlockedDays.has(day) ? readFoundationLessonProgress(user?.id, day) : NO_LOCAL_PROGRESS]
-    }),
+    FOUNDATION_LESSON_DAYS.map((day) => (
+      [day, serverUnlockedDays.has(day) ? readFoundationLessonProgress(user?.id, day) : NO_LOCAL_PROGRESS]
+    )),
   ) as Record<number, LessonOneProgress>
 
   /*
@@ -314,7 +333,8 @@ export function CoursePath() {
                   here would sit outside the beat and appear instantly while its neighbours
                   arrived in order.
                 */
-                <Reveal key={day.day} variants={rise}>
+                <Reveal key={day.day} variants={rise} className="h-full">
+                {day.day > LAST_AUTHORED_DAY ? <ComingSoonCard day={day.day} /> : (
                 <DayCard
                   day={day}
                   maxUnlockedDay={maxUnlockedDay}
@@ -335,6 +355,7 @@ export function CoursePath() {
                   }
                   onSelect={() => handleDay(day, lockKind)}
                 />
+                )}
                 </Reveal>
               ))}
             </SequenceInView>
@@ -555,13 +576,14 @@ function DayCard({
       aria-busy={isOpening}
       aria-haspopup="dialog"
       className={cx(
-        'flex min-h-44 w-full flex-col rounded-[var(--radius-card)] border p-5 text-left',
+        DAY_CARD_FRAME,
+        'flex-col border p-5 text-left',
         'transition-[border-color,box-shadow,transform] duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
         isDone
           ? 'border-milestone/20 bg-milestone-soft/25'
           : isLocked
-            ? 'border-hairline bg-ground-raised'
+            ? 'border-hairline bg-ground-raised hover:border-ink-faint/40'
             : isToday || inProgress
               ? 'border-signal/45 bg-signal-soft/30 shadow-[0_8px_24px_rgb(31_111_224/0.06)]'
               : 'border-hairline bg-ground-raised hover:-translate-y-0.5 hover:border-signal/40 hover:shadow-[0_8px_24px_rgb(22_24_29/0.06)]',
@@ -579,7 +601,7 @@ function DayCard({
               isDone
                 ? 'bg-milestone-soft text-milestone'
                 : isLocked
-                  ? 'bg-ground-sunken text-ink-faint'
+                  ? 'bg-ground-sunken text-ink-muted'
                   : 'bg-signal-soft text-signal-ink',
             )}
           >
@@ -635,24 +657,140 @@ function DayCard({
         </span>
       </div>
 
-      <div className={`mt-auto flex items-center gap-3 pt-4 ${notice ? 'justify-between' : 'justify-end'}`}>
+      {/*
+        Every state ends in a chip of the same height. A bare word for the shut days and a
+        button for the open one made the open card a few pixels taller than its neighbours,
+        and the row stopped reading as a row.
+      */}
+      <div className={`mt-auto flex min-h-12 items-center gap-3 pt-4 ${notice ? 'justify-between' : 'justify-end'}`}>
         {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
 
         {isDone ? (
-          <span className="rounded-[var(--radius-control)] border border-milestone/15 bg-ground-raised px-4 py-1.5 text-sm font-extrabold text-milestone">
+          <span className={cx(DAY_CARD_CHIP, 'border border-milestone/15 bg-ground-raised text-milestone')}>
             {t.path.done}
           </span>
         ) : isLocked ? (
-          <span className="text-sm font-extrabold text-caution">
-            {day.day > maxUnlockedDay ? t.path.needsPro : t.path.locked}
-          </span>
+          // Two different shut doors: Pro is something the learner can act on, so it keeps
+          // the warm tone; a day that opens by itself is only waiting, and stays quiet.
+          day.day > maxUnlockedDay ? (
+            <span className={cx(DAY_CARD_CHIP, 'bg-caution-soft text-caution')}>
+              <Crown aria-hidden="true" strokeWidth={1.9} className="size-4" />
+              {t.path.needsPro}
+            </span>
+          ) : (
+            <span className={cx(DAY_CARD_CHIP, 'bg-ground-sunken text-ink-muted')}>
+              <Lock aria-hidden="true" strokeWidth={1.9} className="size-4" />
+              {t.path.locked}
+            </span>
+          )
         ) : isOpening ? (
-          <span className="text-sm font-extrabold text-signal-ink">{t.common.loading}…</span>
+          <span className={cx(DAY_CARD_CHIP, 'bg-signal-soft text-signal-ink')}>{t.common.loading}…</span>
         ) : (
           <MissionCardAction compact>{t.path.startConversation}</MissionCardAction>
         )}
       </div>
     </button>
+  )
+}
+
+type GhostKind = 'video' | 'document' | 'chart' | 'picture' | 'dots'
+
+// What a coming day might hold, in the order the cards cycle through: a different shape on each
+// neighbour, chosen by day number so nothing shifts between renders.
+const GHOST_KINDS: readonly GhostKind[] = ['video', 'document', 'chart', 'picture', 'dots']
+
+/**
+ * The out-of-focus hint of content on the right of a coming-soon card. Drawn rather than
+ * shipped as images: there are sixty of these cards, the shapes are five, and under a blur a
+ * few rounded blocks in the brand blue read exactly like a thumbnail does.
+ */
+function GhostArt({ kind }: { kind: GhostKind }) {
+  if (kind === 'video') {
+    return (
+      <span className="absolute top-1/2 right-4 flex h-24 w-36 -translate-y-1/2 -rotate-6 items-center justify-center rounded-2xl bg-signal/55">
+        <span className="ml-1.5 border-y-18 border-l-28 border-y-transparent border-l-white/90" />
+      </span>
+    )
+  }
+
+  if (kind === 'document') {
+    return (
+      <>
+        <span className="absolute top-5 right-6 h-28 w-36 rotate-6 rounded-2xl bg-signal/50" />
+        <span className="absolute right-10 bottom-4 flex h-20 w-28 -rotate-3 flex-col justify-center gap-2.5 rounded-xl bg-white/85 px-4">
+          <span className="h-2.5 w-full rounded-full bg-signal/60" />
+          <span className="h-2.5 w-2/3 rounded-full bg-signal/45" />
+        </span>
+      </>
+    )
+  }
+
+  if (kind === 'chart') {
+    return (
+      <>
+        <span
+          className="absolute top-1/2 right-6 size-28 -translate-y-1/2 rounded-full"
+          style={{ background: 'conic-gradient(var(--color-signal) 0 34%, #f6a8c4 34% 52%, color-mix(in srgb, var(--color-signal) 40%, white) 52% 100%)' }}
+        />
+        <span className="absolute right-4 top-6 size-14 rounded-tr-full bg-signal/70" />
+      </>
+    )
+  }
+
+  if (kind === 'picture') {
+    return (
+      <span className="absolute top-1/2 right-5 h-24 w-36 -translate-y-1/2 -rotate-6 overflow-hidden rounded-2xl bg-signal/50">
+        <span className="absolute top-4 right-9 size-5 rounded-full bg-[#f6a8c4]" />
+        <span className="absolute -bottom-7 left-3 size-16 rotate-45 rounded-md bg-white/80" />
+        <span className="absolute -bottom-9 left-16 size-16 rotate-45 rounded-md bg-white/55" />
+      </span>
+    )
+  }
+
+  return (
+    <>
+      <span className="absolute top-8 right-32 size-9 rounded-full bg-signal/55" />
+      <span className="absolute top-7 right-14 size-8 rounded-full bg-signal/40" />
+      <span className="absolute right-28 bottom-8 size-8 rounded-full bg-signal/60" />
+      <span className="absolute right-10 bottom-10 size-11 rounded-full bg-signal-depth/75" />
+    </>
+  )
+}
+
+/**
+ * A day that has no lesson yet. It keeps the outline of a day card, so the grid still reads as
+ * one ninety-day path, but everything a real day would say is a blurred ghost of it — two lines
+ * of title on the left, a thumbnail on the right — under a lock, the day and "coming soon". It
+ * is not a button, because there is nothing to open.
+ */
+function ComingSoonCard({ day }: { day: number }) {
+  const t = useT()
+  const dayLabel = fill(t.common.day, { day })
+  const kind = GHOST_KINDS[(day - LAST_AUTHORED_DAY - 1) % GHOST_KINDS.length]
+
+  return (
+    <div
+      role="group"
+      aria-label={`${dayLabel}: ${t.path.comingSoon}`}
+      className={cx(DAY_CARD_FRAME, 'relative flex-col items-center justify-center overflow-hidden border border-hairline bg-ground-raised p-5 text-center')}
+    >
+      {/*
+        One blurred layer per card. The lines stop short of the middle and the art keeps to the
+        right third, so neither runs under the text — on a phone the art is dropped for the same
+        reason: the card is too narrow for it to clear the words.
+      */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70 blur-[9px]">
+        <span className="absolute top-12 left-8 h-5 w-[26%] max-w-36 rounded-full bg-ink/20" />
+        <span className="absolute top-23 left-8 h-3.5 w-[16%] max-w-24 rounded-full bg-ink/15" />
+        <span className="hidden sm:contents">
+          <GhostArt kind={kind} />
+        </span>
+      </div>
+
+      <img src={lockArt} alt="" width={72} height={72} loading="lazy" decoding="async" className="relative size-18" />
+      <p className="relative mt-1 text-base font-bold text-ink-muted">{dayLabel}</p>
+      <p className="relative text-2xl font-extrabold leading-tight text-signal-ink sm:text-[1.7rem]">{t.path.comingSoon}</p>
+    </div>
   )
 }
 

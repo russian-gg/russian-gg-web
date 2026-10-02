@@ -969,6 +969,7 @@ export const en: Dictionary = {
     filterDone: 'Completed',
     search: 'Find a day or topic',
     noResults: 'No matching days found.',
+    comingSoon: 'Coming soon',
   },
 
   preview: {
