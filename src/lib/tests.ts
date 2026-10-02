@@ -1,4 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
+import type { ProgressView } from './types'
 
 export type TestCategory = 'Grammar' | 'Phonetics' | 'Vocabulary'
 
@@ -9,8 +11,6 @@ export type TestSummary = {
   availableQuestions: number
   learnedQuestions: number
   openBlockId?: string
-  /** The last course day questions are drawn from: where the learner is, capped by their plan. */
-  maxDay: number
 }
 
 /*
@@ -34,7 +34,6 @@ export type TestAnswerResult = {
 export type TestBlockItem = {
   id: string
   order: number
-  courseDay: number
   category: TestCategory
   difficulty: TestDifficulty
   text: string
@@ -52,7 +51,6 @@ export type TestBlock = {
 export type TestReviewItem = {
   id: string
   order: number
-  courseDay: number
   category: TestCategory
   difficulty: TestDifficulty
   text: string
@@ -83,6 +81,21 @@ export const testsApi = {
   answer: (blockId: string, itemId: string, optionIndex: number) =>
     api.post<TestAnswerResult>(`/tests/blocks/${blockId}/items/${itemId}/answer`, { optionIndex }),
   review: (blockId: string) => api.get<TestBlockReview>(`/tests/blocks/${blockId}/review`),
+}
+
+/**
+ * The course day the learner is on, for colouring a question's Russian only as far as their
+ * lessons have taught. Tests are not tied to a day, so the learner's own day is the measure.
+ * It reads the same cached query the app shell keeps, so it costs no extra request.
+ */
+export function useLearnerDay() {
+  const { data } = useQuery({
+    queryKey: ['progress'],
+    queryFn: () => api.get<ProgressView>('/course/progress'),
+    staleTime: 60_000,
+    retry: false,
+  })
+  return data?.currentDay ?? 1
 }
 
 export const testQueryKeys = {

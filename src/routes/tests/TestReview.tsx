@@ -6,7 +6,7 @@ import { Reveal, Sequence } from '../../components/motion'
 import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { stagger } from '../../lib/motion'
-import { testQueryKeys, testsApi, type TestReviewItem } from '../../lib/tests'
+import { testQueryKeys, testsApi, useLearnerDay, type TestReviewItem } from '../../lib/tests'
 
 /**
  * The "Itoglar" screen after the ninth answer: the score, then every question with what the
@@ -70,6 +70,7 @@ export function TestReview() {
 function ReviewCard({ item }: { item: TestReviewItem }) {
   const t = useT().tests
   const chosen = item.chosenOptionIndex
+  const learnerDay = useLearnerDay()
 
   return (
     <Card className={cx('space-y-4', item.isCorrect ? 'border-milestone' : 'border-danger')}>
@@ -81,7 +82,7 @@ function ReviewCard({ item }: { item: TestReviewItem }) {
         <Badge>{t.difficulties[item.difficulty]}</Badge>
       </div>
 
-      <ColorScopeProvider day={item.courseDay}>
+      <ColorScopeProvider day={learnerDay}>
         <h2 className="text-lg leading-snug font-black text-ink" lang="ru">
           <RussianText text={item.text} />
         </h2>

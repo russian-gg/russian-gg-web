@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { ArrowLeft, Check, ChevronRight, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
 import { useFocusTrap } from '../../src/lib/focus-trap'
+import { duration, ease } from '../../src/lib/motion'
 import { cx } from '../../src/lib/cx'
 import { Overlay } from '../../src/components/motion'
 import { adminFetch, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import {
+  DEFAULT_OPTIONS,
   MAX_EXPLANATION_LENGTH,
   MAX_OPTION_LENGTH,
   MAX_OPTIONS,
   MAX_QUESTIONS,
   MAX_TEXT_LENGTH,
-  MIN_OPTIONS,
   clearDraft,
   emptyQuestion,
   hasDraft,
@@ -50,13 +53,9 @@ import {
   Stat,
   Switch,
   Table,
-  Tabs,
   Textarea,
   TextField,
 } from '../components/ui'
-
-const FIRST_DAY = 1
-const LAST_DAY = 90
 
 const CATEGORY: Record<TestCategory, string> = {
   Grammar: 'Grammatika',
@@ -73,18 +72,13 @@ const DIFFICULTY: Record<TestDifficulty, { label: string; tone: 'milestone' | 's
 const CATEGORIES = Object.keys(CATEGORY) as TestCategory[]
 const DIFFICULTIES = Object.keys(DIFFICULTY) as TestDifficulty[]
 
-const DAY_OPTIONS = Array.from({ length: LAST_DAY - FIRST_DAY + 1 }, (_, i) => {
-  const day = FIRST_DAY + i
-  return { value: String(day), label: `${day}-kun` }
-})
-
 const errorText = (caught: unknown, fallback: string) => (caught instanceof Error ? caught.message : fallback)
 
 /**
- * The admin panel's "Testlar" section. A test is created from its criteria — lesson day,
- * section, difficulty — then filled with questions, one at a time or pasted in bulk, then
- * switched on. Learners' blocks draw only from active tests, so a test can be written in full
- * before anybody sees it.
+ * The admin panel's "Testlar" section. A test is a title and a level, not tied to any lesson
+ * day; it is filled with questions — each with its own section — and then switched on.
+ * Learners' blocks draw only from active tests, so a test can be written in full before
+ * anybody sees it.
  */
 export function Tests() {
   const [openId, setOpenId] = useState<string | null>(null)
@@ -98,12 +92,8 @@ export function Tests() {
 
 /* -------------------------------------------------------------------------------- list */
 
-type CategoryFilter = 'all' | TestCategory
-
 function TestList({ onOpen }: { onOpen: (id: string) => void }) {
   const { data, error, isLoading, refresh } = useAdminQuery<AdminTest[]>('/api/admin-portal/tests')
-  const [category, setCategory] = useState<CategoryFilter>('all')
-  const [day, setDay] = useState('')
   const [difficulty, setDifficulty] = useState('')
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
@@ -117,7 +107,6 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
   useEffect(() => setPatched({}), [data])
 
   const items = useMemo(() => (data ?? []).map((item) => ({ ...item, ...patched[item.id] })), [data, patched])
-  const days = useMemo(() => [...new Set(items.map((item) => item.courseDay))].sort((a, b) => a - b), [items])
 
   const totals = useMemo(
     () => ({
@@ -133,12 +122,10 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
     const needle = query.trim().toLowerCase()
     return items.filter(
       (item) =>
-        (category === 'all' || item.category === category) &&
-        (!day || item.courseDay === Number(day)) &&
         (!difficulty || item.difficulty === difficulty) &&
         (!needle || item.title.toLowerCase().includes(needle)),
     )
-  }, [items, category, day, difficulty, query])
+  }, [items, difficulty, query])
 
   async function toggle(item: AdminTest) {
     setActionError('')
@@ -199,23 +186,10 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
         )}
 
         <Card as="div" className="space-y-4 p-3 sm:p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="max-w-full overflow-x-auto">
-              <Tabs<CategoryFilter>
-                value={category}
-                onChange={setCategory}
-                options={[{ id: 'all', label: 'Hammasi' }, ...CATEGORIES.map((id) => ({ id, label: CATEGORY[id] }))]}
-              />
-            </div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               <Select
-                label="Kun"
-                value={day}
-                onChange={setDay}
-                options={[{ value: '', label: 'Barcha kunlar' }, ...days.map((value) => ({ value: String(value), label: `${value}-kun` }))]}
-              />
-              <Select
-                label="Qiyinlik"
+                label="Daraja"
                 value={difficulty}
                 onChange={setDifficulty}
                 options={[{ value: '', label: 'Barcha darajalar' }, ...DIFFICULTIES.map((id) => ({ value: id, label: DIFFICULTY[id].label }))]}
@@ -233,7 +207,7 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
           {!data && isLoading && <LoadingRows />}
 
           {data && (
-            <Table head={['Test', 'Kun', "Bo'lim", 'Qiyinlik', 'Savollar', 'Faol', '']}>
+            <Table head={['Test', 'Daraja', 'Savollar', 'Faol', '']}>
               {visible.map((item) => (
                 <Row key={item.id}>
                   <Cell>
@@ -246,10 +220,6 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
                     </button>
                     <div className="mt-0.5 text-xs text-ink-faint">{formatDateTime(item.updatedAt)}</div>
                   </Cell>
-                  <Cell muted>
-                    <span className="whitespace-nowrap tabular-nums">{item.courseDay}-kun</span>
-                  </Cell>
-                  <Cell muted>{CATEGORY[item.category]}</Cell>
                   <Cell>
                     <Badge tone={DIFFICULTY[item.difficulty].tone}>{DIFFICULTY[item.difficulty].label}</Badge>
                   </Cell>
@@ -289,7 +259,7 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
               ))}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={5}>
                     <EmptyNote>{items.length === 0 ? "Hali test yaratilmagan" : "Bu filtr bo'yicha test topilmadi"}</EmptyNote>
                   </td>
                 </tr>
@@ -302,8 +272,6 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
       {creating && (
         <TestFormDialog
           test={null}
-          defaultDay={day ? Number(day) : FIRST_DAY}
-          defaultCategory={category === 'all' ? 'Grammar' : category}
           onClose={() => setCreating(false)}
           // Straight into the new test: adding its questions is the next thing to do.
           onSaved={(created) => onOpen(created.id)}
@@ -435,8 +403,6 @@ function TestDetail({ id, onBack }: { id: string; onBack: () => void }) {
             <div className="min-w-0">
               <h1 className="text-2xl font-extrabold tracking-tight text-ink">{test.title}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge>{test.courseDay}-kun</Badge>
-                <Badge tone="signal">{CATEGORY[test.category]}</Badge>
                 <Badge tone={DIFFICULTY[test.difficulty].tone}>{DIFFICULTY[test.difficulty].label}</Badge>
               </div>
             </div>
@@ -624,9 +590,12 @@ function QuestionCard({
         <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-sm font-black text-ink-muted">
           {number}
         </span>
-        <p className="min-w-0 flex-1 font-bold whitespace-pre-line text-ink" lang="ru">
-          {item.text}
-        </p>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Badge tone="signal">{CATEGORY[item.category]}</Badge>
+          <p className="font-bold whitespace-pre-line text-ink" lang="ru">
+            {item.text}
+          </p>
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
@@ -740,23 +709,17 @@ function DialogActions({ busy, canSubmit, label, onClose }: { busy: boolean; can
   )
 }
 
-/** Create and edit share one form. A created test starts inactive. */
+/** Create and edit share one form: a title and a level. A created test starts inactive. */
 function TestFormDialog({
   test,
-  defaultDay = FIRST_DAY,
-  defaultCategory = 'Grammar',
   onClose,
   onSaved,
 }: {
   test: AdminTestDetail | null
-  defaultDay?: number
-  defaultCategory?: TestCategory
   onClose: () => void
   onSaved: (test: AdminTestDetail) => void
 }) {
   const [title, setTitle] = useState(test?.title ?? '')
-  const [courseDay, setCourseDay] = useState(test?.courseDay ?? defaultDay)
-  const [category, setCategory] = useState<TestCategory>(test?.category ?? defaultCategory)
   const [difficulty, setDifficulty] = useState<TestDifficulty>(test?.difficulty ?? 'Easy')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
@@ -768,7 +731,7 @@ function TestFormDialog({
     try {
       const saved = await adminFetch<AdminTestDetail>(test ? `/api/admin-portal/tests/${test.id}` : '/api/admin-portal/tests', {
         method: test ? 'PUT' : 'POST',
-        body: JSON.stringify({ title: title.trim(), courseDay, category, difficulty }),
+        body: JSON.stringify({ title: title.trim(), difficulty }),
       })
       onSaved(saved)
     } catch (caught) {
@@ -783,8 +746,8 @@ function TestFormDialog({
       title={test ? 'Testni tahrirlash' : 'Yangi test'}
       subtitle={
         test
-          ? "Mezonlar testning barcha savollariga tegishli."
-          : "Avval test mezonlarini tanlang. Keyin savollarni qo'shasiz — test savollar tayyor bo'lguncha nofaol turadi."
+          ? "Daraja testning barcha savollariga tegishli. Bo'lim har bir savolda alohida tanlanadi."
+          : "Test nomi va darajasini kiriting. Keyin savollarni qo'shasiz — bo'lim har bir savolda tanlanadi. Test savollar tayyor bo'lguncha nofaol turadi."
       }
       busy={busy}
       onClose={onClose}
@@ -802,27 +765,12 @@ function TestFormDialog({
         </FieldLabel>
 
         <div>
-          <span className="mb-1.5 block text-sm font-bold text-ink">Dars (kun)</span>
-          <Select label="Dars (kun)" block value={String(courseDay)} onChange={(value) => setCourseDay(Number(value))} options={DAY_OPTIONS} />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <span className="mb-1.5 block text-sm font-bold text-ink">Bo'lim</span>
-            <Segmented<TestCategory>
-              value={category}
-              onChange={setCategory}
-              options={CATEGORIES.map((id) => ({ id, label: CATEGORY[id] }))}
-            />
-          </div>
-          <div>
-            <span className="mb-1.5 block text-sm font-bold text-ink">Qiyinlik</span>
-            <Segmented<TestDifficulty>
-              value={difficulty}
-              onChange={setDifficulty}
-              options={DIFFICULTIES.map((id) => ({ id, label: DIFFICULTY[id].label }))}
-            />
-          </div>
+          <span className="mb-1.5 block text-sm font-bold text-ink">Daraja</span>
+          <Segmented<TestDifficulty>
+            value={difficulty}
+            onChange={setDifficulty}
+            options={DIFFICULTIES.map((id) => ({ id, label: DIFFICULTY[id].label }))}
+          />
         </div>
 
         {failure && <ErrorNote>{failure}</ErrorNote>}
@@ -833,7 +781,8 @@ function TestFormDialog({
 }
 
 /**
- * The inputs for one question — text, 3 to 8 options with the right one marked, and the rule —
+ * The inputs for one question — its section, text, 3 to 8 options with the right one marked,
+ * and the rule —
  * shared by the edit dialog and every card of the add dialog.
  */
 function QuestionFields({
@@ -849,9 +798,12 @@ function QuestionFields({
 }) {
   const { options, correctOptionIndex: correct } = value
 
-  /** The right-answer mark follows its option when one above it is removed. */
+  /**
+   * Only options added beyond the default four can be removed. The right-answer mark follows
+   * its option when one above it is removed.
+   */
   function removeOption(index: number) {
-    if (options.length <= MIN_OPTIONS) return
+    if (index < DEFAULT_OPTIONS) return
     onChange({
       ...value,
       options: options.filter((_, i) => i !== index),
@@ -861,6 +813,15 @@ function QuestionFields({
 
   return (
     <div className="space-y-4">
+      <div>
+        <span className="mb-1.5 block text-sm font-bold text-ink">Bo'lim</span>
+        <Segmented<TestCategory>
+          value={value.category}
+          onChange={(category) => onChange({ ...value, category })}
+          options={CATEGORIES.map((id) => ({ id, label: CATEGORY[id] }))}
+        />
+      </div>
+
       <FieldLabel label="Savol">
         <Textarea
           value={value.text}
@@ -871,53 +832,67 @@ function QuestionFields({
         />
       </FieldLabel>
 
-      <fieldset className="space-y-2">
-        <legend className="mb-1.5 text-sm font-bold text-ink">
+      <fieldset>
+        <legend className="mb-0.5 text-sm font-bold text-ink">
           Javob variantlari <span className="font-normal text-ink-muted">— to'g'ri javobni belgilang</span>
         </legend>
-        {options.map((option, index) => {
-          const isCorrect = index === correct
-          return (
-            <div key={index} className="flex items-center gap-2">
-              <label
-                className={cx(
-                  'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-control border-2 transition-colors',
-                  isCorrect ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline text-ink-faint hover:border-ink-faint',
-                )}
-                title="To'g'ri javob"
+        <AnimatePresence initial={false}>
+          {options.map((option, index) => {
+            const isCorrect = index === correct
+            return (
+              <m.div
+                key={index}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto', transition: { duration: duration.base, ease: ease.enter } }}
+                exit={{ opacity: 0, height: 0, transition: { duration: duration.quick, ease: ease.exit } }}
+                className="overflow-hidden"
               >
-                <input
-                  type="radio"
-                  name={`${idPrefix}-correct-option`}
-                  checked={isCorrect}
-                  onChange={() => onChange({ ...value, correctOptionIndex: index })}
-                  aria-label={`${index + 1}-variant to'g'ri javob`}
-                  className="sr-only"
-                />
-                {isCorrect ? (
-                  <Check aria-hidden="true" className="size-4 animate-in zoom-in-50 fade-in-0" strokeWidth={3} />
-                ) : (
-                  index + 1
-                )}
-              </label>
-              <Input
-                value={option}
-                onChange={(event) =>
-                  onChange({ ...value, options: options.map((current, i) => (i === index ? event.target.value : current)) })
-                }
-                placeholder={`${index + 1}-variant`}
-                aria-label={`${index + 1}-variant`}
-                maxLength={MAX_OPTION_LENGTH}
-              />
-              <IconButton label={`${index + 1}-variantni olib tashlash`} tone="danger" onClick={() => removeOption(index)}>
-                <X aria-hidden="true" className={cx('size-4', options.length <= MIN_OPTIONS && 'opacity-30')} />
-              </IconButton>
-            </div>
-          )
-        })}
+                {/* The padding gives the focus ring room inside the clipped, animating row. */}
+                <div className="flex items-center gap-2 p-1">
+                  <label
+                    className={cx(
+                      'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-control border-2 transition-colors',
+                      isCorrect ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline text-ink-faint hover:border-ink-faint',
+                    )}
+                    title="To'g'ri javob"
+                  >
+                    <input
+                      type="radio"
+                      name={`${idPrefix}-correct-option`}
+                      checked={isCorrect}
+                      onChange={() => onChange({ ...value, correctOptionIndex: index })}
+                      aria-label={`${index + 1}-variant to'g'ri javob`}
+                      className="sr-only"
+                    />
+                    {isCorrect ? (
+                      <Check aria-hidden="true" className="size-4 animate-in zoom-in-50 fade-in-0" strokeWidth={3} />
+                    ) : (
+                      index + 1
+                    )}
+                  </label>
+                  <Input
+                    value={option}
+                    onChange={(event) =>
+                      onChange({ ...value, options: options.map((current, i) => (i === index ? event.target.value : current)) })
+                    }
+                    placeholder={`${index + 1}-variant`}
+                    aria-label={`${index + 1}-variant`}
+                    maxLength={MAX_OPTION_LENGTH}
+                  />
+                  {index >= DEFAULT_OPTIONS && (
+                    <IconButton label={`${index + 1}-variantni olib tashlash`} tone="danger" onClick={() => removeOption(index)}>
+                      <X aria-hidden="true" className="size-4" />
+                    </IconButton>
+                  )}
+                </div>
+              </m.div>
+            )
+          })}
+        </AnimatePresence>
         <Button
           variant="secondary"
           size="sm"
+          className="mt-1.5"
           onClick={() => onChange({ ...value, options: options.length >= MAX_OPTIONS ? options : [...options, ''] })}
           disabled={options.length >= MAX_OPTIONS}
         >
@@ -950,6 +925,7 @@ function EditQuestionDialog({
 }) {
   const [question, setQuestion] = useState<QuestionDraft>(() => ({
     key: item.id,
+    category: item.category,
     text: item.text,
     options: [...item.options],
     correctOptionIndex: item.correctOptionIndex,
@@ -987,9 +963,11 @@ function EditQuestionDialog({
 }
 
 /**
- * Adds one or more questions in a single request: it opens with one card, and "Yana savol
- * qo'shish" adds another. Whatever is typed is kept as a draft in this browser until it is
- * saved or cleared, so a refresh or closing the dialog loses nothing. Saved whole or not at all.
+ * Adds one or more questions in a single request. It opens with one card; "Yana savol
+ * qo'shish" adds the next one only once every card so far is complete. From the second card on
+ * the cards fold: each shows its number and question as a header that opens it, and only one is
+ * open at a time, so a long batch stays short on screen. Whatever is typed is kept as a draft
+ * in this browser until it is saved or cleared. Saved whole or not at all.
  */
 function AddQuestionsDialog({
   testId,
@@ -1001,31 +979,62 @@ function AddQuestionsDialog({
   onSaved: (test: AdminTestDetail, added: number) => void
 }) {
   const [questions, setQuestions] = useState<QuestionDraft[]>(() => loadDraft(testId) ?? [emptyQuestion()])
+  // The one card that is unfolded. A restored draft opens on its first unfinished card.
+  const [openKey, setOpenKey] = useState<string | null>(
+    () => (questions.find((question) => questionProblems(question).length > 0) ?? questions[questions.length - 1]).key,
+  )
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  // Problems stay hidden on a card until the admin tries to save, so a fresh card is not all red.
+  // Problems stay hidden until the admin tries to save or add another, so a fresh card is not all red.
   const [showProblems, setShowProblems] = useState(false)
 
   useEffect(() => saveDraft(testId, questions), [testId, questions])
 
   const problems = questions.map(questionProblems)
-  const ready = problems.every((list) => list.length === 0)
+  const firstUnfinished = problems.findIndex((list) => list.length > 0)
+  const ready = firstUnfinished === -1
+  const foldable = questions.length > 1
 
   function update(index: number, next: QuestionDraft) {
     setQuestions((state) => state.map((question, i) => (i === index ? next : question)))
   }
 
+  /** Shows what is missing and unfolds the first card that has something missing. */
+  function pointAtUnfinished() {
+    setShowProblems(true)
+    setOpenKey(questions[firstUnfinished].key)
+  }
+
   function addQuestion() {
-    setQuestions((state) => (state.length >= MAX_QUESTIONS ? state : [...state, emptyQuestion()]))
+    if (questions.length >= MAX_QUESTIONS) return
+    if (!ready) {
+      pointAtUnfinished()
+      return
+    }
+    const next = emptyQuestion(questions[questions.length - 1].category)
+    setQuestions([...questions, next])
+    setOpenKey(next.key)
+    setShowProblems(false)
   }
 
   function removeQuestion(index: number) {
-    setQuestions((state) => (state.length <= 1 ? [emptyQuestion()] : state.filter((_, i) => i !== index)))
+    if (questions.length <= 1) {
+      const fresh = emptyQuestion()
+      setQuestions([fresh])
+      setOpenKey(fresh.key)
+      setShowProblems(false)
+      return
+    }
+    const rest = questions.filter((_, i) => i !== index)
+    setQuestions(rest)
+    if (questions[index].key === openKey) setOpenKey(rest[Math.min(index, rest.length - 1)].key)
   }
 
   function clearAll() {
+    const fresh = emptyQuestion()
     clearDraft(testId)
-    setQuestions([emptyQuestion()])
+    setQuestions([fresh])
+    setOpenKey(fresh.key)
     setShowProblems(false)
     setFailure('')
   }
@@ -1033,7 +1042,7 @@ function AddQuestionsDialog({
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!ready) {
-      setShowProblems(true)
+      pointAtUnfinished()
       return
     }
     setBusy(true)
@@ -1060,32 +1069,90 @@ function AddQuestionsDialog({
       onClose={onClose}
       wide
     >
-      <form onSubmit={submit} className="space-y-4">
-        {questions.map((question, index) => (
-          <div key={question.key} className="space-y-4 rounded-2xl border border-hairline p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-extrabold text-ink">{index + 1}-savol</h3>
-              <IconButton label={`${index + 1}-savolni olib tashlash`} tone="danger" onClick={() => removeQuestion(index)}>
-                <Trash2 aria-hidden="true" className="size-4" />
-              </IconButton>
-            </div>
-            <QuestionFields
-              value={question}
-              onChange={(next) => update(index, next)}
-              idPrefix={question.key}
-              autoFocus={index === 0}
-            />
-            {showProblems && problems[index].length > 0 && (
-              <ul className="space-y-1 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" aria-live="polite">
-                {problems[index].map((problem) => (
-                  <li key={problem}>{problem}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+      <form onSubmit={submit}>
+        <AnimatePresence initial={false}>
+          {questions.map((question, index) => {
+            const open = !foldable || question.key === openKey
+            const unfinished = showProblems && problems[index].length > 0
+            const panelId = `question-panel-${question.key}`
+            const text = question.text.trim()
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+            return (
+              <m.div
+                key={question.key}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto', transition: { duration: duration.base, ease: ease.enter } }}
+                exit={{ opacity: 0, height: 0, transition: { duration: duration.base, ease: ease.exit } }}
+                className="overflow-hidden"
+              >
+                {/* The gap between cards is padding inside the animated box, so a leaving card takes it along. */}
+                <div className="pb-3">
+                  <div
+                    className={cx(
+                      'rounded-2xl border-2 transition-colors duration-200',
+                      unfinished ? 'border-danger' : open ? 'border-hairline' : 'border-hairline bg-ground-sunken',
+                    )}
+                  >
+                    <div className="flex items-center gap-2 p-2 pl-3">
+                      {foldable ? (
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          aria-controls={panelId}
+                          onClick={() => setOpenKey(open ? null : question.key)}
+                          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1.5 text-left"
+                        >
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ground-raised text-sm font-black text-ink-muted tabular-nums">
+                            {index + 1}
+                          </span>
+                          <span className={cx('min-w-0 flex-1 truncate text-sm font-bold', text ? 'text-ink' : 'text-ink-faint')} lang={text ? 'ru' : undefined}>
+                            {text || 'Savol matni kiritilmagan'}
+                          </span>
+                          {!open && <Badge tone={unfinished ? 'danger' : 'signal'}>{unfinished ? "To'ldirilmagan" : CATEGORY[question.category]}</Badge>}
+                          <ChevronDown aria-hidden="true" className={cx('size-4 shrink-0 text-ink-faint transition-transform duration-300', open && 'rotate-180')} />
+                        </button>
+                      ) : (
+                        <h3 className="flex-1 py-1.5 text-sm font-extrabold text-ink">{index + 1}-savol</h3>
+                      )}
+                      <IconButton label={`${index + 1}-savolni olib tashlash`} tone="danger" onClick={() => removeQuestion(index)}>
+                        <Trash2 aria-hidden="true" className="size-4" />
+                      </IconButton>
+                    </div>
+
+                    <AnimatePresence initial={false}>
+                      {open && (
+                        <m.div
+                          id={panelId}
+                          key="panel"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto', transition: { duration: duration.base, ease: ease.enter } }}
+                          exit={{ opacity: 0, height: 0, transition: { duration: duration.quick, ease: ease.exit } }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-4 px-4 pb-4">
+                            <QuestionFields value={question} onChange={(next) => update(index, next)} idPrefix={question.key} autoFocus />
+                            {unfinished && (
+                              <ul
+                                className="animate-in space-y-1 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger fade-in-0 slide-in-from-top-1"
+                                aria-live="polite"
+                              >
+                                {problems[index].map((problem) => (
+                                  <li key={problem}>{problem}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </m.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </m.div>
+            )
+          })}
+        </AnimatePresence>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-4">
           <Button variant="secondary" onClick={addQuestion} disabled={busy || questions.length >= MAX_QUESTIONS}>
             <Plus aria-hidden="true" className="size-4" strokeWidth={2.6} />
             Yana savol qo'shish
@@ -1095,7 +1162,11 @@ function AddQuestionsDialog({
           </Button>
         </div>
 
-        {failure && <ErrorNote>{failure}</ErrorNote>}
+        {failure && (
+          <div className="pb-4">
+            <ErrorNote>{failure}</ErrorNote>
+          </div>
+        )}
         <DialogActions
           busy={busy}
           canSubmit

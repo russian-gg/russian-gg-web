@@ -457,12 +457,10 @@ export type TestCategory = 'Grammar' | 'Phonetics' | 'Vocabulary'
 
 export type TestDifficulty = 'Easy' | 'Medium' | 'Hard'
 
-/** A row in the admin list of tests. */
+/** A row in the admin list of tests: a title and a level. The section belongs to each question. */
 export type AdminTest = {
   id: string
   title: string
-  courseDay: number
-  category: TestCategory
   difficulty: TestDifficulty
   isActive: boolean
   /** Every question, switched off or not. */
@@ -477,6 +475,7 @@ export type AdminTest = {
 export type AdminTestQuestion = {
   id: string
   testId: string
+  category: TestCategory
   text: string
   options: string[]
   correctOptionIndex: number

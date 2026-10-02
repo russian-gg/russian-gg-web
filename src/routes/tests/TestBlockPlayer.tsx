@@ -16,6 +16,7 @@ import {
   type TestAnswerResult,
   type TestBlock,
   type TestBlockItem,
+  useLearnerDay,
 } from '../../lib/tests'
 
 /**
@@ -29,6 +30,7 @@ export function TestBlockPlayer() {
   const t = dictionary.tests
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const learnerDay = useLearnerDay()
   const { data: block, isLoading, isError, refetch } = useQuery({
     queryKey: testQueryKeys.block(blockId),
     queryFn: () => testsApi.block(blockId),
@@ -118,10 +120,10 @@ export function TestBlockPlayer() {
         </div>
 
         {/*
-          Coloured only as far as the question's own day has taught — the same rule the lesson
+          Coloured only as far as the learner's own day has taught — the same rule the lesson
           player follows, so a test never paints a case the learner has not met yet.
         */}
-        <ColorScopeProvider day={item.courseDay}>
+        <ColorScopeProvider day={learnerDay}>
           <h1 className="text-xl leading-snug font-black text-ink sm:text-2xl" lang="ru">
             <RussianText text={item.text} />
           </h1>

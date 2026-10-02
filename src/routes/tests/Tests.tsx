@@ -61,7 +61,6 @@ export function Tests() {
                 <ProgressBar value={data.learnedQuestions} max={data.availableQuestions} label={t.title} />
               </div>
               <p className="mt-2 text-xs text-ink-muted">{t.learnedHint}</p>
-              <p className="mt-1 text-xs text-ink-muted">{data.maxDay === 1 ? t.daysNoteFirst : fill(t.daysNote, { day: data.maxDay })}</p>
             </div>
 
             {start.isError && (

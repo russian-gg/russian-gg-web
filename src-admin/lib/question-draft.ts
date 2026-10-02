@@ -9,7 +9,11 @@
  * before anything is sent — the server still checks, and still rejects the batch as a whole.
  */
 
+import type { TestCategory } from './types'
+
 export const MIN_OPTIONS = 3
+/** A new question starts with this many option rows; they cannot be removed, only the ones added after. */
+export const DEFAULT_OPTIONS = 4
 export const MAX_OPTIONS = 8
 export const MAX_QUESTIONS = 200
 export const MAX_TEXT_LENGTH = 1000
@@ -19,6 +23,8 @@ export const MAX_EXPLANATION_LENGTH = 2000
 export type QuestionDraft = {
   /** Only for React keys; never sent. */
   key: string
+  /** The section this question counts under in a learner's block. */
+  category: TestCategory
   text: string
   options: string[]
   correctOptionIndex: number
@@ -29,8 +35,11 @@ const storageKey = (testId: string) => `rgg.admin.test-draft.${testId}`
 
 const newKey = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 
-export function emptyQuestion(): QuestionDraft {
-  return { key: newKey(), text: '', options: Array(MIN_OPTIONS).fill(''), correctOptionIndex: 0, explanation: '' }
+const CATEGORIES: readonly TestCategory[] = ['Grammar', 'Phonetics', 'Vocabulary']
+
+/** A new card takes the section of the one before it: questions are usually written a section at a time. */
+export function emptyQuestion(category: TestCategory = 'Grammar'): QuestionDraft {
+  return { key: newKey(), category, text: '', options: Array(DEFAULT_OPTIONS).fill(''), correctOptionIndex: 0, explanation: '' }
 }
 
 function isBlank(question: QuestionDraft) {
@@ -50,6 +59,7 @@ function readQuestion(value: unknown): QuestionDraft | null {
 
   return {
     key: typeof raw.key === 'string' ? raw.key : newKey(),
+    category: CATEGORIES.includes(raw.category as TestCategory) ? (raw.category as TestCategory) : 'Grammar',
     text: raw.text,
     options,
     correctOptionIndex: correct >= 0 && correct < options.length ? correct : 0,
@@ -121,6 +131,7 @@ export function questionProblems(question: QuestionDraft): string[] {
 /** The request body row for one card. */
 export function toRequest(question: QuestionDraft) {
   return {
+    category: question.category,
     text: question.text.trim(),
     options: question.options.map((o) => o.trim()),
     correctOptionIndex: question.correctOptionIndex,
