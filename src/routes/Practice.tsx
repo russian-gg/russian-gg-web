@@ -6,7 +6,7 @@ import { useT } from '../lib/i18n'
 import type { EntitlementView, MissionSummary, MissionTopic } from '../lib/types'
 import { MissionCard } from '../components/MissionCard'
 import { EmptyState, LinkButton, QueryError, Spinner } from '../components/ui'
-import { Reveal, Sequence } from '../components/motion'
+import { Reveal, Sequence, SequenceInView } from '../components/motion'
 import { stagger } from '../lib/motion'
 
 export function Practice() {
@@ -39,13 +39,20 @@ export function Practice() {
 
   return (
     <Sequence className="space-y-10" gap={stagger.base}>
+      {/* The heading and its line land as two steps. */}
       <Reveal>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">
-          {t.practice.title}
-        </h1>
-        <p className="text-support mt-1">
-          {t.practice.subtitle}
-        </p>
+        <Sequence gap={stagger.wide}>
+          <Reveal>
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+              {t.practice.title}
+            </h1>
+          </Reveal>
+          <Reveal>
+            <p className="text-support mt-1">
+              {t.practice.subtitle}
+            </p>
+          </Reveal>
+        </Sequence>
       </Reveal>
 
       {isLoading && <Spinner />}
@@ -62,9 +69,13 @@ export function Practice() {
         />
       )}
 
-      {/* A shelf of practice cards, on the ordinary beat: left to right, top to bottom. */}
+      {/*
+        A shelf of practice cards, on the ordinary beat: left to right, top to bottom. It waits
+        for the viewport, so on a phone the cards arrive as the learner reaches them rather than
+        having finished before the heading was read.
+      */}
       {missions.length > 0 && (
-        <Sequence className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" gap={stagger.base}>
+        <SequenceInView className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" gap={stagger.base}>
           {/* `MissionCard` carries its own entrance variant, so it joins this beat unwrapped. */}
           {missions.map((mission) => (
             <MissionCard
@@ -73,7 +84,7 @@ export function Practice() {
               showFreeLabel={entitlement?.hasProAccess === false}
             />
           ))}
-        </Sequence>
+        </SequenceInView>
       )}
     </Sequence>
   )

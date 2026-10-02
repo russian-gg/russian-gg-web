@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, LazyMotion, MotionConfig, useInView, type Variants } from 'motion/react'
+import { AnimatePresence, LazyMotion, MotionConfig, useInView, useReducedMotion, type Variants } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   backdrop,
@@ -330,6 +330,70 @@ export function CountUp({ value, ms, className }: { value: number; ms?: number; 
     <span ref={ref} className={className}>
       {shown}
     </span>
+  )
+}
+
+/**
+ * A progress bar whose fill grows to its value the first time it is scrolled into view.
+ *
+ * The same reasoning as `CountUp`, for the same kind of thing: a bar is a claim about how far
+ * somebody has come, and a bar that was already full when the page arrived makes the claim
+ * without showing it. It fills once and then holds — a later change of value moves the fill
+ * to the new width rather than replaying from empty.
+ *
+ * The track is what is observed, not the fill: the fill starts at zero width, and an element
+ * with no area is not something an intersection observer can be relied on to report.
+ *
+ * Width is not a transform, so Motion's reduced-motion setting does not cover it; under
+ * reduced motion the fill is simply drawn at its value.
+ *
+ * With no `value` the track is drawn empty and says so to nobody — it is the caller's way of
+ * showing "not measured", which must not look like "measured at zero".
+ */
+export function Meter({
+  value,
+  max = 100,
+  label,
+  delay = 0,
+  className,
+  fillClassName,
+}: {
+  value: number | null | undefined
+  max?: number
+  label: string
+  /** A beat before the fill starts, in seconds — for a bar that follows a number. */
+  delay?: number
+  /** The track: its height, radius and ground. */
+  className?: string
+  /** The fill: its colour, and a `min-w-*` if a tiny value should still be visible. */
+  fillClassName?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const seen = useInView(ref, { once: true, amount: 'some' })
+  const reduced = useReducedMotion()
+  const measured = value !== null && value !== undefined
+  const width = measured ? `${Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100))}%` : '0%'
+
+  return (
+    <div
+      ref={ref}
+      role="progressbar"
+      aria-label={label}
+      aria-valuenow={measured ? value : undefined}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      className={className}
+    >
+      {measured && (
+        <m.span
+          initial={false}
+          animate={{ width: reduced || seen ? width : '0%' }}
+          transition={reduced ? { duration: 0 } : { duration: 0.9, ease: ease.enter, delay }}
+          className={fillClassName}
+          style={{ display: 'block', height: '100%' }}
+        />
+      )}
+    </div>
   )
 }
 

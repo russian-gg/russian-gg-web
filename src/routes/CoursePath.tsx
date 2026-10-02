@@ -22,7 +22,7 @@ import { CoursePathHero } from '../components/CoursePathHero'
 import { PreviewDialog } from '../components/PreviewDialog'
 import { Badge, Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
-import { Overlay, Reveal, SequenceInView } from '../components/motion'
+import { Meter, Overlay, Reveal, SequenceInView } from '../components/motion'
 import { rise, stagger } from '../lib/motion'
 import lockArt from '../assets/images/lock.webp'
 
@@ -266,7 +266,7 @@ export function CoursePath() {
         four of them now, and the fourth — the Pro days — is the one a learner on the free plan
         goes looking for. A tray of four crowds the phone; pills wrap.
       */}
-      <div className="hidden flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex sm:flex-row sm:items-center sm:justify-between">
+      <Reveal delay={0.18} className="hidden flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-1 rounded-xl bg-ground-sunken p-1">
           {(['all', 'active', 'done', 'pro'] as const).map((value) => (
             <button
@@ -303,7 +303,7 @@ export function CoursePath() {
             className="h-10 w-full rounded-xl border border-hairline bg-ground px-4 pr-3 pl-10 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-signal"
           />
         </label>
-      </div>
+      </Reveal>
 
       {phases.map(({ phase, range }) => {
         const phaseDays = visibleDays.filter(({ day }) => day.phase === phase)
@@ -565,7 +565,6 @@ function DayCard({
     : day.requiredMissionCount
 
   const inProgress = !isDone && !isLocked && progressValue > 0
-  const percent = Math.round((Math.min(progressValue, progressMax) / Math.max(1, progressMax)) * 100)
 
   return (
     <button
@@ -577,7 +576,7 @@ function DayCard({
       aria-haspopup="dialog"
       className={cx(
         DAY_CARD_FRAME,
-        'flex-col border p-5 text-left',
+        'group flex-col border p-5 text-left',
         'transition-[border-color,box-shadow,transform] duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
         isDone
@@ -598,6 +597,8 @@ function DayCard({
           <span
             className={cx(
               'flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums',
+              'transition-transform duration-150',
+              !isLocked && 'group-hover:scale-110',
               isDone
                 ? 'bg-milestone-soft text-milestone'
                 : isLocked
@@ -636,22 +637,15 @@ function DayCard({
 
       {/* The bar and its count on one line, the way the design reads it: a ratio, not a caption. */}
       <div className="mt-4 flex items-center gap-3">
-        <div
-          role="progressbar"
-          aria-label={`${dayLabel}: ${focus}`}
-          aria-valuenow={progressValue}
-          aria-valuemin={0}
-          aria-valuemax={progressMax}
-          className="h-2 flex-1 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/[0.03]"
-        >
-          <span
-            className={cx(
-              'block h-full rounded-full transition-[width] duration-300',
-              isDone ? 'bg-milestone' : 'bg-signal',
-            )}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+        {/* Fills when the card is scrolled to: a day's progress is shown, not just reported. */}
+        <Meter
+          value={Math.min(progressValue, progressMax)}
+          max={progressMax}
+          label={`${dayLabel}: ${focus}`}
+          delay={0.15}
+          className="h-2 flex-1 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/3"
+          fillClassName={cx('rounded-full', isDone ? 'bg-milestone' : 'bg-signal')}
+        />
         <span className="text-xs font-bold text-ink-muted tabular-nums">
           {progressValue}/{progressMax}
         </span>
@@ -772,7 +766,7 @@ function ComingSoonCard({ day }: { day: number }) {
     <div
       role="group"
       aria-label={`${dayLabel}: ${t.path.comingSoon}`}
-      className={cx(DAY_CARD_FRAME, 'relative flex-col items-center justify-center overflow-hidden border border-hairline bg-ground-raised p-5 text-center')}
+      className={cx(DAY_CARD_FRAME, 'group relative flex-col items-center justify-center overflow-hidden border border-hairline bg-ground-raised p-5 text-center')}
     >
       {/*
         One blurred layer per card. The lines stop short of the middle and the art keeps to the
@@ -787,7 +781,7 @@ function ComingSoonCard({ day }: { day: number }) {
         </span>
       </div>
 
-      <img src={lockArt} alt="" width={72} height={72} loading="lazy" decoding="async" className="relative size-18" />
+      <img src={lockArt} alt="" width={72} height={72} loading="lazy" decoding="async" className="relative size-18 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6" />
       <p className="relative mt-1 text-base font-bold text-ink-muted">{dayLabel}</p>
       <p className="relative text-2xl font-extrabold leading-tight text-signal-ink sm:text-[1.7rem]">{t.path.comingSoon}</p>
     </div>

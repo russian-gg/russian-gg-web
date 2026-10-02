@@ -10,7 +10,8 @@ import { missionCardClass } from './mission-card-style'
 import { PreviewDialog, PreviewFact } from './PreviewDialog'
 import { Badge } from './ui'
 import * as m from 'motion/react-m'
-import { duration, ease, rise } from '../lib/motion'
+import { duration, ease, pop, rise } from '../lib/motion'
+import { Meter, Reveal } from './motion'
 
 /**
  * The card is the motion element itself.
@@ -63,6 +64,7 @@ export function MissionCard({
 
   const cardClassName = cx(
     missionCardClass(mission.isCompleted, mission.isLocked),
+    'group',
     featured && !mission.isLocked && 'border-milestone/20 shadow-[0_8px_24px_rgb(15_115_85/0.06)]',
   )
 
@@ -308,11 +310,16 @@ function MissionScore({ mission, label }: { mission: MissionSummary; label: stri
           viewport={{ once: true, amount: 0.8 }}
           transition={{ duration: duration.deliberate, ease: ease.enter }}
         />
+        {/* The pass mark appears once the bar has had time to reach it — or to fall short. */}
         {pass !== null && (
-          <span
+          <m.span
             aria-hidden="true"
             className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-ink/35"
             style={{ left: `${pass}%` }}
+            initial={{ opacity: 0, scaleY: 0.2 }}
+            whileInView={{ opacity: 1, scaleY: 1 }}
+            viewport={{ once: true, amount: 0.8 }}
+            transition={{ duration: duration.base, ease: ease.enter, delay: duration.deliberate * 0.7 }}
           />
         )}
       </div>
@@ -340,25 +347,17 @@ export function MissionProgress({
   const t = useT()
   const safeMax = Math.max(1, max)
   const safeValue = Math.min(safeMax, Math.max(0, value))
-  const percent = Math.round((safeValue / safeMax) * 100)
 
   return (
     <div className={compact ? 'mt-2.5' : 'mt-5'}>
-      <div
-        role="progressbar"
-        aria-label={label}
-        aria-valuenow={safeValue}
-        aria-valuemin={0}
-        aria-valuemax={safeMax}
-        className="h-2 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/[0.03]"
-      >
-        <span
-          className={`block h-full rounded-full transition-[width] duration-300 ${
-            completed ? 'bg-milestone' : 'bg-signal'
-          }`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+      <Meter
+        value={safeValue}
+        max={safeMax}
+        label={label}
+        delay={0.2}
+        className="h-2 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/3"
+        fillClassName={`rounded-full ${completed ? 'bg-milestone' : 'bg-signal'}`}
+      />
       {!(compact && completed) && (
         <p className={`${compact ? 'mt-1' : 'mt-1.5'} text-right text-[11px] font-semibold text-ink-muted`}>
           {completed ? t.path.done : `${safeValue}/${safeMax}`}
@@ -370,19 +369,25 @@ export function MissionProgress({
 
 export function CompletedGlyph({ label }: { label: string }) {
   return (
-    <span
-      role="img"
-      aria-label={label}
-      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-milestone text-milestone"
-    >
-      <Check aria-hidden="true" strokeWidth={2.4} className="size-3" />
-    </span>
+    <Reveal as="span" variants={pop} className="mt-0.5 flex shrink-0">
+      <span
+        role="img"
+        aria-label={label}
+        className="flex size-5 items-center justify-center rounded-full border-2 border-milestone text-milestone"
+      >
+        <Check aria-hidden="true" strokeWidth={2.4} className="size-3" />
+      </span>
+    </Reveal>
   )
 }
 
 export function ArrowGlyph() {
   return (
-    <ArrowRight aria-hidden="true" strokeWidth={2} className="size-4" />
+    <ArrowRight
+      aria-hidden="true"
+      strokeWidth={2}
+      className="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
+    />
   )
 }
 
