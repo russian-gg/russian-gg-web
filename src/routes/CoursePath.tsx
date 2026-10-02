@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Crown, Lock, Search } from 'lucide-react'
+import { CalendarDays, CircleCheck, Crown, Lock, Play, RotateCcw, Timer } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -13,17 +13,14 @@ import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
-import {
-  CompletedGlyph,
-  MissionCardAction,
-  MissionProgress,
-} from '../components/MissionCard'
+import { MissionProgress } from '../components/MissionCard'
+import { FilterPills, SearchField, StatTile } from '../components/Catalog'
 import { CoursePathHero } from '../components/CoursePathHero'
 import { PreviewDialog } from '../components/PreviewDialog'
-import { Badge, Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
+import { Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
-import { Meter, Overlay, Reveal, SequenceInView } from '../components/motion'
-import { rise, stagger } from '../lib/motion'
+import { CountUp, Meter, Overlay, Reveal, Sequence, SequenceInView } from '../components/motion'
+import { pop, rise, stagger } from '../lib/motion'
 import lockArt from '../assets/images/lock.webp'
 
 /**
@@ -39,10 +36,17 @@ const LAST_AUTHORED_DAY = 30
  * then stretches each card to its own row, which is what keeps an open day (a button in its
  * footer) and a shut one (a word) the same size side by side.
  */
-const DAY_CARD_FRAME = 'flex h-full min-h-[12.75rem] w-full rounded-[var(--radius-card)]'
+const DAY_CARD_FRAME = 'flex h-full min-h-[13.75rem] w-full rounded-[var(--radius-card)]'
 
-/** The footer chip: one height for "done", "locked", "Pro" and "loading", matching the button. */
-const DAY_CARD_CHIP = 'inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] px-3.5 text-sm font-extrabold'
+/**
+ * What a card ends in: one pill, one height, whatever it says — start, continue, repeat, locked,
+ * Pro, loading. The whole card is the button, so these are its face rather than controls of
+ * their own.
+ */
+const DAY_CARD_ACTION = 'inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-extrabold'
+
+/** The state pill in a card's corner, the same shape the missions shelf uses. */
+const DAY_CARD_STATE = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold'
 
 /**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
@@ -190,6 +194,16 @@ export function CoursePath() {
   const completedDays = displayedDays.filter(
     ({ day }) => day.completedMissionCount >= day.requiredMissionCount,
   ).length
+  const isDayDone = (day: CourseDayView) => day.completedMissionCount >= day.requiredMissionCount
+  const activeDays = displayedDays.filter(({ day }) => day.isUnlocked && !isDayDone(day)).length
+  const counts = {
+    all: displayedDays.length,
+    done: completedDays,
+    active: activeDays,
+    // The days Pro opens: shut because of the plan rather than because they are not reached yet.
+    pro: displayedDays.filter(({ day }) => !day.isUnlocked && !isDayDone(day) && day.day > maxUnlockedDay).length,
+    locked: displayedDays.length - completedDays - activeDays,
+  }
   const normalizedSearch = search.trim().toLocaleLowerCase(locale === 'ru' ? 'ru-RU' : locale)
   const visibleDays = displayedDays.filter(({ day }) => {
     const isDone = day.completedMissionCount >= day.requiredMissionCount
@@ -262,47 +276,33 @@ export function CoursePath() {
       <CoursePathHero completedDays={completedDays} totalDays={90} />
 
       {/*
-        The filters are pills on their own rather than a segmented control in a tray: there are
-        four of them now, and the fourth — the Pro days — is the one a learner on the free plan
-        goes looking for. A tray of four crowds the phone; pills wrap.
+        The path counted, the way the missions and tests shelves open: how long it is, how much
+        of it is behind the learner, what is open now and what is still shut.
       */}
-      <Reveal delay={0.18} className="hidden flex-col gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 shadow-[0_8px_24px_rgb(22_24_29/0.035)] sm:flex sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-1 rounded-xl bg-ground-sunken p-1">
-          {(['all', 'active', 'done', 'pro'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setFilter(value)}
-              aria-pressed={filter === value}
-              className={cx(
-                'rounded-lg px-3 py-2 text-sm font-bold transition-colors',
-                filter === value
-                  ? 'bg-ground-raised text-signal-ink shadow-sm'
-                  : 'text-ink-muted hover:text-ink',
-              )}
-            >
-              {value === 'all'
-                ? t.path.filterAll
-                : value === 'active'
-                  ? t.path.filterActive
-                  : value === 'done'
-                    ? t.path.filterDone
-                    : t.path.filterPro}
-            </button>
-          ))}
-        </div>
+      <Sequence className="grid grid-cols-2 gap-3 lg:grid-cols-4" gap={stagger.base} delay={0.15}>
+        <StatTile icon={CalendarDays} label={t.path.statTotal} value={counts.all} markClassName="bg-signal-soft text-signal-ink" />
+        <StatTile icon={CircleCheck} label={t.path.filterDone} value={counts.done} markClassName="bg-milestone-soft text-milestone" />
+        <StatTile icon={Timer} label={t.path.filterActive} value={counts.active} markClassName="bg-caution-soft text-caution" />
+        <StatTile icon={Lock} label={t.path.locked} value={counts.locked} markClassName="bg-ground-sunken text-ink-muted" />
+      </Sequence>
 
-        <label className="relative block w-full sm:max-w-xs">
-          <span className="sr-only">{t.path.search}</span>
-          <SearchGlyph />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t.path.search}
-            className="h-10 w-full rounded-xl border border-hairline bg-ground px-4 pr-3 pl-10 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-signal"
-          />
-        </label>
+      {/*
+        The filters are pills that wrap rather than a segmented control in a tray: there are four
+        of them, and the fourth — the Pro days — is the one a learner on the free plan goes
+        looking for. A tray of four crowds the phone.
+      */}
+      <Reveal delay={0.22} className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <SearchField value={search} onChange={setSearch} placeholder={t.path.search} />
+        <FilterPills
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: t.path.filterAll, count: counts.all },
+            { value: 'active', label: t.path.filterActive, count: counts.active },
+            { value: 'done', label: t.path.filterDone, count: counts.done },
+            { value: 'pro', label: t.path.filterPro, count: counts.pro },
+          ]}
+        />
       </Reveal>
 
       {phases.map(({ phase, range }) => {
@@ -565,6 +565,7 @@ function DayCard({
     : day.requiredMissionCount
 
   const inProgress = !isDone && !isLocked && progressValue > 0
+  const percent = Math.round((Math.min(progressValue, progressMax) / Math.max(1, progressMax)) * 100)
 
   return (
     <button
@@ -579,12 +580,14 @@ function DayCard({
         'group flex-col border p-5 text-left',
         'transition-[border-color,box-shadow,transform] duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
+        // A finished day is washed green from its corner, the day under way blue: the same two
+        // tints the missions shelf uses, so "done" and "now" look alike across the product.
         isDone
-          ? 'border-milestone/20 bg-milestone-soft/25'
+          ? 'border-milestone/20 bg-linear-to-br from-milestone-soft/70 to-ground-raised hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(15_115_85/0.07)]'
           : isLocked
             ? 'border-hairline bg-ground-raised hover:border-ink-faint/40'
             : isToday || inProgress
-              ? 'border-signal/45 bg-signal-soft/30 shadow-[0_8px_24px_rgb(31_111_224/0.06)]'
+              ? 'border-signal/45 bg-linear-to-bl from-signal-soft/80 to-ground-raised to-55% shadow-[0_8px_24px_rgb(31_111_224/0.07)] hover:-translate-y-0.5'
               : 'border-hairline bg-ground-raised hover:-translate-y-0.5 hover:border-signal/40 hover:shadow-[0_8px_24px_rgb(22_24_29/0.06)]',
       )}
     >
@@ -596,9 +599,9 @@ function DayCard({
           */}
           <span
             className={cx(
-              'flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums',
+              'flex size-12 shrink-0 items-center justify-center rounded-2xl text-xl font-extrabold tabular-nums',
               'transition-transform duration-150',
-              !isLocked && 'group-hover:scale-110',
+              !isLocked && 'group-hover:scale-105',
               isDone
                 ? 'bg-milestone-soft text-milestone'
                 : isLocked
@@ -611,12 +614,9 @@ function DayCard({
 
           <div className="min-w-0">
             <p className="text-xs font-semibold text-ink-faint">{dayLabel}</p>
-            <div className="mt-0.5 flex items-start gap-2">
-              <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
-                {focus}
-              </h3>
-              {isDone && <CompletedGlyph label={t.path.done} />}
-            </div>
+            <h3 className={cx('mt-0.5 line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
+              {focus}
+            </h3>
             {/*
               The same topic in the language being learned. There is no separate blurb on a
               course day — the server sends one focus line per language — and of the things we
@@ -628,14 +628,27 @@ function DayCard({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap justify-end gap-2">
-          {isDone && <Badge tone="milestone">{t.path.done}</Badge>}
-          {!isDone && !isLocked && (isToday || inProgress) && <Badge tone="signal">{t.path.inProgress}</Badge>}
-          {showFreeLabel && !isDone && <Badge>{t.account.plan.free}</Badge>}
-        </div>
+        {/* A shut day says so in its footer, where its button would be; it needs no second label. */}
+        <Reveal as="span" variants={pop} className="flex shrink-0 flex-wrap justify-end gap-2">
+          {isDone && (
+            <span className={cx(DAY_CARD_STATE, 'bg-milestone-soft text-milestone')}>
+              <CircleCheck aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
+              {t.path.done}
+            </span>
+          )}
+          {!isDone && !isLocked && (isToday || inProgress) && (
+            <span className={cx(DAY_CARD_STATE, 'bg-caution-soft text-caution')}>
+              <Timer aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
+              {t.path.inProgress}
+            </span>
+          )}
+          {showFreeLabel && !isDone && (
+            <span className={cx(DAY_CARD_STATE, 'bg-ground-sunken text-ink-muted')}>{t.account.plan.free}</span>
+          )}
+        </Reveal>
       </div>
 
-      {/* The bar and its count on one line, the way the design reads it: a ratio, not a caption. */}
+      {/* The bar and its percentage on one line; what the percentage is of goes underneath. */}
       <div className="mt-4 flex items-center gap-3">
         {/* Fills when the card is scrolled to: a day's progress is shown, not just reported. */}
         <Meter
@@ -643,44 +656,52 @@ function DayCard({
           max={progressMax}
           label={`${dayLabel}: ${focus}`}
           delay={0.15}
-          className="h-2 flex-1 overflow-hidden rounded-full bg-ground-sunken ring-1 ring-black/3"
+          className="h-2.5 flex-1 overflow-hidden rounded-full bg-ground-sunken"
           fillClassName={cx('rounded-full', isDone ? 'bg-milestone' : 'bg-signal')}
         />
-        <span className="text-xs font-bold text-ink-muted tabular-nums">
-          {progressValue}/{progressMax}
+        <span className={cx('min-w-10 text-right text-sm font-bold tabular-nums', isDone ? 'text-milestone' : 'text-ink-muted')}>
+          <CountUp value={percent} />%
         </span>
       </div>
+      <p className="mt-2 text-sm text-ink-muted tabular-nums">
+        {progressValue} / {progressMax} {t.dayPreview.sections}
+      </p>
 
       {/*
         Every state ends in a chip of the same height. A bare word for the shut days and a
         button for the open one made the open card a few pixels taller than its neighbours,
         and the row stopped reading as a row.
       */}
-      <div className={`mt-auto flex min-h-12 items-center gap-3 pt-4 ${notice ? 'justify-between' : 'justify-end'}`}>
+      <div className={`mt-auto flex min-h-14 items-center gap-3 pt-4 ${notice ? 'justify-between' : 'justify-end'}`}>
         {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
 
         {isDone ? (
-          <span className={cx(DAY_CARD_CHIP, 'border border-milestone/15 bg-ground-raised text-milestone')}>
-            {t.path.done}
+          // A finished day offers its repeat quietly; the others lead with the action.
+          <span className={cx(DAY_CARD_ACTION, 'border border-milestone/25 bg-ground-raised text-milestone transition-colors group-hover:bg-milestone-soft')}>
+            <RotateCcw aria-hidden="true" strokeWidth={2.2} className="size-4" />
+            {t.dayPreview.repeat}
           </span>
         ) : isLocked ? (
           // Two different shut doors: Pro is something the learner can act on, so it keeps
           // the warm tone; a day that opens by itself is only waiting, and stays quiet.
           day.day > maxUnlockedDay ? (
-            <span className={cx(DAY_CARD_CHIP, 'bg-caution-soft text-caution')}>
+            <span className={cx(DAY_CARD_ACTION, 'bg-caution-soft text-caution')}>
               <Crown aria-hidden="true" strokeWidth={1.9} className="size-4" />
               {t.path.needsPro}
             </span>
           ) : (
-            <span className={cx(DAY_CARD_CHIP, 'bg-ground-sunken text-ink-muted')}>
+            <span className={cx(DAY_CARD_ACTION, 'bg-ground-sunken text-ink-muted')}>
               <Lock aria-hidden="true" strokeWidth={1.9} className="size-4" />
               {t.path.locked}
             </span>
           )
         ) : isOpening ? (
-          <span className={cx(DAY_CARD_CHIP, 'bg-signal-soft text-signal-ink')}>{t.common.loading}…</span>
+          <span className={cx(DAY_CARD_ACTION, 'bg-signal-soft text-signal-ink')}>{t.common.loading}…</span>
         ) : (
-          <MissionCardAction compact>{t.path.startConversation}</MissionCardAction>
+          <span className={cx(DAY_CARD_ACTION, 'bg-signal text-on-signal shadow-[0_6px_16px_rgb(31_111_224/0.25)] transition-colors group-hover:bg-signal-hover')}>
+            <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current transition-transform duration-150 group-hover:translate-x-0.5" />
+            {inProgress ? t.dayPreview.resume : t.dayPreview.start}
+          </span>
         )}
       </div>
     </button>
@@ -800,14 +821,4 @@ function fillFallbackDay(day: number, locale: Locale) {
   if (locale === 'ru') return `День ${day}`
   if (locale === 'en') return `Day ${day}`
   return `${day}-kun`
-}
-
-function SearchGlyph() {
-  return (
-    <Search
-      aria-hidden="true"
-      strokeWidth={2}
-      className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-faint"
-    />
-  )
 }

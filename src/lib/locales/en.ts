@@ -970,6 +970,7 @@ export const en: Dictionary = {
     search: 'Find a day or topic',
     noResults: 'No matching days found.',
     comingSoon: 'Coming soon',
+    statTotal: 'All days',
   },
 
   preview: {
@@ -998,6 +999,19 @@ export const en: Dictionary = {
     bestScore: 'Best score: {score}%',
     passMark: 'Pass mark: {score}%',
     notTried: 'Not tried yet',
+    statTotal: 'All missions',
+    statDone: 'Completed',
+    statInProgress: 'In progress',
+    statNotStarted: 'Not started yet',
+    search: 'Search by mission name…',
+    filterAll: 'All',
+    sortLabel: 'Sort',
+    sortDefault: 'In order',
+    sortScore: 'By result',
+    sortShort: 'Shortest first',
+    continue: 'Continue',
+    repeat: 'Do it again',
+    noResults: 'No matching missions.',
   },
 
   tests: {
@@ -1027,6 +1041,17 @@ export const en: Dictionary = {
     backToTests: 'Back to tests',
     notAnswered: 'Not answered',
     unavailable: 'This test is not available right now.',
+    statTotal: 'All tests',
+    statCompleted: 'Completed',
+    statInProgress: 'In progress',
+    overall: 'Overall result',
+    search: 'Search by test name…',
+    filterAll: 'All',
+    sortLabel: 'Sort',
+    sortNewest: 'Newest first',
+    sortOldest: 'Oldest first',
+    sortScore: 'By result',
+    noResults: 'No matching tests.',
   },
 
   progress: {

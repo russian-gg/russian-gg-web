@@ -977,6 +977,7 @@ export const ru: Dictionary = {
     search: 'Найти день или тему',
     noResults: 'Подходящих дней не найдено.',
     comingSoon: 'Скоро',
+    statTotal: 'Всего дней',
   },
 
   preview: {
@@ -1005,6 +1006,19 @@ export const ru: Dictionary = {
     bestScore: 'Лучший результат: {score}%',
     passMark: 'Проходной балл: {score}%',
     notTried: 'Ещё не пробовали',
+    statTotal: 'Всего заданий',
+    statDone: 'Выполнено',
+    statInProgress: 'В процессе',
+    statNotStarted: 'Ещё не начато',
+    search: 'Поиск по названию задания…',
+    filterAll: 'Все',
+    sortLabel: 'Сортировка',
+    sortDefault: 'По порядку',
+    sortScore: 'По результату',
+    sortShort: 'Сначала короткие',
+    continue: 'Продолжить',
+    repeat: 'Пройти ещё раз',
+    noResults: 'Подходящих заданий не найдено.',
   },
 
   tests: {
@@ -1034,6 +1048,17 @@ export const ru: Dictionary = {
     backToTests: 'Вернуться к тестам',
     notAnswered: 'Нет ответа',
     unavailable: 'Этот тест сейчас недоступен.',
+    statTotal: 'Всего тестов',
+    statCompleted: 'Завершено',
+    statInProgress: 'В процессе',
+    overall: 'Общий результат',
+    search: 'Поиск по названию теста…',
+    filterAll: 'Все',
+    sortLabel: 'Сортировка',
+    sortNewest: 'Сначала новые',
+    sortOldest: 'Сначала старые',
+    sortScore: 'По результату',
+    noResults: 'Подходящих тестов не найдено.',
   },
 
   progress: {

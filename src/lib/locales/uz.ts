@@ -996,6 +996,7 @@ export const uz = {
     search: 'Kun yoki mavzuni qidiring',
     noResults: 'Mos keladigan kun topilmadi.',
     comingSoon: 'Tez orada',
+    statTotal: 'Jami kunlar',
   },
 
   preview: {
@@ -1025,6 +1026,19 @@ export const uz = {
     bestScore: 'Eng yaxshi natija: {score}%',
     passMark: "O'tish bali: {score}%",
     notTried: 'Hali urinilmagan',
+    statTotal: 'Jami topshiriqlar',
+    statDone: 'Bajarilgan',
+    statInProgress: 'Jarayonda',
+    statNotStarted: 'Hali boshlanmagan',
+    search: "Topshiriq nomi bo'yicha qidirish…",
+    filterAll: 'Barchasi',
+    sortLabel: 'Saralash',
+    sortDefault: "Tartib bo'yicha",
+    sortScore: "Natija bo'yicha",
+    sortShort: 'Avval qisqalari',
+    continue: 'Davom ettirish',
+    repeat: 'Qayta bajarish',
+    noResults: 'Mos keladigan topshiriq topilmadi.',
   },
 
   tests: {
@@ -1054,6 +1068,17 @@ export const uz = {
     backToTests: 'Testlarga qaytish',
     notAnswered: 'Javob berilmagan',
     unavailable: 'Bu test hozircha mavjud emas.',
+    statTotal: 'Jami testlar',
+    statCompleted: 'Yakunlangan',
+    statInProgress: 'Jarayonda',
+    overall: 'Umumiy natija',
+    search: "Test nomi bo'yicha qidirish…",
+    filterAll: 'Barchasi',
+    sortLabel: 'Saralash',
+    sortNewest: 'Yangidan eskiga',
+    sortOldest: 'Eskidan yangiga',
+    sortScore: "Natija bo'yicha",
+    noResults: 'Mos keladigan test topilmadi.',
   },
 
   progress: {

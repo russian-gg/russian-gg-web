@@ -178,7 +178,7 @@ export function MissionCard({
  * use at work. The mission's own brief still opens after this; what this adds is the chance to
  * read one paragraph and change their mind without leaving the list.
  */
-function MissionPreviewDialog({
+export function MissionPreviewDialog({
   open,
   mission,
   title,
