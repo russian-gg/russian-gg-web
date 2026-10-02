@@ -98,6 +98,24 @@ export function useLearnerDay() {
   return data?.currentDay ?? 1
 }
 
+/**
+ * Whether the Tests tab has anything behind it: at least one active question in an active
+ * test — the same condition the Tests screen uses to offer a block. While there is none, the
+ * menu shows the tab as "coming soon" instead of leading to an empty screen.
+ *
+ * Unknown counts as available — while the summary is loading, or if it fails — so the tab does
+ * not flash "coming soon" on every load for the ordinary case where tests exist.
+ */
+export function useTestsAvailable() {
+  const { data } = useQuery({
+    queryKey: testQueryKeys.summary,
+    queryFn: testsApi.summary,
+    staleTime: 60_000,
+    retry: false,
+  })
+  return !data || data.availableQuestions > 0
+}
+
 export const testQueryKeys = {
   summary: ['tests', 'summary'] as const,
   block: (blockId: string) => ['tests', 'block', blockId] as const,

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { Button, Card, EmptyState, ErrorNote, ProgressBar, QueryError, Spinner } from '../../components/ui'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { Button, Card, ErrorNote, ProgressBar, QueryError, Spinner } from '../../components/ui'
 import { Reveal, Sequence } from '../../components/motion'
 import { RequestError } from '../../lib/api'
 import { fill, useT } from '../../lib/i18n'
@@ -31,6 +31,10 @@ export function Tests() {
     },
   })
 
+  // Nothing to take: the menu shows the tab as "coming soon", and a typed or bookmarked address
+  // lands back on the home screen instead of an empty one.
+  if (data && data.availableQuestions === 0) return <Navigate to="/home" replace />
+
   return (
     <Sequence className="space-y-8" gap={stagger.base}>
       <Reveal>
@@ -40,8 +44,6 @@ export function Tests() {
 
       {isLoading && <Spinner />}
       {isError && <QueryError onRetry={() => void refetch()} />}
-
-      {data && data.availableQuestions === 0 && <EmptyState title={t.emptyTitle} body={t.emptyBody} />}
 
       {data && data.availableQuestions > 0 && (
         <Reveal>

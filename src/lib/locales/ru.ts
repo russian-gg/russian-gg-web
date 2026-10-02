@@ -1014,8 +1014,6 @@ export const ru: Dictionary = {
     blockBody: '9 вопросов: 3 по грамматике, 3 по фонетике и 3 по словарю — вперемешку.',
     start: 'Начать',
     continue: 'Продолжить',
-    emptyTitle: 'Тестов пока нет',
-    emptyBody: 'Продолжайте уроки — вопросы по пройденному появятся здесь.',
     questionOf: 'Вопрос {current} из {total}',
     categories: { Grammar: 'Грамматика', Phonetics: 'Фонетика', Vocabulary: 'Словарь' },
     difficulties: { Easy: 'Лёгкий', Medium: 'Средний', Hard: 'Сложный' },

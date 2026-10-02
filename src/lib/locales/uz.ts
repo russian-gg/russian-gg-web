@@ -1034,8 +1034,6 @@ export const uz = {
     blockBody: "9 ta savol: 3 ta grammatika, 3 ta fonetika va 3 ta lug'at — aralash tartibda.",
     start: 'Boshlash',
     continue: 'Davom ettirish',
-    emptyTitle: "Hozircha testlar yo'q",
-    emptyBody: "Darslarni davom ettiring — o'tgan darslaringiz bo'yicha savollar shu yerda paydo bo'ladi.",
     questionOf: '{current}-savol / {total}',
     categories: { Grammar: 'Grammatika', Phonetics: 'Fonetika', Vocabulary: "Lug'at" },
     difficulties: { Easy: 'Oson', Medium: "O'rta", Hard: 'Qiyin' },

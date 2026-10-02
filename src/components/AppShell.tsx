@@ -40,6 +40,7 @@ import {
 } from '../lib/audio-preferences'
 import { planLabel } from '../lib/format'
 import { useOpenGames } from '../lib/games'
+import { useTestsAvailable } from '../lib/tests'
 import { useRouteChange } from '../lib/route-change'
 import { useTheme } from '../lib/theme'
 import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
@@ -68,12 +69,18 @@ export function AppShell() {
    * shelf is worse than no menu item.
    */
   const openGames = useOpenGames()
+  /*
+   * Tests works the other way: the row always shows, but while the admin has no active test
+   * with questions it leads nowhere and says "coming soon" — the same as before the section
+   * was built — rather than opening an empty screen.
+   */
+  const testsAvailable = useTestsAvailable()
   const nav = useMemo(
-    () =>
-      openGames && openGames.length > 0
-        ? [...NAV, { to: '/games', key: 'games' as const, icon: GamesGlyph }]
-        : NAV,
-    [openGames],
+    () => [
+      ...NAV.map((item) => (item.key === 'tests' && !testsAvailable ? { ...item, to: null, comingSoon: true } : item)),
+      ...(openGames && openGames.length > 0 ? [{ to: '/games', key: 'games' as const, icon: GamesGlyph }] : []),
+    ],
+    [openGames, testsAvailable],
   )
   const { data: progress } = useQuery({
     queryKey: ['progress'],

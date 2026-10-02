@@ -1007,8 +1007,6 @@ export const en: Dictionary = {
     blockBody: '9 questions: 3 grammar, 3 phonetics and 3 vocabulary, mixed together.',
     start: 'Start',
     continue: 'Continue',
-    emptyTitle: 'No tests yet',
-    emptyBody: 'Keep going with the lessons — questions on what you have covered will appear here.',
     questionOf: 'Question {current} of {total}',
     categories: { Grammar: 'Grammar', Phonetics: 'Phonetics', Vocabulary: 'Vocabulary' },
     difficulties: { Easy: 'Easy', Medium: 'Medium', Hard: 'Hard' },
