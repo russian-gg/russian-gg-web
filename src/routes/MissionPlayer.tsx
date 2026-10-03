@@ -1379,7 +1379,7 @@ export function MissionPlayer() {
                       }
                     }}
                     className={cx(
-                      'rounded-full px-5 py-3 text-sm font-bold text-on-signal transition',
+                      'raised raised-signal rounded-full px-5 py-3 text-sm font-bold text-on-signal',
                       voiceNoteRecording ? 'bg-signal-strong' : 'bg-signal hover:bg-signal-hover',
                     )}
                   >
@@ -1804,17 +1804,15 @@ function MicControl({
               : t.player.answer
           }
           /*
-           * The screen's one action, and the only control on it that is not a Button — so
-           * the press has to be built here. Same language: it rests on a solid edge, lifts
-           * toward the cursor, and sinks onto that edge when pushed.
+           * The screen's one action, and the only control on it that is not a Button. It
+           * presses the same way: it rests on a solid edge, lifts toward the cursor, and
+           * sinks onto that edge when pushed.
            */
           className={cx(
             'relative z-10 flex size-20 shrink-0 items-center justify-center rounded-full',
-            'shadow-[0_5px_0_0_var(--color-signal-depth)]',
-            'transition-[background-color,box-shadow,transform] duration-150',
-            'hover:-translate-y-0.5 hover:shadow-[0_7px_0_0_var(--color-signal-depth)]',
-            'active:translate-y-[5px] active:shadow-none',
-            'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none',
+            // The largest control in the product, so its edge is a little deeper than a button's.
+            'raised raised-signal [--edge:5px]',
+            'disabled:pointer-events-none disabled:opacity-40',
             hasLiveSession && !microphonePaused
               ? 'bg-signal-strong'
               : 'bg-signal hover:bg-signal-hover',
@@ -2201,7 +2199,7 @@ function InlineListenButton({
       type="button"
       onClick={onClick}
       aria-label={active ? "Eshitishni to'xtatish" : 'Eshitish'}
-      className={`flex shrink-0 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-ink transition hover:border-signal hover:text-signal-ink ${
+      className={`raised flex shrink-0 items-center justify-center rounded-full border-2 border-hairline bg-ground-raised text-ink hover:border-signal hover:text-signal-ink ${
         small ? 'size-9' : 'size-12'
       }`}
     >

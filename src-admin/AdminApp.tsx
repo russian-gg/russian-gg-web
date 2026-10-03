@@ -15,6 +15,7 @@ import {
   PromoGlyph,
   SalesGlyph,
   StarGlyph,
+  TestsGlyph,
   TransactionsGlyph,
   UsersGlyph,
 } from './components/icons'
@@ -30,6 +31,7 @@ import { Marketing } from './screens/Marketing'
 import { Sales } from './screens/Sales'
 import { PortalUsers } from './screens/PortalUsers'
 import { Games } from './screens/Games'
+import { Tests } from './screens/Tests'
 
 type Section =
   | 'dashboard'
@@ -44,6 +46,7 @@ type Section =
   | 'lesson-feedbacks'
   | 'portal-users'
   | 'games'
+  | 'tests'
 
 /**
  * `sales` marks the sections a sotuv account may open. It mirrors what the server allows —
@@ -65,6 +68,7 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
+  { id: 'tests', label: 'Testlar', group: 'Tizim' },
   { id: 'games', label: "O'yinlar", group: 'Tizim' },
   { id: 'portal-users', label: 'Xodimlar', group: 'Tizim' },
 ]
@@ -83,6 +87,7 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   'lesson-feedbacks': StarGlyph,
   'portal-users': UsersGlyph,
   games: GamesGlyph,
+  tests: TestsGlyph,
 }
 
 function visibleSections(role: PortalRole) {
@@ -107,6 +112,12 @@ const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
 export function AdminApp() {
   const { token, name, role } = useSession()
   const [section, setSection] = useState<Section>(() => readStoredSection(session.role()))
+  /*
+   * Bumped when the section already open is clicked again, and used as the screen's key, so
+   * that click takes a screen back to its start — out of a test's page to the list of tests —
+   * the way a sidebar link is expected to.
+   */
+  const [visit, setVisit] = useState(0)
   // Remembered, because a sidebar that reopens on every reload is one nobody bothers closing.
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true')
 
@@ -222,7 +233,10 @@ export function AdminApp() {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setSection(item.id)}
+                        onClick={() => {
+                          if (item.id === active) setVisit((value) => value + 1)
+                          setSection(item.id)
+                        }}
                         aria-current={active === item.id ? 'page' : undefined}
                         // The label is the tooltip when it is not on screen: an icon rail
                         // nobody can read is a guessing game.
@@ -268,7 +282,7 @@ export function AdminApp() {
         </div>
       </aside>
 
-      <main className="min-w-0 p-4 sm:p-6 lg:p-8">
+      <main key={visit} className="min-w-0 p-4 sm:p-6 lg:p-8">
         {active === 'dashboard' && <Dashboard />}
         {active === 'users' && <Users />}
         {active === 'clicks' && <Clicks />}
@@ -281,6 +295,7 @@ export function AdminApp() {
         {active === 'lesson-feedbacks' && <LessonFeedbacks />}
         {active === 'portal-users' && <PortalUsers />}
         {active === 'games' && <Games />}
+        {active === 'tests' && <Tests />}
       </main>
     </div>
   )

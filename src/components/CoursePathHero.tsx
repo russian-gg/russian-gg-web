@@ -1,4 +1,10 @@
+import { useEffect, useState } from 'react'
 import { fill, useT } from '../lib/i18n'
+import { CountUp, Reveal, Sequence } from './motion'
+import { fadeIn, pop, stagger } from '../lib/motion'
+
+// The note card sits toward the right edge of the band, so that is where it comes from.
+const fromRight = fadeIn('right', 16)
 import heroBackdrop from '../assets/images/90_days_lesson_bg.webp'
 
 /**
@@ -55,46 +61,62 @@ export function CoursePathHero({
       <div aria-hidden="true" className="home-hero__scrim pointer-events-none absolute inset-0" />
 
       <div className="absolute inset-0 flex items-center px-5 sm:px-7 lg:px-10 xl:pr-[17%]">
-        <div className="flex w-full items-center gap-4 sm:gap-8 lg:gap-12">
-          <div className="min-w-0 max-w-xs shrink lg:max-w-sm">
-            <p
-              className="text-[10px] font-black tracking-[0.18em] uppercase sm:text-xs"
-              style={{ color: 'var(--hero-script)' }}
-            >
-              {copy.eyebrow}
-            </p>
+        {/*
+          The band reads left to right, and arrives that way: what this is, how far along the
+          learner is, and the note beside it. The copy has its own beat inside the first step,
+          so the three lines land as lines rather than as one block.
+        */}
+        <Sequence className="flex w-full items-center gap-4 sm:gap-8 lg:gap-12" gap={stagger.wide}>
+          <Sequence className="min-w-0 max-w-xs shrink lg:max-w-sm" gap={stagger.base}>
+            <Reveal>
+              <p
+                className="text-[10px] font-black tracking-[0.18em] uppercase sm:text-xs"
+                style={{ color: 'var(--hero-script)' }}
+              >
+                {copy.eyebrow}
+              </p>
+            </Reveal>
 
-            <h1
-              className="mt-1.5 text-[1.5rem] leading-[1.1] font-black tracking-tight text-balance sm:text-[2rem] lg:text-[2.5rem]"
-              style={{ color: 'var(--hero-ink)' }}
-            >
-              {t.path.title}
-            </h1>
+            <Reveal>
+              <h1
+                className="mt-1.5 text-[1.5rem] leading-[1.1] font-black tracking-tight text-balance sm:text-[2rem] lg:text-[2.5rem]"
+                style={{ color: 'var(--hero-ink)' }}
+              >
+                {t.path.title}
+              </h1>
+            </Reveal>
 
-            <p
-              className="mt-1.5 max-w-md text-[13px] leading-relaxed sm:text-[15px]"
-              style={{ color: 'var(--hero-ink-muted)' }}
-            >
-              {copy.subtitle}
-            </p>
-          </div>
+            <Reveal>
+              <p
+                className="mt-1.5 max-w-md text-[13px] leading-relaxed sm:text-[15px]"
+                style={{ color: 'var(--hero-ink-muted)' }}
+              >
+                {copy.subtitle}
+              </p>
+            </Reveal>
+          </Sequence>
 
-          <DayRing completed={completedDays} total={totalDays} unit={copy.dayUnit} />
+          <Reveal variants={pop} className="shrink-0">
+            <DayRing completed={completedDays} total={totalDays} unit={copy.dayUnit} />
+          </Reveal>
 
           {/*
             Opaque rather than a tint of the sky: it is the one piece of running text out here,
             and running text over an illustration is where legibility goes.
           */}
-          <div className="hidden w-64 shrink-0 rounded-2xl bg-ground-raised p-4 shadow-[0_8px_24px_rgb(22_24_29/0.08)] lg:block">
+          <Reveal
+            variants={fromRight}
+            className="hidden w-64 shrink-0 rounded-2xl bg-ground-raised p-4 shadow-[0_8px_24px_rgb(22_24_29/0.08)] lg:block"
+          >
             <p className="text-sm font-black text-ink">{copy.noteTitle}</p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{copy.noteBody}</p>
-          </div>
+          </Reveal>
 
           {/*
             No hand-written line here: "Kichik qadamlardan katta natijalarga!" is painted into
             the artwork itself, and setting it again in HTML printed it twice.
           */}
-        </div>
+        </Sequence>
       </div>
     </section>
   )
@@ -104,6 +126,11 @@ export function CoursePathHero({
  * Days finished, as a ring. The track is the full ninety and the arc is what is behind the
  * learner — `strokeDasharray` on a rotated circle, so the arc starts at twelve o'clock rather
  * than at three where SVG puts zero degrees.
+ *
+ * The arc draws itself in once the ring has landed, and the count runs up beside it: the ring is
+ * the one measurement on this banner, and a measurement that is already finished when the page
+ * arrives has not been shown to anybody. It is a CSS transition rather than Motion, so the
+ * stylesheet's reduced-motion rule stills it with everything else.
  */
 function DayRing({ completed, total, unit }: { completed: number; total: number; unit: string }) {
   const t = useT()
@@ -112,6 +139,12 @@ function DayRing({ completed, total, unit }: { completed: number; total: number;
   const radius = 34
   const circumference = 2 * Math.PI * radius
   const progress = (safeCompleted / safeTotal) * circumference
+  const [drawn, setDrawn] = useState(false)
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setDrawn(true))
+    return () => cancelAnimationFrame(frame)
+  }, [])
 
   return (
     <div
@@ -137,12 +170,13 @@ function DayRing({ completed, total, unit }: { completed: number; total: number;
           stroke="var(--color-signal)"
           strokeWidth="7"
           strokeLinecap="round"
-          strokeDasharray={`${progress} ${circumference}`}
+          strokeDasharray={`${drawn ? progress : 0} ${circumference}`}
+          className="transition-[stroke-dasharray] delay-300 duration-1000 ease-out"
         />
       </svg>
       <span className="absolute grid place-items-center text-center">
         <span className="text-sm font-black text-ink tabular-nums sm:text-base">
-          {safeCompleted}/{safeTotal}
+          <CountUp value={safeCompleted} />/{safeTotal}
         </span>
         <span className="text-[10px] font-bold text-ink-muted sm:text-[11px]">{unit}</span>
       </span>

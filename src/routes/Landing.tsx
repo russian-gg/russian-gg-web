@@ -785,7 +785,7 @@ function FinalCta() {
             <div className="mt-7 flex flex-col items-start gap-3">
               <Link
                 to="/signin"
-                className="inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-9 text-base font-extrabold text-[#1c8fe0] shadow-[0_5px_0_0_rgb(19_120_205/0.28)] transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-1 active:shadow-none"
+                className="raised inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-9 text-base font-extrabold text-[#1c8fe0] [--depth:rgb(19_120_205/0.28)] [--edge:5px] [--glow:rgb(19_120_205/0.2)]"
               >
                 {t.final.cta}
               </Link>
@@ -988,7 +988,7 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      className="flex size-9 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink-muted transition-colors hover:border-ink-faint hover:text-ink"
+      className="raised raised-sm flex size-9 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink-muted hover:border-ink-faint hover:text-ink"
     >
       {children}
     </a>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Spinner } from '../../../components/ui'
+import { Select } from '../../../components/forms/Select'
 import { RequestError } from '../../../lib/api'
 import { useLocale } from '../../../lib/i18n'
 import { readAudioPreferences } from '../../../lib/audio-preferences'
@@ -315,8 +316,8 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
         {!session && catalog && <>
           <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1><p>{label.description}</p><div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
             <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} disabled={busy} />
-              {!isMystery && <label className="sg-field">{copy.level}<select value={level} disabled={busy} onChange={(event) => { setLevel(event.target.value); startRequest.current = null; setThemeId(catalog.themes.find((item) => item.level === event.target.value)?.id ?? '') }}>{catalog.levels.map((value) => <option key={value}>{value}</option>)}</select></label>}
-              {slug === 'tez-gapir' && <><label className="sg-field">{copy.theme}<select value={themeId} disabled={busy} onChange={(event) => { setThemeId(event.target.value); startRequest.current = null }}>{catalog.themes.filter((theme) => theme.level === level).map((theme) => <option key={theme.id} value={theme.id}>{locale === 'uz' ? theme.titleUz : theme.titleRu}</option>)}</select></label><label className="sg-field">{copy.rounds}<select value={rounds} disabled={busy} onChange={(event) => { setRounds(Number(event.target.value)); startRequest.current = null }}>{[3, 4, 5].map((n) => <option key={n}>{n}</option>)}</select></label></>}
+              {!isMystery && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy} onChange={(value) => { setLevel(value); startRequest.current = null; setThemeId(catalog.themes.find((item) => item.level === value)?.id ?? '') }} options={catalog.levels.map((value) => ({ value, label: value }))} /></div>}
+              {slug === 'tez-gapir' && <><div className="sg-field">{copy.theme}<Select label={copy.theme} size="lg" block value={themeId} disabled={busy} onChange={(value) => { setThemeId(value); startRequest.current = null }} options={catalog.themes.filter((theme) => theme.level === level).map((theme) => ({ value: theme.id, label: locale === 'uz' ? theme.titleUz : theme.titleRu }))} /></div><div className="sg-field">{copy.rounds}<Select label={copy.rounds} size="lg" block value={String(rounds)} disabled={busy} onChange={(value) => { setRounds(Number(value)); startRequest.current = null }} options={[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))} /></div></>}
               {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <><p className="sg-muted">{copy.savedGame}</p><Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : copy.start}</Button>}
               <p className="sg-muted">{copy.timeNote}</p>
             </div></div>

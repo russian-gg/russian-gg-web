@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { useFocusTrap } from '../../src/lib/focus-trap'
 import { cx } from '../../src/lib/cx'
 import { Overlay } from '../../src/components/motion'
 import { adminFetch, formatDateTime, formatMoney, formatNumber, useAdminQuery } from '../lib/api'
 import type { AdminPromoCode, BillingPeriod, PromoDiscountType } from '../lib/types'
+import { uz } from 'react-day-picker/locale'
+import { DateTimePicker } from '../../src/components/forms/DateTimePicker'
 import {
   Badge,
   Button,
@@ -14,12 +15,18 @@ import {
   ConfirmDialog,
   EmptyNote,
   ErrorNote,
+  FieldLabel,
+  IconButton,
+  Input,
+  inputClass,
   LoadingRows,
   LoadingStats,
   PageHeader,
   Row,
   Screen,
+  Segmented,
   Stat,
+  Switch,
   Table,
   Tabs,
   TextField,
@@ -46,6 +53,8 @@ const STATUS: Record<Status, { label: string; tone: 'milestone' | 'signal' | 'ca
 }
 
 const DAY = 24 * 60 * 60 * 1000
+
+const pickerCopy = { locale: uz, hourLabel: 'Soat', minuteLabel: 'Daqiqa', placeholder: 'Sanani tanlang' }
 
 /**
  * What an operator means by "is this code working". The server's `isActive` already folds the
@@ -372,94 +381,6 @@ function ValidityWindow({ item, now }: { item: AdminPromoCode; now: number }) {
   )
 }
 
-function Switch({ checked }: { checked: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cx(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-        checked ? 'bg-milestone' : 'bg-hairline',
-      )}
-    >
-      <span
-        className={cx(
-          'inline-block size-5 rounded-full bg-white shadow transition-transform',
-          checked ? 'translate-x-[22px]' : 'translate-x-0.5',
-        )}
-      />
-    </span>
-  )
-}
-
-function IconButton({
-  label,
-  onClick,
-  tone = 'neutral',
-  children,
-}: {
-  label: string
-  onClick: () => void
-  tone?: 'neutral' | 'danger'
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={cx(
-        'inline-flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted transition-colors',
-        tone === 'danger' ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-ground-sunken hover:text-ink',
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
-const inputClass =
-  'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
-
-function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-bold text-ink">{label}</span>
-      {children}
-    </label>
-  )
-}
-
-/** Two-way choice drawn as a segmented control: both options stay visible, unlike a select. */
-function Segmented<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T
-  onChange: (value: T) => void
-  options: Array<{ id: T; label: string }>
-}) {
-  return (
-    <div className="grid grid-cols-2 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1">
-      {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          aria-pressed={value === option.id}
-          onClick={() => onChange(option.id)}
-          className={cx(
-            'rounded-[var(--radius-control)] py-1.5 text-sm font-bold transition-colors',
-            value === option.id ? 'bg-signal text-on-signal' : 'text-ink-muted hover:text-ink',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 /** Create and edit share one form: an edit is a create that starts filled in. */
 function PromoFormDialog({
   item,
@@ -573,14 +494,15 @@ function PromoFormDialog({
             {form.discountType === 'Percentage' ? (
               <FieldLabel label="Foiz chegirma (1–99)">
                 <div className="relative">
-                  <input
+                  <Input
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     max={99}
                     required
                     value={form.percentOff}
                     onChange={(event) => set('percentOff', event.target.value)}
-                    className={cx(inputClass, 'pr-10')}
+                    className="pr-10"
                   />
                   <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm font-bold text-ink-faint">
                     %
@@ -590,13 +512,14 @@ function PromoFormDialog({
             ) : (
               <FieldLabel label="Chegirma summasi">
                 <div className="relative">
-                  <input
+                  <Input
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     required
                     value={form.amountOffUzs}
                     onChange={(event) => set('amountOffUzs', event.target.value)}
-                    className={cx(inputClass, 'pr-14')}
+                    className="pr-14"
                   />
                   <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm font-bold text-ink-faint">
                     UZS
@@ -606,24 +529,24 @@ function PromoFormDialog({
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <FieldLabel label="Boshlanish">
-                <input
-                  type="datetime-local"
-                  required
+              <div>
+                <span className="mb-1.5 block text-sm font-bold text-ink">Boshlanish</span>
+                <DateTimePicker
+                  label="Boshlanish"
                   value={form.validFrom}
-                  onChange={(event) => set('validFrom', event.target.value)}
-                  className={cx(inputClass, 'px-3')}
+                  onChange={(value) => set('validFrom', value)}
+                  {...pickerCopy}
                 />
-              </FieldLabel>
-              <FieldLabel label="Tugash">
-                <input
-                  type="datetime-local"
-                  required
+              </div>
+              <div>
+                <span className="mb-1.5 block text-sm font-bold text-ink">Tugash</span>
+                <DateTimePicker
+                  label="Tugash"
                   value={form.validUntil}
-                  onChange={(event) => set('validUntil', event.target.value)}
-                  className={cx(inputClass, 'px-3')}
+                  onChange={(value) => set('validUntil', value)}
+                  {...pickerCopy}
                 />
-              </FieldLabel>
+              </div>
             </div>
 
             {failure && <ErrorNote>{failure}</ErrorNote>}

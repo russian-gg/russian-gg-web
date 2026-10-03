@@ -352,8 +352,8 @@ function ChoiceGroup({ name, legend, requiredLabel, options, value, onChange }: 
           return (
             <label
               key={score}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-signal ${
-                checked ? 'border-signal bg-signal-soft' : 'border-hairline bg-ground hover:border-signal/50'
+              className={`raised flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-signal ${
+                checked ? 'border-signal bg-signal-soft raised-signal-soft' : 'border-hairline bg-ground hover:border-signal/50'
               }`}
             >
               <input

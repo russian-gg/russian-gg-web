@@ -13,6 +13,7 @@ import type {
   SalesUserStatus,
 } from '../lib/types'
 import { Badge, Button, Card, EmptyNote, ErrorNote, Loading, PageHeader, PeriodToggle, Screen, SectionHeading, Stat, Tabs } from '../components/ui'
+import { Checkbox } from '../../src/components/forms/Checkbox'
 import { BarList, ColumnChart } from '../components/charts'
 import { cx } from '../../src/lib/cx'
 import { DashboardGlyph, InboxGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
@@ -754,16 +755,14 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
             chat is the only one who knows whether they are finished with it.
           */}
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm font-bold text-ink">
-              <input
-                type="checkbox"
-                checked={chat.aiAutoReply}
-                disabled={busy}
-                onChange={(event) => void act(`/auto-reply?enabled=${event.target.checked}`)}
-                className="size-4 accent-[var(--color-signal)]"
-              />
+            <Checkbox
+              checked={chat.aiAutoReply}
+              disabled={busy}
+              onChange={(checked) => void act(`/auto-reply?enabled=${checked}`)}
+              className="text-sm font-bold text-ink"
+            >
               AI javob beradi
-            </label>
+            </Checkbox>
 
             {/*
               Archive, not delete. Somebody who blocked the bot leaves a thread that will never
@@ -1111,15 +1110,13 @@ function AgentSettings() {
       </Card>
 
     <Card className="space-y-4">
-      <label className="flex items-center gap-2 text-sm font-bold text-ink">
-        <input
-          type="checkbox"
-          checked={draft.isEnabled}
-          onChange={(event) => setDraft({ ...draft, isEnabled: event.target.checked })}
-          className="size-4 accent-[var(--color-signal)]"
-        />
+      <Checkbox
+        checked={draft.isEnabled}
+        onChange={(checked) => setDraft({ ...draft, isEnabled: checked })}
+        className="text-sm font-bold text-ink"
+      >
         Agent yoqilgan
-      </label>
+      </Checkbox>
 
       {/*
         Said where the switch is: off does not mean deaf. Everything is still recorded, so a

@@ -27,42 +27,39 @@ const base =
   'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none'
 
 /**
- * The press. A control rests on a solid edge of its own colour and, when pushed, sinks
- * onto it: the button drops by exactly the depth while the edge disappears, so the
- * bottom stays put and only the face moves.
+ * The press. A control is a raised object: a flat face in its own colour, resting on a thin
+ * edge a shade darker, with a soft shadow under it. Hovered it rises a couple of pixels; pushed
+ * it settles a couple of pixels down and most of the edge goes under it.
  *
- * Drawn with a shadow rather than a bottom border because the shadow follows the pill
- * radius exactly — a 4px border on a 999px radius renders as a lopsided crescent — and
- * because it costs no layout height, so nothing reflows on press.
+ * The effect itself is `.raised` in `styles.css`, not a string of utilities here, because the
+ * buttons are not the only things that press: an answer option in a lesson, a rating key, a
+ * round icon button all sit on the same edge, and they are styled by hand where they live. One
+ * definition is what keeps them moving alike. A variant only says which face it has — the tone
+ * class supplies the edge, the highlight and the cast that go with that face.
  *
- * Each variant supplies its own `--depth`, which is why this string is shared.
+ * The face itself is one solid colour. A gradient across it, or a strong coloured glow, turns a
+ * raised control into a shiny plastic one, and the colour does not change on hover for the same
+ * reason — the movement is the feedback.
  */
-const press =
-  'shadow-[0_4px_0_0_var(--depth)] ' +
-  // Hover lifts: the button rises and its edge grows, so it reads as coming toward the
-  // cursor. It used to only darken, which is what a disabled control does.
-  'hover:-translate-y-0.5 hover:shadow-[0_6px_0_0_var(--depth)] ' +
-  'active:translate-y-1 active:shadow-none'
+const primarySkin = 'border border-transparent bg-signal text-on-signal raised-signal'
+// Untoned: the neutral edge is the one a white, outlined face rests on.
+const secondarySkin = 'border-2 border-hairline bg-ground-raised text-ink'
 
 /**
  * Every variant states its own hover *and* border, so a variant is never distinguished
  * by colour alone — the outline button keeps a visible edge in both themes.
  */
 const variants: Record<ButtonVariant, string> = {
-  primary:
-    'border border-transparent bg-signal text-on-signal hover:bg-signal-hover ' +
-    `[--depth:var(--color-signal-depth)] ${press}`,
+  primary: `${primarySkin} raised`,
   // Stays on the raised surface on hover. Sinking it to `ground-sunken` dimmed the one
   // control on the screen the learner was reaching for.
-  secondary:
-    'border-2 border-hairline bg-ground-raised text-ink hover:border-ink-faint ' +
-    `[--depth:var(--color-control-depth)] ${press}`,
+  secondary: `${secondarySkin} hover:border-ink-faint raised`,
   // Flat on purpose: a tertiary action has no face to sink, so it keeps the small nudge.
   ghost:
     'border border-transparent text-ink-muted hover:bg-ground-sunken hover:text-ink active:translate-y-px',
   danger:
     'border border-danger bg-transparent text-danger hover:bg-danger-soft ' +
-    `[--depth:var(--color-danger-depth)] ${press}`,
+    'raised raised-danger-soft [--glow:transparent]',
 }
 
 const sizes: Record<ButtonSize, string> = {
@@ -122,6 +119,38 @@ export function LinkButton({
       {children}
     </Link>
   )
+}
+
+/*
+ * The same faces, driven by the card around them rather than by the element itself: lifted when
+ * the card is hovered, sunk when the card is pressed. See `ButtonFace`.
+ */
+const faces: Record<'primary' | 'secondary', string> = {
+  primary: `${primarySkin} raised-group`,
+  secondary: `${secondarySkin} group-hover:border-ink-faint raised-group`,
+}
+
+/**
+ * A button's face, for a card that is itself the button.
+ *
+ * Several cards — a day on the path, most of all — are one large control that ends in what
+ * looks like a button. A real `<button>` there would be a control nested inside a control, so
+ * it is a `<span>`; but it should still look and behave like every other button in the product,
+ * sitting on its edge and sinking onto it when pushed. It takes its cue from the nearest
+ * `group` ancestor, so the card must carry that class.
+ */
+export function ButtonFace({
+  variant = 'primary',
+  size = 'md',
+  className,
+  children,
+}: {
+  variant?: 'primary' | 'secondary'
+  size?: ButtonSize
+  className?: string
+  children: ReactNode
+}) {
+  return <span className={cx(base, faces[variant], sizes[size], className)}>{children}</span>
 }
 
 /**

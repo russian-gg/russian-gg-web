@@ -212,13 +212,13 @@ export function MissionResult() {
         <button
           type="button"
           onClick={() => void goHome()}
-          className="inline-flex items-center justify-center rounded-xl bg-signal px-6 py-4 text-base font-semibold text-on-signal shadow-soft transition hover:-translate-y-px hover:bg-signal-ink focus:outline-none focus:ring-4 focus:ring-signal-soft disabled:cursor-not-allowed disabled:opacity-60 w-full"
+          className="raised raised-signal inline-flex items-center justify-center rounded-xl bg-signal px-6 py-4 text-base font-semibold text-on-signal hover:bg-signal-ink focus:outline-none focus:ring-4 focus:ring-signal-soft disabled:cursor-not-allowed disabled:opacity-60 w-full"
         >
           {t.result.backHome}
         </button>
         <Link
           to="/practice"
-          className="inline-flex items-center justify-center rounded-xl border-2 border-hairline px-6 py-4 text-base font-semibold text-ink"
+          className="raised inline-flex items-center justify-center rounded-xl border-2 border-hairline px-6 py-4 text-base font-semibold text-ink"
         >
           {t.result.practiceMore}
         </Link>
@@ -260,14 +260,14 @@ function RetryPanel({ missionId, retry }: RetryPanelProps) {
             if (!canRetry) event.preventDefault()
           }}
           className={`inline-flex items-center justify-center rounded-[var(--radius-control)] px-5 py-3 text-sm font-extrabold ${
-            canRetry ? 'bg-signal text-on-signal' : 'cursor-not-allowed bg-ground-sunken text-ink-faint'
+            canRetry ? 'raised raised-signal bg-signal text-on-signal' : 'cursor-not-allowed bg-ground-sunken text-ink-faint'
           }`}
         >
           {t.result.retryNow}
         </Link>
         <Link
           to="/path"
-          className="inline-flex items-center justify-center rounded-[var(--radius-control)] border-2 border-hairline px-5 py-3 text-sm font-extrabold text-ink"
+          className="raised inline-flex items-center justify-center rounded-[var(--radius-control)] border-2 border-hairline px-5 py-3 text-sm font-extrabold text-ink"
         >
           {t.result.nextMission}
         </Link>

@@ -40,6 +40,7 @@ import {
 } from '../lib/audio-preferences'
 import { planLabel } from '../lib/format'
 import { useOpenGames } from '../lib/games'
+import { useTestsAvailable } from '../lib/tests'
 import { useRouteChange } from '../lib/route-change'
 import { useTheme } from '../lib/theme'
 import { LOCALES, LOCALE_NAMES, fill, useLocale, useT } from '../lib/i18n'
@@ -54,8 +55,7 @@ const NAV = [
   { to: '/home', key: 'today', icon: TodayGlyph },
   { to: '/path', key: 'path', icon: PathGlyph },
   { to: '/practice', key: 'practice', icon: TasksGlyph },
-  // No route: the chip says it is not built yet, so the row must not lead anywhere.
-  { to: null, key: 'tests', icon: TestsGlyph, comingSoon: true },
+  { to: '/tests', key: 'tests', icon: TestsGlyph },
   { to: '/progress', key: 'progress', icon: ProgressGlyph },
 ] as const
 
@@ -69,12 +69,18 @@ export function AppShell() {
    * shelf is worse than no menu item.
    */
   const openGames = useOpenGames()
+  /*
+   * Tests works the other way: the row always shows, but while the admin has no active test
+   * with questions it leads nowhere and says "coming soon" — the same as before the section
+   * was built — rather than opening an empty screen.
+   */
+  const testsAvailable = useTestsAvailable()
   const nav = useMemo(
-    () =>
-      openGames && openGames.length > 0
-        ? [...NAV, { to: '/games', key: 'games' as const, icon: GamesGlyph }]
-        : NAV,
-    [openGames],
+    () => [
+      ...NAV.map((item) => (item.key === 'tests' && !testsAvailable ? { ...item, to: null, comingSoon: true } : item)),
+      ...(openGames && openGames.length > 0 ? [{ to: '/games', key: 'games' as const, icon: GamesGlyph }] : []),
+    ],
+    [openGames, testsAvailable],
   )
   const { data: progress } = useQuery({
     queryKey: ['progress'],
@@ -127,7 +133,7 @@ export function AppShell() {
               icon={item.icon}
               trailing={item.to === '/path' ? `${completedDays}/90` : undefined}
               trailingHint={fill(t.nav.daysDone, { count: completedDays })}
-              comingSoon={'comingSoon' in item && item.comingSoon}
+              comingSoon={'comingSoon' in item && Boolean(item.comingSoon)}
               comingSoonLabel={t.nav.comingSoon}
             >
               {t.nav[item.key]}
@@ -195,7 +201,7 @@ export function AppShell() {
                   ? fill(t.nav.daysDone, { count: completedDays })
                   : undefined
               }
-              comingSoon={'comingSoon' in item && item.comingSoon}
+              comingSoon={'comingSoon' in item && Boolean(item.comingSoon)}
               comingSoonHint={t.nav.comingSoon}
             />
           ))}
@@ -238,10 +244,10 @@ function WelcomeDiscountCountdown() {
     <Link
       to="/paywall"
       aria-label={fill(t.welcomeGift.expiresIn, { time })}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[13px] font-extrabold tabular-nums shadow-sm transition-colors ${
+      className={`raised raised-sm inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[13px] font-extrabold tabular-nums ${
         urgent
-          ? 'border-danger/25 bg-danger-soft text-danger'
-          : 'border-signal/20 bg-signal-soft text-signal-ink hover:border-signal/45'
+          ? 'border-danger/25 bg-danger-soft text-danger raised-danger-soft'
+          : 'border-signal/20 bg-signal-soft text-signal-ink hover:border-signal/45 raised-signal-soft'
       }`}
     >
       <span
@@ -376,7 +382,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left transition hover:border-signal ${
+        className={`raised flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised text-left hover:border-signal ${
           compact ? 'max-w-[10.5rem] px-2.5 py-2' : 'w-full px-3 py-2'
         }`}
       >

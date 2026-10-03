@@ -35,7 +35,7 @@ import {
 } from '../lib/lesson-icons'
 import { fill, useT, type Dictionary } from '../lib/i18n'
 import { useFocusTrap } from '../lib/focus-trap'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -51,6 +51,8 @@ import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
 import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio } from '../lib/liveVoice'
 import { playUiSound, type UiSound } from '../lib/ui-sounds'
+import { celebrate } from '../lib/celebrate'
+import { Celebration } from '../components/Celebration'
 import type { StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
 
 /**
@@ -228,7 +230,7 @@ export function FoundationLesson() {
   const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate) : null
   const canContinue = blockReason === null
 
-  if (!lesson || day < 1 || day > 15) return <Navigate to="/path" replace />
+  if (!lesson) return <Navigate to="/path" replace />
 
   async function finishCurrent() {
     const completed = state.completed.includes(active.id)
@@ -448,9 +450,9 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
               else playUiSound('wrong')
             }}
             className={cx(
-              'rounded-xl border-2 px-3 py-2.5 text-left text-sm font-bold transition',
+              'raised rounded-xl border-2 px-3 py-2.5 text-left text-sm font-bold',
               answer === index
-                ? index === quiz.correct ? 'border-milestone bg-milestone-soft' : 'border-danger bg-danger-soft'
+                ? index === quiz.correct ? 'border-milestone bg-milestone-soft raised-milestone-soft' : 'border-danger bg-danger-soft raised-danger-soft'
                 : 'border-hairline bg-ground-raised hover:border-signal',
             )}
           >
@@ -494,7 +496,7 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
           <p className="mt-2 font-semibold leading-relaxed text-ink-muted"><RussianText text={rule.lead} /></p>
-          <RuleSpeechButton segments={speechSegments} className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">{t.listen}</RuleSpeechButton>
+          <RuleSpeechButton segments={speechSegments} className="raised raised-sm raised-signal-soft mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">{t.listen}</RuleSpeechButton>
         </div>
       </div>
       {genderStory && (
@@ -528,7 +530,7 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
       {rule.examples.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {rule.examples.map((example) => (
-            <SpeechButton key={example} text={example} lang="ru-RU" className={cx('rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink shadow-sm', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
+            <SpeechButton key={example} text={example} lang="ru-RU" className={cx('raised raised-sm rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
               <RussianText text={example} />
             </SpeechButton>
           ))}
@@ -560,7 +562,7 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
             text={twister.ru}
             lang="ru-RU"
             rate={rate}
-            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink shadow-sm"
+            className="raised raised-sm inline-flex items-center gap-1.5 rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink"
           >
             <Icon aria-hidden="true" strokeWidth={2} className="size-4" />
             {t.speed[key]}
@@ -628,7 +630,7 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
       <p className="mb-3 text-sm leading-relaxed text-ink-muted">{t.intro}</p>
       <div className="grid gap-2 sm:grid-cols-2">
         {phrases.map((phrase, index) => (
-          <button key={`${phrase.ru}-${index}`} type="button" onClick={() => setOpen(index)} className="flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised p-3 text-left shadow-sm transition hover:border-signal">
+          <button key={`${phrase.ru}-${index}`} type="button" onClick={() => setOpen(index)} className="raised flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised p-3 text-left hover:border-signal">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-xl">{phrase.icon}</span>
             <span className="min-w-0 flex-1">
               <span className="block font-black text-ink"><RussianText text={phrase.ru} /></span>
@@ -670,11 +672,11 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
               <p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={phrase.example} /></p>
             </div>
           )}
-          <SpeechButton text={phrase.ru} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.repeat}</SpeechButton>
+          <SpeechButton text={phrase.ru} lang="ru-RU" className="raised raised-signal mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.repeat}</SpeechButton>
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => { playUiSound('coin'); onRate('known') }} className="rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">{rating.known}</button>
-            <button type="button" onClick={() => { playUiSound('wrong'); onRate('unknown') }} className="rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">{rating.unknown}</button>
-            <button type="button" onClick={() => { playUiSound('select'); onRate('repeat') }} className="rounded-xl border border-hairline px-2 py-2 text-xs font-black text-ink">{rating.again}</button>
+            <button type="button" onClick={() => { playUiSound('coin'); onRate('known') }} className="raised raised-signal rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">{rating.known}</button>
+            <button type="button" onClick={() => { playUiSound('wrong'); onRate('unknown') }} className="raised raised-danger-soft rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">{rating.unknown}</button>
+            <button type="button" onClick={() => { playUiSound('select'); onRate('repeat') }} className="raised rounded-xl border border-hairline px-2 py-2 text-xs font-black text-ink">{rating.again}</button>
           </div>
         </div>
       </Card>
@@ -869,7 +871,7 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
           <span>{t.words}</span>
           <span>{t.swipe}</span>
         </div>
-        <div className="-mx-3 overflow-x-auto px-3 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
+        <div className="-mx-3 overflow-x-auto px-3 pt-1 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
           <div className="flex w-max min-w-full gap-2">
             {remaining.length > 0 ? remaining.map((pair) => (
               <div key={pair.left} className={cx('flex shrink-0 items-center rounded-xl border-2 bg-ground-raised shadow-sm transition', selected === pair.left && 'border-signal bg-signal-soft', error?.word === pair.left ? 'animate-pulse border-danger bg-danger-soft' : 'border-hairline')}>
@@ -993,7 +995,7 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
           <div className="grid content-start gap-2">
             {lesson.game.pairs.map((pair) => {
               const done = matches[pair.left] === pair.right
-              return <button key={pair.left} type="button" disabled={done} onClick={() => setSelected(pair.left)} className={cx('min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}><RussianText text={pair.left} /></button>
+              return <button key={pair.left} type="button" disabled={done} onClick={() => setSelected(pair.left)} className={cx('raised min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground-raised text-ink')}><RussianText text={pair.left} /></button>
             })}
           </div>
           <div className="grid content-start gap-2">
@@ -1017,7 +1019,7 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
                   playUiSound('wrong')
                   showNote('incorrect')
                 }
-              }} className={cx('min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
+              }} className={cx('raised min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
             })}
           </div>
         </div>
@@ -1134,7 +1136,7 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
                 <span className="text-xl font-black text-ink"><RussianText text={current.left} /></span>
               </div>
               <div className="grid gap-2">
-                {options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}
+                {options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('raised min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger raised-danger-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}
               </div>
             </> : <div className="rounded-2xl bg-milestone-soft p-5 text-center"><PartyPopper aria-hidden="true" strokeWidth={1.5} className="mx-auto size-12 text-milestone" /><h4 className="mt-2 text-xl font-black text-milestone">{t.bagReady}</h4><p className="mt-1 text-sm text-ink-muted">{t.bagBonus}</p></div>}
           </div>
@@ -1179,7 +1181,7 @@ function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonD
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {lesson.game.pairs.map((pair) => {
             const done = Boolean(matches[pair.left]?.trim())
-            return <button key={pair.left} type="button" onClick={() => selectPicture(pair.left)} className={cx('flex min-h-28 flex-col items-center justify-center rounded-2xl border-2 p-3 transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><SceneIcon word={pair.left} className="size-9 text-signal-ink" /><span className="mt-2 text-sm font-black">{pair.left}</span>{done && <Check aria-hidden="true" strokeWidth={3} className="mt-1 size-3.5" />}</button>
+            return <button key={pair.left} type="button" onClick={() => selectPicture(pair.left)} className={cx('raised flex min-h-28 flex-col items-center justify-center rounded-2xl border-2 p-3', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><SceneIcon word={pair.left} className="size-9 text-signal-ink" /><span className="mt-2 text-sm font-black">{pair.left}</span>{done && <Check aria-hidden="true" strokeWidth={3} className="mt-1 size-3.5" />}</button>
           })}
         </div>
       </Card>
@@ -1235,13 +1237,13 @@ function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matche
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {lesson.game.pairs.map((pair) => {
               const done = matches[pair.left] === pair.right
-              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink' : 'border-white bg-white/75 text-ink hover:border-signal')}><CityIcon word={pair.left} className="size-8" /><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-black">+10 <Check aria-hidden="true" strokeWidth={3} className="size-3" /></span>}</button>
+              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('raised flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink raised-signal-soft' : 'border-white bg-white/75 text-ink hover:border-signal')}><CityIcon word={pair.left} className="size-8" /><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-black">+10 <Check aria-hidden="true" strokeWidth={3} className="size-3" /></span>}</button>
             })}
           </div>
         </div>
       </Card>
 
-      {current && <Card className="p-3 sm:p-4"><p className="mb-3 text-sm font-black text-ink"><CityIcon word={current.left} className="mr-2 inline size-6" /><RussianText text={current.left} /> {t.pickTrueSentenceSuffix}</p><div className="grid gap-2">{options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black transition', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}</div></Card>}
+      {current && <Card className="p-3 sm:p-4"><p className="mb-3 text-sm font-black text-ink"><CityIcon word={current.left} className="mr-2 inline size-6" /><RussianText text={current.left} /> {t.pickTrueSentenceSuffix}</p><div className="grid gap-2">{options.map((option) => <button key={option} type="button" onClick={() => choose(option)} className={cx('raised min-h-12 rounded-xl border-2 px-3 py-2 text-left text-sm font-black', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger raised-danger-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={option} /></button>)}</div></Card>}
       {solved.length === lesson.game.pairs.length && <Card className="border-milestone bg-milestone-soft/50 p-5 text-center"><Landmark aria-hidden="true" strokeWidth={1.5} className="mx-auto size-12 text-milestone" /><h4 className="mt-2 text-xl font-black text-milestone">{t.cityDone}</h4><p className="mt-1 text-sm text-ink-muted">{t.cityDoneBody}</p></Card>}
     </div>
   )
@@ -1300,7 +1302,7 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
         {lesson.game.pairs.map((pair) => {
           const done = matches[pair.left] === pair.right
           return (
-            <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('rounded-xl border-2 px-3 py-2.5 text-left text-sm font-black transition', done ? 'border-milestone bg-milestone-soft text-milestone' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>
+            <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('raised rounded-xl border-2 px-3 py-2.5 text-left text-sm font-black', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground-raised text-ink')}>
               <RussianText text={pair.left} /> {done
                 ? <Check aria-hidden="true" strokeWidth={3} className="inline size-3.5" />
                 : <ArrowRight aria-hidden="true" strokeWidth={2.4} className="inline size-3.5 opacity-60" />}
@@ -1314,7 +1316,7 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
           <p className="mb-2 text-xs font-black text-ink-muted"><RussianText text={selected} /> {t.pickPluralSuffix}</p>
           <div className="flex flex-wrap gap-2">
             {options.map((option) => (
-              <button key={option} type="button" onClick={() => choosePlural(option)} className={cx('rounded-full border-2 px-3 py-2 text-sm font-black', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}>
+              <button key={option} type="button" onClick={() => choosePlural(option)} className={cx('raised rounded-full border-2 px-3 py-2 text-sm font-black', wrong === option ? 'animate-pulse border-danger bg-danger-soft text-danger raised-danger-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}>
                 <RussianText text={option} />
               </button>
             ))}
@@ -1371,10 +1373,10 @@ function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matche
 
       <Card className="overflow-hidden p-3 sm:p-4">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-black text-ink-muted"><span>{t.objects}</span><span>{t.swipe}</span></div>
-        <div className="-mx-3 overflow-x-auto px-3 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
+        <div className="-mx-3 overflow-x-auto px-3 pt-1 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
           <div className="flex w-max min-w-full gap-2">
             {remaining.length > 0 ? remaining.map((pair) => (
-              <button key={pair.left} type="button" onClick={() => { setSelected(pair.left); setWrongSlot(null); playUiSound('select') }} className={cx('shrink-0 rounded-xl border-2 px-3 py-2.5 text-sm font-black transition', selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground-raised text-ink')}>
+              <button key={pair.left} type="button" onClick={() => { setSelected(pair.left); setWrongSlot(null); playUiSound('select') }} className={cx('raised shrink-0 rounded-xl border-2 px-3 py-2.5 text-sm font-black', selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground-raised text-ink')}>
                 <RoomObjectIcon word={pair.left} className="mr-1.5 inline size-4" /><RussianText text={pair.left} />
               </button>
             )) : <p className="w-full py-2 text-center text-sm font-black text-milestone">{t.roomReady}</p>}
@@ -1460,7 +1462,7 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
                   placeholder={'_ '.repeat(answer.length).trim()}
                   className="min-w-0 flex-1 rounded-xl border border-hairline bg-ground px-3 py-2 text-sm font-black text-ink outline-none focus:border-signal disabled:text-milestone"
                 />
-                <button type="button" disabled={done} onClick={() => check(answer)} className="rounded-xl bg-signal px-3 text-sm font-black text-on-signal disabled:bg-milestone">{done
+                <button type="button" disabled={done} onClick={() => check(answer)} className="raised raised-signal rounded-xl bg-signal px-3 text-sm font-black text-on-signal disabled:bg-milestone">{done
                 ? <Check aria-hidden="true" strokeWidth={3} className="size-4" />
                 : <ArrowRight aria-hidden="true" strokeWidth={2.4} className="size-4" />}</button>
               </div>
@@ -1653,7 +1655,7 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
       ) : (
         <div className="text-center">
           <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">{questionIndex + 1} / {lesson.questions.length}</p>
-          <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
+          <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="raised raised-signal-soft mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
           <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording(() => setTimeout(() => setQuestionIndex((current) => Math.min(current + 1, lesson.questions.length - 1)), 900))} />
           <button type="button" onClick={() => setMode('dialogue')} className="mt-3 text-sm font-black text-ink-muted underline">{t.backToDialogue}</button>
         </div>
@@ -1687,7 +1689,7 @@ function DialogueLine({ line }: { line: string }) {
 
 function MicButton({ listening, processing, onClick }: { listening: boolean; processing: boolean; onClick: () => void }) {
   const t = useT().lesson.missions
-  return <button type="button" onClick={onClick} disabled={processing} className={cx('mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white shadow-lg disabled:opacity-60', listening ? 'animate-pulse bg-danger' : 'bg-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
+  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white disabled:opacity-60', listening ? 'animate-pulse bg-danger raised-danger' : 'bg-signal raised-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
       ? <Square aria-hidden="true" strokeWidth={0} className="size-5 fill-current" />
       : <Mic aria-hidden="true" strokeWidth={1.9} className="size-6" />}</button>
 }
@@ -1753,7 +1755,7 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
   return createPortal(
     <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] overflow-y-auto bg-ground p-3 sm:p-6" role="dialog" aria-modal="true">
       <div className="mx-auto flex min-h-full max-w-lg flex-col">
-        <div className="flex items-center justify-between py-2 text-sm font-black text-ink-muted"><span>{index + 1} / {words.length}</span><button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full border border-hairline text-xl text-ink">×</button></div>
+        <div className="flex items-center justify-between py-2 text-sm font-black text-ink-muted"><span>{index + 1} / {words.length}</span><button type="button" onClick={onClose} className="raised raised-sm flex size-10 items-center justify-center rounded-full border border-hairline text-xl text-ink">×</button></div>
         <div className="flex flex-1 items-center py-2">
           <div role="button" tabIndex={0} onClick={() => setFlipped((current) => !current)} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -1764,14 +1766,14 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
             <div className="flex h-32 items-center justify-center bg-signal-soft text-6xl sm:h-40">{word.icon}</div>
             <div className="min-h-52 p-5 sm:min-h-60 sm:p-7">
               {!flipped ? (
-                <><h2 className="text-3xl font-black text-ink"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.listenAndRepeat}</SpeechButton></>
+                <><h2 className="text-3xl font-black text-ink"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="raised raised-signal mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.listenAndRepeat}</SpeechButton></>
               ) : (
                 <><h2 className="text-3xl font-black text-ink">{word.uz}</h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><span className="mt-4 block text-sm font-bold text-ink-muted">{t.tapForFront}</span></>
               )}
             </div>
           </div>
         </div>
-        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('coin')} className="rounded-xl bg-signal py-3 text-xs font-black text-white">выучил</button><button type="button" onClick={() => rate('wrong')} className="rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={() => rate('select')} className="rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
+        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('coin')} className="raised raised-signal rounded-xl bg-signal py-3 text-xs font-black text-white">выучил</button><button type="button" onClick={() => rate('wrong')} className="raised raised-danger-soft rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={() => rate('select')} className="raised rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
       </div>
     </div>, document.body,
   )
@@ -1823,7 +1825,7 @@ function ExerciseSection({ lesson, answer, onAnswerChange }: {
 
       {/* Reading an unfilled blank template aloud would just voice silence where each input is. */}
       {fullText.trim() && (
-        <SpeechButton text={fullText} lang="ru-RU" className="mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">
+        <SpeechButton text={fullText} lang="ru-RU" className="raised raised-sm raised-signal-soft mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-4 py-2 text-sm font-black text-signal-ink">
           {t.listenToText}
         </SpeechButton>
       )}
@@ -1942,7 +1944,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
         ))}
       </div>
       {lesson.reflection && <ReflectionQuestions reflection={lesson.reflection} />}
-      {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal shadow-sm">{lesson.completionAction.label} <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="inline size-4" /></a>}
+      {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="raised raised-signal mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal">{lesson.completionAction.label} <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="inline size-4" /></a>}
     </Card>
   )
 }
@@ -1961,8 +1963,8 @@ function ReflectionQuestions({ reflection }: { reflection: NonNullable<LessonDat
                 type="button"
                 onClick={() => { setPicked((current) => ({ ...current, [questionIndex]: optionIndex })); playUiSound('select') }}
                 className={cx(
-                  'rounded-full border-2 px-3 py-1.5 text-xs font-black transition',
-                  picked[questionIndex] === optionIndex ? 'border-signal bg-signal-soft text-signal-ink' : 'border-hairline bg-ground text-ink-muted hover:border-signal',
+                  'raised raised-sm rounded-full border-2 px-3 py-1.5 text-xs font-black',
+                  picked[questionIndex] === optionIndex ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground text-ink-muted hover:border-signal',
                 )}
               >
                 {option}
@@ -2268,19 +2270,3 @@ function readState(storageKey: string | null): StoredState {
   } catch { return emptyState }
 }
 
-const celebrationColors = ['#5b9bf5', '#ff2400', '#f4c84d', '#44944a', '#ed3cca']
-/**
- * Defaults are the small burst a correct answer earns. The end-of-lesson card asks for more —
- * finishing a whole day should not look the same as getting one quiz right.
- */
-function Celebration({ pieces = 52, balloons = 12 }: { pieces?: number; balloons?: number }) {
-  return createPortal(<span className="pointer-events-none fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">{Array.from({ length: pieces }, (_, index) => {
-    const style = { '--fall-x': `${3 + ((index * 37) % 94)}vw`, '--fall-drift': `${(index % 2 ? -1 : 1) * (16 + (index % 5) * 8)}px`, '--fall-rotate': `${360 + index * 29}deg`, '--fall-delay': `${(index % 12) * 45}ms`, '--fall-duration': `${1900 + (index % 7) * 130}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties
-    return <span key={index} className={cx('answer-celebration__piece', index % 3 === 0 ? 'answer-celebration__ball' : 'answer-celebration__ribbon')} style={style} />
-  })}{Array.from({ length: balloons }, (_, index) => <span key={`balloon-${index}`} className="answer-celebration__balloon" style={{ '--balloon-x': `${5 + ((index * 41) % 90)}vw`, '--balloon-delay': `${index * 90}ms`, '--fall-color': celebrationColors[index % celebrationColors.length] } as CSSProperties} />)}</span>, document.body)
-}
-
-function celebrate(pattern: number | number[] = 35, sound: UiSound = 'correct') {
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) navigator.vibrate?.(pattern)
-  playUiSound(sound)
-}

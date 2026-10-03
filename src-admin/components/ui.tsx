@@ -1,7 +1,14 @@
 import { Children, isValidElement, useEffect } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { useFocusTrap } from '../../src/lib/focus-trap'
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react'
+import type {
+  ButtonHTMLAttributes,
+  HTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  Ref,
+  TextareaHTMLAttributes,
+} from 'react'
 import { cx } from '../../src/lib/cx'
 import { Overlay, Reveal, Sequence } from '../../src/components/motion'
 import { fadeUp, rise, stagger } from '../../src/lib/motion'
@@ -308,30 +315,131 @@ export function TextField({
   )
 }
 
-export function Select({
+/*
+ * The dropdown is shared with the learner app (`src/components/forms`), so both products open
+ * the same list with the same animation. Re-exported here so screens keep one import site.
+ */
+export { Select } from '../../src/components/forms/Select'
+
+/* ------------------------------------------------------------------------------- controls */
+
+export function Switch({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cx(
+        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+        checked ? 'bg-milestone' : 'bg-hairline',
+      )}
+    >
+      <span
+        className={cx(
+          'inline-block size-5 rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+        )}
+      />
+    </span>
+  )
+}
+
+export function IconButton({
+  label,
+  onClick,
+  tone = 'neutral',
+  children,
+}: {
+  label: string
+  onClick: () => void
+  tone?: 'neutral' | 'danger'
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cx(
+        'inline-flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted transition-colors',
+        tone === 'danger' ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-ground-sunken hover:text-ink',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+export const inputClass =
+  'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
+
+/** A text input in the panel's style. Every native attribute passes through. */
+export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={cx(
+        inputClass,
+        // Numbers are typed, not nudged: the browser's spinner arrows are hidden, as in shadcn.
+        props.type === 'number' &&
+          '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+        className,
+      )}
+    />
+  )
+}
+
+/** Multi-line text, same frame as `Input` but with a card's corners rather than a pill's. */
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className={cx(
+        'min-h-24 w-full resize-y rounded-2xl border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none',
+        className,
+      )}
+    />
+  )
+}
+
+export function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-bold text-ink">{label}</span>
+      {children}
+    </label>
+  )
+}
+
+/** A few-way choice drawn as a segmented control: every option stays visible, unlike a select. */
+export function Segmented<T extends string>({
   value,
   onChange,
   options,
-  label,
 }: {
-  value: string
-  onChange: (value: string) => void
-  options: Array<{ value: string; label: string }>
-  label: string
+  value: T
+  onChange: (value: T) => void
+  options: Array<{ id: T; label: string }>
 }) {
   return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="h-11 max-w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 text-sm font-semibold text-ink focus:border-signal focus:outline-none"
+    <div
+      className="grid rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => (
-        <option key={option.value} value={option.value}>
+        <button
+          key={option.id}
+          type="button"
+          aria-pressed={value === option.id}
+          onClick={() => onChange(option.id)}
+          className={cx(
+            'rounded-[var(--radius-control)] py-1.5 text-sm font-bold transition-colors',
+            value === option.id ? 'bg-signal text-on-signal' : 'text-ink-muted hover:text-ink',
+          )}
+        >
           {option.label}
-        </option>
+        </button>
       ))}
-    </select>
+    </div>
   )
 }
 

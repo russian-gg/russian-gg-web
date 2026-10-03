@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Menu, MoreVertical, Share, X } from 'lucide-react'
+import { Menu, MoreVertical, Share, X } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
-import { cx } from '../lib/cx'
+import { Checkbox } from './forms/Checkbox'
 import { useT } from '../lib/i18n'
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
@@ -182,34 +182,15 @@ export function InstallPrompt() {
 
           Ticking it is the answer on its own — nothing else has to be pressed.
         */}
-        <label className="mt-3 flex cursor-pointer items-center gap-2.5 py-1 select-none">
-          <input
-            type="checkbox"
-            checked={never}
-            onChange={(event) => setNever(event.target.checked)}
-            className="peer sr-only"
-          />
-          <span
-            aria-hidden="true"
-            className={cx(
-              'flex size-5 shrink-0 items-center justify-center rounded-[7px] border-2 transition-colors',
-              // The real input is off-screen, so the box has to wear its focus ring.
-              'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-signal',
-              never ? 'border-signal bg-signal' : 'border-hairline bg-ground-raised',
-            )}
-          >
-            {never && (
-              <Check aria-hidden="true" strokeWidth={3.5} className="size-3 text-on-signal" />
-            )}
-          </span>
+        <Checkbox checked={never} onChange={setNever} className="mt-3 py-1">
           <span className="text-sm text-ink-muted">{t.install.neverShow}</span>
-        </label>
+        </Checkbox>
 
         <div className="mt-2 flex items-center gap-2">
           <button
             type="button"
             onClick={() => void download()}
-            className="h-11 flex-1 rounded-[var(--radius-control)] bg-signal px-5 text-sm font-extrabold text-on-signal transition-colors hover:bg-signal-hover"
+            className="raised raised-signal h-11 flex-1 rounded-[var(--radius-control)] bg-signal px-5 text-sm font-extrabold text-on-signal hover:bg-signal-hover"
           >
             {t.install.action}
           </button>

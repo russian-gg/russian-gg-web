@@ -146,9 +146,13 @@ export function SignIn() {
             initial="hidden"
             animate="shown"
             exit="exit"
-            className="overflow-hidden"
+            // `overflow-hidden` is what lets the height animate, and it also clips whatever
+            // paints outside the children: the button's 4px pressed edge and the 4px focus
+            // ring. The negative margin widens the clip by that much and the padding gives it
+            // back, so nothing moves and nothing is cut off.
+            className="-mx-1 -mb-1.5 overflow-hidden"
           >
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4 px-1 pt-4 pb-1.5">
             <PasswordField
               label={t.auth.password}
               name="password"

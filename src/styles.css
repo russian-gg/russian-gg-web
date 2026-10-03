@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /*
+  shadcn/ui's enter and exit animations (`animate-in fade-in-0 zoom-in-95` and friends), used by
+  the Radix-based form controls in `components/forms`. The global reduced-motion rule below
+  already shortens them to nothing for anybody who asked for less motion.
+*/
+@import 'tw-animate-css';
+
+/*
   Nunito, self-hosted. It is the free web alternative to the rounded typeface this kind of
   interface is built on, and rounded letterforms are most of why the product reads as
   encouraging rather than clinical.
@@ -530,6 +537,131 @@
     color: var(--color-ink-muted);
     font-size: 0.9375rem;
     line-height: 1.55;
+  }
+
+  /*
+    The raised control.
+
+    Anything that can be pushed is a raised object: a face in its own colour, resting on a thin
+    edge a shade darker, with a soft shadow under it. Hovered it rises two pixels; pushed it
+    settles two pixels down and most of the edge goes under it. `Button` is built on this, and so
+    is every hand-styled control — an answer option, a rating key, a round icon button — so the
+    whole product presses the same way.
+
+    It paints nothing itself. The face keeps whatever background, border and text colour its
+    own classes give it; this only adds the three layers around the face:
+
+      --shine  a one-pixel highlight inside the top of the face;
+      --depth  the solid edge it rests on;
+      --glow   the soft cast under the edge;
+      --edge   how thick the edge is at rest.
+
+    The defaults sit in `:where()`, which has no specificity, so a tone class below — or an
+    arbitrary `[--depth:…]` on the element — wins whatever order the stylesheet lands in.
+
+    Drawn with shadows rather than a bottom border because a shadow follows the radius exactly
+    and costs no layout height: nothing reflows on press. The lift is on `translate`, which is
+    a separate property from the `transform` Motion animates, so the two compose.
+
+    `.raised` answers to its own hover and press. `.raised-group` is the same face for a card
+    that is itself the control: it takes its cue from the nearest `.group` ancestor.
+  */
+  :where(.raised, .raised-group) {
+    --shine: transparent;
+    --depth: var(--color-control-depth);
+    --glow: rgb(22 24 29 / 0.08);
+    --edge: 3px;
+  }
+
+  .raised,
+  .raised-group {
+    box-shadow:
+      inset 0 1px 0 0 var(--shine),
+      0 var(--edge) 0 0 var(--depth),
+      0 calc(var(--edge) + 5px) 14px -6px var(--glow);
+    transition-property: background-color, border-color, color, opacity, box-shadow, translate, scale;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Hover lifts by 2px and the edge grows by the same 2px: the foot stays where it was and
+     only the face comes toward the cursor. Hover-capable pointers only — on a phone a tap
+     would otherwise leave the control stuck in the air. */
+  @media (hover: hover) {
+    .raised:hover,
+    .group:hover .raised-group {
+      translate: 0 -2px;
+      box-shadow:
+        inset 0 1px 0 0 var(--shine),
+        0 calc(var(--edge) + 2px) 0 0 var(--depth),
+        0 calc(var(--edge) + 9px) 18px -6px var(--glow);
+    }
+  }
+
+  /* Pressed it goes 2px down. A sliver of the edge is left, so it reads as pushed, not gone. */
+  .raised:active,
+  .group:active .raised-group {
+    translate: 0 2px;
+    box-shadow:
+      inset 0 1px 0 0 var(--shine),
+      0 1px 0 0 var(--depth),
+      0 3px 6px -3px var(--glow);
+    transition-duration: 80ms;
+  }
+
+  /* A control that cannot be pushed is not raised: no edge to sink, and it does not move. */
+  .raised:disabled,
+  .raised[aria-disabled='true'] {
+    translate: none;
+    box-shadow: none;
+  }
+
+  /* A small chip carries a thinner edge; the full one is as tall as its own padding. */
+  .raised-sm {
+    --edge: 2px;
+  }
+
+  /*
+    Tones. Each names the face it goes under and supplies only the edge, the highlight and the
+    cast for it — every one mixed from the colour the face already has, so no tone brings a new
+    colour to the screen. Untoned, a control gets the neutral edge of a white or outlined face.
+  */
+
+  /* Solid faces. The highlight is white because the face is saturated enough to show it. */
+  .raised-signal {
+    --shine: rgb(255 255 255 / 0.28);
+    --depth: var(--color-signal-depth);
+    --glow: color-mix(in srgb, var(--color-signal-depth) 35%, transparent);
+  }
+
+  .raised-milestone {
+    --shine: rgb(255 255 255 / 0.2);
+    --depth: color-mix(in srgb, var(--color-milestone) 72%, black);
+    --glow: color-mix(in srgb, var(--color-milestone) 30%, transparent);
+  }
+
+  .raised-danger {
+    --shine: rgb(255 255 255 / 0.2);
+    --depth: color-mix(in srgb, var(--color-danger) 72%, black);
+    --glow: color-mix(in srgb, var(--color-danger) 30%, transparent);
+  }
+
+  /* Tinted and outlined faces: chosen, done, wrong. The edge is the face's own border colour,
+     thinned toward the page, and there is no highlight — a white line on a pale face is
+     nothing in the light theme and a scratch in the dark one. */
+  .raised-signal-soft {
+    --depth: color-mix(in srgb, var(--color-signal) 55%, var(--color-ground));
+    --glow: color-mix(in srgb, var(--color-signal) 18%, transparent);
+  }
+
+  .raised-milestone-soft {
+    --depth: color-mix(in srgb, var(--color-milestone) 38%, var(--color-ground));
+    --glow: color-mix(in srgb, var(--color-milestone) 14%, transparent);
+  }
+
+  .raised-danger-soft {
+    --depth: var(--color-danger-depth);
+    --glow: color-mix(in srgb, var(--color-danger) 12%, transparent);
   }
 
   /* Respect a reduced-motion preference for the mission player's animated states. */

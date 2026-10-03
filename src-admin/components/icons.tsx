@@ -1,4 +1,5 @@
 import {
+  ClipboardCheck,
   CreditCard,
   Gamepad2,
   Inbox,
@@ -86,6 +87,10 @@ export function StarGlyph() {
  */
 export function GamesGlyph() {
   return <Gamepad2 {...props} />
+}
+
+export function TestsGlyph() {
+  return <ClipboardCheck {...props} />
 }
 
 export function PromoGlyph() {

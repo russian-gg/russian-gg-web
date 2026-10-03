@@ -58,6 +58,9 @@ const SpeakingGamePage = route(
   'SpeakingGamePage',
 )
 const Practice = route(() => import('./routes/Practice'), 'Practice')
+const Tests = route(() => import('./routes/tests/Tests'), 'Tests')
+const TestBlockPlayer = route(() => import('./routes/tests/TestBlockPlayer'), 'TestBlockPlayer')
+const TestReview = route(() => import('./routes/tests/TestReview'), 'TestReview')
 const Progress = route(() => import('./routes/Progress'), 'Progress')
 const Settings = route(() => import('./routes/Settings'), 'Settings')
 const SignIn = route(() => import('./routes/SignIn'), 'SignIn')
@@ -107,6 +110,9 @@ export function App() {
               <Route path="/home" element={<Home />} />
               <Route path="/path" element={<CoursePath />} />
               <Route path="/practice" element={<Practice />} />
+              <Route path="/tests" element={<Tests />} />
+              <Route path="/tests/blocks/:blockId" element={<TestBlockPlayer />} />
+              <Route path="/tests/blocks/:blockId/review" element={<TestReview />} />
               <Route path="/games" element={<Games />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/feedbacks" element={<FeedbacksPage />} />

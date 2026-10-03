@@ -517,7 +517,7 @@ export function Onboarding() {
         <button
           type="button"
           onClick={begin}
-          className="mx-auto grid size-24 place-items-center rounded-full bg-signal text-on-signal transition-transform hover:scale-105 active:scale-95"
+          className="raised raised-signal mx-auto grid size-24 place-items-center rounded-full bg-signal text-on-signal [--edge:5px]"
           aria-label={t.start}
         >
           <MicGlyph />
