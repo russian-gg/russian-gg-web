@@ -36,16 +36,18 @@ const ORB_STATE: Record<LiveVoiceStatus, OrbState> = {
 const MISSION_TOOLS: LiveFunctionDeclaration[] = [
   {
     name: 'step_completed',
-    description: 'The learner has just correctly said the answer this step of the scene was waiting for.',
+    description:
+      'The learner has just completed a learning goal of the mission themselves: they communicated what it requires, in their own words.',
     parameters: {
       type: 'OBJECT',
-      properties: { step: { type: 'INTEGER', description: 'The step number, starting at 1.' } },
+      properties: { step: { type: 'INTEGER', description: 'The number of the learning goal, starting at 1.' } },
       required: ['step'],
     },
   },
   {
     name: 'finish_mission',
-    description: 'Every step of the scene is complete and the closing line has been said. Ends the conversation.',
+    description:
+      'Every learning goal that asks something of the learner is complete and the closing line has been said. Ends the conversation.',
   },
 ]
 
@@ -87,6 +89,8 @@ export function MissionLive() {
   const learnerRef = useRef('')
   const tutorRef = useRef('')
   const beatRef = useRef(0)
+  /** Goals the character has reported done, by index. A set, because they come in any order. */
+  const completedRef = useRef(new Set<number>())
   /** The character's line the learner is answering — what their answer is graded against. */
   const questionRef = useRef('')
   const finishRequestedRef = useRef(false)
@@ -246,15 +250,24 @@ export function MissionLive() {
   /** The character's own report of what the conversation has achieved. See MISSION_TOOLS. */
   function handleToolCall(name: string, args: Record<string, unknown>) {
     if (name === 'step_completed') {
-      const step = Number(args.step)
-      if (!Number.isFinite(step) || step < 1) return
+      const step = Math.round(Number(args.step))
+      if (!Number.isFinite(step) || step < 1 || step > beats.length) return
 
-      // Steps are numbered from one, so the step just completed is also the index of the next.
-      const next = Math.min(Math.round(step), Math.max(beats.length - 1, 0))
-      if (next > beatRef.current) {
-        beatRef.current = next
-        setBeatIndex(next)
-      }
+      /*
+       * The conversation takes the goals in whatever order it likes, and one answer can close
+       * several. Progress is therefore how many are done, not which one was reported last: the
+       * bar used to jump to the reported step, so a later goal met first showed the scene as
+       * nearly over and the earlier ones could never be shown at all.
+       */
+      const completed = completedRef.current
+      completed.add(step - 1)
+      const last = Math.max(beats.length - 1, 0)
+      setBeatIndex(Math.min(completed.size, last))
+
+      // Where an answer is assumed to belong when nothing in it says: the first goal still open.
+      let open = 0
+      while (open < last && completed.has(open)) open += 1
+      beatRef.current = open
       return
     }
 
@@ -544,7 +557,7 @@ export function MissionLive() {
         )}
       </div>
 
-      <footer className="flex items-center justify-center gap-3">
+      <footer className="flex flex-wrap items-center justify-center gap-3">
         {started ? (
           <>
             <Button variant="secondary" onClick={toggleMute} disabled={phase !== 'live'}>

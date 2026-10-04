@@ -65,7 +65,7 @@ export function PlanSelector({
       apiece — a card holding four short lines, stretched across half a desktop. Giving the
       artwork the extra width keeps the cards at a size their contents justify.
     */
-    <div className="grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-10">
+    <div className="grid items-center gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:gap-10">
       <div
         className="grid gap-4 sm:grid-cols-2"
         role="radiogroup"
@@ -133,10 +133,10 @@ function PlanCard({
         className="peer sr-only"
       />
 
-      <span className="flex items-start justify-between gap-3">
+      <span className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
         <span className="text-[15px] font-bold text-ink">{t.billing.periodLabel[option.period]}</span>
 
-        <span className="flex items-center gap-2">
+        <span className="ml-auto flex shrink-0 items-center gap-2">
           {option.savingsPercent > 0 && (
             <Badge tone="signal">{fill(t.billing.savings, { percent: option.savingsPercent })}</Badge>
           )}
@@ -221,7 +221,7 @@ function SubscriptionIllustration({ period }: { period: BillingPeriod }) {
       alt=""
       aria-hidden="true"
       decoding="async"
-      className="mx-auto hidden w-48 sm:block lg:w-full"
+      className="mx-auto hidden w-48 sm:block xl:w-full"
     />
   )
 }

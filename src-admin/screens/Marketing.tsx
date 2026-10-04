@@ -185,7 +185,7 @@ export function Marketing() {
           </EmptyNote>
         </Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
           <div className="space-y-2">
             <SectionHeading>Haftalar</SectionHeading>
             {data.map((plan) => (
@@ -478,7 +478,7 @@ function PlanDetail({
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-extrabold text-on-signal">
               {initiative.priority}
             </span>
-            <h3 className="min-w-0 flex-1 text-base font-extrabold text-ink">{initiative.titleUz}</h3>
+            <h3 className="min-w-40 flex-1 text-base font-extrabold text-ink">{initiative.titleUz}</h3>
             <Badge tone="signal">{categoryLabel[initiative.category]}</Badge>
             <Badge>{effortLabel[initiative.effort]}</Badge>
           </div>
@@ -548,7 +548,7 @@ function Forecast({ expectation }: { expectation: MarketingExpectation }) {
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-ground-sunken px-3 py-2">
-      <span className="min-w-0 flex-1 text-sm text-ink">{metricLabel[metric]}</span>
+      <span className="min-w-32 flex-1 text-sm text-ink">{metricLabel[metric]}</span>
 
       <span className="text-sm tabular-nums text-ink-muted">
         {formatMetric(metric, baselineValue)} {arrow[direction]} {formatMetric(metric, expectedValue)}

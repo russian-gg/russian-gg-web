@@ -151,7 +151,7 @@ function ProfileHeader({ progress }: { progress?: ProgressView }) {
           {initials}
         </span>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 grow basis-40">
           <p className="truncate text-xl font-extrabold text-ink sm:text-2xl">{name}</p>
           <p className="text-support truncate text-sm">{user?.email ?? user?.phoneNumber}</p>
           <p className="text-support mt-1 truncate text-sm">{meta.join(' · ')}</p>

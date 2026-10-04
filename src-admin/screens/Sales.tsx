@@ -184,7 +184,7 @@ function SalesDashboardTab() {
 
       <section>
         <SectionHeading>Suhbatlar</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat
             label="Jami suhbat"
             value={formatNumber(data.totalChats)}
@@ -210,7 +210,7 @@ function SalesDashboardTab() {
 
       <section>
         <SectionHeading>Xabarlar</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <Stat label="Mijozlardan" value={formatNumber(data.customerMessages)} note={period} />
           <Stat label="AI javoblari" value={formatNumber(data.agentMessages)} note={period} />
           <Stat label="Operator javoblari" value={formatNumber(data.operatorMessages)} note={period} />
@@ -251,7 +251,7 @@ function SalesDashboardTab() {
 
       <section>
         <SectionHeading>Hisobga bog'lanish va to'lov</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <Stat
             label="Hisobga bog'langan"
             value={formatNumber(data.linkedChats)}
@@ -406,7 +406,7 @@ function Inbox({ waiting }: { waiting: number }) {
     <div
       ref={shell}
       style={height ? { height } : undefined}
-      className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
+      className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
     >
       {/*
         Its own scroll, so reading down the list leaves the open conversation exactly where it
@@ -718,11 +718,11 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   return (
     <div
       className={cx(
-        'grid min-h-0 gap-4 overflow-hidden',
+        'grid min-h-0 grid-cols-1 gap-4 overflow-hidden',
         // The card is a column of facts about an account. With no account there are no facts,
         // and a panel that exists only to say so is width the conversation should have had —
         // which is most of them, because people write to the bot before they sign up.
-        user.userId && 'xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]',
+        user.userId && 'xl:grid-cols-[minmax(0,1fr)_minmax(0,15rem)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]',
       )}
     >
       <Card className="flex min-h-0 flex-col lg:overflow-hidden">
@@ -823,7 +823,7 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
             }}
             rows={2}
             placeholder="Javob yozing — yuborsangiz AI o'chadi"
-            className="min-w-0 flex-1 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+            className="min-w-40 flex-1 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
           />
           <Button onClick={() => void send()} disabled={busy || !draft.trim()}>
             Yuborish
@@ -832,7 +832,7 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
       </Card>
 
       {user.userId && (
-        <div className="min-h-0 xl:overflow-y-auto">
+        <div className="min-h-0 lg:max-xl:hidden xl:overflow-y-auto">
           <UserCard card={user} />
         </div>
       )}
@@ -948,7 +948,7 @@ function Line({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-hairline pb-2 last:border-b-0 last:pb-0">
       <dt className="text-ink-muted">{label}</dt>
-      <dd className="font-bold text-ink">{value}</dd>
+      <dd className="min-w-0 text-right font-bold text-ink [overflow-wrap:anywhere]">{value}</dd>
     </div>
   )
 }

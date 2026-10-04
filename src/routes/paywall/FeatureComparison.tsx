@@ -20,7 +20,7 @@ export function FeatureComparison() {
   const t = useT()
 
   return (
-    <div className="grid items-start gap-4 md:grid-cols-2">
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       <BenefitCard
         title={t.billing.proUnlocks}
         items={t.billing.proBenefits}

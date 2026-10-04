@@ -214,7 +214,52 @@ export function Card({
  * `min-w-0` on the heading so a long word breaks rather than pushing the action off the edge;
  * the asymmetric gap keeps the two lines close when it does wrap.
  */
-export function SectionHeading({ children, action }: { children: ReactNode; action?: ReactNode }) {
+export function SectionHeading({
+  children,
+  action,
+  accent = false,
+}: {
+  children: ReactNode
+  action?: ReactNode
+  /**
+   * A heading that leads its section rather than labelling it: ink-coloured, larger, in
+   * sentence case, behind a short signal-coloured bar. The home screen uses it so each block
+   * reads as a destination at a glance; elsewhere the quiet uppercase label stays.
+   */
+  accent?: boolean
+}) {
+  if (accent) {
+    return (
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        {/*
+          The bar grows from its foot and the words slide out from behind it, once, when the
+          heading comes into view. Each names its own `initial` and `whileInView`, so it runs on
+          its own clock whether or not a `Sequence` above is orchestrating the section.
+        */}
+        <h2 className="flex min-w-0 items-center gap-2.5 text-lg leading-tight font-extrabold tracking-tight text-ink sm:text-xl">
+          <m.span
+            aria-hidden="true"
+            className="h-5 w-1.5 shrink-0 origin-bottom rounded-full bg-signal"
+            initial={{ scaleY: 0, opacity: 0 }}
+            whileInView={{ scaleY: 1, opacity: 1 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ type: 'spring', duration: 0.6, bounce: 0.45 }}
+          />
+          <m.span
+            className="min-w-0"
+            initial={{ opacity: 0, x: -10 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+          >
+            {children}
+          </m.span>
+        </h2>
+        {action}
+      </div>
+    )
+  }
+
   return (
     <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
       <h2 className="min-w-0 text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">

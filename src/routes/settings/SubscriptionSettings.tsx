@@ -388,7 +388,7 @@ function UpsellCard({ t }: { t: Dictionary }) {
           aria-hidden="true"
           loading="lazy"
           decoding="async"
-          className="-my-5 -mr-5 hidden w-44 shrink-0 self-center sm:block lg:w-48"
+          className="-my-5 -mr-5 hidden w-44 shrink-0 self-center sm:block lg:hidden xl:block xl:w-48"
         />
       </div>
     </Card>

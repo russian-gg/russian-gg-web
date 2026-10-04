@@ -324,7 +324,7 @@ export function CoursePath() {
               count when it scrolls into view, so a learner opening Day 60 does not sit through
               an imaginary fifty-nine-card animation above them.
             */}
-            <SequenceInView className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" gap={stagger.tight}>
+            <SequenceInView className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" gap={stagger.tight}>
               {phaseDays.map(({ day, lockKind }) => (
                 /*
                   The `Reveal` is not decoration around the card — it is what makes the card a
@@ -591,15 +591,17 @@ function DayCard({
               : 'border-hairline bg-ground-raised hover:-translate-y-0.5 hover:border-signal/40 hover:shadow-[0_8px_24px_rgb(22_24_29/0.06)]',
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 grow basis-44 items-start gap-3">
           {/*
             The number is the card's anchor — a learner scanning ninety of these is looking for
             a day, not a title — so it keeps its own tile and takes the colour of the state.
+            The tile says "4 kun" itself, the same tile the home screen's lesson card wears, so
+            the card needs no separate "4-kun" line above its title.
           */}
           <span
             className={cx(
-              'flex size-12 shrink-0 items-center justify-center rounded-2xl text-xl font-extrabold tabular-nums',
+              'flex size-13 shrink-0 flex-col items-center justify-center rounded-2xl',
               'transition-transform duration-150',
               !isLocked && 'group-hover:scale-105',
               isDone
@@ -609,12 +611,12 @@ function DayCard({
                   : 'bg-signal-soft text-signal-ink',
             )}
           >
-            {day.day}
+            <span className="text-xl leading-none font-black tabular-nums">{day.day}</span>
+            <span className="mt-0.5 text-[10px] leading-none font-extrabold tracking-wide uppercase">{t.home.dayUnit}</span>
           </span>
 
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-ink-faint">{dayLabel}</p>
-            <h3 className={cx('mt-0.5 line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
+            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
               {focus}
             </h3>
             {/*
@@ -629,7 +631,7 @@ function DayCard({
         </div>
 
         {/* A shut day says so in its footer, where its button would be; it needs no second label. */}
-        <Reveal as="span" variants={pop} className="flex shrink-0 flex-wrap justify-end gap-2">
+        <Reveal as="span" variants={pop} className="ml-auto flex shrink-0 flex-wrap justify-end gap-2">
           {isDone && (
             <span className={cx(DAY_CARD_STATE, 'bg-milestone-soft text-milestone')}>
               <CircleCheck aria-hidden="true" strokeWidth={2.2} className="size-3.5" />

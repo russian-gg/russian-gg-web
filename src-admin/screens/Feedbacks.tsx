@@ -84,10 +84,10 @@ export function Feedbacks() {
             </Cell>
             <Cell muted>{item.issueType || '—'}</Cell>
             <Cell strong wrap>
-              <span className="block max-w-xs break-words">{item.title || '—'}</span>
+              <span className="block min-w-48 max-w-xs break-words">{item.title || '—'}</span>
             </Cell>
             <Cell wrap>
-              <span className="block max-w-md whitespace-pre-wrap break-words">{item.message}</span>
+              <span className="block min-w-64 max-w-md whitespace-pre-wrap break-words">{item.message}</span>
             </Cell>
             <Cell>
               {item.attachmentUrl ? (

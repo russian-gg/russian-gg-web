@@ -48,7 +48,7 @@ export function FeatureTiles() {
       tiles reads as a wave washing over a group; 40ms reads as the group itself landing,
       which is what it is.
     */
-    <Sequence className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" gap={stagger.tight}>
+    <Sequence className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-5" gap={stagger.tight}>
       {tiles.map((tile) => {
         const copy = t.home.features[tile.key]
         const body = (

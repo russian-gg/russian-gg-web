@@ -89,7 +89,7 @@ export function Games() {
         they get the spring entrance and a press that answers a thumb - the arcade is the one
         place where a card behaving like an object is the entire point.
       */}
-      <Sequence className="grid gap-4 sm:grid-cols-2" gap={stagger.base}>
+      <Sequence className="grid gap-4 lg:grid-cols-2" gap={stagger.base}>
         {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
           const art = ART[game.slug]
 
@@ -97,9 +97,9 @@ export function Games() {
 
           if (isSpeakingGame(game.slug)) {
             const label = gameLabels[game.slug][locale]
-            return <MotionLink key={game.slug} variants={rise} {...tactile} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-5 rounded-3xl border-2 border-hairline bg-ground-raised p-6 transition-colors hover:border-signal">
-              <GameMark game={game.slug} className="size-16 shrink-0 text-signal-ink" />
-              <span><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
+            return <MotionLink key={game.slug} variants={rise} {...tactile} to={`/games/${game.slug}`} className="group flex min-h-44 items-center gap-4 rounded-3xl border-2 border-hairline bg-ground-raised p-4 sm:gap-5 sm:p-6 transition-colors hover:border-signal">
+              <GameMark game={game.slug} className="size-12 shrink-0 text-signal-ink sm:size-16" />
+              <span className="min-w-0"><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
             </MotionLink>
           }
 
@@ -155,22 +155,22 @@ function RunnerCard({ body }: { body: string }) {
     <MotionLink
       variants={rise}
       to="/games/rod-runner"
-      className="group relative overflow-hidden rounded-[32px] border border-cyan-300/25 bg-gradient-to-br from-[#071c4a] via-[#0c4a6e] to-[#082f49] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:col-span-2 sm:p-7"
+      className="group relative overflow-hidden rounded-[32px] border border-cyan-300/25 bg-gradient-to-br from-[#071c4a] via-[#0c4a6e] to-[#082f49] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:p-7 lg:col-span-2"
     >
       <span className="pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-amber-500/10 blur-3xl transition group-hover:bg-amber-500/20" />
       <span className="pointer-events-none absolute -bottom-20 -left-20 size-64 rounded-full bg-blue-500/10 blur-3xl" />
 
-      <span className="relative flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/20 px-3 py-1 text-[11px] font-black tracking-wider text-rose-300 uppercase">
+      <span className="relative flex flex-wrap items-center justify-between gap-2">
+        <span className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-rose-500/30 bg-rose-500/20 px-3 py-1 text-[11px] font-black tracking-wider text-rose-300 uppercase">
           <span className="size-2 animate-pulse rounded-full bg-rose-500" /> {t.newGame}
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
+        <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
           <Trophy aria-hidden="true" className="size-3.5 fill-amber-400/40" strokeWidth={2} />
           {t.record}: {highScore}
         </span>
       </span>
 
-      <span className="relative mt-4 grid gap-5 md:grid-cols-[1.25fr_1fr] md:items-center">
+      <span className="relative mt-4 grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <span className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/20 bg-gradient-to-b from-blue-950 via-sky-700 to-cyan-100">
           <span className="absolute inset-x-[18%] bottom-0 h-32 origin-bottom bg-gradient-to-t from-cyan-100 to-sky-300/60 [clip-path:polygon(43%_0,57%_0,100%_100%,0_100%)]" />
           <span className="relative z-10 flex flex-col items-center gap-3 transition duration-300 group-hover:scale-105">

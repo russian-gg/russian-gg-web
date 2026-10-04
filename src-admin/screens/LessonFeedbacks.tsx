@@ -65,7 +65,7 @@ export function LessonFeedbacks() {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Javoblar" value={formatNumber(data.responses)} />
         <Stat label="O'rtacha baho" value={averageOf(data.averageRating)} note="Yulduzlar bo'yicha" />
         <Stat label="Mamnunlik" value={averageOf(data.averageSatisfaction)} note="5 — juda mamnun" />
@@ -76,7 +76,7 @@ export function LessonFeedbacks() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <Card>
           <SectionHeading>Mamnunlik</SectionHeading>
           <BarList items={distribution(SATISFACTION, data.satisfactionCounts)} format={formatNumber} labelWidth="w-28 sm:w-40" />
@@ -109,7 +109,7 @@ export function LessonFeedbacks() {
               <Stars value={item.rating} />
             </Cell>
             <Cell wrap>
-              <span className="block max-w-md whitespace-pre-wrap break-words">{item.note || '—'}</span>
+              <span className="block min-w-64 max-w-md whitespace-pre-wrap break-words">{item.note || '—'}</span>
             </Cell>
             <Cell muted>{formatDateTime(item.createdAt)}</Cell>
           </Row>

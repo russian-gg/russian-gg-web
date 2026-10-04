@@ -209,7 +209,7 @@ export function Practice() {
 
       {rows.length > 0 && (
         <>
-          <Sequence className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:pr-[24rem] 2xl:pr-[27rem]" gap={stagger.base}>
+          <Sequence className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-2 xl:pr-[24rem] 2xl:grid-cols-4 2xl:pr-[27rem]" gap={stagger.base}>
             <StatTile icon={FileText} label={copy.statTotal} value={counts.all} markClassName="bg-signal-soft text-signal-ink" />
             {(['done', 'inProgress', 'notStarted'] as const).map((status) => (
               <StatTile
@@ -222,7 +222,7 @@ export function Practice() {
             ))}
           </Sequence>
 
-          <Reveal className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <Reveal className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">
             <SearchField value={search} onChange={setSearch} placeholder={copy.search} />
             <FilterPills
               value={filter}
@@ -259,7 +259,7 @@ export function Practice() {
             than the old one silently reshuffled.
           */}
           {visible.length > 0 && (
-            <SequenceInView key={`${filter}-${sort}`} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" gap={stagger.base}>
+            <SequenceInView key={`${filter}-${sort}`} className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" gap={stagger.base}>
               {visible.map((row) => (
                 <Reveal key={row.mission.id} variants={rise} className="h-full">
                   <PracticeCard
@@ -321,7 +321,7 @@ function PracticeCard({
         style.card,
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         <span
           className={cx(
             'flex size-12 shrink-0 items-center justify-center rounded-2xl text-xl font-extrabold tabular-nums',
@@ -336,7 +336,7 @@ function PracticeCard({
           {number}
         </span>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 grow basis-32">
           <h2 className="text-base leading-snug font-extrabold wrap-break-word text-ink">{title}</h2>
           <p className="mt-1 text-sm text-ink-muted">
             {t.labels.category[mission.category]}
@@ -344,7 +344,7 @@ function PracticeCard({
           </p>
         </div>
 
-        <Reveal as="span" variants={pop} className="shrink-0">
+        <Reveal as="span" variants={pop} className="ml-auto shrink-0">
           {mission.isLocked ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-caution-soft px-3 py-1.5 text-xs font-bold text-caution">
               <Lock aria-hidden="true" strokeWidth={2} className="size-3.5" />

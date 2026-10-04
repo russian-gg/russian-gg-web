@@ -31,13 +31,13 @@ export function StatTile({
 }) {
   return (
     <Reveal variants={rise} className="h-full">
-      <div className="flex h-full items-center gap-3 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4 transition-[transform,border-color] duration-150 hover:-translate-y-0.5 hover:border-signal/30">
-        <span className={cx('flex size-11 shrink-0 items-center justify-center rounded-xl', markClassName)}>
+      <div className="flex h-full items-center gap-2.5 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3 transition-[transform,border-color] sm:gap-3 sm:p-4 duration-150 hover:-translate-y-0.5 hover:border-signal/30">
+        <span className={cx('flex size-9 shrink-0 items-center justify-center rounded-xl sm:size-11', markClassName)}>
           <Icon aria-hidden="true" strokeWidth={1.9} className="size-5" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm leading-tight text-ink-muted">{label}</p>
-          <p className={cx('mt-0.5 text-3xl leading-none font-extrabold tabular-nums', valueClassName)}>
+          <p className="text-xs leading-tight wrap-break-word text-ink-muted sm:text-sm">{label}</p>
+          <p className={cx('mt-0.5 text-2xl leading-none font-extrabold tabular-nums sm:text-3xl', valueClassName)}>
             <CountUp value={value} />
           </p>
         </div>

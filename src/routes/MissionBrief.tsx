@@ -73,10 +73,10 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         <div className="flex items-center gap-4 sm:gap-5">
           {mascot && (
             <span
-              className="grid size-24 shrink-0 place-items-center rounded-full sm:size-28"
+              className="grid size-16 shrink-0 place-items-center rounded-full min-[400px]:size-24 sm:size-28"
               style={{ background: `${palette.light}26`, boxShadow: `inset 0 0 0 1px ${palette.light}40` }}
             >
-              <img src={mascotImage(mascot)} alt={mascotAlt(mascot)} className="size-20 sm:size-24" />
+              <img src={mascotImage(mascot)} alt={mascotAlt(mascot)} className="size-14 min-[400px]:size-20 sm:size-24" />
             </span>
           )}
           <div className="min-w-0">
@@ -86,7 +86,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
             >
               {fill(copy.eyebrow, { character: name })}
             </span>
-            <h1 className="mt-3 text-2xl leading-tight font-extrabold tracking-tight text-ink sm:text-3xl">
+            <h1 className="mt-3 text-2xl leading-tight font-extrabold tracking-tight wrap-break-word text-ink sm:text-3xl">
               {mission.summary.titleUz}
             </h1>
           </div>
@@ -139,7 +139,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         The start control sits on its own raised strip, pinned on a phone: it is the only
         action on this screen and should never be the thing a learner has to scroll for.
       */}
-      <div className="sticky bottom-3 z-10 space-y-2 rounded-[var(--radius-card)] border border-hairline bg-ground-raised/95 p-3 shadow-[0_10px_30px_rgb(22_24_29/0.10)] backdrop-blur-sm">
+      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 md:bottom-3 space-y-2 rounded-[var(--radius-card)] border border-hairline bg-ground-raised/95 p-3 shadow-[0_10px_30px_rgb(22_24_29/0.10)] backdrop-blur-sm">
         <Button
           block
           size="lg"

@@ -62,7 +62,7 @@ export function Games() {
             </EmptyNote>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {data.map((game) => (
               <Card key={game.slug} as="div" className="flex items-start justify-between gap-4">
                 <div className="min-w-0">

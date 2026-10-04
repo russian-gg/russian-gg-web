@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { fill, useT } from '../lib/i18n'
 import type { HomeView } from '../lib/types'
-import { MissionCard } from '../components/MissionCard'
+import { TodayLessonCard } from '../components/home/TodayLessonCard'
 import { HeroBanner } from '../components/home/HeroBanner'
 import { DashboardSearch } from '../components/home/DashboardSearch'
 import { FeatureTiles, RecommendedLessons } from '../components/home/HomeSections'
@@ -94,7 +94,7 @@ export function Home() {
           </Reveal>
 
           <Reveal as="section">
-            <SectionHeading
+            <SectionHeading accent
               action={
                 <Link to="/path" className="text-sm font-bold text-signal-ink">
                   {t.home.seeAll}
@@ -104,7 +104,7 @@ export function Home() {
               {t.home.todayMission}
             </SectionHeading>
             {data.todayMission ? (
-              <MissionCard mission={data.todayMission} featured />
+              <TodayLessonCard mission={data.todayMission} />
             ) : (
               <EmptyState
                 title={t.home.empty}
@@ -115,8 +115,8 @@ export function Home() {
           </Reveal>
 
           <Reveal as="section">
-            <SectionHeading>{t.home.features.title}</SectionHeading>
-            <p className="text-support -mt-1 mb-3 text-sm">{t.home.features.subtitle}</p>
+            <SectionHeading accent>{t.home.features.title}</SectionHeading>
+            <p className="text-support -mt-2 mb-4 pl-4 text-sm">{t.home.features.subtitle}</p>
             <FeatureTiles />
           </Reveal>
 
@@ -127,7 +127,7 @@ export function Home() {
           */}
           {data.practiceForToday.length > 0 && (
             <Reveal as="section">
-              <SectionHeading
+              <SectionHeading accent
                 action={
                   <Link to="/practice" className="text-sm font-bold text-signal-ink">
                     {t.home.seeAll}

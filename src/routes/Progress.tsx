@@ -203,7 +203,7 @@ export function Progress() {
           <Reveal>
             <Card>
               <PanelHeading icon={Trophy} tone="caution">{t.progress.achievements}</PanelHeading>
-              <SequenceInView className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4" gap={stagger.wide}>
+              <SequenceInView className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4" gap={stagger.wide}>
                 <Achievement
                   art={streakArt}
                   tint="#3d9bf7"

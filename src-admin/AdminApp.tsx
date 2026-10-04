@@ -329,7 +329,7 @@ function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
         ) : (
           <Sun aria-hidden="true" className="size-4" strokeWidth={1.8} />
         )}
-        <span className={cx(collapsed && 'lg:hidden')}>{label}</span>
+        <span className={cx('hidden sm:inline', collapsed && 'lg:hidden')}>{label}</span>
       </span>
     </Button>
   )

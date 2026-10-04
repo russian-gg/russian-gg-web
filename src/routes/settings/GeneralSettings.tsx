@@ -132,7 +132,7 @@ function LanguageSettings() {
 
   return (
     <SectionCard title={t.settings.language} subtitle={t.settings.languageHint}>
-      <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label={t.settings.language}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3" role="radiogroup" aria-label={t.settings.language}>
         {LOCALES.map((option) => (
           <ChoiceRow
             key={option}
@@ -209,7 +209,7 @@ function VoiceSettings({ onError }: { onError: (message: string | null) => void 
           ))}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label={t.settings.voiceMoodLabel}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3" role="radiogroup" aria-label={t.settings.voiceMoodLabel}>
           {(['Gentle', 'Playful', 'Blunt'] as const).map((option) => (
             <ChoiceTile
               key={option}

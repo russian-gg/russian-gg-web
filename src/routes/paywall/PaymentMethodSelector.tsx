@@ -24,7 +24,7 @@ export function PaymentMethodSelector({
   const t = useT()
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2" role="radiogroup" aria-label={t.billing.paymentMethod}>
+    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2" role="radiogroup" aria-label={t.billing.paymentMethod}>
       <PaymentMethodCard
         value="click"
         checked={provider === 'click'}
@@ -86,7 +86,7 @@ function PaymentMethodCard({
           the larger of the two, and the Russian hints run longer than the Uzbek ones, so there
           is no slack to borrow from the text column.
         */
-        'lg:pr-40',
+        'xl:pr-40',
         checked
           ? 'border-signal bg-signal-soft/60 raised-signal-soft'
           : 'border-hairline bg-ground-raised hover:border-ink-faint',
@@ -128,7 +128,7 @@ function PaymentMethodCard({
       */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 lg:block"
+        className="pointer-events-none absolute top-1/2 right-4 hidden -translate-y-1/2 xl:block"
       >
         {showcase}
       </span>

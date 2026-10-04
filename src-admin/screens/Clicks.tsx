@@ -28,7 +28,7 @@ export function Clicks() {
           <span className="text-sm text-ink-muted">ta hodisa · {days} kun</span>
         </div>
 
-        <BarList items={data.events} format={formatNumber} labelWidth="w-52" />
+        <BarList items={data.events} format={formatNumber} labelWidth="w-28 sm:w-52" />
 
         {/*
           Named, not guessed at. These are the events the product raises by name — a tap on
