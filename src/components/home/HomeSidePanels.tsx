@@ -129,7 +129,7 @@ export function ProgressRing({ currentDay, total = 90 }: { currentDay: number; t
 
   return (
     <Card>
-      <SectionHeading action={<Link to="/progress" className="text-sm font-bold text-signal-ink">{t.home.more}</Link>}>
+      <SectionHeading accent action={<Link to="/progress" className="text-sm font-bold text-signal-ink">{t.home.more}</Link>}>
         {t.home.progressPanel.title}
       </SectionHeading>
 
@@ -222,7 +222,7 @@ export function AchievementsPanel() {
       does not fit on one line in a quarter of 296px, and it was spilling out of the card.
     */
     <Card className="@container">
-      <SectionHeading>{t.home.achievements.title}</SectionHeading>
+      <SectionHeading accent>{t.home.achievements.title}</SectionHeading>
 
       {/*
         Small square badges, so they swell in rather than sliding: `pop` is the variant for a
@@ -304,7 +304,7 @@ export function RecentActivity() {
 
   return (
     <Card>
-      <SectionHeading>{t.home.recent.title}</SectionHeading>
+      <SectionHeading accent>{t.home.recent.title}</SectionHeading>
 
       <Sequence as="ul" className="mt-3 space-y-3" gap={stagger.base}>
         {recent.map((lesson) => (

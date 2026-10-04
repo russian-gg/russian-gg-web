@@ -183,6 +183,7 @@ export function MissionPreviewDialog({
   mission,
   title,
   featured,
+  startLabel,
   onDismiss,
   onStart,
 }: {
@@ -190,6 +191,8 @@ export function MissionPreviewDialog({
   mission: MissionSummary
   title: string
   featured: boolean
+  /** What the start button says, when the card that opened this knows better than the default. */
+  startLabel?: string
   onDismiss: () => void
   onStart: () => void
 }) {
@@ -217,7 +220,7 @@ export function MissionPreviewDialog({
       }
       title={title}
       closeLabel={t.common.close}
-      primaryLabel={`${featured ? t.home.start : t.practice.start} →`}
+      primaryLabel={`${startLabel ?? (featured ? t.home.start : t.practice.start)} →`}
       onPrimary={onStart}
       onDismiss={onDismiss}
     >

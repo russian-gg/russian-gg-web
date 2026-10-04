@@ -596,10 +596,12 @@ function DayCard({
           {/*
             The number is the card's anchor — a learner scanning ninety of these is looking for
             a day, not a title — so it keeps its own tile and takes the colour of the state.
+            The tile says "4 kun" itself, the same tile the home screen's lesson card wears, so
+            the card needs no separate "4-kun" line above its title.
           */}
           <span
             className={cx(
-              'flex size-12 shrink-0 items-center justify-center rounded-2xl text-xl font-extrabold tabular-nums',
+              'flex size-13 shrink-0 flex-col items-center justify-center rounded-2xl',
               'transition-transform duration-150',
               !isLocked && 'group-hover:scale-105',
               isDone
@@ -609,12 +611,12 @@ function DayCard({
                   : 'bg-signal-soft text-signal-ink',
             )}
           >
-            {day.day}
+            <span className="text-xl leading-none font-black tabular-nums">{day.day}</span>
+            <span className="mt-0.5 text-[10px] leading-none font-extrabold tracking-wide uppercase">{t.home.dayUnit}</span>
           </span>
 
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-ink-faint">{dayLabel}</p>
-            <h3 className={cx('mt-0.5 line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
+            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
               {focus}
             </h3>
             {/*
