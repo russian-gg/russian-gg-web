@@ -78,7 +78,7 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
         aria-label={title}
         aria-haspopup={mission.isLocked ? undefined : 'dialog'}
         className={cx(
-          'group flex w-full flex-col gap-5 rounded-[var(--radius-card)] border p-5 text-left sm:p-6 md:flex-row md:items-center md:gap-6',
+          'group flex w-full flex-col gap-5 rounded-[var(--radius-card)] border p-5 text-left sm:p-6 lg:flex-row lg:items-center lg:gap-6',
           'transition-[border-color,box-shadow,transform] duration-150',
           'focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:outline-none',
           mission.isCompleted ? 'border-milestone/20 bg-milestone-soft/55' : 'border-milestone/20 bg-ground-raised',
@@ -104,7 +104,7 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
           </span>
 
           <span className="mt-1.5 flex items-start gap-2">
-            <span className="text-xl leading-snug font-extrabold wrap-break-word text-ink sm:text-2xl">{title}</span>
+            <span className="min-w-0 text-xl leading-snug font-extrabold wrap-break-word text-ink sm:text-2xl">{title}</span>
             {mission.isCompleted && <CompletedGlyph label={t.path.done} />}
           </span>
 
@@ -158,7 +158,7 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
           )}
         </span>
 
-        <span className="flex shrink-0 md:justify-end">
+        <span className="flex shrink-0 lg:justify-end">
           {mission.isLocked ? (
             <span className="inline-flex items-center gap-2 text-sm font-extrabold text-caution">
               <Lock aria-hidden="true" strokeWidth={2.2} className="size-4" />
@@ -167,7 +167,7 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
           ) : (
             <span
               className={cx(
-                'raised-group inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-control)] px-5 py-3 text-base font-extrabold md:w-auto',
+                'raised-group inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-control)] px-5 py-3 text-base font-extrabold lg:w-auto',
                 mission.isCompleted
                   ? 'border border-milestone/20 bg-ground-raised text-milestone'
                   : 'bg-milestone text-on-signal raised-milestone',

@@ -218,7 +218,7 @@ export function MissionResult() {
         </button>
         <Link
           to="/practice"
-          className="raised inline-flex items-center justify-center rounded-xl border-2 border-hairline px-6 py-4 text-base font-semibold text-ink"
+          className="raised inline-flex shrink-0 items-center justify-center rounded-xl border-2 border-hairline px-6 py-4 text-base font-semibold text-ink"
         >
           {t.result.practiceMore}
         </Link>

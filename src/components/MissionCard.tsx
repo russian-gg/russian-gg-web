@@ -82,7 +82,7 @@ export function MissionCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-start gap-2">
-            <h3 className="text-lg font-extrabold leading-snug text-ink">{title}</h3>
+            <h3 className="min-w-0 text-lg font-extrabold leading-snug wrap-break-word text-ink">{title}</h3>
             {mission.isCompleted && <CompletedGlyph label={t.path.done} />}
           </div>
 

@@ -57,8 +57,8 @@ export function ProductPreview({
   return (
     <PhoneFrame>
       <div className="flex flex-col gap-5 px-5 pt-9 pb-6">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center rounded-[var(--radius-control)] bg-signal-soft px-3 py-1 text-xs font-extrabold tracking-[0.08em] text-signal-ink uppercase">
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-[var(--radius-control)] bg-signal-soft px-3 py-1 text-xs font-extrabold tracking-[0.08em] text-signal-ink uppercase">
             {day}
           </span>
           <span className="text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">

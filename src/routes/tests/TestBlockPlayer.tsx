@@ -270,7 +270,7 @@ export function TestBlockPlayer() {
         </Card>
       </Reveal>
 
-      <div className="flex gap-3 pb-1">
+      <div className="flex flex-wrap gap-3 pb-1">
         <Button variant="secondary" size="lg" className="flex-1" disabled={isFirst} onClick={() => goTo(index - 1)}>
           <ChevronLeft aria-hidden="true" strokeWidth={2.4} className="size-5" />
           {dictionary.common.back}

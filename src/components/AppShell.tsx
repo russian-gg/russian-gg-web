@@ -151,7 +151,7 @@ export function AppShell() {
       </aside>
 
       {/* Desktop only: on phones the timer sits in the header, in flow beside the avatar. */}
-      <div className="fixed right-6 top-6 z-30 hidden md:block">
+      <div className="fixed right-6 top-1.5 z-30 hidden md:block xl:top-6">
         <WelcomeDiscountCountdown />
       </div>
 
@@ -177,7 +177,7 @@ export function AppShell() {
         ref={mainRef}
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full max-w-[96rem] px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-24 lg:px-10 2xl:px-12"
+        className="mx-auto w-full min-w-0 max-w-[96rem] px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-24 lg:px-10 2xl:px-12"
       >
         <PageTransition />
       </main>
@@ -706,7 +706,7 @@ function TabLink({
     return (
       <span
         aria-label={description}
-        className="flex flex-1 flex-col items-center justify-center gap-1.5 py-2.5 text-ink-faint opacity-60"
+        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 py-2.5 text-ink-faint opacity-60"
       >
         <span className="flex h-6 items-center" aria-hidden="true">
           <Icon />
@@ -723,7 +723,7 @@ function TabLink({
       to={to}
       aria-label={description}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center justify-center gap-1.5 py-2.5 transition-colors ${
+        `flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 py-2.5 transition-colors ${
           isActive ? 'font-extrabold text-signal-ink' : 'font-bold text-ink-faint'
         }`
       }
@@ -731,7 +731,7 @@ function TabLink({
       <span className="flex h-6 items-center" aria-hidden="true">
         <Icon />
       </span>
-      <span aria-hidden="true" className="text-[11px] leading-none">
+      <span aria-hidden="true" className="w-full truncate px-0.5 text-center text-[11px] leading-none">
         {short}
       </span>
     </NavLink>

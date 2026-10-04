@@ -106,7 +106,7 @@ export function CoursePathHero({
           */}
           <Reveal
             variants={fromRight}
-            className="hidden w-64 shrink-0 rounded-2xl bg-ground-raised p-4 shadow-[0_8px_24px_rgb(22_24_29/0.08)] lg:block"
+            className="hidden w-64 shrink-0 rounded-2xl bg-ground-raised p-4 shadow-[0_8px_24px_rgb(22_24_29/0.08)] xl:block"
           >
             <p className="text-sm font-black text-ink">{copy.noteTitle}</p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{copy.noteBody}</p>

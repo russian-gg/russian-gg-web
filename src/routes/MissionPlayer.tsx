@@ -1202,7 +1202,7 @@ export function MissionPlayer() {
   ]
 
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-8">
       {/*
         A fixed height, not a minimum. The conversation grows without limit, and while this
         column could grow with it the microphone and the step progress were carried off the
@@ -1233,7 +1233,7 @@ export function MissionPlayer() {
         </header>
 
         <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto pb-64 md:pb-60">
-          <h1 className="text-3xl leading-[1.15] font-extrabold tracking-tight text-ink">
+          <h1 className="text-2xl leading-[1.15] font-extrabold tracking-tight wrap-break-word text-ink sm:text-3xl">
             {pickContent(locale, { uz: summary.titleUz, ru: summary.titleRu, en: summary.titleEn })}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-muted">
@@ -1419,7 +1419,7 @@ export function MissionPlayer() {
 
       </div>
 
-      <aside className="mt-10 space-y-4 lg:mt-0 lg:sticky lg:top-8">
+      <aside className="mt-10 space-y-4 xl:mt-0 xl:sticky xl:top-8">
         <GoalCard steps={safeSteps} stepIndex={stepIndex} completed={goalCompletedSteps} t={t} />
 
         {/*
@@ -1542,7 +1542,7 @@ function ConversationThread({
         if (message.role === 'learner') {
           return (
             <div key={message.key} className="flex justify-end gap-3">
-              <p className="max-w-[80%] rounded-2xl rounded-br-md bg-signal-soft px-4 py-3 text-base leading-relaxed text-ink">
+              <p className="min-w-0 max-w-[80%] rounded-2xl rounded-br-md bg-signal-soft px-4 py-3 wrap-break-word text-base leading-relaxed text-ink">
                 {message.text}
               </p>
               <VoiceBadge state={voiceState === 'listening' ? 'listening' : 'idle'} />
@@ -1555,7 +1555,7 @@ function ConversationThread({
             <div key={message.key} className="flex gap-3">
               <TutorMark />
               <div
-                className={`max-w-[80%] rounded-2xl rounded-tl-md px-4 py-3 ${
+                className={`min-w-0 max-w-[calc(100%-3rem)] rounded-2xl rounded-tl-md px-4 py-3 sm:max-w-[80%] ${
                   message.passed ? 'bg-milestone-soft' : 'bg-caution-soft'
                 }`}
               >
@@ -1574,7 +1574,7 @@ function ConversationThread({
         return (
           <div key={message.key} className="flex gap-3">
             <TutorMark />
-            <div className="max-w-[80%] rounded-2xl rounded-tl-md border-2 border-hairline bg-ground-raised px-4 py-3">
+            <div className="min-w-0 max-w-[calc(100%-3rem)] rounded-2xl rounded-tl-md border-2 border-hairline bg-ground-raised px-4 py-3 sm:max-w-[80%]">
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-base leading-relaxed text-ink">{message.ru}</p>
@@ -2013,7 +2013,7 @@ function DailyLimitDialog({
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 px-4" onClick={onDismiss}>
       <div
-        className="w-full max-w-md rounded-[var(--radius-card)] bg-ground p-6 shadow-soft"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[var(--radius-card)] bg-ground p-5 shadow-soft sm:p-6"
         onClick={(event) => event.stopPropagation()}
         ref={dialogRef}
         tabIndex={-1}
@@ -2062,7 +2062,7 @@ function MicrophonePermissionDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
       <div
-        className="w-full max-w-md rounded-[var(--radius-card)] bg-ground p-5 shadow-soft sm:p-6"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[var(--radius-card)] bg-ground p-5 shadow-soft sm:p-6"
         ref={micRef}
         tabIndex={-1}
         role="alertdialog"
@@ -2230,10 +2230,10 @@ function PhraseList({
   return (
     <ul className="divide-y divide-hairline">
       {phrases.map((phrase) => (
-        <li key={phrase.order} className="flex items-start gap-5 py-6">
-          <VoiceBadge />
+        <li key={phrase.order} className="flex items-start gap-3 py-5 sm:gap-5 sm:py-6">
+          <span className="hidden shrink-0 sm:block"><VoiceBadge /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-xl leading-snug font-medium text-ink">"{phrase.russian}"</p>
+            <p className="text-lg leading-snug font-medium text-ink sm:text-xl">"{phrase.russian}"</p>
             {phrase.transliteration && (
               <p className="mt-1 text-sm text-ink-faint">{phrase.transliteration}</p>
             )}

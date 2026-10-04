@@ -49,12 +49,12 @@ export function SkillRow({
   const Icon = SKILL_ICONS[skill]
 
   return (
-    <div className="group flex items-center gap-3 py-2">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-ink-muted transition-colors duration-150 group-hover:bg-signal-soft group-hover:text-signal-ink">
+    <div className="group flex items-center gap-2 py-2 sm:gap-3">
+      <span className="hidden size-9 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-ink-muted transition-colors sm:flex duration-150 group-hover:bg-signal-soft group-hover:text-signal-ink">
         <Icon aria-hidden="true" strokeWidth={1.8} className="size-[1.15rem]" />
       </span>
 
-      <span className="w-24 shrink-0 text-sm font-semibold text-ink sm:w-28">{t.labels.skill[skill]}</span>
+      <span className="w-24 shrink-0 text-sm font-semibold wrap-break-word text-ink sm:w-28">{t.labels.skill[skill]}</span>
 
       <Meter
         value={measured ? value : null}
@@ -171,7 +171,7 @@ export function MilestoneTimeline({
         )
 
         return (
-          <Reveal key={milestone.slug} as="li" variants={fromRail} className="grid grid-cols-[2.75rem_1fr] gap-x-3">
+          <Reveal key={milestone.slug} as="li" variants={fromRail} className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-3">
             <div className="flex flex-col items-center">
               <Reveal as="span" variants={pop} className="flex">
                 <MilestoneNode

@@ -23,7 +23,7 @@ export function Dashboard() {
 
       <section>
         <SectionHeading>Auditoriya va faollik</SectionHeading>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Stat
             label="Foydalanuvchilar"
             value={formatNumber(data.audience.totalUsers)}
@@ -62,7 +62,7 @@ export function Dashboard() {
 
       <section>
         <SectionHeading>Sayt tashriflari</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <Stat
             label="Tashrifchilar"
             value={formatNumber(data.visits.uniqueVisitors)}
@@ -95,7 +95,7 @@ export function Dashboard() {
           </Card>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <h3 className="mb-4 text-base font-extrabold text-ink">Platforma</h3>
             {data.platforms.length === 0 ? (
@@ -152,7 +152,7 @@ export function Dashboard() {
       {data.installs && (
       <section>
         <SectionHeading>Telefonga o'rnatganlar</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <Stat
             label="O'rnatilgan qurilmalar"
             value={formatNumber(data.installs.devices)}
@@ -174,7 +174,7 @@ export function Dashboard() {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <h3 className="mb-4 text-base font-extrabold text-ink">Qaysi telefonlarda</h3>
             {(data.installPlatforms ?? []).length === 0 ? (
@@ -236,7 +236,7 @@ export function Dashboard() {
 
       <section>
         <SectionHeading>Obunalar va tranzaksiyalar</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <Card>
             <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">Daromad</span>
             <div className="mt-1 text-2xl font-extrabold tabular-nums text-ink sm:text-3xl">
@@ -261,7 +261,7 @@ export function Dashboard() {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <h3 className="mb-4 text-base font-extrabold text-ink">Obunalar</h3>
             <Donut slices={data.plans} format={formatNumber} />

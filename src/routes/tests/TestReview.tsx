@@ -94,7 +94,7 @@ export function TestReview() {
               </span>
             </div>
 
-            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
               {/* A sitting from before tests were sat one at a time has no single test to retake. */}
               {data.testId && (
                 <Button

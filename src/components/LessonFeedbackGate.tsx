@@ -412,7 +412,7 @@ function StarGlyph({ filled }: StarGlyphProps) {
   return (
     <Star
       aria-hidden="true"
-      className={`size-11 fill-current transition-colors sm:size-12 ${filled ? 'text-coin' : 'text-hairline'}`}
+      className={`size-8 fill-current transition-colors min-[360px]:size-10 min-[390px]:size-11 sm:size-12 ${filled ? 'text-coin' : 'text-hairline'}`}
       stroke={filled ? 'var(--color-coin-strong)' : 'var(--color-control-depth)'}
       strokeWidth={1.2}
     />

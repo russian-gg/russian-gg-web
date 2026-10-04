@@ -115,7 +115,9 @@ export function HeroBanner({ to }: { to: string }) {
         */}
         {/* `mt-auto` is what pins it to the floor; the padding guarantees a gap from the
             subtitle even on a screen short enough that the two would otherwise meet. */}
-        <div className="mt-auto pt-8 md:mt-0 md:pt-5">
+        {/* From `md` the copy column is 58% of a banner that is itself narrow beside the
+            sidebar; the button is let out of that column so its label is never cut short. */}
+        <div className="mt-auto pt-8 md:mt-0 md:w-max md:max-w-none md:pt-5">
           <Link
             to={to}
             data-ui-sound="whoosh"

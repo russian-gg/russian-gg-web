@@ -155,7 +155,7 @@ export function Tests() {
           </Reveal>
 
           {data && (
-            <Sequence className="mt-auto grid grid-cols-2 gap-3 lg:grid-cols-4" gap={stagger.base}>
+            <Sequence className="mt-auto grid grid-cols-2 gap-3 2xl:grid-cols-4" gap={stagger.base}>
               <StatTile icon={ClipboardList} label={t.statTotal} value={counts.all} markClassName="bg-signal-soft text-signal-ink" valueClassName="text-signal-ink" />
               {(['completed', 'inProgress', 'notTaken'] as const).map((status) => (
                 <StatTile
@@ -190,7 +190,7 @@ export function Tests() {
       {isError && <QueryError onRetry={() => void refetch()} />}
 
       {data && (
-        <Reveal className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <Reveal className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">
           <SearchField value={search} onChange={setSearch} placeholder={t.search} />
           <FilterPills
             value={filter}
@@ -228,7 +228,7 @@ export function Tests() {
         the cards that answer a new question are a new shelf, not the old one reshuffled.
       */}
       {visible.length > 0 && (
-        <SequenceInView key={`${filter}-${sort}`} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" gap={stagger.base}>
+        <SequenceInView key={`${filter}-${sort}`} className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" gap={stagger.base}>
           {visible.map((row) => (
             <Reveal key={row.test.id} variants={rise} className="h-full">
               <TestCard
@@ -313,7 +313,7 @@ function TestCard({
         </span>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <p className="flex items-center gap-2.5 text-sm text-ink-muted">
           <span aria-hidden="true" className={cx('size-2.5 shrink-0 rounded-full', style.dot)} />
           {statusLabel}

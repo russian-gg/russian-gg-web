@@ -420,7 +420,7 @@ function LessonHero({ lesson, progress, compact }: { lesson: LessonData; progres
 
 function TestsSection({ lesson, answers, onAnswer }: { lesson: LessonData; answers: Array<number | null>; onAnswer: (index: number, answer: number) => void }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-3 lg:grid-cols-2">
       {lesson.tests.map((quiz, index) => (
         <QuizCard key={quiz.question} quiz={quiz} number={index + 1} answer={answers[index] ?? null} onAnswer={(answer) => onAnswer(index, answer)} />
       ))}
@@ -437,7 +437,7 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
       {quiz.context && <p className="mb-3 text-sm leading-relaxed text-ink-muted"><RussianText text={quiz.context} /></p>}
       <div className="flex items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-sm font-black text-ink-muted">{number}</span>
-        <h3 className="font-black leading-snug text-ink"><RussianText text={quiz.question} /></h3>
+        <h3 className="min-w-0 font-black leading-snug wrap-break-word text-ink"><RussianText text={quiz.question} /></h3>
       </div>
       <div className="mt-4 grid gap-2">
         {quiz.options.map((option, index) => (
@@ -507,7 +507,7 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
             ['pero', t.featherKingdom, 'Средний род', 'Жёлтый', '#FFFF00'],
           ] as const).map(([mascot, kingdom, title, colorName, color]) => (
             <div key={title} className="rounded-2xl bg-ground-sunken p-2 text-center sm:p-3">
-              <MascotImage mascot={mascot} className="mx-auto size-20 sm:size-28" />
+              <MascotImage mascot={mascot} className="mx-auto size-14 min-[390px]:size-20 sm:size-24 lg:size-28" />
               <p className="mt-1 text-[10px] font-bold text-ink sm:text-xs">{kingdom}</p>
               <p
                 className="mt-0.5 text-xs font-black sm:text-sm"
@@ -572,7 +572,7 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
       <p className="mt-2 text-xs font-bold text-ink-faint">{t.tongueTwisterHint}</p>
 
       {twister.breakdown && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
           {twister.breakdown.map((item) => (
             <div key={item.word} className="rounded-xl bg-ground-raised p-3">
               <p className="font-black text-ink"><RussianText text={item.word} /></p>
@@ -589,7 +589,7 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
 function SpeakerLine({ speaker, text }: { speaker: Mascot; text: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
-      <MascotImage mascot={speaker} className="size-16 shrink-0 sm:size-20" />
+      <MascotImage mascot={speaker} className="size-12 shrink-0 min-[390px]:size-16 sm:size-20" />
       <p className="min-w-0 flex-1 text-ink">
         <RussianText text={text} phoneticVowels />
       </p>
@@ -636,7 +636,7 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
               <span className="block font-black text-ink"><RussianText text={phrase.ru} /></span>
               <span className="mt-0.5 block text-xs font-bold text-signal-ink">{t.open}</span>
             </span>
-            {ratings[index] && <Check aria-hidden="true" strokeWidth={3} className="size-4 text-milestone" />}
+            {ratings[index] && <Check aria-hidden="true" strokeWidth={3} className="size-4 shrink-0 text-milestone" />}
           </button>
         ))}
       </div>
@@ -655,7 +655,7 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
   const dialogRef = useFocusTrap<HTMLDivElement>()
   return createPortal(
     <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/45 p-3" role="dialog" aria-modal="true">
-      <Card className="w-full max-w-md overflow-hidden p-0">
+      <Card className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto p-0">
         <div className="relative flex h-36 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,#fff,var(--color-signal-soft))]">
           <span className="lesson-scene-icon text-6xl">{phrase.icon}</span>
           <button type="button" onClick={onClose} aria-label={t.close} className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-white/90 text-xl font-black">×</button>
@@ -1132,7 +1132,7 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
             {current ? <>
               <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">{t.missingFromBag}</p>
               <div className="my-3 flex items-center gap-3 rounded-2xl bg-ground-sunken p-3">
-                <BagIcon word={current.left} className="size-10 text-signal-ink" />
+                <BagIcon word={current.left} className="size-10 shrink-0 text-signal-ink" />
                 <span className="text-xl font-black text-ink"><RussianText text={current.left} /></span>
               </div>
               <div className="grid gap-2">
@@ -1234,7 +1234,7 @@ function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matche
       <Card className="overflow-hidden p-3 sm:p-5">
         <div className="rounded-2xl bg-[linear-gradient(145deg,#ddf3ff,#e6f7df_55%,#fff0c5)] p-3 sm:p-5">
           <div className="mb-3 flex items-center justify-between text-xs font-black text-ink-muted"><span>{t.cityMap}</span><span>{solved.length}/{lesson.game.pairs.length}</span></div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {lesson.game.pairs.map((pair) => {
               const done = matches[pair.left] === pair.right
               return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('raised flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink raised-signal-soft' : 'border-white bg-white/75 text-ink hover:border-signal')}><CityIcon word={pair.left} className="size-8" /><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-black">+10 <Check aria-hidden="true" strokeWidth={3} className="size-3" /></span>}</button>
@@ -1402,7 +1402,7 @@ function RoomScene({ matches = {}, selected = null, wrongSlot = null, onSlot }: 
             return (
               <button key={slot.id} type="button" disabled={!onSlot} onClick={() => onSlot?.(slot.id)} style={{ gridColumn: slot.gridColumn, gridRow: slot.gridRow }} className={cx('flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed bg-white/72 p-1 text-center shadow-sm transition sm:p-2', selected && 'hover:border-signal hover:bg-white', wrongSlot === slot.id ? 'animate-pulse border-danger bg-danger-soft' : word ? 'border-milestone bg-milestone-soft/90' : 'border-white/90')}>
                 <RoomCellIcon word={word} slot={slot.id} className="size-5 sm:size-6" />
-                <span className={cx('mt-0.5 text-[9px] font-black leading-tight sm:text-xs', word ? 'text-milestone' : 'text-ink-muted')}>{word ? <RussianText text={word} /> : slot.label}</span>
+                <span className={cx('mt-0.5 max-w-full wrap-break-word text-[9px] font-black leading-tight sm:text-xs', word ? 'text-milestone' : 'text-ink-muted')}>{word ? <RussianText text={word} /> : slot.label}</span>
               </button>
             )
           })}
@@ -1648,7 +1648,7 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
           <p className="mt-2 text-center text-xs font-black text-ink-faint">{Math.min(revealed, lesson.dialogue.length)} / {lesson.dialogue.length}</p>
           <div className="mt-3">
             {dialogueDone
-              ? <Button size="lg" block onClick={startAiChat}>{t.goToAi}</Button>
+              ? <Button size="lg" block onClick={startAiChat}><span className="whitespace-normal leading-tight">{t.goToAi}</span></Button>
               : <Button size="lg" block variant="secondary" onClick={revealNext}>{t.nextLine}</Button>}
           </div>
         </div>
@@ -1708,8 +1708,8 @@ function VocabularySection({ words, reviewed, onReviewed }: {
 
   return (
     <>
-      <Card className="flex items-center gap-4 p-4 sm:p-5">
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-signal-soft"><Layers aria-hidden="true" strokeWidth={1.6} className="size-8 text-signal-ink" /></div>
+      <Card className="flex flex-wrap items-center gap-3 p-4 sm:flex-nowrap sm:gap-4 sm:p-5">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-signal-soft sm:size-16"><Layers aria-hidden="true" strokeWidth={1.6} className="size-8 text-signal-ink" /></div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{fill(t.cards, { count: words.length })}</p>
           <h3 className="mt-1 text-xl font-black text-ink">{t.deckTitle}</h3>
@@ -1719,7 +1719,7 @@ function VocabularySection({ words, reviewed, onReviewed }: {
               : `Ko‘rildi: ${Math.min(reviewed, words.length)} / ${words.length}${reviewed >= target ? ' ✓' : ` (kamida ${target})`}`}
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>{reviewed > 0 && !finishedDeck ? t.resume : t.open}</Button>
+        <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>{reviewed > 0 && !finishedDeck ? t.resume : t.open}</Button>
       </Card>
       {open && (
         <VocabularyDeck
@@ -1766,9 +1766,9 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
             <div className="flex h-32 items-center justify-center bg-signal-soft text-6xl sm:h-40">{word.icon}</div>
             <div className="min-h-52 p-5 sm:min-h-60 sm:p-7">
               {!flipped ? (
-                <><h2 className="text-3xl font-black text-ink"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="raised raised-signal mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.listenAndRepeat}</SpeechButton></>
+                <><h2 className="text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="raised raised-signal mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.listenAndRepeat}</SpeechButton></>
               ) : (
-                <><h2 className="text-3xl font-black text-ink">{word.uz}</h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><span className="mt-4 block text-sm font-bold text-ink-muted">{t.tapForFront}</span></>
+                <><h2 className="text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl">{word.uz}</h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><span className="mt-4 block text-sm font-bold text-ink-muted">{t.tapForFront}</span></>
               )}
             </div>
           </div>
@@ -1929,7 +1929,7 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
       <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{fill(t.badge, { day: lesson.day })}</span>
       <h3 className="mt-3 text-3xl font-black text-ink">{t.title}</h3>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage ?? t.body}</p>
-      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+      <div className="mt-5 grid gap-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
         {/*
           The card's tone is decoration, so it rides on a bar rather than on the words: painting the
           heading tinted every word the grammar colouring deliberately left alone — the "и" in

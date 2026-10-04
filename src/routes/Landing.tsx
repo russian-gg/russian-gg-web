@@ -101,12 +101,12 @@ function TopBar() {
   const t = useT().landing
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-ground/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-5">
         <a href="#top" className="flex items-center" aria-label="russian.gg">
           <Wordmark className="text-xl" />
         </a>
 
-        <nav className="hidden items-center gap-7 text-sm font-bold text-ink-muted md:flex">
+        <nav className="hidden items-center gap-5 text-sm font-bold whitespace-nowrap text-ink-muted lg:flex">
           <a className="transition-colors hover:text-ink" href="#method">
             {t.nav.method}
           </a>
@@ -123,7 +123,7 @@ function TopBar() {
           <LinkButton to="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
             {t.nav.signIn}
           </LinkButton>
-          <LinkButton to="/signin" size="md">
+          <LinkButton to="/signin" size="md" className="max-sm:px-4">
             {t.nav.getStarted}
           </LinkButton>
         </div>
@@ -155,7 +155,7 @@ function Hero() {
           follows the argument down the column, and the whole run still finishes inside half a
           second, which is roughly how long the hero artwork takes to decode anyway.
         */}
-        <Sequence gap={stagger.wide}>
+        <Sequence className="min-w-0" gap={stagger.wide}>
           <Reveal>
             <p className="inline-flex items-center rounded-[var(--radius-control)] border border-hairline bg-ground-raised px-3.5 py-1.5 text-xs font-extrabold tracking-[0.06em] text-signal-ink uppercase">
               {t.hero.eyebrow}
@@ -176,7 +176,7 @@ function Hero() {
             <LinkButton to="/signin" className="w-full sm:w-auto">
               {t.hero.primaryCta}
             </LinkButton>
-            <LinkButton to="/onboarding" variant="secondary" className="w-full sm:w-auto">
+            <LinkButton to="/onboarding" variant="secondary" className="w-full max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
               {t.hero.secondaryCta}
             </LinkButton>
           </Reveal>
@@ -258,7 +258,7 @@ function Characters() {
           other two answer it - so they arrive in that order too. A wide beat, because these
           are three statements and not three items in a grid.
         */}
-        <SequenceInView className="mt-12 grid gap-6 md:grid-cols-3" gap={stagger.wide}>
+        <SequenceInView className="mx-auto mt-12 grid max-w-md gap-6 lg:max-w-none lg:grid-cols-3" gap={stagger.wide}>
           {CHARACTERS.map((character) => (
             <Reveal key={character.key} variants={rise}>
               <CharacterCard character={character} />
@@ -277,7 +277,7 @@ function Characters() {
             <h3 className="text-lg font-extrabold text-ink sm:text-xl">{t.ctaTitle}</h3>
             <p className="mt-1 text-sm text-ink-muted">{t.ctaBody}</p>
           </div>
-          <LinkButton to="/signin" className="w-full shrink-0 sm:w-auto">
+          <LinkButton to="/signin" className="w-full shrink-0 max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
             {t.ctaButton}
           </LinkButton>
         </m.div>
@@ -298,17 +298,17 @@ function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }
       className="flex flex-col rounded-[var(--radius-card)] border-2 bg-ground-raised p-5"
       style={{ borderColor: character.accent }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-1 text-[11px] font-extrabold tracking-[0.06em] text-ink-muted uppercase">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="whitespace-nowrap rounded-[var(--radius-control)] bg-ground-sunken px-3 py-1 text-[11px] font-extrabold tracking-[0.06em] text-ink-muted uppercase">
           {fill(t.stage, { n: character.n })} · {name}
         </span>
         {isProblem ? (
-          <span className="inline-flex items-center gap-1 rounded-[var(--radius-control)] bg-danger-soft px-2.5 py-1 text-[11px] font-extrabold text-danger">
+          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] bg-danger-soft px-2.5 py-1 text-[11px] font-extrabold text-danger">
             <AlertGlyph />
             {t.statusProblem}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-[var(--radius-control)] bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold text-milestone">
+          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold text-milestone">
             <CheckGlyph />
             {t.statusSolution}
           </span>
@@ -733,19 +733,19 @@ function PlanCard({
         featured ? 'border-2 border-signal' : 'border border-hairline',
       )}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-lg font-extrabold text-ink">{title}</h3>
         {badge && (
-          <span className="rounded-[var(--radius-control)] bg-signal px-3 py-1 text-xs font-extrabold text-on-signal">
+          <span className="shrink-0 whitespace-nowrap rounded-[var(--radius-control)] bg-signal px-3 py-1 text-xs font-extrabold text-on-signal">
             {badge}
           </span>
         )}
       </div>
       <p className="mt-1 text-sm text-ink-muted">{body}</p>
 
-      <div className="mt-5 flex items-baseline gap-1.5">
+      <div className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
         <span className="text-4xl font-extrabold tracking-tight text-ink tabular-nums">{price}</span>
-        <span className="text-sm font-bold text-ink-muted">{unit}</span>
+        <span className="text-sm font-bold whitespace-nowrap text-ink-muted">{unit}</span>
       </div>
       {note && <p className="mt-1 text-sm font-semibold text-signal-ink">{note}</p>}
 
@@ -776,7 +776,7 @@ function FinalCta() {
         style={{ background: 'linear-gradient(180deg,#5cb6f7 0%,#3f9dee 58%,#2f92e7 100%)' }}
       >
         <SkyScene />
-        <div className="relative grid items-center gap-2 px-8 py-12 sm:px-12 sm:py-14 lg:grid-cols-[1.25fr_1fr]">
+        <div className="relative grid items-center gap-2 px-6 py-10 sm:px-12 sm:py-14 lg:grid-cols-[1.25fr_1fr]">
           <div>
             <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl lg:text-[2.4rem]">
               {t.final.title}
@@ -785,7 +785,7 @@ function FinalCta() {
             <div className="mt-7 flex flex-col items-start gap-3">
               <Link
                 to="/signin"
-                className="raised inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-9 text-base font-extrabold text-[#1c8fe0] [--depth:rgb(19_120_205/0.28)] [--edge:5px] [--glow:rgb(19_120_205/0.2)]"
+                className="raised inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-6 text-base font-extrabold whitespace-nowrap sm:px-9 text-[#1c8fe0] [--depth:rgb(19_120_205/0.28)] [--edge:5px] [--glow:rgb(19_120_205/0.2)]"
               >
                 {t.final.cta}
               </Link>

@@ -210,11 +210,11 @@ function TestList({ onOpen }: { onOpen: (id: string) => void }) {
             <Table head={['Test', 'Daraja', 'Savollar', 'Faol', '']}>
               {visible.map((item) => (
                 <Row key={item.id}>
-                  <Cell>
+                  <Cell wrap>
                     <button
                       type="button"
                       onClick={() => onOpen(item.id)}
-                      className="text-left font-bold text-ink hover:text-signal-ink"
+                      className="min-w-48 text-left font-bold text-ink hover:text-signal-ink"
                     >
                       {item.title}
                     </button>
@@ -586,17 +586,17 @@ function QuestionCard({
 }) {
   return (
     <Card as="div" className={cx('space-y-3 p-4 sm:p-5', !item.isActive && 'opacity-60')}>
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-sm font-black text-ink-muted">
           {number}
         </span>
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="min-w-40 flex-1 space-y-1.5">
           <Badge tone="signal">{CATEGORY[item.category]}</Badge>
           <p className="font-bold whitespace-pre-line text-ink" lang="ru">
             {item.text}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <button
             type="button"
             role="switch"

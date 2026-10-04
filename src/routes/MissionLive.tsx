@@ -544,7 +544,7 @@ export function MissionLive() {
         )}
       </div>
 
-      <footer className="flex items-center justify-center gap-3">
+      <footer className="flex flex-wrap items-center justify-center gap-3">
         {started ? (
           <>
             <Button variant="secondary" onClick={toggleMute} disabled={phase !== 'live'}>

@@ -521,7 +521,7 @@ export function GenderRunnerGame() {
             <p className="text-[10px] font-black tracking-[0.18em] text-amber-200 uppercase">{t.findGender}</p>
             <div className="mt-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-amber-600 bg-amber-50 px-4 py-2 text-amber-950 shadow-2xl">
               <span className="text-xl font-black tracking-wide sm:text-3xl">«{status.word.text}»</span>
-              <button type="button" className="pointer-events-auto grid size-8 place-items-center rounded-full bg-amber-200 text-sm" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label={t.listen}><Play aria-hidden="true" className="size-3.5 fill-current" strokeWidth={0} /></button>
+              <button type="button" className="pointer-events-auto grid size-8 shrink-0 place-items-center rounded-full bg-amber-200 text-sm" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label={t.listen}><Play aria-hidden="true" className="size-3.5 fill-current" strokeWidth={0} /></button>
             </div>
             {status.message && (
               <p className={cx(
@@ -625,7 +625,7 @@ function Lives({ lives }: { lives: boolean[] }) {
 function GameOverlay({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <div className="absolute inset-2 z-10 flex items-center justify-center rounded-2xl bg-black/75 p-4 backdrop-blur-sm sm:inset-4">
-      <div className="flex w-full max-w-lg flex-col items-center gap-4 rounded-3xl border border-white/15 bg-slate-900/95 p-5 text-center shadow-2xl sm:p-7">
+      <div className="flex max-h-full w-full max-w-lg flex-col items-center gap-3 overflow-y-auto rounded-3xl border border-white/15 bg-slate-900/95 p-4 text-center shadow-2xl sm:gap-4 sm:p-7">
         <span aria-hidden className="text-signal-ink">{icon}</span>
         <h1 className="text-2xl font-black sm:text-3xl">{title}</h1>
         {children}
@@ -663,7 +663,7 @@ function DifficultyPicker({ value, onChange }: { value: Difficulty; onChange: (d
 
 function Result({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-white/10 p-3">
+    <div className="min-w-0 rounded-xl bg-white/10 px-1.5 py-3 wrap-break-word sm:p-3">
       <span className="block text-[10px] font-bold text-white/60 uppercase">{label}</span>
       <strong className="mt-1 block text-xl">{value}</strong>
     </div>

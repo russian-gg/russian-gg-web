@@ -39,7 +39,7 @@ export function AiUsage() {
         <PeriodToggle value={days} onChange={(next) => { setDays(next); setPage(1) }} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
         <Stat label="Jami chaqiruvlar" value={formatNumber(data.totalCalls)} />
         <Stat label="Muvaffaqiyatli" value={formatNumber(data.succeeded)} />
         <Stat

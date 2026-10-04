@@ -519,7 +519,7 @@ const welcomeGiftStyles = `
   .welcome-gift-effects{z-index:3}
   .welcome-gift-ambient .welcome-confetti{top:0;opacity:.5;animation:welcome-drift linear infinite}
 
-  .welcome-gift-panel{position:relative;overflow:hidden;width:min(680px,100%);padding:36px 30px 30px;text-align:center;border:1px solid rgba(255,255,255,.65);border-radius:34px;background:radial-gradient(120% 70% at 50% 0%,#e6effd 0%,#fff 62%);box-shadow:0 34px 110px rgba(3,12,30,.46);animation:welcome-panel-in .55s cubic-bezier(.2,.85,.25,1.15) both}
+  .welcome-gift-panel{position:relative;overflow:hidden auto;max-height:calc(100dvh - 24px);width:min(680px,100%);padding:36px 30px 30px;text-align:center;border:1px solid rgba(255,255,255,.65);border-radius:34px;background:radial-gradient(120% 70% at 50% 0%,#e6effd 0%,#fff 62%);box-shadow:0 34px 110px rgba(3,12,30,.46);animation:welcome-panel-in .55s cubic-bezier(.2,.85,.25,1.15) both}
   .welcome-gift-revealed .welcome-gift-panel{animation:welcome-panel-jolt .5s cubic-bezier(.3,1.6,.5,1) both}
   .welcome-gift-revealed .welcome-gift-panel:after{content:'';position:absolute;inset:0;z-index:5;border-radius:inherit;background:radial-gradient(circle at 50% 64%,#fff 0,rgba(255,255,255,.85) 22%,rgba(255,255,255,0) 62%);pointer-events:none;animation:welcome-flash .75s ease-out both}
   .welcome-gift-eyebrow{position:relative;z-index:2;display:inline-flex;border-radius:999px;padding:7px 13px;background:#dbeafe;color:#2563eb;font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}

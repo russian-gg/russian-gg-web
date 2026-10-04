@@ -66,7 +66,7 @@ export function StartTestDialog({ test, onDismiss }: { test: StartTestTarget | n
     >
       {test && (
         <>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3">
             <PreviewFact label={t.factQuestions} value={String(test.questionCount)} />
             <PreviewFact label={t.factLevel} value={t.difficulties[test.difficulty]} />
             <PreviewFact label={t.factTime} value={fill(t.secondsValue, { seconds })} />

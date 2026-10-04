@@ -194,7 +194,7 @@ export function Stat({
     */
     <Reveal variants={rise}>
       <Card className="flex h-full flex-col gap-1">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
           <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">{label}</span>
           {badge}
         </div>
@@ -250,7 +250,7 @@ export function Tabs<T extends string>({
 }) {
   return (
     <div
-      className="inline-flex rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1"
+      className="inline-flex max-w-full overflow-x-auto rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised p-1"
       role="tablist"
     >
       {options.map((option) => (
@@ -261,7 +261,7 @@ export function Tabs<T extends string>({
           aria-selected={value === option.id}
           onClick={() => onChange(option.id)}
           className={cx(
-            'relative rounded-[var(--radius-control)] px-4 py-1.5 text-sm font-bold transition-colors',
+            'relative shrink-0 rounded-[var(--radius-control)] px-4 py-1.5 text-sm font-bold whitespace-nowrap transition-colors',
             value === option.id ? 'bg-signal text-on-signal' : 'text-ink-muted hover:text-ink',
           )}
         >
@@ -274,7 +274,7 @@ export function Tabs<T extends string>({
           {option.badge !== undefined && option.badge > 0 && (
             <span
               aria-label={`${option.badge} ta o'qilmagan`}
-              className="absolute -top-1.5 -right-1 min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[11px] leading-none font-extrabold text-on-danger ring-2 ring-ground-raised"
+              className="absolute -top-1 -right-1 min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[11px] leading-none font-extrabold text-on-danger ring-2 ring-ground-raised"
             >
               {option.badge > 99 ? '99+' : option.badge}
             </span>
@@ -360,7 +360,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cx(
-        'inline-flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted transition-colors',
+        'inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-ink-muted transition-colors',
         tone === 'danger' ? 'hover:bg-danger-soft hover:text-danger' : 'hover:bg-ground-sunken hover:text-ink',
       )}
     >
