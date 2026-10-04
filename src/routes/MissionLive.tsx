@@ -36,16 +36,18 @@ const ORB_STATE: Record<LiveVoiceStatus, OrbState> = {
 const MISSION_TOOLS: LiveFunctionDeclaration[] = [
   {
     name: 'step_completed',
-    description: 'The learner has just correctly said the answer this step of the scene was waiting for.',
+    description:
+      'The learner has just completed a learning goal of the mission themselves: they communicated what it requires, in their own words.',
     parameters: {
       type: 'OBJECT',
-      properties: { step: { type: 'INTEGER', description: 'The step number, starting at 1.' } },
+      properties: { step: { type: 'INTEGER', description: 'The number of the learning goal, starting at 1.' } },
       required: ['step'],
     },
   },
   {
     name: 'finish_mission',
-    description: 'Every step of the scene is complete and the closing line has been said. Ends the conversation.',
+    description:
+      'Every learning goal that asks something of the learner is complete and the closing line has been said. Ends the conversation.',
   },
 ]
 
