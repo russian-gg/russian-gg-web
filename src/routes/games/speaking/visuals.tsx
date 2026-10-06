@@ -30,7 +30,7 @@ export function Timer({ seconds, duration, label }: { seconds: number; duration:
 }
 
 export function CompanionPicker({ value, onChange, copy, game, disabled = false }: { value: Companion; onChange: (value: Companion) => void; copy: GameCopy; game: GameSlug; disabled?: boolean }) {
-  return <fieldset disabled={disabled} className="sg-companions"><legend>{copy.character}</legend>
+  return <fieldset disabled={disabled} className="sg-companions"><legend>{game === 'tez-gapir' ? copy.conversationPartner : copy.character}</legend>
     {(['penguin', 'panda', 'pero'] as const).map((companion) => <button type="button" key={companion} aria-pressed={value === companion} onClick={() => onChange(companion)}>
       <img src={companionImage(companion, game)} alt="" /><span>{copy[companion === 'pero' ? 'feather' : companion]}</span>
     </button>)}
@@ -43,7 +43,7 @@ export function CharacterPortrait({ character, game }: { character: string; game
 }
 
 export function CharacterNote({ companion, children, game }: { companion: string; children: ReactNode; game: GameSlug }) {
-  return <div className="sg-character-note"><CharacterPortrait character={companion} game={game} /><div lang="ru">{children}</div></div>
+  return <div className="sg-character-note"><CharacterPortrait character={companion} game={game} /><div lang={game === 'tez-gapir' ? 'uz' : 'ru'}>{children}</div></div>
 }
 
 export function ReactionScene({ text }: { text: string }) {

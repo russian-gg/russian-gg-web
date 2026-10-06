@@ -154,7 +154,7 @@ function model(options) {
       assert.equal(typeof body.text, 'string')
       assert.ok(body.text.trim(), 'this fixture expects a substantive answer')
       assert.equal(body.action, slug === 'ice-mystery' ? body.locationId ? 'question' : 'accuse' : 'answer')
-      session.feedback = feedback(body.text)
+      session.feedback = { ...feedback(body.text), points: options.roundScores?.[session.roundIndex] ?? 7 }
       session.score += session.feedback.points
       session.history.push({ roundIndex: session.roundIndex, prompt: clone(session.prompt), feedback: clone(session.feedback), answeredAt: now(), locationId: body.locationId ?? null })
       session.deadlineUtc = null
@@ -362,6 +362,7 @@ for (const size of Object.keys(SIZES)) {
         await card.scrollIntoViewIfNeeded()
         assert.equal(await card.getAttribute('href'), '/games/tez-gapir')
         for (const text of Object.values(shelfCopy[locale])) assert.ok((await card.textContent()).includes(text), `missing localized text: ${text}`)
+        assert.doesNotMatch(await card.textContent(), /Ruscha gapiring|Говорите по-русски|Speak Russian and see/)
         assert.equal(await card.locator('a, button').count(), 0, 'one accessible link, no nested interactive controls')
         assert.equal(await card.locator('img').count(), 3)
         for (const name of ['penguin', 'panda', 'pero']) {
@@ -488,7 +489,16 @@ for (const size of Object.keys(SIZES)) {
           await portrait.evaluate((image) => image.decode())
           assert.ok(await portrait.evaluate((image) => image.naturalWidth > 0))
         }
-        if (slug === 'tez-gapir') assert.doesNotMatch(await h.page.locator('.sg-rules').innerText(), /[+\-−]\d/)
+        if (slug === 'tez-gapir') {
+          assert.doesNotMatch(await h.page.locator('.sg-rules').innerText(), /[+\-−]\d|3[–-]5|От 3 до 5/)
+          assert.equal(await h.page.locator('.sg-companions legend').innerText(), {
+            uz: 'Suhbatdoshingiz kim bo‘lsin?', ru: 'Кто будет вашим собеседником?', en: 'Who would you like to talk to?',
+          }[locale])
+        } else {
+          assert.equal(await h.page.locator('.sg-companions legend').innerText(), {
+            uz: 'Hamrohingizni tanlang', ru: 'Выберите напарника', en: 'Choose your companion',
+          }[locale])
+        }
         if (slug !== 'ice-mystery') {
           await h.page.getByRole('combobox', { name: c.level, exact: true }).click()
           await h.page.getByRole('option', { name: 'A2', exact: true }).click()
@@ -505,7 +515,8 @@ for (const size of Object.keys(SIZES)) {
         await h.page.getByRole('cell', { name: 'Mock all winner', exact: true }).waitFor()
         assert.equal(h.calls('leaderboard').at(-1).period, 'all')
         await h.page.getByRole('tab', { name: c.progress, exact: true }).click()
-        assert.ok((await h.page.getByRole('tabpanel').innerText()).includes('100'))
+        assert.ok((await h.page.getByRole('tabpanel').innerText()).includes(slug === 'tez-gapir' ? '21' : '100'))
+        assert.equal(await h.page.locator('.sg-cityscape').count(), slug === 'tez-gapir' ? 0 : 1)
         assert.equal(await h.page.getByRole('progressbar').getAttribute('value'), '1')
         assert.equal(await h.page.getByRole('progressbar').getAttribute('max'), '3')
         await h.page.getByRole('tab', { name: c.weekly, exact: true }).click()
@@ -553,6 +564,7 @@ for (const size of Object.keys(SIZES)) {
       await button(h.page, 'Play again').waitFor()
       assert.equal(h.session().status, 'completed')
       assert.equal(await h.page.locator('.sg-score-big').innerText(), String(total * 7))
+      assert.equal(await h.page.locator('.sg-cityscape').count(), slug === 'tez-gapir' ? 0 : 1)
       assert.equal(await h.page.locator('details').count(), total)
       await h.page.locator('details summary').first().click()
       assert.ok((await h.page.locator('details').first().innerText()).includes(`${ANSWER} 1`))
@@ -657,6 +669,83 @@ for (const size of Object.keys(SIZES)) {
     })
   }
 }
+
+const modeCopy = {
+  en: { type: 'Type an answer', voice: 'Answer by voice', speak: 'Speak', finish: 'Finish', next: 'Next' },
+  uz: { type: 'Yozib javob berish', voice: 'Ovoz bilan javob berish', speak: 'Gapirish', finish: 'Yakunlash', next: 'Keyingi' },
+  ru: { type: 'Ответить текстом', voice: 'Ответить голосом', speak: 'Говорить', finish: 'Закончить', next: 'Дальше' },
+}
+
+for (const size of Object.keys(SIZES)) {
+  for (const locale of Object.keys(modeCopy)) {
+    scenario(`tez microphone only preserves voice answers ${locale} ${size}`, { size, locale }, async (h) => {
+      const c = modeCopy[locale]
+      await h.start()
+      assert.equal(await button(h.page, c.type).count(), 0)
+      assert.equal(await button(h.page, c.voice).count(), 0)
+      assert.equal(await h.page.getByRole('textbox').count(), 0)
+      await screenshot(h.page, `tez-voice-only-${locale}-${size}`)
+      await button(h.page, c.speak).click()
+      await h.page.waitForFunction(() => window.__gameSpeech.snapshot().length === 1)
+      assert.equal(h.calls('begin').length, 0, 'timer still waits for microphone readiness')
+      await h.page.evaluate(() => window.__gameSpeech.started())
+      await until(() => h.calls('begin').length === 1, 'microphone begins the round exactly once')
+      await h.page.evaluate((text) => window.__gameSpeech.finalOnStop(text), ANSWER)
+      await button(h.page, c.finish).click()
+      await button(h.page, c.next).waitFor()
+      assert.equal(h.calls('answer').length, 1)
+      assert.equal(h.calls('answer')[0].body.text, ANSWER)
+      assert.equal((await h.page.evaluate(() => window.__gameSpeech.snapshot())).at(-1).active, false)
+      await button(h.page, c.next).click()
+      await button(h.page, c.speak).waitFor()
+      assert.equal(await button(h.page, c.type).count(), 0)
+      assert.equal(await h.page.getByRole('textbox').count(), 0)
+    })
+  }
+
+  for (const unsupported of [true, false]) {
+    scenario(`tez microphone only after ${unsupported ? 'unsupported speech' : 'permission denial'} ${size}`, { size, unsupported }, async (h) => {
+      await h.start()
+      if (!unsupported) {
+        await button(h.page, 'Speak').click()
+        await h.page.waitForFunction(() => window.__gameSpeech.snapshot().length === 1)
+        await h.page.evaluate(() => window.__gameSpeech.error('not-allowed'))
+        await h.page.getByRole('alert').filter({ hasText: 'Allow microphone access' }).waitFor()
+      }
+      assert.equal(await button(h.page, 'Type an answer').count(), 0)
+      assert.equal(await h.page.getByRole('textbox').count(), 0)
+      assert.equal(h.calls('begin').length, 0)
+      assert.equal(h.calls('answer').length, 0)
+      if (unsupported) {
+        assert.equal(await button(h.page, 'Speak').isDisabled(), true)
+        assert.doesNotMatch(await h.page.locator('.sg-board').innerText(), /choose written practice/)
+      } else {
+        await beginVoice(h)
+        await sendVoice(h)
+        await checkFeedback(h)
+      }
+    })
+  }
+}
+
+scenario('tez total score follows server round allocations without plus minus feedback', { roundScores: [33, 33, 34] }, async (h) => {
+  await h.start()
+  let total = 0
+  for (const points of [33, 33, 34]) {
+    await beginVoice(h)
+    await sendVoice(h)
+    await checkFeedback(h)
+    total += points
+    assert.equal(await h.page.locator('.sg-hud strong').innerText(), String(total))
+    await button(h.page, 'Next').click()
+  }
+  await button(h.page, 'Play again').waitFor()
+  assert.equal(await h.page.locator('.sg-score-big').innerText(), '100')
+  assert.equal(await h.page.locator('.sg-cityscape').count(), 0)
+  assert.ok((await h.page.locator('.sg-stat-grid').innerText()).includes('100'))
+  await screenshot(h.page, 'tez-total-score-100')
+  assert.equal(h.calls('answer').length, 3)
+})
 
 for (const gate of ['disabled', 'locked']) {
   for (const slug of SLUGS) {
@@ -884,7 +973,8 @@ scenario('Android tez submits one transcript instead of cumulative hypotheses', 
   await checkFeedback(h, 'Я люблю семью.')
 })
 
-const languageCorrection = '«он 4 лет» → «ему 4 года»: возраст выражается дательным падежом.'
+const languageCorrection = "«он 4 лет» o'rniga «ему 4 года» deng: yoshni aytishda «ему», 4 dan keyin «года» ishlatiladi."
+const tezCharacterPhrase = "Javobingiz tahlilini ko'rib chiqing."
 for (const slug of SLUGS) {
   for (const companion of ['penguin', 'panda', 'pero']) {
     scenario(`companion artwork isolated ${slug} ${companion}`, { slug, saved: makeSession(slug, {
@@ -909,12 +999,15 @@ for (const slug of SLUGS) {
 for (const locale of Object.keys(COPY)) {
   const review = makeSession('tez-gapir', {
     status: 'feedback', availableActions: ['next', 'end'],
-    feedback: { ...feedback('У меня есть братишка и он 4 лет.'), correct: false, correctAnswer: null, explanation: languageCorrection },
+    feedback: { ...feedback('У меня есть братишка и он 4 лет.'), correct: false, correctAnswer: null, explanation: languageCorrection, characterPhrase: tezCharacterPhrase },
   })
   scenario(`tez shows actual correction without point explanations ${locale}`, { locale, saved: review }, async (h) => {
     await h.open(`?session=${review.id}`)
     const panel = h.page.locator('.sg-feedback')
     assert.ok((await panel.innerText()).includes(languageCorrection))
+    assert.equal(await panel.locator('p[lang="ru"]').innerText(), 'У меня есть братишка и он 4 лет.')
+    assert.equal(await panel.locator('p[lang="uz"]').innerText(), languageCorrection)
+    assert.equal(await h.page.locator('.sg-character-note [lang="uz"]').innerText(), tezCharacterPhrase)
     assert.equal(await panel.locator('.sg-chip').count(), 0)
     assert.doesNotMatch(await panel.innerText(), /[+\-−]\d/)
     await screenshot(h.page, `tez-language-feedback-${locale}`)

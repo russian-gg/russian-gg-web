@@ -305,7 +305,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const isMystery = slug === 'ice-mystery'
   const feedback = session?.status === 'feedback' && !accusing ? session.feedback : null
   const showMap = isMystery && session && !location && !accusing && session.status !== 'completed'
-  const modeEditable = !busy && !answering && !feedback
+  const modeEditable = slug !== 'tez-gapir' && !busy && !answering && !feedback
   const pending = Boolean(pendingAnswer.current || session?.pendingAnswer)
 
   return <main className="sg" data-game={slug}>
@@ -337,7 +337,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
               {locale === 'uz' && session.prompt.titleUz && <p className="sg-muted mb-4">{session.prompt.titleUz}</p>}
               {!answering && !busy && !feedback && !accusing && session.prompt.kind !== 'ready' && <Button variant="ghost" disabled={playingAudio} onClick={() => void playAudio(session, 'prompt')}>{playingAudio ? copy.loading : copy.listen}</Button>}
               {!feedback && <>
-                {!speech.supported && <p className="sg-muted my-5">{copy.unsupported}</p>}
+                {!speech.supported && <p className="sg-muted my-5">{slug === 'tez-gapir' ? copy.voiceUnsupported : copy.unsupported}</p>}
                 {(speechStatus === 'denied' || speechStatus === 'failed') && <div className="sg-error" role="alert"><strong>{speechStatus === 'denied' ? copy.micDenied : copy.micFailed}</strong>{speechStatus === 'denied' && <p>{copy.micHelp}</p>}</div>}
                 {modeEditable && <div className="sg-actions"><Button variant="ghost" onClick={() => { speech.abort(); setTextMode(!textMode) }}>{textMode ? copy.voice : copy.type}</Button></div>}
                 {textMode && <p className="sg-muted mt-4">{copy.textMode}</p>}

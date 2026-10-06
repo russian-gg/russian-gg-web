@@ -3,7 +3,7 @@ import type { Locale } from '../../../lib/i18n'
 const uz = {
   games: "O'yinlar", back: 'Orqaga', start: 'Boshlash', ready: 'Tayyorman', next: 'Keyingi', stop: 'Yakunlash',
   retry: 'Qayta urinish', again: "Yana o'ynash", resume: 'Davom ettirish', finish: "O'yinni yakunlash",
-  character: 'Hamrohingizni tanlang', level: 'Daraja', theme: 'Mavzu', rounds: 'Raund', score: 'Ball',
+  character: 'Hamrohingizni tanlang', conversationPartner: 'Suhbatdoshingiz kim bo‘lsin?', level: 'Daraja', theme: 'Mavzu', rounds: 'Raund', score: 'Ball',
   best: 'Shaxsiy rekord', weekly: 'Haftalik reyting', history: 'Oxirgi natijalar', achievements: 'Yutuqlar',
   empty: "Hozircha natijalar yo'q. Birinchi bo'lib o'ynang!", loading: 'Yuklanmoqda...', saving: 'Tekshirilmoqda...',
   saved: 'Natija saqlandi', completed: 'Ajoyib mashg‘ulot!', review: 'Natijalarni ko‘rib chiqing',
@@ -12,6 +12,7 @@ const uz = {
   listen: 'Eshitish', listening: 'Sizni eshityapman. Ruscha gapiring.', preparing: 'Mikrofon ulanmoqda...',
   speak: 'Gapirish', submit: 'Javobni yuborish', type: 'Yozib javob berish', voice: 'Ovoz bilan javob berish',
   textMode: 'Yozma mashq: javobingizni rus tilida kiriting.', unsupported: 'Bu brauzer ovozni matnga aylantirishni qo‘llamaydi. Chrome yoki Safari orqali kiring yoki yozma mashqni tanlang.',
+  voiceUnsupported: 'Bu brauzer ovozni matnga aylantirishni qo‘llamaydi. Mikrofon bilan o‘ynash uchun Chrome yoki Safari orqali kiring.',
   micDenied: 'Mikrofonga ruxsat bering', micHelp: 'Manzil yonidagi sayt sozlamalari → Ruxsatlar → Mikrofon → Ruxsat berish. Keyin qayta urinib ko‘ring.',
   micFailed: 'Ovoz aniqlanmadi. Mikrofon va internetni tekshirib, qayta urinib ko‘ring.',
   error: 'So‘rov bajarilmadi. Internetni tekshiring va qayta urinib ko‘ring. Natijangiz yuborilmaguncha keyingi savolga o‘tilmaydi.',
@@ -36,7 +37,7 @@ type Copy = { [K in keyof typeof uz]: string }
 const ru: Copy = {
   games: 'Игры', back: 'Назад', start: 'Начать', ready: 'Я готов', next: 'Дальше', stop: 'Закончить',
   retry: 'Повторить', again: 'Играть ещё', resume: 'Продолжить', finish: 'Завершить игру',
-  character: 'Выберите напарника', level: 'Уровень', theme: 'Тема', rounds: 'Раунд', score: 'Баллы',
+  character: 'Выберите напарника', conversationPartner: 'Кто будет вашим собеседником?', level: 'Уровень', theme: 'Тема', rounds: 'Раунд', score: 'Баллы',
   best: 'Личный рекорд', weekly: 'Рейтинг за неделю', history: 'Последние результаты', achievements: 'Достижения',
   empty: 'Результатов пока нет. Сыграйте первым!', loading: 'Загрузка...', saving: 'Проверяем ответ...',
   saved: 'Результат сохранён', completed: 'Отличная практика!', review: 'Посмотрите результаты',
@@ -45,6 +46,7 @@ const ru: Copy = {
   listen: 'Послушать', listening: 'Слушаю вас. Говорите по-русски.', preparing: 'Подключаем микрофон...',
   speak: 'Говорить', submit: 'Отправить ответ', type: 'Ответить текстом', voice: 'Ответить голосом',
   textMode: 'Письменная практика: введите ответ по-русски.', unsupported: 'Этот браузер не поддерживает распознавание речи. Откройте Chrome или Safari либо выберите письменную практику.',
+  voiceUnsupported: 'Этот браузер не поддерживает распознавание речи. Чтобы играть с микрофоном, откройте Chrome или Safari.',
   micDenied: 'Разрешите доступ к микрофону', micHelp: 'Настройки сайта рядом с адресом → Разрешения → Микрофон → Разрешить. Затем попробуйте снова.',
   micFailed: 'Не удалось распознать речь. Проверьте микрофон и интернет, затем попробуйте снова.',
   error: 'Запрос не выполнен. Проверьте интернет и повторите. Следующий вопрос не откроется, пока ответ не отправлен.',
@@ -68,7 +70,7 @@ const ru: Copy = {
 const en: Copy = {
   games: 'Games', back: 'Back', start: 'Start', ready: 'Ready', next: 'Next', stop: 'Finish',
   retry: 'Try again', again: 'Play again', resume: 'Resume', finish: 'Finish game',
-  character: 'Choose your companion', level: 'Level', theme: 'Topic', rounds: 'Round', score: 'Score',
+  character: 'Choose your companion', conversationPartner: 'Who would you like to talk to?', level: 'Level', theme: 'Topic', rounds: 'Round', score: 'Score',
   best: 'Personal best', weekly: 'Weekly leaderboard', history: 'Recent results', achievements: 'Achievements',
   empty: 'No results yet. Be the first to play!', loading: 'Loading...', saving: 'Checking your answer...',
   saved: 'Result saved', completed: 'Great practice!', review: 'Review your results',
@@ -77,6 +79,7 @@ const en: Copy = {
   listen: 'Listen', listening: 'Listening. Speak in Russian.', preparing: 'Connecting microphone...',
   speak: 'Speak', submit: 'Submit answer', type: 'Type an answer', voice: 'Answer by voice',
   textMode: 'Written practice: enter your answer in Russian.', unsupported: 'Speech recognition is unavailable in this browser. Use Chrome or Safari, or choose written practice.',
+  voiceUnsupported: 'Speech recognition is unavailable in this browser. Use Chrome or Safari to play with a microphone.',
   micDenied: 'Allow microphone access', micHelp: 'Site settings next to the address → Permissions → Microphone → Allow. Then try again.',
   micFailed: 'Could not recognise speech. Check your microphone and connection, then try again.',
   error: 'Request failed. Check your connection and retry. Your next question stays closed until this answer is submitted.',
@@ -104,9 +107,9 @@ export const gameSlugs = ['tez-gapir', 'error-hunt', 'first-reaction', 'ice-myst
 export type GameSlug = typeof gameSlugs[number]
 export const gameLabels: Record<GameSlug, Record<Locale, { title: string; description: string; rules: string }>> = {
   'tez-gapir': {
-    uz: { title: 'Tez gapir', description: '30 soniya. Bitta mavzu. Nechta ruscha so‘z bilasiz?', rules: '30 soniyada mavzuga mos ruscha so‘zlar yoki gaplar ayting. Javobdan keyin xatolar va to‘g‘ri variantlarni ko‘ring. Bir mashg‘ulotda 3–5 raund.' },
-    ru: { title: 'Говори быстро', description: '30 секунд. Одна тема. Сколько слов вы вспомните?', rules: 'За 30 секунд называйте русские слова или предложения по теме. После ответа посмотрите ошибки и правильные варианты. От 3 до 5 раундов.' },
-    en: { title: 'Speak fast', description: '30 seconds. One topic. How many Russian words do you know?', rules: 'Say Russian words or sentences on the topic in 30 seconds. Review mistakes and corrected examples after your answer. Play 3–5 rounds.' },
+    uz: { title: 'Tez gapir', description: '30 soniya. Bitta mavzu. Nechta ruscha so‘z bilasiz?', rules: '30 soniyada mavzuga mos ruscha so‘zlar yoki gaplar ayting. Javobdan keyin xatolar va to‘g‘ri variantlarni ko‘ring.' },
+    ru: { title: 'Говори быстро', description: '30 секунд. Одна тема. Сколько слов вы вспомните?', rules: 'За 30 секунд называйте русские слова или предложения по теме. После ответа посмотрите ошибки и правильные варианты.' },
+    en: { title: 'Speak fast', description: '30 seconds. One topic. How many Russian words do you know?', rules: 'Say Russian words or sentences on the topic in 30 seconds. Review mistakes and corrected examples after your answer.' },
   },
   'error-hunt': {
     uz: { title: 'Xato ovchisi', description: 'Xatoni ko‘ring va to‘g‘ri variantni ovoz chiqarib ayting.', rules: 'Har bir gapga 10 soniya. To‘g‘ri javob: +5; 3 soniyada: +7. Xatoni takrorlash: −2. Ayrim gaplarda xato yo‘q!' },

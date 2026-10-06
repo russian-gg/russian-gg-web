@@ -50,7 +50,6 @@ export function TezGapirCard() {
         <span className="min-w-0">
           <strong id="tez-gapir-card-title" className="block text-2xl font-black sm:text-3xl">{label.title}</strong>
           <span className="mt-2 block text-sm leading-relaxed text-teal-50/90">{label.description}</span>
-          <span className="mt-2 block text-xs leading-relaxed text-teal-100/75">{copy.practice}</span>
           <span className="mt-5 flex flex-wrap items-center gap-3">
             <span className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-300 to-orange-300 px-6 py-3 text-sm font-black text-[#123446] shadow-lg shadow-amber-950/20 transition-colors group-hover:from-amber-200 group-hover:to-orange-200">
               <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} /> {play}
