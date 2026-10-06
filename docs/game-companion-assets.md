@@ -1,6 +1,6 @@
 # Game companion assets
 
-These game-only assets were generated with the built-in image generation tool from the existing lesson mascot references. Lesson source images remain unchanged. Outputs were converted to 512px WebP with alpha preserved for lightweight UI use.
+These Tez gapir-only assets were generated with the built-in image generation tool from the existing lesson mascot references. Other games and lessons keep their original source images. Outputs were converted to 512px WebP with alpha preserved for lightweight UI use.
 
 ## penguin
 

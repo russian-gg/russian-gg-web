@@ -30,7 +30,7 @@ The frontend uses `/api/speaking-games`. See `docs/speaking-games-api.md` in the
 
 ## UI and content
 
-Controls and explanations about using the UI are available in Uzbek, Russian and English. Russian exercises, character replies and correction explanations remain in Russian. Speaking games use dedicated arcade companion artwork in `public/games/characters`; lesson/landing artwork in `public/characters` is unchanged. Missing example GIF assets are replaced by local vector illustrations, with no external image dependency. See `game-companion-assets.md` for generation prompts.
+Controls and explanations about using the UI are available in Uzbek, Russian and English. Russian exercises, character replies and correction explanations remain in Russian. Only Tez gapir uses the dedicated arcade companion artwork in `public/games/characters`; other games and lesson/landing artwork continue using the original `public/characters` images. Missing example GIF assets are replaced by local vector illustrations, with no external image dependency. See `game-companion-assets.md` for generation prompts.
 
 Tez gapir feedback and saved round reviews show the recognized answer and actual language corrections, without word/criterion point badges or scoring explanations. The total score and leaderboard remain. Old rule-only feedback is labelled as lacking a detailed language review rather than inventing corrections. The server no longer penalizes words merely for being repeated or absent from the topic dictionary. Recognition supplies text only, so the feedback does not claim pronunciation was evaluated.
 

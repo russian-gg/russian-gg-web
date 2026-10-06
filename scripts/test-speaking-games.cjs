@@ -416,7 +416,9 @@ for (const size of Object.keys(SIZES)) {
         const portraits = h.page.locator('.sg-companions img')
         assert.equal(await portraits.count(), 3)
         for (const portrait of await portraits.all()) {
-          assert.match(await portrait.getAttribute('src'), /^\/games\/characters\/(penguin|panda|pero)\.webp$/)
+          assert.match(await portrait.getAttribute('src'), slug === 'tez-gapir'
+            ? /^\/games\/characters\/(penguin|panda|pero)\.webp$/
+            : /^\/characters\/(pingvin|panda|pero)\.webp$/)
           await portrait.evaluate((image) => image.decode())
           assert.ok(await portrait.evaluate((image) => image.naturalWidth > 0))
         }
@@ -817,6 +819,27 @@ scenario('Android tez submits one transcript instead of cumulative hypotheses', 
 })
 
 const languageCorrection = '«он 4 лет» → «ему 4 года»: возраст выражается дательным падежом.'
+for (const slug of SLUGS) {
+  for (const companion of ['penguin', 'panda', 'pero']) {
+    scenario(`companion artwork isolated ${slug} ${companion}`, { slug, saved: makeSession(slug, {
+      status: 'feedback', character: companion, feedback: feedback(ANSWER), availableActions: ['next', 'end'],
+    }) }, async (h) => {
+      const expected = slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
+        : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
+      await h.open(`?session=${h.session().id}`)
+      const portrait = h.page.locator('.sg-character-note img')
+      const activePortrait = slug === 'ice-mystery' ? h.page.locator(`.sg-map img[src="${expected}"]`) : portrait
+      assert.equal(await activePortrait.getAttribute('src'), expected)
+      await activePortrait.evaluate((image) => image.decode())
+      complete(h.session())
+      await h.page.reload()
+      await h.page.locator('.sg-score-big').waitFor()
+      assert.equal(await portrait.getAttribute('src'), expected)
+      await portrait.evaluate((image) => image.decode())
+    })
+  }
+}
+
 for (const locale of Object.keys(COPY)) {
   const review = makeSession('tez-gapir', {
     status: 'feedback', availableActions: ['next', 'end'],

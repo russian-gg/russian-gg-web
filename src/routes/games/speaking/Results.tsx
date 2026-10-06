@@ -44,7 +44,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
     <div className="sg-score-big">{session.score}</div><p className="sg-muted">{copy.score}</p>
     {summary?.isNewBest && <p className="mt-4 font-extrabold text-milestone">{copy.record}</p>}
     <div className="sg-stat-grid"><div><strong>{summary?.bestScore ?? session.score}</strong><small>{copy.best}</small></div><div><strong>{summary?.roundsPlayed ?? session.history.length}</strong><small>{copy.rounds}</small></div><div><strong>+{summary?.rewardPoints ?? 0}</strong><small>{copy.bonus}</small></div></div>
-    {session.feedback?.characterPhrase && <CharacterNote companion={session.character}>{session.feedback.characterPhrase}</CharacterNote>}
+    {session.feedback?.characterPhrase && <CharacterNote companion={session.character} game={session.gameSlug}>{session.feedback.characterPhrase}</CharacterNote>}
     <div className="sg-actions"><Button onClick={onAgain} size="lg">{copy.again}</Button></div>
     {session.achievements.length > 0 && <section className="mt-8 text-left"><h2 className="text-base font-extrabold">{copy.achievements}</h2><div className="sg-achievements">{session.achievements.map((achievement) => <span key={achievement.code} lang="ru">{achievement.titleRu} +{achievement.reward}</span>)}</div></section>}
     {summary && <City points={summary.cityPoints} objects={summary.cityObjects} copy={copy} />}
