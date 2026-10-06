@@ -193,11 +193,11 @@ function model(options) {
   return state
 }
 
-function installSpeech({ locale, unsupported }) {
+function installSpeech({ locale, unsupported, theme = 'light' }) {
   localStorage.setItem('rgg.access', 'local-speaking-games-test-only')
   localStorage.setItem('rgg.locale', locale)
   localStorage.setItem('rgg.audio-muted', 'true')
-  localStorage.setItem('rgg.theme', 'light')
+  localStorage.setItem('rgg.theme', theme)
   const instances = []
   const emit = (recognition, text, final) => {
     const result = [{ transcript: text, confidence: 1 }]
@@ -265,7 +265,7 @@ async function screenshot(page, name) {
 
 async function fixture(options = {}) {
   options = { slug: 'tez-gapir', locale: 'en', size: 'mobile', ...options }
-  const context = await browser.newContext({ viewport: SIZES[options.size], isMobile: options.size === 'mobile', hasTouch: options.size === 'mobile', serviceWorkers: 'block', reducedMotion: 'reduce', timezoneId: 'Asia/Tashkent', ...(options.android ? { userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' } : {}) })
+  const context = await browser.newContext({ viewport: options.viewport ?? SIZES[options.size], isMobile: options.size === 'mobile', hasTouch: options.size === 'mobile', serviceWorkers: 'block', reducedMotion: 'reduce', timezoneId: 'Asia/Tashkent', ...(options.android ? { userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' } : {}) })
   const state = model(options)
   const errors = []
   await context.addInitScript(installSpeech, options)
@@ -281,12 +281,12 @@ async function fixture(options = {}) {
     try {
       const method = request.method()
       const endpoint = url.pathname
-      if (endpoint === '/api/auth/me' && method === 'GET') return route.fulfill({ json: { id: 'mock-speaking-learner', displayName: 'Mock learner', role: 'Learner', uiLanguage: options.locale, phoneNumberConfirmed: true, phoneConfirmed: true, hasCompletedDiagnostic: true, tier: 'Free', timeZoneId: 'Asia/Tashkent' } })
+      if (endpoint === '/api/auth/me' && method === 'GET') return route.fulfill({ json: { id: 'mock-speaking-learner', displayName: 'Mock learner', role: 'Learner', uiLanguage: options.locale, phoneNumber: '+998900000000', phoneNumberConfirmed: true, phoneConfirmed: true, hasCompletedDiagnostic: true, tier: 'Free', timeZoneId: 'Asia/Tashkent' } })
       if (endpoint === '/api/billing/welcome-gift') return route.fulfill({ json: { isAvailable: false, isClaimed: true, isDiscountActive: false } })
       if (endpoint === '/api/billing/entitlement') return route.fulfill({ json: { tier: 'Free', isPro: false } })
       if (endpoint === '/api/course/progress') return route.fulfill({ json: { currentDay: 2 } })
       if (endpoint === '/api/lesson-feedback') return route.fulfill({ json: { isDue: false } })
-      if (endpoint === '/api/games') return route.fulfill({ json: state.games.map((game) => ({ ...game, bodyUz: game.descriptionRu, isBuilt: true })) })
+      if (endpoint === '/api/games') return route.fulfill({ json: options.shelfGames ?? state.games.map((game) => ({ ...game, bodyUz: game.descriptionRu, isBuilt: true })) })
       if (endpoint === '/api/tests' && method === 'GET') return route.fulfill({ json: [] })
       if (endpoint.startsWith('/api/analytics/')) return route.fulfill({ status: 204 })
       assert.ok(endpoint.startsWith(`${ROOT}/`), `Unmocked API: ${method} ${endpoint}`)
@@ -340,6 +340,72 @@ function scenario(name, options, action) {
     } finally { await h.context.close() }
   })
 }
+
+const shelfGames = [
+  { slug: 'tez-gapir', titleUz: 'Tez gapir', bodyUz: '30 soniya. Bitta mavzu.', isBuilt: true, isEnabled: true },
+  { slug: 'rod-runner', titleUz: 'Penguin Ice Runner', bodyUz: "Ruscha so‘zni to‘g‘ri rod yo‘lagiga olib boring.", isBuilt: true, isEnabled: true },
+  { slug: 'error-hunt', titleUz: 'Xato ovchisi', bodyUz: '', isBuilt: true, isEnabled: true },
+]
+const shelfCopy = {
+  uz: { badge: 'Ovozli o‘yin', time: '30 soniya', rounds: 'Raund: 3–5', play: 'O‘ynash' },
+  ru: { badge: 'Голосовая игра', time: '30 секунд', rounds: 'Раунд: 3–5', play: 'Играть' },
+  en: { badge: 'Voice challenge', time: '30 seconds', rounds: 'Round: 3–5', play: 'Play' },
+}
+
+for (const size of Object.keys(SIZES)) {
+  for (const locale of Object.keys(COPY)) {
+    for (const theme of ['light', 'dark']) {
+      scenario(`tez shelf card ${locale} ${theme} ${size}`, { locale, theme, size, shelfGames }, async (h) => {
+        await h.page.goto(`${BASE}/games`)
+        const card = h.page.getByRole('link', { name: COPY[locale].titles[0], exact: true })
+        await card.waitFor()
+        await card.scrollIntoViewIfNeeded()
+        assert.equal(await card.getAttribute('href'), '/games/tez-gapir')
+        for (const text of Object.values(shelfCopy[locale])) assert.ok((await card.textContent()).includes(text), `missing localized text: ${text}`)
+        assert.equal(await card.locator('a, button').count(), 0, 'one accessible link, no nested interactive controls')
+        assert.equal(await card.locator('img').count(), 3)
+        for (const name of ['penguin', 'panda', 'pero']) {
+          const img = card.locator(`img[src="/games/characters/${name}.webp"]`)
+          await img.evaluate((image) => image.decode())
+          assert.ok(await img.evaluate((image) => image.naturalWidth > 0))
+        }
+        const runner = h.page.locator('a[href="/games/rod-runner"]')
+        const runnerBox = await runner.boundingBox()
+        const cardBox = await card.boundingBox()
+        assert.ok(Math.abs(cardBox.width - runnerBox.width) < 2, 'Tez card must span the same shelf width as Runner')
+        assert.ok(cardBox.y >= runnerBox.y + runnerBox.height, 'Runner stays first')
+        assert.equal(await runner.locator('img').getAttribute('src'), '/characters/pingvin.webp')
+        assert.equal(await h.page.locator('a[href="/games/error-hunt"] img').count(), 0, 'other shelf cards keep their existing marks')
+        await screenshot(h.page, `tez-shelf-${locale}-${theme}-${size}`)
+        await card.focus()
+        assert.equal(await card.evaluate((element) => document.activeElement === element), true)
+        if (size === 'desktop') await h.page.keyboard.press('Enter')
+        else await card.getByText(shelfCopy[locale].play, { exact: true }).click()
+        await h.page.waitForURL(`${BASE}/games/tez-gapir`)
+        await h.page.locator('.sg-setup').waitFor()
+        assert.equal(h.calls('start').length, 0, 'opening the card must not start a game or microphone')
+        assert.equal((await h.page.evaluate(() => window.__gameSpeech.snapshot())).length, 0)
+      })
+    }
+  }
+}
+
+scenario('tez shelf card fits a narrow phone', { locale: 'ru', theme: 'dark', viewport: { width: 320, height: 740 }, shelfGames }, async (h) => {
+  await h.page.goto(`${BASE}/games`)
+  const card = h.page.locator('a[href="/games/tez-gapir"]')
+  await card.waitFor()
+  await card.scrollIntoViewIfNeeded()
+  for (const img of await card.locator('img').all()) await img.evaluate((image) => image.decode())
+  assert.ok(await card.getByText('Играть', { exact: true }).isVisible())
+  await screenshot(h.page, 'tez-shelf-320-ru-dark')
+})
+
+scenario('tez shelf card respects games disabled by admin', { shelfGames: shelfGames.filter((game) => game.slug !== 'tez-gapir') }, async (h) => {
+  await h.page.goto(`${BASE}/games`)
+  await h.page.locator('a[href="/games/rod-runner"]').waitFor()
+  assert.equal(await h.page.locator('a[href="/games/tez-gapir"]').count(), 0)
+  assert.equal(await h.page.locator('img[src^="/games/characters/"]').count(), 0)
+})
 
 async function beginVoice(h, alreadyAnswering = false, accusation = false) {
   const count = h.calls('begin').length
