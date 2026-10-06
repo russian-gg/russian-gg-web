@@ -70,6 +70,7 @@ function feedback(text) {
 function makeSession(slug, settings = {}) {
   const game = catalog().find((entry) => entry.slug === slug)
   return { id: `mock-${slug}-saved`, gameSlug: slug, version: 1, status: 'ready', character: 'penguin', level: 'A1', score: 0, roundIndex: 0,
+    themeId: slug === 'tez-gapir' ? settings.level === 'A2' ? 'work-a2' : 'food-a1' : null,
     totalRounds: game.totalRounds, durationSeconds: game.durationSeconds, roundStartedAt: null, deadlineUtc: null, serverNowUtc: now(),
     prompt: !settings.status || settings.status === 'ready' ? readyPrompt(slug) : prompt(slug), feedback: null, history: [], clues: [], locations: slug === 'ice-mystery' ? clone(LOCATIONS) : [], achievements: [], summary: null,
     availableActions: ['begin', 'end', ...(slug === 'ice-mystery' ? ['visit'] : [])], pendingAnswer: null, ...settings }
@@ -111,6 +112,7 @@ function model(options) {
         assert.ok([3, 4, 5].includes(body.rounds))
         assert.ok(state.games.find((game) => game.slug === slug).themes.some((theme) => theme.id === body.themeId && theme.level === body.level))
         session.totalRounds = body.rounds
+        session.themeId = body.themeId
       }
       state.sessions.set(session.id, session)
       return session
@@ -329,12 +331,7 @@ async function fixture(options = {}) {
     },
     async start() {
       await h.open()
-      if (options.slug === 'tez-gapir') {
-        const c = COPY[options.locale]
-        await choose(page, c.level, 'A1')
-        await choose(page, c.theme, options.locale === 'uz' ? 'Taom A1' : 'Food A1')
-        await choose(page, c.rounds, '3')
-      }
+      if (options.slug === 'tez-gapir') await chooseTezSetup(h)
       await button(page, options.slug === 'tez-gapir' ? CONTINUE[options.locale] : COPY[options.locale].start).click()
       await page.locator('.sg-hud').waitFor()
       assert.equal(h.calls('start').length, 1)
@@ -374,6 +371,13 @@ const shelfCopy = {
 async function choose(page, label, value) {
   await page.getByRole('combobox', { name: label, exact: true }).click()
   await page.getByRole('option', { name: value, exact: true }).click()
+}
+
+async function chooseTezSetup(h) {
+  const c = COPY[h.options.locale]
+  await choose(h.page, c.level, 'A1')
+  await choose(h.page, c.theme, h.options.locale === 'uz' ? 'Taom A1' : 'Food A1')
+  await choose(h.page, c.rounds, '3')
 }
 
 scenario('tez setup clears dependent selections when level or topic changes', { slug: 'tez-gapir', size: 'mobile' }, async (h) => {
@@ -463,12 +467,24 @@ scenario('tez exhausted AI attempts allow finishing rather than endless retry', 
   assert.equal(h.session().history.length, 0)
 })
 
-for (const via of ['dashboard', 'url']) {
-  scenario(`tez unfinished game keeps its own settings via ${via}`, { slug: 'tez-gapir', size: 'mobile', saved: makeSession('tez-gapir', { level: 'A2', totalRounds: 5, character: 'panda' }) }, async (h) => {
+for (const size of Object.keys(SIZES)) {
+ for (const via of ['dashboard', 'url']) {
+  scenario(`tez unfinished game keeps its own settings via ${via} ${size}`, { slug: 'tez-gapir', size, saved: makeSession('tez-gapir', { level: 'A2', totalRounds: 5, character: 'panda' }) }, async (h) => {
     const saved = clone(h.session())
     await h.open(via === 'url' ? `?session=${saved.id}` : '')
     if (via === 'dashboard') {
-      assert.equal(await h.page.getByRole('combobox').count(), 0)
+      for (const [name, value] of [['Level', 'A2'], ['Topic', 'Work A2'], ['Round', '5']]) {
+        const field = h.page.getByRole('combobox', { name, exact: true })
+        assert.equal(await field.innerText(), value)
+        assert.equal(await field.isDisabled(), true)
+      }
+      assert.equal(await button(h.page, 'Panda').getAttribute('aria-pressed'), 'true')
+      assert.equal(await h.page.locator('.sg-hud').count(), 0)
+      assert.equal(h.session().status, 'ready')
+      assert.equal(h.session().deadlineUtc, null)
+      await screenshot(h.page, `tez-saved-setup-${size}`)
+      await h.open()
+      assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).innerText(), 'Work A2')
       await button(h.page, 'Resume').click()
     }
     await button(h.page, 'Speak').waitFor()
@@ -476,10 +492,36 @@ for (const via of ['dashboard', 'url']) {
     assert.equal(h.session().level, 'A2')
     assert.equal(h.session().totalRounds, 5)
     assert.equal(h.session().character, 'panda')
+    assert.equal(h.session().themeId, 'work-a2')
     assert.equal(h.session().id, saved.id)
+    assert.equal(h.session().version, saved.version)
     assert.equal(h.calls('begin').length, 0)
+    assert.equal(h.calls('end').length, 0)
   })
+ }
 }
+
+scenario('tez saved setup shows the original topic and preserves a pending answer', { slug: 'tez-gapir', size: 'mobile', saved: makeSession('tez-gapir', {
+  status: 'answering', level: 'A2', totalRounds: 4, character: 'panda', roundIndex: 1, version: 4,
+  deadlineUtc: new Date(Date.now() + 3600000).toISOString(),
+  prompt: { ...prompt('tez-gapir', 1), id: 'different-topic' },
+  pendingAnswer: { requestId: '00000000-0000-4000-8000-000000000001', expectedVersion: 3, text: ANSWER, action: 'answer' },
+}) }, async (h) => {
+  const saved = clone(h.session())
+  await h.open()
+  assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).innerText(), 'Work A2')
+  assert.equal(await h.page.getByRole('combobox', { name: 'Round', exact: true }).innerText(), '4')
+  assert.equal(await h.page.locator('.sg-hud').count(), 0)
+  await button(h.page, 'Resume').click()
+  await button(h.page, 'Try again').waitFor()
+  assert.deepEqual(h.session().pendingAnswer, saved.pendingAnswer)
+  assert.equal(h.session().deadlineUtc, saved.deadlineUtc)
+  assert.equal(h.session().roundIndex, 1)
+  assert.equal(h.calls('start').length, 0)
+  assert.equal(h.calls('end').length, 0)
+  assert.equal(h.calls('answer').length, 0)
+  assert.deepEqual(await h.page.evaluate(() => window.__gameSpeech.snapshot()), [])
+})
 
 for (const size of Object.keys(SIZES)) {
   for (const locale of Object.keys(COPY)) {
@@ -719,6 +761,14 @@ for (const size of Object.keys(SIZES)) {
       await button(h.page, 'Play again').click()
       await button(h.page, slug === 'tez-gapir' ? 'Continue' : 'Start').waitFor()
       assert.equal(new URL(h.page.url()).search, '')
+      if (slug === 'tez-gapir') {
+        assert.equal(await h.page.getByRole('combobox', { name: 'Level', exact: true }).innerText(), 'Your level')
+        assert.equal(await h.page.getByRole('combobox').count(), 1)
+        await button(h.page, 'Continue').click()
+        assert.equal(await h.page.getByRole('alert').innerText(), 'Choose a level')
+        assert.equal(h.calls('start').length, 1)
+        await chooseTezSetup(h)
+      }
       await button(h.page, slug === 'tez-gapir' ? 'Continue' : 'Start').click()
       await h.page.locator('.sg-hud').waitFor()
       assert.notEqual(h.session().id, originalId)
@@ -1260,6 +1310,7 @@ scenario('pending 503 answer can finish once and replay a fresh session', { slug
   await button(h.page, 'Play again').click()
   await button(h.page, 'Continue').waitFor()
   assert.equal(new URL(h.page.url()).search, '')
+  await chooseTezSetup(h)
   await button(h.page, 'Continue').click()
   await h.page.locator('.sg-hud').waitFor()
   assert.notEqual(h.session().id, originalId)
