@@ -4,19 +4,21 @@ import { speakingGames, type GameDashboard, type GameFeedback, type GameSession,
 import type { GameCopy, GameSlug } from './copy'
 import { CharacterNote } from './visuals'
 
-export function Feedback({ feedback, copy, hideExplanation = false }: { feedback: GameFeedback; copy: GameCopy; hideExplanation?: boolean }) {
+export function Feedback({ feedback, copy, hideExplanation = false, languageOnly = false }: { feedback: GameFeedback; copy: GameCopy; hideExplanation?: boolean; languageOnly?: boolean }) {
   const names: Record<string, string> = { speed: copy.speed, fast: copy.speed, relevance: copy.relevance, relevant: copy.relevance, grammar: copy.grammar, emotion: copy.emotion, emotional: copy.emotion, bonus: copy.bonus, lesson: copy.lessonBonus }
+  const legacyExplanation = languageOnly && feedback.explanation.startsWith('Слова проверены по тематическому словарю:')
+  const explanation = legacyExplanation ? copy.legacyFeedback : feedback.explanation
   return <section className="sg-feedback" aria-label={copy.review}>
     <h2>{copy.answer}</h2><p lang="ru">{feedback.answer || copy.noAnswer}</p>
     {feedback.correctAnswer && <><h2 className="mt-5">{copy.correct}</h2><p lang="ru">{feedback.correctAnswer}</p></>}
-    {feedback.explanation && !hideExplanation && <><h2 className="mt-5">{copy.explanation}</h2><p lang="ru">{feedback.explanation}</p></>}
-    <div className="sg-criteria">{feedback.criteria.map((criterion, index) => <span key={`${criterion.code}-${index}`} className="sg-chip" data-positive={criterion.passed}>
+    {explanation && !hideExplanation && <><h2 className="mt-5">{copy.explanation}</h2><p lang={legacyExplanation ? undefined : 'ru'} className="whitespace-pre-line">{explanation}</p></>}
+    {!languageOnly && <><div className="sg-criteria">{feedback.criteria.map((criterion, index) => <span key={`${criterion.code}-${index}`} className="sg-chip" data-positive={criterion.passed}>
       {names[criterion.code] ?? criterion.label} <strong>{criterion.points > 0 ? '+' : ''}{criterion.points}</strong>
     </span>)}</div>
     {feedback.words.length > 0 && <div className="sg-criteria" aria-label={copy.heard}>{feedback.words.map((word, index) => <span lang="ru" key={`${index}-${word.text}`} className="sg-chip" data-positive={word.points > 0} title={`${word.category}: ${word.points}`}>
       {word.text}<strong>{word.points > 0 ? '+' : ''}{word.points}</strong>
     </span>)}</div>}
-    <p className="mt-4 text-right font-extrabold">{copy.score}: {feedback.points > 0 ? '+' : ''}{feedback.points}</p>
+    <p className="mt-4 text-right font-extrabold">{copy.score}: {feedback.points > 0 ? '+' : ''}{feedback.points}</p></>}
   </section>
 }
 
@@ -46,7 +48,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
     <div className="sg-actions"><Button onClick={onAgain} size="lg">{copy.again}</Button></div>
     {session.achievements.length > 0 && <section className="mt-8 text-left"><h2 className="text-base font-extrabold">{copy.achievements}</h2><div className="sg-achievements">{session.achievements.map((achievement) => <span key={achievement.code} lang="ru">{achievement.titleRu} +{achievement.reward}</span>)}</div></section>}
     {summary && <City points={summary.cityPoints} objects={summary.cityObjects} copy={copy} />}
-    <section className="mt-8 text-left"><h2 className="text-xl font-extrabold">{copy.review}</h2>{session.history.map((turn, index) => <details key={`${turn.roundIndex}-${index}`} className="mt-3 rounded-2xl border border-hairline p-4"><summary className="cursor-pointer text-sm font-bold" lang="ru">{turn.prompt.textRu} <span className="ml-2">{turn.feedback.points > 0 ? '+' : ''}{turn.feedback.points}</span></summary><Feedback feedback={turn.feedback} copy={copy} /></details>)}</section>
+    <section className="mt-8 text-left"><h2 className="text-xl font-extrabold">{copy.review}</h2>{session.history.map((turn, index) => <details key={`${turn.roundIndex}-${index}`} className="mt-3 rounded-2xl border border-hairline p-4"><summary className="cursor-pointer text-sm font-bold" lang="ru">{turn.prompt.textRu} {session.gameSlug !== 'tez-gapir' && <span className="ml-2">{turn.feedback.points > 0 ? '+' : ''}{turn.feedback.points}</span>}</summary><Feedback feedback={turn.feedback} copy={copy} languageOnly={session.gameSlug === 'tez-gapir'} /></details>)}</section>
   </div>
 }
 

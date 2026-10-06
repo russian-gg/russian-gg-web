@@ -1,6 +1,6 @@
 export type GameSpeechStatus = 'idle' | 'starting' | 'listening' | 'denied' | 'unavailable' | 'failed'
 
-type Result = ArrayLike<{ transcript: string }> & { isFinal: boolean }
+type Result = ArrayLike<{ transcript: string; confidence?: number }> & { isFinal: boolean }
 interface Recognition {
   lang: string
   continuous: boolean
@@ -64,6 +64,7 @@ export class GameSpeech {
       recognition.continuous = true
       recognition.interimResults = true
       recognition.maxAlternatives = 1
+      const android = /android/i.test(window.navigator?.userAgent ?? '')
       const received = new Set<number>()
       let started = false
       const timer = setTimeout(() => {
@@ -91,10 +92,18 @@ export class GameSpeech {
           const result = event.results[i]
           const text = result[0]?.transcript.trim()
           if (!text) continue
-          if (result.isFinal && !received.has(i)) {
-            received.add(i)
-            this.finalText = [this.finalText, text].filter(Boolean).join(' ')
-          } else if (!result.isFinal) pending.push(text)
+          const provisionalAndroidResult = android && result.isFinal && result[0]?.confidence === 0
+          if (result.isFinal && !provisionalAndroidResult) {
+            if (!received.has(i)) {
+              received.add(i)
+              this.finalText = [this.finalText, text].filter(Boolean).join(' ')
+            }
+            pending.length = 0
+          } else if (!received.has(i)) {
+            // Android can label successive hypotheses as final with zero confidence.
+            if (provisionalAndroidResult) pending.length = 0
+            pending.push(text)
+          }
         }
         this.interimText = pending.join(' ')
         this.onText(this.transcript)

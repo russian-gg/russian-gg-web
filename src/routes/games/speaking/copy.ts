@@ -8,6 +8,7 @@ const uz = {
   empty: "Hozircha natijalar yo'q. Birinchi bo'lib o'ynang!", loading: 'Yuklanmoqda...', saving: 'Tekshirilmoqda...',
   saved: 'Natija saqlandi', completed: 'Ajoyib mashg‘ulot!', review: 'Natijalarni ko‘rib chiqing',
   seconds: 'soniya', answer: 'Javobingiz', correct: "To'g'ri variant", explanation: 'Izoh', heard: 'Aytilgan so‘zlar',
+  legacyFeedback: 'Bu eski raund uchun so‘zlar tahlili saqlanmagan. Yangi raundda aniq tahlil chiqadi.',
   listen: 'Eshitish', listening: 'Sizni eshityapman. Ruscha gapiring.', preparing: 'Mikrofon ulanmoqda...',
   speak: 'Gapirish', submit: 'Javobni yuborish', type: 'Yozib javob berish', voice: 'Ovoz bilan javob berish',
   textMode: 'Yozma mashq: javobingizni rus tilida kiriting.', unsupported: 'Bu brauzer ovozni matnga aylantirishni qo‘llamaydi. Chrome yoki Safari orqali kiring yoki yozma mashqni tanlang.',
@@ -40,6 +41,7 @@ const ru: Copy = {
   empty: 'Результатов пока нет. Сыграйте первым!', loading: 'Загрузка...', saving: 'Проверяем ответ...',
   saved: 'Результат сохранён', completed: 'Отличная практика!', review: 'Посмотрите результаты',
   seconds: 'секунд', answer: 'Ваш ответ', correct: 'Правильный вариант', explanation: 'Объяснение', heard: 'Распознанные слова',
+  legacyFeedback: 'Для этого старого раунда разбор слов не сохранён. В новом раунде появится подробный разбор.',
   listen: 'Послушать', listening: 'Слушаю вас. Говорите по-русски.', preparing: 'Подключаем микрофон...',
   speak: 'Говорить', submit: 'Отправить ответ', type: 'Ответить текстом', voice: 'Ответить голосом',
   textMode: 'Письменная практика: введите ответ по-русски.', unsupported: 'Этот браузер не поддерживает распознавание речи. Откройте Chrome или Safari либо выберите письменную практику.',
@@ -71,6 +73,7 @@ const en: Copy = {
   empty: 'No results yet. Be the first to play!', loading: 'Loading...', saving: 'Checking your answer...',
   saved: 'Result saved', completed: 'Great practice!', review: 'Review your results',
   seconds: 'seconds', answer: 'Your answer', correct: 'Correct version', explanation: 'Explanation', heard: 'Recognised words',
+  legacyFeedback: 'Word feedback was not saved for this older round. Play a new round to see detailed feedback.',
   listen: 'Listen', listening: 'Listening. Speak in Russian.', preparing: 'Connecting microphone...',
   speak: 'Speak', submit: 'Submit answer', type: 'Type an answer', voice: 'Answer by voice',
   textMode: 'Written practice: enter your answer in Russian.', unsupported: 'Speech recognition is unavailable in this browser. Use Chrome or Safari, or choose written practice.',
@@ -101,9 +104,9 @@ export const gameSlugs = ['tez-gapir', 'error-hunt', 'first-reaction', 'ice-myst
 export type GameSlug = typeof gameSlugs[number]
 export const gameLabels: Record<GameSlug, Record<Locale, { title: string; description: string; rules: string }>> = {
   'tez-gapir': {
-    uz: { title: 'Tez gapir', description: '30 soniya. Bitta mavzu. Nechta ruscha so‘z bilasiz?', rules: 'Mavzuga mos yangi so‘z: +1. Takror va mavzudan tashqari so‘z: −1. To‘g‘ri to‘liq gap: +2. Bir mashg‘ulotda 3–5 raund.' },
-    ru: { title: 'Говори быстро', description: '30 секунд. Одна тема. Сколько слов вы вспомните?', rules: 'Новое слово по теме: +1. Повтор или слово не по теме: −1. Правильное полное предложение: +2. От 3 до 5 раундов.' },
-    en: { title: 'Speak fast', description: '30 seconds. One topic. How many Russian words do you know?', rules: 'New relevant word: +1. Repeated or off-topic word: −1. A correct full sentence: +2. Play 3–5 rounds.' },
+    uz: { title: 'Tez gapir', description: '30 soniya. Bitta mavzu. Nechta ruscha so‘z bilasiz?', rules: '30 soniyada mavzuga mos ruscha so‘zlar yoki gaplar ayting. Javobdan keyin xatolar va to‘g‘ri variantlarni ko‘ring. Bir mashg‘ulotda 3–5 raund.' },
+    ru: { title: 'Говори быстро', description: '30 секунд. Одна тема. Сколько слов вы вспомните?', rules: 'За 30 секунд называйте русские слова или предложения по теме. После ответа посмотрите ошибки и правильные варианты. От 3 до 5 раундов.' },
+    en: { title: 'Speak fast', description: '30 seconds. One topic. How many Russian words do you know?', rules: 'Say Russian words or sentences on the topic in 30 seconds. Review mistakes and corrected examples after your answer. Play 3–5 rounds.' },
   },
   'error-hunt': {
     uz: { title: 'Xato ovchisi', description: 'Xatoni ko‘ring va to‘g‘ri variantni ovoz chiqarib ayting.', rules: 'Har bir gapga 10 soniya. To‘g‘ri javob: +5; 3 soniyada: +7. Xatoni takrorlash: −2. Ayrim gaplarda xato yo‘q!' },

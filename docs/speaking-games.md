@@ -21,7 +21,7 @@ The frontend uses `/api/speaking-games`. See `docs/speaking-games-api.md` in the
 
 - Microphone permission and recognition startup happen before the server starts the round clock.
 - Only these games use the isolated `GameSpeech` adapter. Existing lesson voice code is unchanged.
-- Russian speech recognition supports both standard and prefixed browser implementations. Final results are deduplicated by result index, while legitimate repeated spoken words remain in the transcript for scoring.
+- Russian speech recognition supports both standard and prefixed browser implementations. Final results are deduplicated by result index. Android's zero-confidence final hypotheses replace provisional text instead of accumulating as spoken words; confirmed repetitions at distinct result indices are preserved.
 - An automatic recognizer restart preserves already spoken text. Ending a round waits briefly for the last final transcript. Leaving the route stops recognition and playback.
 - Browsers without recognition offer explicitly labelled written practice. Browser recognition is not a pronunciation or acoustic-emotion measurement system.
 - Prompt and feedback audio comes from the authenticated backend TTS endpoint, respecting the existing mute and playback-speed preferences.
@@ -30,7 +30,9 @@ The frontend uses `/api/speaking-games`. See `docs/speaking-games-api.md` in the
 
 ## UI and content
 
-Controls and explanations about using the UI are available in Uzbek, Russian and English. Russian exercises, character replies and correction explanations remain in Russian. Existing platform character artwork is reused; missing example GIF assets are replaced by local vector illustrations, with no external image dependency.
+Controls and explanations about using the UI are available in Uzbek, Russian and English. Russian exercises, character replies and correction explanations remain in Russian. Speaking games use dedicated arcade companion artwork in `public/games/characters`; lesson/landing artwork in `public/characters` is unchanged. Missing example GIF assets are replaced by local vector illustrations, with no external image dependency. See `game-companion-assets.md` for generation prompts.
+
+Tez gapir feedback and saved round reviews show the recognized answer and actual language corrections, without word/criterion point badges or scoring explanations. The total score and leaderboard remain. Old rule-only feedback is labelled as lacking a detailed language review rather than inventing corrections. The server no longer penalizes words merely for being repeated or absent from the topic dictionary. Recognition supplies text only, so the feedback does not claim pronunciation was evaluated.
 
 Weekly/all-time leaderboards, best scores, once-only achievements, daily challenges and game-city rewards are available within the games. Multiplayer invitations, seasonal case packs and alternative detective scenarios were ideas in the document rather than supplied playable content; this implementation uses the supplied missing-fish case.
 

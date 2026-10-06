@@ -227,6 +227,14 @@ function installSpeech({ locale, unsupported }) {
   window.__gameSpeech = {
     started() { last().onstart?.() },
     result(text, final = false) { emit(last(), text, final) },
+    results(entries) {
+      const results = entries.map(([transcript, confidence]) => {
+        const result = [{ transcript, confidence }]
+        result.isFinal = true
+        return result
+      })
+      last().onresult?.({ resultIndex: results.length - 1, results })
+    },
     finalOnStop(text) { last().finalOnStop = text },
     error(error) { last().active = false; last().onerror?.({ error }); last().onend?.() },
     end() { last().active = false; last().onend?.() },
@@ -257,7 +265,7 @@ async function screenshot(page, name) {
 
 async function fixture(options = {}) {
   options = { slug: 'tez-gapir', locale: 'en', size: 'mobile', ...options }
-  const context = await browser.newContext({ viewport: SIZES[options.size], isMobile: options.size === 'mobile', hasTouch: options.size === 'mobile', serviceWorkers: 'block', reducedMotion: 'reduce', timezoneId: 'Asia/Tashkent' })
+  const context = await browser.newContext({ viewport: SIZES[options.size], isMobile: options.size === 'mobile', hasTouch: options.size === 'mobile', serviceWorkers: 'block', reducedMotion: 'reduce', timezoneId: 'Asia/Tashkent', ...(options.android ? { userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' } : {}) })
   const state = model(options)
   const errors = []
   await context.addInitScript(installSpeech, options)
@@ -279,6 +287,7 @@ async function fixture(options = {}) {
       if (endpoint === '/api/course/progress') return route.fulfill({ json: { currentDay: 2 } })
       if (endpoint === '/api/lesson-feedback') return route.fulfill({ json: { isDue: false } })
       if (endpoint === '/api/games') return route.fulfill({ json: state.games.map((game) => ({ ...game, bodyUz: game.descriptionRu, isBuilt: true })) })
+      if (endpoint === '/api/tests' && method === 'GET') return route.fulfill({ json: [] })
       if (endpoint.startsWith('/api/analytics/')) return route.fulfill({ status: 204 })
       assert.ok(endpoint.startsWith(`${ROOT}/`), `Unmocked API: ${method} ${endpoint}`)
       assert.equal(request.headers().authorization, 'Bearer local-speaking-games-test-only')
@@ -383,8 +392,9 @@ async function checkFeedback(h, text = ANSWER) {
   assert.equal(h.session().status, 'feedback')
   assert.ok((await panel.innerText()).includes(text))
   assert.ok((await h.page.locator('.sg-board').innerText()).includes('Mock explanation'))
-  assert.equal(await panel.locator('[data-positive="true"]').count(), 4)
-  assert.equal(await panel.locator('[data-positive="false"]').count(), 1)
+  assert.equal(await panel.locator('[data-positive="true"]').count(), h.options.slug === 'tez-gapir' ? 0 : 4)
+  assert.equal(await panel.locator('[data-positive="false"]').count(), h.options.slug === 'tez-gapir' ? 0 : 1)
+  if (h.options.slug === 'tez-gapir') assert.doesNotMatch(await panel.innerText(), /[+\-−]\d|Score:/)
   const nexts = h.calls('next').length
   const version = h.session().version
   await h.page.clock.fastForward(65000)
@@ -403,12 +413,25 @@ for (const size of Object.keys(SIZES)) {
         await h.page.getByRole('heading', { name: c.titles[SLUGS.indexOf(slug)], exact: true }).waitFor()
         await button(h.page, c.panda).click()
         assert.equal(await button(h.page, c.panda).getAttribute('aria-pressed'), 'true')
-        if (slug !== 'ice-mystery') await h.page.getByLabel(c.level).selectOption('A2')
+        const portraits = h.page.locator('.sg-companions img')
+        assert.equal(await portraits.count(), 3)
+        for (const portrait of await portraits.all()) {
+          assert.match(await portrait.getAttribute('src'), /^\/games\/characters\/(penguin|panda|pero)\.webp$/)
+          await portrait.evaluate((image) => image.decode())
+          assert.ok(await portrait.evaluate((image) => image.naturalWidth > 0))
+        }
+        if (slug === 'tez-gapir') assert.doesNotMatch(await h.page.locator('.sg-rules').innerText(), /[+\-−]\d/)
+        if (slug !== 'ice-mystery') {
+          await h.page.getByRole('combobox', { name: c.level, exact: true }).click()
+          await h.page.getByRole('option', { name: 'A2', exact: true }).click()
+        }
         if (slug === 'tez-gapir') {
-          await h.page.getByLabel(c.theme).selectOption('work-a2')
-          await h.page.getByLabel(c.rounds).selectOption('5')
-          const themes = await h.page.getByLabel(c.theme).locator('option').allTextContents()
-          assert.deepEqual(themes, [locale === 'uz' ? 'Ish A2' : 'Work A2'])
+          await h.page.getByRole('combobox', { name: c.theme, exact: true }).click()
+          const theme = locale === 'uz' ? 'Ish A2' : 'Work A2'
+          assert.deepEqual(await h.page.getByRole('option').allTextContents(), [theme])
+          await h.page.getByRole('option', { name: theme, exact: true }).click()
+          await h.page.getByRole('combobox', { name: c.rounds, exact: true }).click()
+          await h.page.getByRole('option', { name: '5', exact: true }).click()
         }
         await h.page.getByRole('tab', { name: c.all, exact: true }).click()
         await h.page.getByRole('cell', { name: 'Mock all winner', exact: true }).waitFor()
@@ -730,9 +753,9 @@ scenario('leaving game aborts microphone and cancels restart', { slug: 'tez-gapi
 const longSentence = `${Array(12).fill(ANSWER.slice(0, -1)).join(', ')}.`
 const longWord = '\u0434\u043e\u0441\u0442\u043e\u043f\u0440\u0438\u043c\u0435\u0447\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u0438'.repeat(10)
 
-scenario('tez feedback long sentence and unbroken word fit mobile', { slug: 'tez-gapir', size: 'mobile', saved: makeSession('tez-gapir', {
+scenario('tez language feedback fits mobile without score badges', { slug: 'tez-gapir', size: 'mobile', saved: makeSession('tez-gapir', {
   status: 'feedback', version: 3, score: 3, availableActions: ['next', 'end'],
-  feedback: { ...feedback(longSentence), points: 3,
+  feedback: { ...feedback(longSentence), points: 3, explanation: longWord,
     criteria: [{ code: 'sentence', label: longSentence, passed: true, points: 2 }],
     words: [{ text: longWord, category: 'unique', points: 1 }],
   },
@@ -741,13 +764,13 @@ scenario('tez feedback long sentence and unbroken word fit mobile', { slug: 'tez
   assert.equal(h.page.viewportSize().width, 390)
   const panel = h.page.getByRole('region', { name: 'Review your results', exact: true })
   await panel.waitFor()
-  assert.equal(await panel.locator('.sg-chip').count(), 2)
-  for (const [text, points] of [[longSentence, '+2'], [longWord, '+1']]) {
-    const chip = panel.locator('.sg-chip').filter({ hasText: text })
-    await chip.scrollIntoViewIfNeeded()
-    assert.equal(await chip.isVisible(), true)
-    assert.equal(await chip.locator('strong').innerText(), points)
-    const layout = await chip.evaluate((element) => {
+  assert.equal(await panel.locator('.sg-chip').count(), 0)
+  assert.doesNotMatch(await panel.innerText(), /[+\-−]\d|Score:/)
+  for (const text of [longSentence, longWord]) {
+    const paragraph = panel.getByText(text, { exact: true })
+    await paragraph.scrollIntoViewIfNeeded()
+    assert.equal(await paragraph.isVisible(), true)
+    const layout = await paragraph.evaluate((element) => {
       const box = (rect) => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom })
       const texts = [...element.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
       const ranges = texts.flatMap((node) => {
@@ -755,31 +778,80 @@ scenario('tez feedback long sentence and unbroken word fit mobile', { slug: 'tez
         range.selectNodeContents(node)
         return [...range.getClientRects()].map(box)
       })
-      const badge = element.querySelector('strong')
-      const badgeRange = document.createRange()
-      badgeRange.selectNodeContents(badge)
       return {
         text: texts.map((node) => node.textContent).join('').trim(),
         box: box(element.getBoundingClientRect()), group: box(element.parentElement.getBoundingClientRect()),
-        ranges, badgeRanges: [...badgeRange.getClientRects()].map(box),
+        ranges,
         clientWidth: element.clientWidth, scrollWidth: element.scrollWidth,
         clientHeight: element.clientHeight, scrollHeight: element.scrollHeight,
       }
     })
-    assert.equal(layout.text, text, 'the entire backend label/word must be rendered, not substituted or truncated')
+    assert.equal(layout.text, text, 'the entire answer/explanation must be rendered, not substituted or truncated')
     assert.ok(layout.ranges.length > 1, 'long sentence and unbroken word must both wrap onto multiple lines')
-    assert.ok(layout.badgeRanges.length > 0, 'point badge must remain rendered')
-    assert.ok(layout.box.left >= layout.group.left - 1 && layout.box.right <= layout.group.right + 1, 'chip must fit its criteria group')
-    assert.ok(layout.scrollWidth <= layout.clientWidth + 1, 'chip must not scroll or clip text horizontally')
-    assert.ok(layout.scrollHeight <= layout.clientHeight + 1, 'chip must grow vertically instead of clipping wrapped lines')
-    for (const rect of [...layout.ranges, ...layout.badgeRanges]) {
-      assert.ok(rect.right > rect.left && rect.bottom > rect.top, 'text and points must have nonzero rendered size')
-      assert.ok(rect.left >= layout.box.left - 1 && rect.right <= layout.box.right + 1, 'every text fragment and point badge must fit horizontally')
-      assert.ok(rect.top >= layout.box.top - 1 && rect.bottom <= layout.box.bottom + 1, 'every wrapped line and point badge must fit vertically')
+    assert.ok(layout.box.left >= layout.group.left - 1 && layout.box.right <= layout.group.right + 1, 'paragraph must fit its feedback panel')
+    assert.ok(layout.scrollWidth <= layout.clientWidth + 1, 'paragraph must not scroll or clip text horizontally')
+    assert.ok(layout.scrollHeight <= layout.clientHeight + 1, 'paragraph must grow vertically instead of clipping wrapped lines')
+    for (const rect of layout.ranges) {
+      assert.ok(rect.right > rect.left && rect.bottom > rect.top, 'text must have nonzero rendered size')
+      assert.ok(rect.left >= layout.box.left - 1 && rect.right <= layout.box.right + 1, 'every text fragment must fit horizontally')
+      assert.ok(rect.top >= layout.box.top - 1 && rect.bottom <= layout.box.bottom + 1, 'every wrapped line must fit vertically')
     }
   }
   assert.equal(await button(h.page, 'Next').isEnabled(), true)
   await screenshot(h.page, 'tez-long-feedback-mobile')
+})
+
+scenario('Android tez submits one transcript instead of cumulative hypotheses', { android: true }, async (h) => {
+  await h.start()
+  await beginVoice(h)
+  await h.page.evaluate(() => {
+    window.__gameSpeech.results([['Я', 0]])
+    window.__gameSpeech.results([['Я', 0], ['Я люблю', 0]])
+    window.__gameSpeech.results([['Я', 0], ['Я люблю', 0], ['Я люблю семью.', 0]])
+    window.__gameSpeech.results([['Я', 0], ['Я люблю', 0], ['Я люблю семью.', 0.9]])
+  })
+  await button(h.page, 'Finish').click()
+  await until(() => h.calls('answer').length === 1, 'Android answer must be submitted once')
+  assert.equal(h.calls('answer')[0].body.text, 'Я люблю семью.')
+  await checkFeedback(h, 'Я люблю семью.')
+})
+
+const languageCorrection = '«он 4 лет» → «ему 4 года»: возраст выражается дательным падежом.'
+for (const locale of Object.keys(COPY)) {
+  const review = makeSession('tez-gapir', {
+    status: 'feedback', availableActions: ['next', 'end'],
+    feedback: { ...feedback('У меня есть братишка и он 4 лет.'), correct: false, correctAnswer: null, explanation: languageCorrection },
+  })
+  scenario(`tez shows actual correction without point explanations ${locale}`, { locale, saved: review }, async (h) => {
+    await h.open(`?session=${review.id}`)
+    const panel = h.page.locator('.sg-feedback')
+    assert.ok((await panel.innerText()).includes(languageCorrection))
+    assert.equal(await panel.locator('.sg-chip').count(), 0)
+    assert.doesNotMatch(await panel.innerText(), /[+\-−]\d/)
+    await screenshot(h.page, `tez-language-feedback-${locale}`)
+  })
+}
+
+const legacyReview = makeSession('tez-gapir', { status: 'feedback', availableActions: ['next', 'end'],
+  feedback: { ...feedback(ANSWER), explanation: 'Слова проверены по тематическому словарю: +1 за новое слово, −1 за повтор.' },
+})
+scenario('legacy tez feedback does not expose old scoring explanation', { saved: legacyReview }, async (h) => {
+  await h.open(`?session=${legacyReview.id}`)
+  const panel = h.page.locator('.sg-feedback')
+  assert.doesNotMatch(await panel.innerText(), /[+\-−]\d|Слова проверены/)
+  assert.ok((await panel.innerText()).includes('feedback'))
+})
+
+const completedReview = makeSession('tez-gapir', { history: [{ roundIndex: 0, prompt: prompt('tez-gapir'), feedback: { ...feedback(ANSWER), explanation: languageCorrection } }] })
+complete(completedReview)
+scenario('tez completed history keeps language review without per-turn scores', { saved: completedReview }, async (h) => {
+  await h.open(`?session=${completedReview.id}`)
+  const review = h.page.locator('details')
+  assert.doesNotMatch(await review.locator('summary').innerText(), /[+\-−]\d/)
+  await review.locator('summary').click()
+  assert.ok((await review.innerText()).includes(languageCorrection))
+  assert.doesNotMatch(await review.innerText(), /[+\-−]\d|Score:/)
+  assert.equal(await review.locator('.sg-chip').count(), 0)
 })
 
 scenario('pending 503 answer can finish once and replay a fresh session', { slug: 'tez-gapir', size: 'mobile', failAnswers: 4 }, async (h) => {

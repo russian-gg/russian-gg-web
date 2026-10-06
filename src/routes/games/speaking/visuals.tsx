@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
-import { mascotImage } from '../../../lib/mascot-images'
 import type { GameCopy, GameSlug } from './copy'
 import './speaking-games.css'
 
 export type Companion = 'penguin' | 'panda' | 'pero'
-const companionImage = (companion: Companion) => mascotImage(companion)
+const companionImage = (companion: Companion) => `/games/characters/${companion}.webp`
 
 export function GameMark({ game, className = '' }: { game: GameSlug; className?: string }) {
   return <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
