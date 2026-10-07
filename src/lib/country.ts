@@ -26,11 +26,41 @@ export function isLikelyUzbekistan(): boolean {
   }
 }
 
+const PHONE_LINK_SKIPPED_KEY = 'rgg.phoneLinkSkipped'
+
+// Covers a browser with storage blocked: the choice then holds for this page load only.
+let skippedThisSession: string | null = null
+
+/** Remembers, on this device, that this learner chose not to link a phone for now. */
+export function skipPhoneLink(user: UserProfile) {
+  skippedThisSession = user.id
+  try {
+    localStorage.setItem(PHONE_LINK_SKIPPED_KEY, user.id)
+  } catch {
+    // Kept in memory above; they are asked again on the next visit.
+  }
+}
+
+function hasSkippedPhoneLink(user: UserProfile) {
+  if (skippedThisSession === user.id) return true
+  try {
+    return localStorage.getItem(PHONE_LINK_SKIPPED_KEY) === user.id
+  } catch {
+    return false
+  }
+}
+
 /**
  * A learner we should push to attach a verified phone: the primary credential is a phone, and we
  * want as many learners as possible to have one. Staff are exempt (they use email/password), and
- * so is anyone we think is abroad, where Google is the reasonable primary.
+ * so is anyone we think is abroad, where Google is the reasonable primary — and so is a learner
+ * who was asked and said "later".
  */
 export function needsPhone(user: UserProfile): boolean {
-  return user.role === 'Learner' && !user.phoneNumberConfirmed && isLikelyUzbekistan()
+  return (
+    user.role === 'Learner' &&
+    !user.phoneNumberConfirmed &&
+    isLikelyUzbekistan() &&
+    !hasSkippedPhoneLink(user)
+  )
 }

@@ -4,7 +4,7 @@ import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { GoogleMark } from '../components/GoogleMark'
 import { OtpInput } from '../components/OtpInput'
-import { BrandMark, WelcomeArt } from './auth/AuthArt'
+import { BrandMark } from './auth/AuthArt'
 import { FlagUz } from './settings/choices'
 import { Button, ErrorNote, Field } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
@@ -13,7 +13,7 @@ import { Reveal, Sequence } from '../components/motion'
 import { collapse, stagger } from '../lib/motion'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
-import { needsPhone } from '../lib/country'
+import { needsPhone, skipPhoneLink } from '../lib/country'
 import {
   loadGoogleIdentityScript,
   renderGoogleButton,
@@ -179,7 +179,52 @@ export function SignIn() {
   )
 }
 
-/** New learners register by phone. Google is the alternative below; there is no email path. */
+type SignUpMethod = 'phone' | 'email'
+
+/** The two ways to open an account, as a segmented control above the form. */
+function SignUpMethodTabs({
+  value,
+  onChange,
+}: {
+  value: SignUpMethod
+  onChange: (method: SignUpMethod) => void
+}) {
+  const t = useT()
+  const tabs: { id: SignUpMethod; label: string }[] = [
+    { id: 'phone', label: t.auth.phone.label },
+    { id: 'email', label: t.auth.email },
+  ]
+
+  return (
+    <div
+      role="tablist"
+      aria-label={t.auth.signUpTitle}
+      className="grid grid-cols-2 gap-1 rounded-xl bg-ground-sunken p-1"
+    >
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={value === tab.id}
+          onClick={() => onChange(tab.id)}
+          className={`h-10 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal ${
+            value === tab.id
+              ? 'bg-ground-raised text-ink shadow-sm'
+              : 'text-ink-muted hover:text-ink'
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * New learners register by phone or by email, picked with the tabs above the form. The email tab
+ * is Google and nothing else: there is no email-and-password registration.
+ */
 export function SignUp() {
   const t = useT()
   const {
@@ -192,6 +237,7 @@ export function SignUp() {
   } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [method, setMethod] = useState<SignUpMethod>('phone')
   const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const didClearPendingRef = useRef(false)
@@ -228,7 +274,7 @@ export function SignUp() {
   return (
     <AuthLayout
       title={t.auth.signUpTitle}
-      subtitle={t.auth.phone.registrationSubtitle}
+      subtitle={method === 'phone' ? t.auth.phone.registrationSubtitle : t.auth.googleSignUpSubtitle}
       footer={
         <>
           {t.auth.haveAccount}{' '}
@@ -238,33 +284,53 @@ export function SignUp() {
         </>
       }
     >
+      <SignUpMethodTabs
+        value={method}
+        onChange={(next) => {
+          setMethod(next)
+          setError(null)
+        }}
+      />
+
       {error && (
-        <div className="mb-4">
+        <div className="mt-5">
           <ErrorNote>{error}</ErrorNote>
         </div>
       )}
 
-      <PhoneCredentialSetupFlow
-        requestCode={requestPhoneCode}
-        confirmCode={confirmPhoneCode}
-        completeSetup={async (verificationToken, name, newPassword) => {
-          const user = await completePhoneRegistration(verificationToken, name, newPassword)
-          track('signup_completed')
-          navigate(postAuthDestination(user), { replace: true })
-        }}
-        submitLabel={t.auth.phone.completeRegistration}
-      />
+      {/* Hidden rather than unmounted, so a code already requested survives a look at the
+          other tab. Google's button is the opposite: it cannot size itself inside a hidden
+          box, so it is only mounted once its tab is showing. */}
+      <div className={method === 'phone' ? 'mt-5' : 'hidden'}>
+        <PhoneCredentialSetupFlow
+          requestCode={requestPhoneCode}
+          confirmCode={confirmPhoneCode}
+          completeSetup={async (verificationToken, name, newPassword) => {
+            const user = await completePhoneRegistration(verificationToken, name, newPassword)
+            track('signup_completed')
+            navigate(postAuthDestination(user), { replace: true })
+          }}
+          submitLabel={t.auth.phone.completeRegistration}
+        />
+      </div>
 
-      <Divider />
-      <GoogleContinueButton busy={googleBusy} text="signup_with" onCredential={handleGoogleCredential} />
+      {method === 'email' && (
+        <div className="mt-5">
+          <GoogleContinueButton busy={googleBusy} text="signup_with" onCredential={handleGoogleCredential} />
+        </div>
+      )}
     </AuthLayout>
   )
 }
 
-/** Existing email/Google learners verify a phone once and set its reusable password. */
+/**
+ * Existing email/Google learners verify a phone once and set its reusable password — or put it
+ * off: "later" remembers the choice on this device and lets them through to the product.
+ */
 export function LinkPhonePage() {
   const t = useT()
   const { user, requestPhoneLink, confirmPhoneLinkCode, completePhoneLink, signOut } = useAuth()
+  const navigate = useNavigate()
 
   async function finishAndLeave() {
     try {
@@ -287,6 +353,19 @@ export function LinkPhonePage() {
         }}
         submitLabel={t.auth.phone.savePhonePassword}
       />
+
+      {user && (
+        <button
+          type="button"
+          onClick={() => {
+            skipPhoneLink(user)
+            navigate(postAuthDestination(user), { replace: true })
+          }}
+          className="mt-5 block w-full text-center text-sm font-semibold text-ink-muted transition-colors hover:text-ink"
+        >
+          {t.common.later}
+        </button>
+      )}
     </AuthLayout>
   )
 }
@@ -485,13 +564,9 @@ function PhoneCredentialSetupFlow({
 /**
  * Every auth screen in the product: sign in, sign up, password reset and phone linking.
  *
- * One card, split. The left half is the welcome — a picture and a sentence, and nothing to do;
- * the right half is the entire job. That division is the point of the layout rather than
- * decoration: an account form is short, and a short form alone in the middle of a wide screen
- * reads as an interruption. Giving it a companion panel makes it a destination.
- *
- * Below `lg` the left half is gone entirely, not stacked. On a phone the form is the screen,
- * and a welcome picture above it is one scroll between the learner and the keyboard.
+ * One narrow card in the middle of the page, holding the wordmark, the heading and the form.
+ * Nothing sits beside it: the form is the entire job of these screens, so it is the only thing
+ * on them, at the same width on a phone and on a desktop.
  *
  * These screens sit outside the app shell, so they get no page transition of their own — this
  * beat is the only thing standing between a learner and a form that snaps into existence.
@@ -509,29 +584,23 @@ function AuthLayout({
   footer?: ReactNode
 }) {
   return (
-    <div className="auth-page relative isolate min-h-dvh px-4 py-8 sm:px-6 sm:py-12">
-      <AuthBackdrop />
-
+    <div className="auth-page min-h-dvh px-4 py-8 sm:px-6 sm:py-12">
       <Sequence
-        className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-5xl items-center"
+        className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md items-center"
         gap={stagger.base}
       >
         <Reveal className="w-full">
-          <div className="overflow-hidden rounded-[2rem] border border-hairline bg-ground-raised shadow-[0_32px_80px_-40px_rgb(31_111_224/0.35)] lg:grid lg:grid-cols-2">
-            <AuthAside />
+          <div className="rounded-2xl border border-hairline bg-ground-raised p-6 shadow-[0_1px_2px_rgb(16_24_40/0.04),0_12px_32px_-16px_rgb(16_24_40/0.12)] sm:p-10">
+            <BrandLockup />
 
-            <div className="flex flex-col justify-center p-6 sm:p-10 lg:p-12">
-              <BrandLockup />
+            <h1 className="mt-8 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+              {title}
+            </h1>
+            {subtitle && <p className="text-support mt-2 leading-relaxed">{subtitle}</p>}
 
-              <h1 className="mt-8 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
-                {title}
-              </h1>
-              {subtitle && <p className="text-support mt-2 leading-relaxed">{subtitle}</p>}
+            <div className="mt-7">{children}</div>
 
-              <div className="mt-7">{children}</div>
-
-              {footer && <p className="text-support mt-7 text-sm">{footer}</p>}
-            </div>
+            {footer && <p className="text-support mt-7 text-sm">{footer}</p>}
           </div>
         </Reveal>
       </Sequence>
@@ -555,47 +624,13 @@ function BrandLockup() {
     <Link
       to="/"
       aria-label={t.common.back}
-      className="inline-flex items-center gap-2.5 self-start rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal"
+      className="inline-flex items-center gap-2.5 rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal"
     >
       <BrandMark className="size-9" />
       <span className="text-lg font-semibold tracking-tight text-ink">
         russian<span className="text-signal">.gg</span>
       </span>
     </Link>
-  )
-}
-
-/** The welcome half. Decorative throughout, so none of it is announced. */
-function AuthAside() {
-  const t = useT()
-
-  return (
-    <aside className="auth-aside relative hidden flex-col justify-between px-10 py-12 lg:flex">
-      <div className="flex flex-1 items-center justify-center">
-        <WelcomeArt className="w-full max-w-[26rem]" />
-      </div>
-
-      <div>
-        <p className="text-3xl font-extrabold tracking-tight text-ink">{t.auth.welcomeTitle}</p>
-        <p className="text-support mt-2 leading-relaxed">{t.auth.welcomeBody}</p>
-      </div>
-    </aside>
-  )
-}
-
-/**
- * The page behind the card.
- *
- * Two very large, very soft blooms at opposite corners. They are `-z-10` under an `isolate`
- * parent so they can never land on top of a form control, and they are marked decorative
- * because they are: the screen reads identically on a flat background.
- */
-function AuthBackdrop() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="auth-bloom absolute -top-40 -right-32 size-[34rem] rounded-full" />
-      <div className="auth-bloom absolute -bottom-48 -left-40 size-[38rem] rounded-full" />
-    </div>
   )
 }
 

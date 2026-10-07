@@ -875,40 +875,15 @@
   /*
     Auth screens.
 
-    Their own scope for the same reason the home hero has one: this is a page-wide wash that
-    exists on four screens and nowhere else, and it has to be re-pointed for the dark theme
-    rather than hard-coded pale. Declared here so the blooms and the welcome panel read from
-    variables, the way the product's own tokens do.
+    A flat, neutral page behind a white card. The dark theme has no tone below the card that
+    is also lighter than it, so there the page drops to the ground colour instead.
   */
   .auth-page {
-    --auth-page-top: #f2f7ff;
-    --auth-page-bottom: #e4eefc;
-    --auth-bloom: rgb(155 196 250 / 0.42);
-    --auth-aside-top: #f4f9ff;
-    --auth-aside-bottom: #e3eefd;
-
-    background: linear-gradient(170deg, var(--auth-page-top) 0%, var(--auth-page-bottom) 100%);
+    background: var(--color-ground-sunken);
   }
 
   :root[data-theme='dark'] .auth-page {
-    --auth-page-top: #10161f;
-    --auth-page-bottom: #151f2e;
-    --auth-bloom: rgb(52 96 161 / 0.32);
-    --auth-aside-top: #141d2b;
-    --auth-aside-bottom: #101823;
-  }
-
-  /*
-    Blurred rather than a radial gradient. A gradient stop that soft banks visibly on an 8-bit
-    display across half a screen; a blurred solid does not, and the browser composites it once.
-  */
-  .auth-bloom {
-    background: var(--auth-bloom);
-    filter: blur(80px);
-  }
-
-  .auth-aside {
-    background: linear-gradient(160deg, var(--auth-aside-top) 0%, var(--auth-aside-bottom) 100%);
+    background: var(--color-ground);
   }
 
   /*
