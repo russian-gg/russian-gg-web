@@ -909,7 +909,7 @@ function Footer() {
       links: [
         { label: t.footer.about, href: '#' },
         { label: t.footer.contact, href: SUPPORT_TELEGRAM_URL },
-        { label: t.footer.privacyPolicy, href: '#' },
+        { label: t.footer.privacyPolicy, href: '/privacy.html' },
         { label: t.footer.terms, href: '#' },
       ],
     },
