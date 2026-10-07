@@ -361,6 +361,55 @@ test('finish timeout releases a recognizer that never ends', async (t) => {
   assert.equal(h.instances.length, 1)
 })
 
+for (const android of [false, true]) {
+  test(`Tez keeps a last-second word after silence and delayed finalization android=${android}`, async (t) => {
+    const h = harness(t, { android })
+    const first = await h.listen()
+    await h.clock.advance(10000)
+    first.emitError('no-speech')
+    first.emitEnd()
+    await h.clock.advance(RESTART_DELAY)
+    const second = h.instances[1]
+    second.emitStart()
+    await h.clock.advance(4850)
+    assert.equal(h.clock.now, 15000)
+    second.emitError('no-speech')
+    second.emitEnd()
+    await h.clock.advance(RESTART_DELAY)
+    const third = h.instances[2]
+    third.emitStart()
+    await h.clock.advance(13850)
+    assert.equal(h.clock.now, 29000)
+    third.emitResults([['mama', false]])
+    await h.clock.advance(1000)
+    const finish = observe(h.speech.finish(5000))
+    assert.equal(third.stopCalls, 1)
+    assert.equal(third.active, false)
+    await h.clock.advance(3000)
+    assert.equal(finish.state, 'pending')
+    third.emitResults([['mama', true]])
+    third.emitEnd()
+    await flush()
+    assert.equal(finish.value, 'mama')
+    await h.clock.advance(START_TIMEOUT)
+    assert.equal(h.instances.length, 3)
+    assert.equal(h.clock.jobs.size, 0)
+  })
+}
+
+test('Tez finalization remains bounded and retains the last interim word', async (t) => {
+  const h = harness(t)
+  const recognition = await h.listen()
+  recognition.emitResults([['mama', false]])
+  const finish = observe(h.speech.finish(5000))
+  await h.clock.advance(4999)
+  assert.equal(finish.state, 'pending')
+  await h.clock.advance(1)
+  assert.equal(finish.value, 'mama')
+  assert.equal(recognition.active, false)
+  assert.equal(h.clock.jobs.size, 0)
+})
+
 test('finish cancels a pending automatic restart', async (t) => {
   const h = harness(t)
   const recognition = await h.listen()

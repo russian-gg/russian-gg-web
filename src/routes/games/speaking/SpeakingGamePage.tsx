@@ -45,12 +45,11 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [retryExhausted, setRetryExhausted] = useState(false)
-  const [setupError, setSetupError] = useState<'level' | 'theme' | 'rounds' | null>(null)
+  const [setupError, setSetupError] = useState<'level' | 'rounds' | null>(null)
   const [reload, setReload] = useState(0)
   const [character, setCharacter] = useState<Companion>('penguin')
   const [level, setLevel] = useState(slug === 'tez-gapir' ? '' : 'A1')
   const [rounds, setRounds] = useState(slug === 'tez-gapir' ? 0 : 3)
-  const [themeId, setThemeId] = useState('')
   const [transcript, setTranscript] = useState('')
   const [typed, setTyped] = useState('')
   const [textMode, setTextMode] = useState(false)
@@ -161,11 +160,8 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
         if (settings && settings.status !== 'completed') {
           setCharacter(settings.character)
           setLevel(settings.level)
-          setThemeId(settings.themeId ?? settings.history[0]?.prompt.id
-            ?? (settings.roundIndex === 0 && settings.prompt.kind !== 'ready' ? settings.prompt.id : ''))
           setRounds(settings.totalRounds)
         }
-        if (slug !== 'tez-gapir') setThemeId(game?.themes[0]?.id ?? '')
         if (saved && saved.gameSlug === slug) {
           current.current = saved
           offset.current = new Date(saved.serverNowUtc).getTime() - Date.now()
@@ -202,8 +198,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   function validateSetup() {
     if (slug === 'tez-gapir') {
       const missing = !catalog?.levels.includes(level) ? 'level'
-        : !catalog.themes.some((theme) => theme.id === themeId && theme.level === level) ? 'theme'
-          : ![3, 4, 5].includes(rounds) ? 'rounds' : null
+        : ![3, 4, 5].includes(rounds) ? 'rounds' : null
       setSetupError(missing)
       return !missing
     }
@@ -212,7 +207,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
 
   async function start() {
     if (!catalog?.isAccessible || !validateSetup()) return
-    startRequest.current ??= { requestId: crypto.randomUUID(), character, level, rounds, themeId: slug === 'tez-gapir' ? themeId : undefined }
+    startRequest.current ??= { requestId: crypto.randomUUID(), character, level, rounds }
     const request = startRequest.current
     await run(async () => {
       adopt(await speakingGames.start(slug, request))
@@ -268,7 +263,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     if (!pendingAnswer.current) {
       busyRef.current = true
       setBusy(true)
-      const answer = textMode ? typed.trim() : await speech.finish()
+      const answer = textMode ? typed.trim() : await speech.finish(slug === 'tez-gapir' ? 5000 : undefined)
       if (!alive.current) return
       pendingAnswer.current = {
         id: value.id,
@@ -339,7 +334,6 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     if (slug === 'tez-gapir') {
       setDashboard((value) => value ? { ...value, activeSessions: value.activeSessions.filter((entry) => entry.id !== session?.id) } : value)
       setLevel('')
-      setThemeId('')
       setRounds(0)
       setSetupError(null)
       startRequest.current = null
@@ -365,16 +359,12 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
             <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} game={slug} disabled={busy || savedSetup} />
               {!isMystery && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
                 setLevel(value); startRequest.current = null; setSetupError(null)
-                if (slug === 'tez-gapir') { setThemeId(''); setRounds(0) }
-                else setThemeId(catalog.themes.find((item) => item.level === value)?.id ?? '')
+                if (slug === 'tez-gapir') setRounds(0)
               }} options={[...(slug === 'tez-gapir' ? [{ value: '', label: copy.yourLevel, disabled: true }] : []), ...catalog.levels.map((value) => ({ value, label: value }))]} /></div>}
-              {slug === 'tez-gapir' && level && <div className="sg-field">{copy.theme}<Select label={copy.theme} size="lg" block value={themeId} disabled={busy || savedSetup} onChange={(value) => {
-                setThemeId(value); setRounds(0); setSetupError(null); startRequest.current = null
-              }} options={[{ value: '', label: copy.selectTheme, disabled: true }, ...catalog.themes.filter((theme) => theme.level === level).map((theme) => ({ value: theme.id, label: locale === 'uz' ? theme.titleUz : theme.titleRu }))]} /></div>}
-              {slug === 'tez-gapir' && level && themeId && <div className="sg-field">{copy.rounds}<Select label={copy.rounds} size="lg" block value={rounds ? String(rounds) : ''} disabled={busy || savedSetup} onChange={(value) => {
+              {slug === 'tez-gapir' && level && <div className="sg-field">{copy.rounds}<Select label={copy.rounds} size="lg" block value={rounds ? String(rounds) : ''} disabled={busy || savedSetup} onChange={(value) => {
                 setRounds(Number(value)); setSetupError(null); startRequest.current = null
               }} options={[{ value: '', label: copy.selectRounds, disabled: true }, ...[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></div>}
-              {setupError && <p className="text-danger" role="alert">{setupError === 'level' ? copy.selectLevel : setupError === 'theme' ? copy.selectTheme : copy.selectRounds}</p>}
+              {setupError && <p className="text-danger" role="alert">{setupError === 'level' ? copy.selectLevel : copy.selectRounds}</p>}
               {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <><p className="sg-muted">{copy.savedGame}</p><Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : slug === 'tez-gapir' ? copy.continue : copy.start}</Button>}
               <p className="sg-muted">{copy.timeNote}</p>
             </div></div>

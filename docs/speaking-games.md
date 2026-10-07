@@ -23,12 +23,15 @@ The frontend uses `/api/speaking-games`. See `docs/speaking-games-api.md` in the
 - Only these games use the isolated `GameSpeech` adapter. Existing lesson voice code is unchanged.
 - Russian speech recognition supports both standard and prefixed browser implementations. Final results are deduplicated by result index. Android's zero-confidence final hypotheses replace provisional text instead of accumulating as spoken words; confirmed repetitions at distinct result indices are preserved.
 - An automatic recognizer restart preserves already spoken text. Ending a round waits briefly for the last final transcript. Leaving the route stops recognition and playback.
+- Tez gapir stops microphone capture at the 30-second deadline, then waits up to 5 seconds for the recognizer to finalize audio already captured. Its server allows 15 seconds after the deadline for finalization and transport; other games keep their existing timing. A single recognized, relevant word earns credit even after initial silence or in the last second.
 - Browsers without recognition offer explicitly labelled written practice. Browser recognition is not a pronunciation or acoustic-emotion measurement system.
 - Prompt and feedback audio comes from the authenticated backend TTS endpoint, respecting the existing mute and playback-speed preferences.
 - Each answer has a stable request ID. A failed submission retries that same answer rather than adding another result. A stale version refreshes server state. Actual evaluation failures remain errors, not fabricated grades.
 - The session ID in the URL is a resume reference, not an authorization token. The backend checks ownership on every request.
 
 ## UI and content
+
+Tez gapir setup asks for a companion, level and round count, not a topic. The server shuffles distinct topics from the chosen level and reveals each one when that round begins. Resuming an unfinished session preserves its existing topic plan, level, companion and round count rather than drawing a new plan.
 
 Controls and explanations about using the UI are available in Uzbek, Russian and English. Russian exercises, character replies and correction explanations remain in Russian. Only Tez gapir uses the dedicated arcade companion artwork in `public/games/characters`; other games and lesson/landing artwork continue using the original `public/characters` images. Missing example GIF assets are replaced by local vector illustrations, with no external image dependency. See `game-companion-assets.md` for generation prompts.
 

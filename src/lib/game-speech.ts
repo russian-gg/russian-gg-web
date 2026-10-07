@@ -140,14 +140,14 @@ export class GameSpeech {
     })
   }
 
-  async finish(): Promise<string> {
+  async finish(timeoutMs = 1000): Promise<string> {
     this.enabled = false
     clearTimeout(this.restart)
     if (!this.recognition) { this.onStatus('idle'); return this.transcript }
     await new Promise<void>((resolve) => {
       const done = () => { clearTimeout(timer); this.finishPending = undefined; resolve() }
       this.finishPending = done
-      const timer = setTimeout(done, 1000)
+      const timer = setTimeout(done, timeoutMs)
       try { this.recognition?.stop() } catch { done() }
     })
     const text = this.transcript

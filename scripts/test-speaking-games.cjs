@@ -110,9 +110,8 @@ function model(options) {
       const session = makeSession(slug, { id: `mock-${slug}-${++state.starts}`, character: body.character, level: body.level })
       if (slug === 'tez-gapir') {
         assert.ok([3, 4, 5].includes(body.rounds))
-        assert.ok(state.games.find((game) => game.slug === slug).themes.some((theme) => theme.id === body.themeId && theme.level === body.level))
+        assert.equal(body.themeId, undefined)
         session.totalRounds = body.rounds
-        session.themeId = body.themeId
       }
       state.sessions.set(session.id, session)
       return session
@@ -224,10 +223,12 @@ function installSpeech({ locale, unsupported, theme = 'light' }) {
     stop() {
       this.stops++
       this.active = false
-      queueMicrotask(() => {
+      const complete = () => {
         if (this.finalOnStop !== undefined) emit(this, this.finalOnStop, true)
         this.onend?.()
-      })
+      }
+      if (this.finalDelay) setTimeout(complete, this.finalDelay)
+      else queueMicrotask(complete)
     }
     abort() { this.aborts++; this.active = false }
   }
@@ -249,7 +250,7 @@ function installSpeech({ locale, unsupported, theme = 'light' }) {
       })
       last().onresult?.({ resultIndex: results.length - 1, results })
     },
-    finalOnStop(text) { last().finalOnStop = text },
+    finalOnStop(text, delay = 0) { last().finalOnStop = text; last().finalDelay = delay },
     error(error) { last().active = false; last().onerror?.({ error }); last().onend?.() },
     end() { last().active = false; last().onend?.() },
     snapshot() { return instances.map(({ active, starts, stops, aborts, lang }) => ({ active, starts, stops, aborts, lang })) },
@@ -376,25 +377,15 @@ async function choose(page, label, value) {
 async function chooseTezSetup(h) {
   const c = COPY[h.options.locale]
   await choose(h.page, c.level, 'A1')
-  await choose(h.page, c.theme, h.options.locale === 'uz' ? 'Taom A1' : 'Food A1')
   await choose(h.page, c.rounds, '3')
 }
 
-scenario('tez setup clears dependent selections when level or topic changes', { slug: 'tez-gapir', size: 'mobile' }, async (h) => {
-  h.state.games[0].themes.push({ id: 'family-a1', titleRu: 'Family A1', titleUz: 'Oila A1', level: 'A1' })
+scenario('tez setup has no topic selection and resets rounds when level changes', { slug: 'tez-gapir', size: 'mobile' }, async (h) => {
   await h.open()
   await choose(h.page, 'Level', 'A2')
-  await choose(h.page, 'Topic', 'Work A2')
   await choose(h.page, 'Round', '5')
   await choose(h.page, 'Level', 'A1')
-  assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).innerText(), 'Choose a topic')
-  assert.equal(await h.page.getByRole('combobox', { name: 'Round', exact: true }).count(), 0)
-  await button(h.page, 'Continue').click()
-  assert.equal(await h.page.getByRole('alert').innerText(), 'Choose a topic')
-  assert.equal(h.calls('start').length, 0)
-  await choose(h.page, 'Topic', 'Food A1')
-  await choose(h.page, 'Round', '4')
-  await choose(h.page, 'Topic', 'Family A1')
+  assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).count(), 0)
   assert.equal(await h.page.getByRole('combobox', { name: 'Round', exact: true }).innerText(), 'Choose the number of rounds')
   await button(h.page, 'Continue').click()
   assert.equal(await h.page.getByRole('alert').innerText(), 'Choose the number of rounds')
@@ -404,7 +395,7 @@ scenario('tez setup clears dependent selections when level or topic changes', { 
   await h.page.locator('.sg-hud').waitFor()
   assert.equal(h.calls('start').length, 1)
   assert.deepEqual({ ...h.calls('start')[0].body, requestId: undefined }, {
-    requestId: undefined, character: 'penguin', level: 'A1', themeId: 'family-a1', rounds: 3,
+    requestId: undefined, character: 'penguin', level: 'A1', rounds: 3,
   })
 })
 
@@ -473,7 +464,7 @@ for (const size of Object.keys(SIZES)) {
     const saved = clone(h.session())
     await h.open(via === 'url' ? `?session=${saved.id}` : '')
     if (via === 'dashboard') {
-      for (const [name, value] of [['Level', 'A2'], ['Topic', 'Work A2'], ['Round', '5']]) {
+      for (const [name, value] of [['Level', 'A2'], ['Round', '5']]) {
         const field = h.page.getByRole('combobox', { name, exact: true })
         assert.equal(await field.innerText(), value)
         assert.equal(await field.isDisabled(), true)
@@ -484,7 +475,7 @@ for (const size of Object.keys(SIZES)) {
       assert.equal(h.session().deadlineUtc, null)
       await screenshot(h.page, `tez-saved-setup-${size}`)
       await h.open()
-      assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).innerText(), 'Work A2')
+      assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).count(), 0)
       await button(h.page, 'Resume').click()
     }
     await button(h.page, 'Speak').waitFor()
@@ -501,7 +492,7 @@ for (const size of Object.keys(SIZES)) {
  }
 }
 
-scenario('tez saved setup shows the original topic and preserves a pending answer', { slug: 'tez-gapir', size: 'mobile', saved: makeSession('tez-gapir', {
+scenario('tez saved setup hides topic selection and preserves a pending answer', { slug: 'tez-gapir', size: 'mobile', saved: makeSession('tez-gapir', {
   status: 'answering', level: 'A2', totalRounds: 4, character: 'panda', roundIndex: 1, version: 4,
   deadlineUtc: new Date(Date.now() + 3600000).toISOString(),
   prompt: { ...prompt('tez-gapir', 1), id: 'different-topic' },
@@ -509,7 +500,7 @@ scenario('tez saved setup shows the original topic and preserves a pending answe
 }) }, async (h) => {
   const saved = clone(h.session())
   await h.open()
-  assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).innerText(), 'Work A2')
+  assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).count(), 0)
   assert.equal(await h.page.getByRole('combobox', { name: 'Round', exact: true }).innerText(), '4')
   assert.equal(await h.page.locator('.sg-hud').count(), 0)
   await button(h.page, 'Resume').click()
@@ -624,6 +615,44 @@ async function sendVoice(h, text = ANSWER, deadline = false) {
   assert.equal(h.calls('answer').at(-1).body.text, text, 'submission must include the final event emitted during stop')
 }
 
+for (const size of Object.keys(SIZES)) {
+  for (const speakAt of [15, 29]) {
+    scenario(`tez counts one word at second ${speakAt} after silence ${size}`, { slug: 'tez-gapir', size, android: size === 'mobile', roundScores: [1] }, async (h) => {
+      await h.start()
+      await beginVoice(h)
+      const deadline = h.session().deadlineUtc
+      await h.page.clock.fastForward(10000)
+      await h.page.evaluate(() => window.__gameSpeech.error('no-speech'))
+      await h.page.clock.fastForward(150)
+      await h.page.evaluate(() => window.__gameSpeech.started())
+      await h.page.clock.fastForward(speakAt * 1000 - 10150)
+      assert.equal(h.calls('answer').length, 0)
+      await h.page.evaluate(() => {
+        window.__gameSpeech.result('мама', false)
+        window.__gameSpeech.finalOnStop('мама', 3000)
+      })
+      await h.page.clock.fastForward((30 - speakAt) * 1000 + 250)
+      let recordings = await h.page.evaluate(() => window.__gameSpeech.snapshot())
+      assert.equal(recordings.at(-1).stops, 1, 'microphone must stop at the original 30-second deadline')
+      assert.equal(recordings.at(-1).active, false)
+      assert.equal(h.session().deadlineUtc, deadline)
+      assert.equal(h.calls('answer').length, 0, 'wait for the late final recognition result, not a one-second cutoff')
+      await h.page.clock.fastForward(1250)
+      assert.equal(h.calls('answer').length, 0)
+      await h.page.clock.fastForward(2000)
+      await until(() => h.calls('answer').length === 1, 'the late word must be submitted once')
+      assert.equal(h.calls('answer')[0].body.text, 'мама')
+      assert.equal(h.calls('begin').length, 1)
+      await checkFeedback(h, 'мама')
+      assert.equal(h.session().score, 1)
+      assert.equal(h.session().history.length, 1)
+      recordings = await h.page.evaluate(() => window.__gameSpeech.snapshot())
+      assert.equal(recordings.length, 2)
+      assert.equal(recordings.at(-1).active, false)
+    })
+  }
+}
+
 async function checkFeedback(h, text = ANSWER) {
   const panel = h.page.getByRole('region', { name: 'Review your results', exact: true })
   await panel.waitFor()
@@ -682,15 +711,7 @@ for (const size of Object.keys(SIZES)) {
           await h.page.getByRole('option', { name: 'A2', exact: true }).click()
         }
         if (slug === 'tez-gapir') {
-          assert.equal(await h.page.getByRole('combobox', { name: c.theme, exact: true }).innerText(), SETUP[locale][2])
-          assert.equal(await h.page.getByRole('combobox', { name: c.rounds, exact: true }).count(), 0)
-          await button(h.page, CONTINUE[locale]).click()
-          assert.equal(await h.page.getByRole('alert').innerText(), SETUP[locale][2])
-          assert.equal(h.calls('start').length, 0)
-          await h.page.getByRole('combobox', { name: c.theme, exact: true }).click()
-          const theme = locale === 'uz' ? 'Ish A2' : 'Work A2'
-          assert.deepEqual(await h.page.getByRole('option').allTextContents(), [SETUP[locale][2], theme])
-          await h.page.getByRole('option', { name: theme, exact: true }).click()
+          assert.equal(await h.page.getByRole('combobox', { name: c.theme, exact: true }).count(), 0)
           assert.equal(await h.page.getByRole('combobox', { name: c.rounds, exact: true }).innerText(), SETUP[locale][3])
           await button(h.page, CONTINUE[locale]).click()
           assert.equal(await h.page.getByRole('alert').innerText(), SETUP[locale][3])
@@ -714,8 +735,8 @@ for (const size of Object.keys(SIZES)) {
         const body = h.calls('start')[0].body
         assert.equal(body.character, 'panda')
         assert.equal(body.level, slug === 'ice-mystery' ? 'A1' : 'A2')
-        if (slug === 'tez-gapir') { assert.equal(body.rounds, 5); assert.equal(body.themeId, 'work-a2') }
-        else assert.equal(body.themeId, undefined)
+        if (slug === 'tez-gapir') assert.equal(body.rounds, 5)
+        assert.equal(body.themeId, undefined)
         assert.equal(h.session().status, 'ready')
         assert.equal(h.calls('begin').length, 0)
         assert.deepEqual(await h.page.evaluate(() => window.__gameSpeech.snapshot()), [])
