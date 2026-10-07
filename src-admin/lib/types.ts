@@ -288,7 +288,47 @@ export type MarketingPlan = {
   reviewDueAt?: string | null
   reviewedAt?: string | null
   reviewUz?: string | null
+  metaLaunch?: MetaMarketingLaunch | null
   initiatives: MarketingInitiative[]
+}
+
+export type MetaMarketingLaunch = {
+  campaignId: string
+  adSetId: string
+  creativeId: string
+  adId: string
+  status: string
+  launchedAt: string
+}
+
+export type MetaMarketingSettings = {
+  isEnabled: boolean
+  isConfigured: boolean
+  accessTokenHint?: string | null
+  adAccountId?: string | null
+  pageId?: string | null
+  destinationUrl: string
+  dailyBudget: number
+  defaultStatus: 'PAUSED' | 'ACTIVE' | string
+  ageMin: number
+  ageMax: number
+  countries: string
+  publisherPlatforms: string
+  headline: string
+  primaryText: string
+  callToActionType: string
+  updatedAt: string
+}
+
+export type MarketingUgcVideo = {
+  id: string
+  title: string
+  metaVideoId?: string | null
+  videoUrl?: string | null
+  notes?: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export type MarketingStepState = 'Pending' | 'Active' | 'Done' | 'Failed'
