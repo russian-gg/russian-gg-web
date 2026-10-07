@@ -7,10 +7,23 @@ import { useLocale } from '../../../lib/i18n'
 import { readAudioPreferences } from '../../../lib/audio-preferences'
 import { GameSpeech, type GameSpeechStatus } from '../../../lib/game-speech'
 import { speakingGames, type GameAnswer, type GameDashboard, type GameSession, type SpeakingGame, type StartGame } from '../../../lib/speaking-games'
-import { copies, gameLabels, isSpeakingGame, type GameSlug } from './copy'
+import { copies, gameLabels, isSpeakingGame, type GameCopy, type GameSlug } from './copy'
 import { CharacterNote, CompanionPicker, GameMark, MicMark, ReactionScene, Timer, type Companion } from './visuals'
 import { Feedback, Results, Statistics } from './Results'
 import { Evidence, MysteryMap } from './MysteryMap'
+
+function gameError(caught: unknown, copy: GameCopy) {
+  if (!(caught instanceof RequestError)) return caught instanceof TypeError ? copy.connectionError : copy.error
+  if (caught.code === 'game_disabled') return copy.disabled
+  if (/locked|access|lesson/.test(caught.code)) return `${copy.locked} ${copy.unlock}`
+  if (caught.code === 'game_ai_retry_exhausted') return copy.aiExhausted
+  if (caught.code === 'game_ai_unavailable') return copy.aiUnavailable
+  if (caught.code === 'game_rate_limited' || caught.status === 429) return copy.rateLimited
+  if (caught.status === 401) return copy.sessionExpired
+  if (caught.status >= 500) return copy.serverError
+  if (caught.status === 400) return caught.message
+  return copy.error
+}
 
 export function SpeakingGamePage() {
   const { slug } = useParams()
@@ -31,11 +44,12 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [retryExhausted, setRetryExhausted] = useState(false)
+  const [setupError, setSetupError] = useState<'level' | 'rounds' | null>(null)
   const [reload, setReload] = useState(0)
   const [character, setCharacter] = useState<Companion>('penguin')
-  const [level, setLevel] = useState('A1')
-  const [rounds, setRounds] = useState(3)
-  const [themeId, setThemeId] = useState('')
+  const [level, setLevel] = useState(slug === 'tez-gapir' ? '' : 'A1')
+  const [rounds, setRounds] = useState(slug === 'tez-gapir' ? 0 : 3)
   const [transcript, setTranscript] = useState('')
   const [typed, setTyped] = useState('')
   const [textMode, setTextMode] = useState(false)
@@ -82,10 +96,8 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
 
   function failure(caught: unknown) {
     if (!alive.current) return
-    if (caught instanceof RequestError && caught.code === 'game_disabled') setError(copy.disabled)
-    else if (caught instanceof RequestError && /locked|access|lesson/.test(caught.code)) setError(`${copy.locked} ${copy.unlock}`)
-    else if (caught instanceof RequestError && caught.status === 400) setError(caught.message)
-    else setError(copy.error)
+    setRetryExhausted(caught instanceof RequestError && caught.code === 'game_ai_retry_exhausted')
+    setError(gameError(caught, copy))
   }
 
   async function run(action: () => Promise<void>) {
@@ -93,6 +105,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     busyRef.current = true
     setBusy(true)
     setError('')
+    setRetryExhausted(false)
     retryAction.current = action
     try { await action(); retryAction.current = null } catch (caught) {
       if (caught instanceof RequestError && caught.status === 409 && current.current) {
@@ -102,8 +115,9 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
           pendingAnswer.current = null
           retryAction.current = null
           adopt(updated)
+          if (updated.pendingAnswer) setError(copy.aiPending)
           return
-        } catch { failure(caught) }
+        } catch (refreshError) { failure(refreshError) }
       } else {
         if (caught instanceof RequestError && caught.status === 400) {
           pendingAnswer.current = null
@@ -134,12 +148,20 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     setLoading(true)
     setError('')
     void Promise.all([speakingGames.catalog(), speakingGames.dashboard(), initialId.current ? speakingGames.session(slug, initialId.current) : Promise.resolve(null)])
-      .then(([games, stats, saved]) => {
-        if (!active) return
+      .then(async ([games, stats, saved]) => {
         const game = games.find((entry) => entry.slug === slug) ?? null
+        const unfinished = slug === 'tez-gapir' && game?.isAccessible && !initialId.current
+          ? stats.activeSessions.find((entry) => entry.gameSlug === slug) : null
+        const settings = unfinished ? await speakingGames.session(slug, unfinished.id) : null
+        if (!active) return
         setCatalog(game)
-        setDashboard(stats)
-        setThemeId(game?.themes[0]?.id ?? '')
+        setDashboard(settings?.status === 'completed'
+          ? { ...stats, activeSessions: stats.activeSessions.filter((entry) => entry.id !== settings.id) } : stats)
+        if (settings && settings.status !== 'completed') {
+          setCharacter(settings.character)
+          setLevel(settings.level)
+          setRounds(settings.totalRounds)
+        }
         if (saved && saved.gameSlug === slug) {
           current.current = saved
           offset.current = new Date(saved.serverNowUtc).getTime() - Date.now()
@@ -147,7 +169,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
           if (saved.gameSlug === 'ice-mystery' && saved.status === 'answering') setLocation(saved.prompt.id)
           if (saved.pendingAnswer) pendingAnswer.current = { id: saved.id, body: saved.pendingAnswer }
         }
-      }).catch(() => { if (active) setError(copies[locale].error) }).finally(() => { if (active) setLoading(false) })
+      }).catch((caught) => { if (active) setError(gameError(caught, copies[locale])) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [slug, reload, locale])
 
@@ -173,9 +195,19 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     }
   }
 
+  function validateSetup() {
+    if (slug === 'tez-gapir') {
+      const missing = !catalog?.levels.includes(level) ? 'level'
+        : ![3, 4, 5].includes(rounds) ? 'rounds' : null
+      setSetupError(missing)
+      return !missing
+    }
+    return true
+  }
+
   async function start() {
-    if (!catalog?.isAccessible) return
-    startRequest.current ??= { requestId: crypto.randomUUID(), character, level, rounds, themeId: slug === 'tez-gapir' ? themeId : undefined }
+    if (!catalog?.isAccessible || !validateSetup()) return
+    startRequest.current ??= { requestId: crypto.randomUUID(), character, level, rounds }
     const request = startRequest.current
     await run(async () => {
       adopt(await speakingGames.start(slug, request))
@@ -231,7 +263,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     if (!pendingAnswer.current) {
       busyRef.current = true
       setBusy(true)
-      const answer = textMode ? typed.trim() : await speech.finish()
+      const answer = textMode ? typed.trim() : await speech.finish(slug === 'tez-gapir' ? 5000 : undefined)
       if (!alive.current) return
       pendingAnswer.current = {
         id: value.id,
@@ -270,6 +302,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   }, [session?.status, session?.version, session?.deadlineUtc])
 
   async function resume(id: string) {
+    if (!validateSetup()) return
     await run(async () => { setLocation(null); setAccusing(false); adopt(await speakingGames.session(slug, id)) })
   }
 
@@ -298,27 +331,41 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     setAccusing(false)
     setAccusationRecording(false)
     pendingAnswer.current = null
+    if (slug === 'tez-gapir') {
+      setDashboard((value) => value ? { ...value, activeSessions: value.activeSessions.filter((entry) => entry.id !== session?.id) } : value)
+      setLevel('')
+      setRounds(0)
+      setSetupError(null)
+      startRequest.current = null
+    }
   }
 
   const active = dashboard?.activeSessions.find((entry) => entry.gameSlug === slug)
+  const savedSetup = slug === 'tez-gapir' && Boolean(active)
   const answering = session?.status === 'answering' || accusationRecording
   const isMystery = slug === 'ice-mystery'
   const feedback = session?.status === 'feedback' && !accusing ? session.feedback : null
   const showMap = isMystery && session && !location && !accusing && session.status !== 'completed'
-  const modeEditable = !busy && !answering && !feedback
+  const modeEditable = slug !== 'tez-gapir' && !busy && !answering && !feedback
   const pending = Boolean(pendingAnswer.current || session?.pendingAnswer)
 
   return <main className="sg" data-game={slug}>
     <nav className="sg-nav"><Link to="/games" onClick={() => { speech.abort(); stopAudio() }}><span aria-hidden="true">←</span>{copy.games}</Link><strong>{label.title}</strong></nav>
     <div className="sg-content">
       {loading ? <div className="flex justify-center py-24"><Spinner /></div> : <>
-        {error && <div className="sg-error" role="alert">{error}<button onClick={() => { if (retryAction.current) void run(retryAction.current); else if (pending) void submit(); else setReload((n) => n + 1) }} disabled={busy}>{copy.retry}</button></div>}
+        {error && <div className="sg-error" role="alert">{error}{!retryExhausted && <button onClick={() => { if (retryAction.current) void run(retryAction.current); else if (pending) void submit(); else setReload((n) => n + 1) }} disabled={busy}>{copy.retry}</button>}</div>}
         {!session && catalog && <>
           <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1><p>{label.description}</p><div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
-            <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} disabled={busy} />
-              {!isMystery && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy} onChange={(value) => { setLevel(value); startRequest.current = null; setThemeId(catalog.themes.find((item) => item.level === value)?.id ?? '') }} options={catalog.levels.map((value) => ({ value, label: value }))} /></div>}
-              {slug === 'tez-gapir' && <><div className="sg-field">{copy.theme}<Select label={copy.theme} size="lg" block value={themeId} disabled={busy} onChange={(value) => { setThemeId(value); startRequest.current = null }} options={catalog.themes.filter((theme) => theme.level === level).map((theme) => ({ value: theme.id, label: locale === 'uz' ? theme.titleUz : theme.titleRu }))} /></div><div className="sg-field">{copy.rounds}<Select label={copy.rounds} size="lg" block value={String(rounds)} disabled={busy} onChange={(value) => { setRounds(Number(value)); startRequest.current = null }} options={[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))} /></div></>}
-              {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <><p className="sg-muted">{copy.savedGame}</p><Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : copy.start}</Button>}
+            <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} game={slug} disabled={busy || savedSetup} />
+              {!isMystery && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
+                setLevel(value); startRequest.current = null; setSetupError(null)
+                if (slug === 'tez-gapir') setRounds(0)
+              }} options={[...(slug === 'tez-gapir' ? [{ value: '', label: copy.yourLevel, disabled: true }] : []), ...catalog.levels.map((value) => ({ value, label: value }))]} /></div>}
+              {slug === 'tez-gapir' && level && <div className="sg-field">{copy.rounds}<Select label={copy.rounds} size="lg" block value={rounds ? String(rounds) : ''} disabled={busy || savedSetup} onChange={(value) => {
+                setRounds(Number(value)); setSetupError(null); startRequest.current = null
+              }} options={[{ value: '', label: copy.selectRounds, disabled: true }, ...[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></div>}
+              {setupError && <p className="text-danger" role="alert">{setupError === 'level' ? copy.selectLevel : copy.selectRounds}</p>}
+              {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <><p className="sg-muted">{copy.savedGame}</p><Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : slug === 'tez-gapir' ? copy.continue : copy.start}</Button>}
               <p className="sg-muted">{copy.timeNote}</p>
             </div></div>
           <Statistics slug={slug} copy={copy} dashboard={dashboard} />
@@ -337,7 +384,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
               {locale === 'uz' && session.prompt.titleUz && <p className="sg-muted mb-4">{session.prompt.titleUz}</p>}
               {!answering && !busy && !feedback && !accusing && session.prompt.kind !== 'ready' && <Button variant="ghost" disabled={playingAudio} onClick={() => void playAudio(session, 'prompt')}>{playingAudio ? copy.loading : copy.listen}</Button>}
               {!feedback && <>
-                {!speech.supported && <p className="sg-muted my-5">{copy.unsupported}</p>}
+                {!speech.supported && <p className="sg-muted my-5">{slug === 'tez-gapir' ? copy.voiceUnsupported : copy.unsupported}</p>}
                 {(speechStatus === 'denied' || speechStatus === 'failed') && <div className="sg-error" role="alert"><strong>{speechStatus === 'denied' ? copy.micDenied : copy.micFailed}</strong>{speechStatus === 'denied' && <p>{copy.micHelp}</p>}</div>}
                 {modeEditable && <div className="sg-actions"><Button variant="ghost" onClick={() => { speech.abort(); setTextMode(!textMode) }}>{textMode ? copy.voice : copy.type}</Button></div>}
                 {textMode && <p className="sg-muted mt-4">{copy.textMode}</p>}
@@ -345,13 +392,13 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
                 <div className="sg-actions">
                   {answering || pending ? <>
                     {!textMode && speechStatus !== 'listening' && !busy && !pending && <button className="sg-mic" aria-label={copy.speak} onClick={() => void begin()}><MicMark /></button>}
-                    <Button size="lg" disabled={busy} onClick={() => void submit()}>{busy ? copy.saving : pending ? copy.retry : slug === 'tez-gapir' ? copy.stop : copy.submit}</Button>
+                    <Button size="lg" disabled={busy || retryExhausted} onClick={() => void submit()}>{busy ? copy.saving : pending ? copy.retry : slug === 'tez-gapir' ? copy.stop : copy.submit}</Button>
                   </> : <Button size="lg" disabled={busy || (!textMode && !speech.supported)} onClick={() => void begin()}><MicMark />{busy ? copy.preparing : copy.speak}</Button>}
                 </div>
                 {answering && speechStatus === 'listening' && <p className="sg-status" role="status">{copy.listening}</p>}
                 {slug === 'tez-gapir' && answering && !transcript && seconds < session.durationSeconds - 3 && <p className="sg-muted">{copy.silence}</p>}
               </>}
-              {feedback && <><CharacterNote companion={isMystery ? session.locations.find((item) => item.id === location)?.character ?? session.character : session.character}>{isMystery ? feedback.explanation : feedback.characterPhrase}</CharacterNote><Feedback feedback={feedback} copy={copy} hideExplanation={isMystery} /><div className="sg-actions"><Button variant="secondary" disabled={busy || playingAudio} onClick={() => void playAudio(session, 'feedback')}>{copy.listen}</Button><Button size="lg" disabled={busy} onClick={() => void command('next', location ?? undefined)}>{copy.next}</Button></div></>}
+              {feedback && <><CharacterNote game={slug} companion={isMystery ? session.locations.find((item) => item.id === location)?.character ?? session.character : session.character}>{isMystery ? feedback.explanation : feedback.characterPhrase}</CharacterNote><Feedback feedback={feedback} copy={copy} hideExplanation={isMystery} languageOnly={slug === 'tez-gapir'} /><div className="sg-actions"><Button variant="secondary" disabled={busy || playingAudio} onClick={() => void playAudio(session, 'feedback')}>{copy.listen}</Button><Button size="lg" disabled={busy} onClick={() => void command('next', location ?? undefined)}>{copy.next}</Button></div></>}
               {audioFailed && <p className="sg-muted mt-4" role="status">{copy.audioFailed}</p>}
               {isMystery && session.history.length > 0 && <div className="sg-dialogue" aria-label={copy.history}>{session.history.filter((turn) => turn.locationId === location).map((turn, index) => <div key={index}><blockquote data-speaker="player"><small>{copy.answer}</small><span lang="ru">{turn.feedback.answer}</span></blockquote><blockquote className="mt-2" lang="ru">{turn.feedback.explanation}</blockquote></div>)}</div>}
             </div>

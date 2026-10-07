@@ -20,6 +20,7 @@ import { mascotImage } from '../../lib/mascot-images'
 import { useLocale, useT } from '../../lib/i18n'
 import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
 import { GameMark } from './speaking/visuals'
+import { TezGapirCard } from './TezGapirCard'
 import * as m from 'motion/react-m'
 import { Reveal, Sequence } from '../../components/motion'
 import { rise, stagger, tactile } from '../../lib/motion'
@@ -94,6 +95,7 @@ export function Games() {
           const art = ART[game.slug]
 
           if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} body={game.bodyUz} />
+          if (game.slug === 'tez-gapir') return <TezGapirCard key={game.slug} />
 
           if (isSpeakingGame(game.slug)) {
             const label = gameLabels[game.slug][locale]

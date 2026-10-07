@@ -25,7 +25,7 @@ export interface GameSession {
   score: number; roundIndex: number; totalRounds: number; durationSeconds: number; roundStartedAt: string | null
   deadlineUtc: string | null; serverNowUtc: string; prompt: GamePrompt; feedback: GameFeedback | null; history: GameTurn[]
   clues: GameClue[]; locations: GameLocation[]; achievements: GameAchievement[]; summary: GameSummary | null
-  availableActions: string[]; pendingAnswer: GameAnswer | null
+  availableActions: string[]; pendingAnswer: GameAnswer | null; themeId?: string | null
 }
 export interface GameTheme { id: string; titleRu: string; titleUz: string; level: string }
 export interface SpeakingGame {

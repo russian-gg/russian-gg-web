@@ -76,9 +76,9 @@ async function rejected(result, message) {
 
 function resultEvent(entries, resultIndex = 0) {
   const results = { length: entries.length, item(index) { return this[index] } }
-  entries.forEach(([transcript, isFinal], index) => {
+  entries.forEach(([transcript, isFinal, confidence = 0.9], index) => {
     results[index] = {
-      0: { transcript, confidence: 0.9 },
+      0: { transcript, confidence },
       length: 1,
       isFinal,
       item(alternative) { return this[alternative] },
@@ -96,7 +96,7 @@ function handlers(recognition) {
   }
 }
 
-function harness(t, { api = 'SpeechRecognition' } = {}) {
+function harness(t, { api = 'SpeechRecognition', android = false } = {}) {
   const clock = new Clock()
   const instances = []
   const texts = []
@@ -122,7 +122,7 @@ function harness(t, { api = 'SpeechRecognition' } = {}) {
     emitResults(entries, resultIndex = 0) { this.onresult?.(resultEvent(entries, resultIndex)) }
   }
 
-  const window = { setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout }
+  const window = { navigator: { userAgent: android ? 'Mozilla/5.0 (Linux; Android 14) Chrome/130' : 'Mozilla/5.0 (Windows NT 10.0) Chrome/130' }, setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout }
   if (api) window[api] = MockRecognition
   const module = { exports: {} }
   const context = vm.createContext({
@@ -225,6 +225,72 @@ test('empty recognition results do not add whitespace', async (t) => {
   assert.equal(h.texts.at(-1), 'privet')
 })
 
+test('Android cumulative zero-confidence finals replace hypotheses instead of duplicating speech', async (t) => {
+  const h = harness(t, { android: true })
+  const recognition = await h.listen()
+  const results = []
+  for (const text of ['I', 'I love', 'I love my', 'I love my family']) {
+    results.push([text, true, 0])
+    recognition.emitResults(results, results.length - 1)
+    assert.equal(h.speech.transcript, text)
+  }
+  results.push(['I love my family.', true, 0.9])
+  recognition.emitResults(results, results.length - 1)
+  recognition.emitResults(results, results.length - 1)
+  assert.equal(h.speech.transcript, 'I love my family.')
+  results.push(['My', true, 0], ['My mother', true, 0], ['My mother is a teacher.', true, 0.9])
+  recognition.emitResults(results, 5)
+  assert.equal(h.speech.transcript, 'I love my family. My mother is a teacher.')
+  const finish = observe(h.speech.finish())
+  recognition.emitEnd()
+  await flush()
+  assert.equal(finish.value, 'I love my family. My mother is a teacher.')
+})
+
+test('Android hypothesis at the same index can become a final correction', async (t) => {
+  const h = harness(t, { android: true })
+  const recognition = await h.listen()
+  recognition.emitResults([['draft', true, 0]])
+  recognition.emitResults([['draft version', true, 0]])
+  recognition.emitResults([['correct version', true, 0.9]])
+  assert.equal(h.speech.transcript, 'correct version')
+})
+
+test('Android finish preserves only the latest hypothesis when no confirmed final arrives', async (t) => {
+  const h = harness(t, { android: true })
+  const recognition = await h.listen()
+  recognition.emitResults([['my', true, 0], ['my family', true, 0], ['my family is large', true, 0]])
+  const finish = observe(h.speech.finish())
+  await h.clock.advance(FINISH_TIMEOUT)
+  assert.equal(finish.value, 'my family is large')
+})
+
+test('Android confirmed repeated words and phrases remain legitimate speech', async (t) => {
+  const h = harness(t, { android: true })
+  const recognition = await h.listen()
+  recognition.emitResults([['yes', true], ['yes', true], ['my family', true], ['my family', true]])
+  assert.equal(h.speech.transcript, 'yes yes my family my family')
+})
+
+test('Android restart does not carry cumulative hypothesis history into the next utterance', async (t) => {
+  const h = harness(t, { android: true })
+  const first = await h.listen()
+  first.emitResults([['my', true, 0], ['my family', true, 0]])
+  first.emitEnd()
+  await h.clock.advance(RESTART_DELAY)
+  const second = h.instances[1]
+  second.emitStart()
+  second.emitResults([['my', true, 0], ['my mother', true, 0], ['my mother is a teacher', true]])
+  assert.equal(h.speech.transcript, 'my family my mother is a teacher')
+})
+
+test('non-Android zero-confidence finals are not discarded', async (t) => {
+  const h = harness(t)
+  const recognition = await h.listen()
+  recognition.emitResults([['one', true, 0], ['two', true, 0]])
+  assert.equal(h.speech.transcript, 'one two')
+})
+
 test('restart preserves transcript and accepts reset result indices', async (t) => {
   const h = harness(t)
   const first = await h.listen()
@@ -293,6 +359,55 @@ test('finish timeout releases a recognizer that never ends', async (t) => {
   assert.equal(h.statuses.at(-1), 'idle')
   await h.clock.advance(START_TIMEOUT)
   assert.equal(h.instances.length, 1)
+})
+
+for (const android of [false, true]) {
+  test(`Tez keeps a last-second word after silence and delayed finalization android=${android}`, async (t) => {
+    const h = harness(t, { android })
+    const first = await h.listen()
+    await h.clock.advance(10000)
+    first.emitError('no-speech')
+    first.emitEnd()
+    await h.clock.advance(RESTART_DELAY)
+    const second = h.instances[1]
+    second.emitStart()
+    await h.clock.advance(4850)
+    assert.equal(h.clock.now, 15000)
+    second.emitError('no-speech')
+    second.emitEnd()
+    await h.clock.advance(RESTART_DELAY)
+    const third = h.instances[2]
+    third.emitStart()
+    await h.clock.advance(13850)
+    assert.equal(h.clock.now, 29000)
+    third.emitResults([['mama', false]])
+    await h.clock.advance(1000)
+    const finish = observe(h.speech.finish(5000))
+    assert.equal(third.stopCalls, 1)
+    assert.equal(third.active, false)
+    await h.clock.advance(3000)
+    assert.equal(finish.state, 'pending')
+    third.emitResults([['mama', true]])
+    third.emitEnd()
+    await flush()
+    assert.equal(finish.value, 'mama')
+    await h.clock.advance(START_TIMEOUT)
+    assert.equal(h.instances.length, 3)
+    assert.equal(h.clock.jobs.size, 0)
+  })
+}
+
+test('Tez finalization remains bounded and retains the last interim word', async (t) => {
+  const h = harness(t)
+  const recognition = await h.listen()
+  recognition.emitResults([['mama', false]])
+  const finish = observe(h.speech.finish(5000))
+  await h.clock.advance(4999)
+  assert.equal(finish.state, 'pending')
+  await h.clock.advance(1)
+  assert.equal(finish.value, 'mama')
+  assert.equal(recognition.active, false)
+  assert.equal(h.clock.jobs.size, 0)
 })
 
 test('finish cancels a pending automatic restart', async (t) => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import type {
   MarketingCategory,
@@ -11,8 +12,10 @@ import type {
   MarketingPlan,
   MarketingPlanSummary,
   MarketingStatus,
+  MarketingUgcVideo,
+  MetaMarketingSettings,
 } from '../lib/types'
-import { Badge, Button, Card, ConfirmDialog, EmptyNote, ErrorNote, Loading, PageHeader, Screen, SectionHeading } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, EmptyNote, ErrorNote, Loading, PageHeader, Screen, SectionHeading, Tabs } from '../components/ui'
 import { cx } from '../../src/lib/cx'
 
 const PROGRAMME_WEEKS = 12
@@ -70,7 +73,10 @@ const formatMetric = (metric: MarketingMetric, value: number) =>
 
 const arrow: Record<MarketingDirection, string> = { Up: '↑', Down: '↓', Flat: '→' }
 
+type MarketingTab = 'strategy' | 'target'
+
 export function Marketing() {
+  const [tab, setTab] = useState<MarketingTab>('strategy')
   const { data, error, isLoading, refresh } = useAdminQuery<MarketingPlanSummary[]>('/api/admin-portal/marketing')
   const [selected, setSelected] = useState<string | null>(null)
   const [run, setRun] = useState<MarketingRun | null>(null)
@@ -155,78 +161,96 @@ export function Marketing() {
           title="Marketing strategiya"
           subtitle="Paneldagi raqamlardan chiqadigan 12 haftalik reja"
         />
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-ink-muted">
-            {done}/{PROGRAMME_WEEKS} hafta
-          </span>
-          <Button onClick={generate} disabled={busy || Boolean(measuring) || done >= PROGRAMME_WEEKS}>
-            {busy ? 'Tuzilmoqda…' : 'Yangi hafta tuzish'}
-          </Button>
-        </div>
+        {tab === 'strategy' && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-ink-muted">
+              {done}/{PROGRAMME_WEEKS} hafta
+            </span>
+            <Button onClick={generate} disabled={busy || Boolean(measuring) || done >= PROGRAMME_WEEKS}>
+              {busy ? 'Tuzilmoqda…' : 'Yangi hafta tuzish'}
+            </Button>
+          </div>
+        )}
       </div>
 
-      {failure && <ErrorNote>{failure}</ErrorNote>}
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { id: 'strategy', label: 'Strategiya' },
+          { id: 'target', label: 'Target' },
+        ]}
+      />
 
-      {run && <RunProgress run={run} onDismiss={() => setRun(null)} />}
-
-      {/* Said where the button is, not after it fails, and it says what to do about it. */}
-      {measuring && (
-        <p className="text-sm text-ink-muted">
-          {measuring.weekNumber}-hafta hozir o'lchanmoqda. Uni o'lchab bo'lgach yangi hafta
-          tuziladi — kutish shart emas, "Hozir o'lchash"ni bosing.
-        </p>
-      )}
-
-      {data.length === 0 ? (
-        <Card>
-          <EmptyNote>
-            Hali reja yo'q. "Yangi hafta tuzish" bosilganda model paneldagi joriy raqamlarni
-            o'qib, birinchi haftani yozadi.
-          </EmptyNote>
-        </Card>
+      {tab === 'target' ? (
+        <MetaMarketingPanel />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-          <div className="space-y-2">
-            <SectionHeading>Haftalar</SectionHeading>
-            {data.map((plan) => (
-              <button
-                key={plan.id}
-                type="button"
-                onClick={() => setSelected(plan.id)}
-                className={cx(
-                  'block w-full rounded-[var(--radius-card)] border-2 p-4 text-left transition-colors',
-                  selected === plan.id
-                    ? 'border-signal bg-signal-soft/40'
-                    : 'border-hairline bg-ground-raised hover:border-ink-faint',
-                  // Kept, because a plan that was turned down is worth remembering — but the
-                  // live week for that slot is the one being read.
-                  plan.status === 'Dismissed' && 'opacity-60',
-                )}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-extrabold text-ink">{plan.weekNumber}-hafta</span>
-                  <Badge tone={statusTone[plan.status]}>{statusLabel[plan.status]}</Badge>
-                </div>
-                <p className="mt-1 text-sm text-ink-muted">{plan.headlineUz}</p>
-                <p className="mt-1 text-xs text-ink-faint">
-                  {plan.initiativeCount} ta tashabbus · {formatDate(plan.generatedAt)}
-                </p>
-              </button>
-            ))}
-          </div>
+        <>
+          {failure && <ErrorNote>{failure}</ErrorNote>}
 
-          {selected && (
-            <PlanDetail
-              planId={selected}
-              onChanged={refresh}
-              onRunStarted={(started) => {
-                setFailure('')
-                setRun(started)
-              }}
-            />
+          {run && <RunProgress run={run} onDismiss={() => setRun(null)} />}
+
+          {/* Said where the button is, not after it fails, and it says what to do about it. */}
+          {measuring && (
+            <p className="text-sm text-ink-muted">
+              {measuring.weekNumber}-hafta hozir o'lchanmoqda. Uni o'lchab bo'lgach yangi hafta
+              tuziladi — kutish shart emas, "Hozir o'lchash"ni bosing.
+            </p>
           )}
-        </div>
-      )}
+
+          {data.length === 0 ? (
+            <Card>
+              <EmptyNote>
+                Hali reja yo'q. "Yangi hafta tuzish" bosilganda model paneldagi joriy raqamlarni
+                o'qib, birinchi haftani yozadi.
+              </EmptyNote>
+            </Card>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+              <div className="space-y-2">
+                <SectionHeading>Haftalar</SectionHeading>
+                {data.map((plan) => (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSelected(plan.id)}
+                    className={cx(
+                      'block w-full rounded-[var(--radius-card)] border-2 p-4 text-left transition-colors',
+                      selected === plan.id
+                        ? 'border-signal bg-signal-soft/40'
+                        : 'border-hairline bg-ground-raised hover:border-ink-faint',
+                      // Kept, because a plan that was turned down is worth remembering — but the
+                      // live week for that slot is the one being read.
+                      plan.status === 'Dismissed' && 'opacity-60',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-extrabold text-ink">{plan.weekNumber}-hafta</span>
+                      <Badge tone={statusTone[plan.status]}>{statusLabel[plan.status]}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-ink-muted">{plan.headlineUz}</p>
+                    <p className="mt-1 text-xs text-ink-faint">
+                      {plan.initiativeCount} ta tashabbus · {formatDate(plan.generatedAt)}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {selected && (
+                <PlanDetail
+                  planId={selected}
+                  onChanged={refresh}
+                  onRunStarted={(started) => {
+                    setFailure('')
+                    setRun(started)
+                  }}
+                  onOpenTarget={() => setTab('target')}
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
     </Screen>
   )
 }
@@ -318,21 +342,330 @@ function StepMark({ state }: { state: MarketingRunStep['state'] }) {
   return <span aria-hidden="true" className="mt-0.5 size-4 shrink-0 rounded-full border-2 border-hairline" />
 }
 
+function MetaMarketingPanel() {
+  const settings = useAdminQuery<MetaMarketingSettings>('/api/admin-portal/marketing/meta-settings')
+  const videos = useAdminQuery<MarketingUgcVideo[]>('/api/admin-portal/marketing/ugc-videos')
+  const [draft, setDraft] = useState<MetaMarketingSettings | null>(null)
+  const [token, setToken] = useState('')
+  const [video, setVideo] = useState({ title: '', metaVideoId: '', videoUrl: '', notes: '' })
+  const [busy, setBusy] = useState(false)
+  const [failure, setFailure] = useState('')
+
+  useEffect(() => {
+    if (settings.data) setDraft(settings.data)
+  }, [settings.data])
+
+  if (settings.error) return <ErrorNote onRetry={settings.refresh}>{settings.error}</ErrorNote>
+  if (!draft && settings.isLoading) return <Loading />
+  if (!draft) return null
+
+  async function saveSettings() {
+    if (!draft) return
+
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch('/api/admin-portal/marketing/meta-settings', {
+        method: 'PUT',
+        body: JSON.stringify({ ...draft, accessToken: token.trim() || null }),
+      })
+      setToken('')
+      settings.refresh()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Meta sozlamalari saqlanmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function addVideo() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch('/api/admin-portal/marketing/ugc-videos', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...video,
+          metaVideoId: video.metaVideoId.trim() || null,
+          videoUrl: video.videoUrl.trim() || null,
+          notes: video.notes.trim() || null,
+          isActive: true,
+        }),
+      })
+      setVideo({ title: '', metaVideoId: '', videoUrl: '', notes: '' })
+      videos.refresh()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Video qo‘shilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const set = <K extends keyof MetaMarketingSettings>(key: K, value: MetaMarketingSettings[K]) =>
+    setDraft({ ...draft, [key]: value })
+
+  return (
+    <div className="space-y-4">
+      {failure && <ErrorNote>{failure}</ErrorNote>}
+
+      <Card className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SectionHeading>Meta ulanishi</SectionHeading>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={draft.isConfigured ? 'milestone' : 'caution'}>
+              {draft.isConfigured ? 'Ulangan' : 'Credential kerak'}
+            </Badge>
+            <Badge tone={draft.isEnabled ? 'milestone' : 'neutral'}>
+              {draft.isEnabled ? 'Launch yoqilgan' : "Launch o'chiq"}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          {/*
+            The stored token never comes back from the server, only its last characters. The
+            field stays empty and shows that hint masked, so a save without typing keeps it.
+          */}
+          <Field
+            label="Access token"
+            hint={draft.accessTokenHint ? "Saqlangan. Almashtirish uchungina yangisini kiriting." : undefined}
+          >
+            <input
+              type="password"
+              autoComplete="off"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              placeholder={draft.accessTokenHint ? `••••••••••••${draft.accessTokenHint.replace(/^[.…]+/, '')}` : 'EAA…'}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Ad account ID" hint="act_ bilan boshlanadi">
+            <input
+              value={draft.adAccountId ?? ''}
+              onChange={(event) => set('adAccountId', event.target.value)}
+              placeholder="act_…"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Page ID">
+            <input
+              value={draft.pageId ?? ''}
+              onChange={(event) => set('pageId', event.target.value)}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <SectionHeading>Auditoriya va budget</SectionHeading>
+
+        <div className="grid gap-3 md:grid-cols-[10rem_10rem_minmax(0,1fr)]">
+          {/* Meta takes the budget in the account currency's minor units, as is. */}
+          <Field label="Kunlik budget" hint={budgetHint(draft.dailyBudget)}>
+            <input
+              type="number"
+              min={100}
+              value={draft.dailyBudget}
+              onChange={(event) => set('dailyBudget', Number(event.target.value))}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Yosh">
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                aria-label="Eng kichik yosh"
+                value={draft.ageMin}
+                onChange={(event) => set('ageMin', Number(event.target.value))}
+                className={inputClass}
+              />
+              <input
+                type="number"
+                aria-label="Eng katta yosh"
+                value={draft.ageMax}
+                onChange={(event) => set('ageMax', Number(event.target.value))}
+                className={inputClass}
+              />
+            </div>
+          </Field>
+          <Field label="Yaratilgandagi status" hint="PAUSED: Ads Manager'da tekshirib, keyin qo'lda yoqasiz">
+            <select
+              value={draft.defaultStatus}
+              onChange={(event) => set('defaultStatus', event.target.value)}
+              className={inputClass}
+            >
+              <option value="PAUSED">PAUSED — to'xtatilgan holda</option>
+              <option value="ACTIVE">ACTIVE — darhol pul sarflaydi</option>
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="Davlatlar" hint="ISO kodlar, vergul bilan: UZ,KZ">
+            <input
+              value={draft.countries}
+              onChange={(event) => set('countries', event.target.value)}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Platformalar" hint="facebook, instagram, messenger, audience_network">
+            <input
+              value={draft.publisherPlatforms}
+              onChange={(event) => set('publisherPlatforms', event.target.value)}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <SectionHeading>Reklama matni</SectionHeading>
+        <Field label="Landing URL">
+          <input
+            value={draft.destinationUrl}
+            onChange={(event) => set('destinationUrl', event.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Default headline" hint="Haftadagi tashabbus sarlavhasi bo'lmasa ishlatiladi">
+          <input
+            value={draft.headline}
+            onChange={(event) => set('headline', event.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Default matn">
+          <textarea
+            value={draft.primaryText}
+            onChange={(event) => set('primaryText', event.target.value)}
+            rows={3}
+            className={textareaClass}
+          />
+        </Field>
+      </Card>
+
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-sm font-bold text-ink">
+          <input
+            type="checkbox"
+            checked={draft.isEnabled}
+            onChange={(event) => set('isEnabled', event.target.checked)}
+          />
+          Meta orqali launch yoqilgan
+        </label>
+        <Button onClick={() => void saveSettings()} disabled={busy}>
+          Sozlamalarni saqlash
+        </Button>
+      </Card>
+
+      <Card className="space-y-4">
+        <SectionHeading>UGC videolar</SectionHeading>
+        <p className="text-sm text-ink-muted">
+          Videoni Meta Media Library → Ad Account Media'ga yuklang va uning ID'sini shu yerga
+          kiriting. Meta ID'siz video reklamaga tanlanmaydi.
+        </p>
+        <div className="grid gap-3 md:grid-cols-[1fr_12rem_1fr]">
+          <Field label="Nomi">
+            <input
+              value={video.title}
+              onChange={(event) => setVideo({ ...video, title: event.target.value })}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Meta video ID">
+            <input
+              value={video.metaVideoId}
+              onChange={(event) => setVideo({ ...video, metaVideoId: event.target.value })}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Preview URL" hint="Ixtiyoriy, faqat jamoa ko'rishi uchun">
+            <input
+              value={video.videoUrl}
+              onChange={(event) => setVideo({ ...video, videoUrl: event.target.value })}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="Izoh">
+            <input
+              value={video.notes}
+              onChange={(event) => setVideo({ ...video, notes: event.target.value })}
+              className={inputClass}
+            />
+          </Field>
+          <Button variant="secondary" onClick={() => void addVideo()} disabled={busy || !video.title.trim()}>
+            Video qo'shish
+          </Button>
+        </div>
+
+        {videos.data && videos.data.length > 0 && (
+          <div className="grid gap-2 md:grid-cols-2">
+            {videos.data.map((item) => (
+              <div key={item.id} className="rounded-[var(--radius-card)] border border-hairline bg-ground-sunken p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-ink">{item.title}</span>
+                  <Badge tone={item.metaVideoId ? 'milestone' : 'caution'}>
+                    {item.metaVideoId ? `ID ${item.metaVideoId}` : 'Meta ID yo‘q'}
+                  </Badge>
+                </div>
+                {item.videoUrl && <p className="mt-1 text-xs text-ink-faint [overflow-wrap:anywhere]">{item.videoUrl}</p>}
+                {item.notes && <p className="mt-1 text-sm text-ink-muted">{item.notes}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+/** Read back in dollars, because that is the mistake waiting to happen: 50000 is $500 a day. */
+function budgetHint(minor: number) {
+  if (!Number.isFinite(minor) || minor <= 0) return 'Sentda: 1000 = $10/kun'
+
+  return `Sentda: ≈ $${(minor / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}/kun (USD account)`
+}
+
+const inputClass =
+  'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 text-sm text-ink focus:border-signal focus:outline-none'
+const textareaClass =
+  'w-full rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-3 py-2 text-sm text-ink focus:border-signal focus:outline-none'
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <label className="block min-w-0 flex-1">
+      <span className="mb-1.5 block text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">
+        {label}
+      </span>
+      {children}
+      {hint && <span className="mt-1 block text-xs text-ink-faint">{hint}</span>}
+    </label>
+  )
+}
+
 function PlanDetail({
   planId,
   onChanged,
   onRunStarted,
+  onOpenTarget,
 }: {
   planId: string
   onChanged: () => void
   onRunStarted: (run: MarketingRun) => void
+  onOpenTarget: () => void
 }) {
   const { data, error, isLoading, refresh } = useAdminQuery<MarketingPlan>(
     `/api/admin-portal/marketing/${planId}`,
   )
+  const videos = useAdminQuery<MarketingUgcVideo[]>('/api/admin-portal/marketing/ugc-videos')
+  const meta = useAdminQuery<MetaMarketingSettings>('/api/admin-portal/marketing/meta-settings')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [ugcVideoId, setUgcVideoId] = useState('')
 
   if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
@@ -381,6 +714,23 @@ function PlanDetail({
       onChanged()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function launchMeta() {
+    setBusy(true)
+    setFailure('')
+    try {
+      await adminFetch<MarketingPlan>(`/api/admin-portal/marketing/${planId}/launch-meta`, {
+        method: 'POST',
+        body: JSON.stringify({ ugcVideoId: ugcVideoId || null }),
+      })
+      refresh()
+      onChanged()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : 'Meta reklama yaratilmadi')
     } finally {
       setBusy(false)
     }
@@ -436,6 +786,66 @@ function PlanDetail({
             </Button>
           )}
         </div>
+
+        {(plan.status === 'Proposed' || plan.status === 'Accepted') && !plan.metaLaunch && (
+          <div className="mt-4 rounded-[var(--radius-card)] border border-hairline bg-ground-sunken p-3">
+            <div className="mb-2 text-sm font-extrabold text-ink">Meta reklama (target)</div>
+            {meta.data && (!meta.data.isConfigured || !meta.data.isEnabled) ? (
+              <p className="text-sm text-ink-muted">
+                {!meta.data.isConfigured
+                  ? "Meta hali ulanmagan: access token, ad account va page ID kerak."
+                  : "Meta orqali launch o'chirilgan."}{' '}
+                <button type="button" onClick={onOpenTarget} className="font-bold text-signal underline">
+                  Target sozlamalarini ochish
+                </button>
+              </p>
+            ) : (
+              <>
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">
+                      Kreativ
+                    </span>
+                    <select
+                      value={ugcVideoId}
+                      onChange={(event) => setUgcVideoId(event.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="">Videosiz — link reklama</option>
+                      {(videos.data ?? [])
+                        .filter((video) => video.isActive)
+                        .map((video) => (
+                          <option key={video.id} value={video.id} disabled={!video.metaVideoId}>
+                            {video.title}{video.metaVideoId ? '' : ' (Meta ID kerak)'}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <div className="flex items-end">
+                    <Button onClick={() => void launchMeta()} disabled={busy}>
+                      {busy ? 'Yaratilmoqda…' : 'Meta orqali target qilish'}
+                    </Button>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-ink-faint">
+                  Campaign, ad set, creative va ad yaratiladi. Sarlavha va matn shu haftaning reklama
+                  (Paid) tashabbusidan olinadi; budget, auditoriya va status Target tabidan.
+                  {meta.data?.defaultStatus === 'PAUSED'
+                    ? " Reklama PAUSED holatda yaratiladi — Ads Manager'da tekshirib yoqasiz."
+                    : ' Diqqat: reklama ACTIVE holatda yaratiladi va darhol pul sarflaydi.'}
+                  {' '}Muvaffaqiyatli bo'lsa hafta "Ishga tushirildi" holatiga o'tadi.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {plan.metaLaunch && (
+          <div className="mt-4 rounded-[var(--radius-card)] border border-milestone/40 bg-milestone-soft p-3 text-sm text-milestone">
+            Meta yaratildi: campaign {plan.metaLaunch.campaignId}, ad {plan.metaLaunch.adId} ·{' '}
+            {plan.metaLaunch.status} · {formatDateTime(plan.metaLaunch.launchedAt)}
+          </div>
+        )}
 
         {plan.status === 'Executed' && plan.reviewDueAt && (
           <p className="mt-3 text-xs text-ink-faint">
