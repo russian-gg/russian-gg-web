@@ -699,8 +699,6 @@ export const ru: Dictionary = {
     signInTitle: 'Вход',
     signUpTitle: 'Регистрация',
     signInSubtitle: "Войдите в аккаунт и продолжайте.",
-    welcomeTitle: "Добро пожаловать!",
-    welcomeBody: "Войдите в аккаунт и пользуйтесь всеми возможностями.",
     email: 'Email',
     loginIdentifier: 'Номер телефона или email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 или email',
@@ -723,6 +721,7 @@ export const ru: Dictionary = {
     or: 'или',
     googleContinue: 'Продолжить с Google',
     googleSignUp: 'Зарегистрироваться через Google',
+    googleSignUpSubtitle: "Зарегистрируйтесь через аккаунт Google.",
     googleWorking: 'Входим через Google…',
     googleUnavailable:
       'Вход через Google сейчас не работает. Продолжите ниже с email и паролем.',

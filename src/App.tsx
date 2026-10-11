@@ -99,9 +99,9 @@ export function App() {
             <Route path="/onboarding" element={<Onboarding />} />
 
             {/*
-              Mandatory phone linking for a signed-in learner who has no confirmed phone (the Google
-              → phone migration). Full screen and outside the shell: it ends in a sign-out, so there
-              is nothing to navigate to from here.
+              Phone linking for a signed-in learner who has no confirmed phone (the Google → phone
+              migration). They are sent here once and may put it off. Full screen and outside the
+              shell: linking ends in a sign-out, so there is nothing to navigate to from here.
             */}
             <Route path="/link-phone" element={<RequireAuth><LinkPhonePage /></RequireAuth>} />
 

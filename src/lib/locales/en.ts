@@ -693,8 +693,6 @@ export const en: Dictionary = {
     signInTitle: 'Sign in',
     signUpTitle: 'Create an account',
     signInSubtitle: "Sign in to your account and carry on.",
-    welcomeTitle: "Welcome back!",
-    welcomeBody: "Sign in and pick the course up where you left it.",
     email: 'Email',
     loginIdentifier: 'Phone number or email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 or email',
@@ -717,6 +715,7 @@ export const en: Dictionary = {
     or: 'or',
     googleContinue: 'Continue with Google',
     googleSignUp: 'Sign up with Google',
+    googleSignUpSubtitle: "Sign up with your Google account.",
     googleWorking: 'Signing in with Google…',
     googleUnavailable:
       'Google sign-in is not working right now. Continue below with email and password.',

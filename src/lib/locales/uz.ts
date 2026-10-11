@@ -719,8 +719,6 @@ export const uz = {
     signInTitle: 'Kirish',
     signUpTitle: "Ro'yxatdan o'tish",
     signInSubtitle: "Hisobingizga kiring va davom eting.",
-    welcomeTitle: "Xush kelibsiz!",
-    welcomeBody: "Hisobingizga kiring va barcha imkoniyatlardan foydalaning.",
     email: 'Email',
     loginIdentifier: 'Telefon raqami yoki email',
     loginIdentifierPlaceholder: '+998 90 123 45 67 yoki email',
@@ -743,6 +741,7 @@ export const uz = {
     or: 'yoki',
     googleContinue: 'Google bilan davom etish',
     googleSignUp: "Google bilan ro'yxatdan o'tish",
+    googleSignUpSubtitle: "Google hisobingiz orqali ro'yxatdan o'ting.",
     googleWorking: 'Google bilan kirilmoqda…',
     googleUnavailable:
       'Google orqali kirish hozir ishlamayapti. Quyida email va parol bilan davom eting.',
