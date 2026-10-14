@@ -5,7 +5,6 @@ export function ErrorHuntTreasure({ score, copy }: { score: number; copy: GameCo
   const [opened, setOpened] = useState(false)
   const id = useId()
   return <section className="eh-treasure" data-open={opened} aria-label={copy.treasure}>
-    <h2>{copy.treasure}</h2>
     <div className="eh-treasure-stage">
       <button type="button" className="eh-treasure-trigger" aria-label={opened ? copy.chestOpened : copy.openChest} aria-expanded={opened} onClick={() => setOpened(true)}>
         <span className="eh-treasure-rays" aria-hidden="true" />
@@ -35,6 +34,5 @@ export function ErrorHuntTreasure({ score, copy }: { score: number; copy: GameCo
         {opened && <><strong>{score}</strong><span>{copy.score}</span></>}
       </div>
     </div>
-    <p>{opened ? copy.earnedScore : copy.openChest}</p>
   </section>
 }

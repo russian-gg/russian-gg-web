@@ -327,7 +327,7 @@ async function fixture(options = {}) {
     async open(suffix = '') {
       await page.goto(`${BASE}/games/${options.slug}${suffix}`)
       await page.locator(`main[data-game="${options.slug}"]`).waitFor()
-      await until(async () => await page.locator('.sg-setup, .sg-hud, .sg-score-big, .sg-error').count() > 0, 'game must finish loading')
+      await until(async () => await page.locator('.sg-setup, .sg-hud, .sg-results, .sg-error').count() > 0, 'game must finish loading')
       assert.equal(new URL(page.url()).pathname, `/games/${options.slug}`)
       await noOverflow(page)
     },
@@ -834,16 +834,21 @@ for (const size of Object.keys(SIZES)) {
       }
       await button(h.page, 'Play again').waitFor()
       assert.equal(h.session().status, 'completed')
-      assert.equal(await h.page.locator('.sg-score-big').innerText(), String(total * 7))
+      if (slug !== 'error-hunt') assert.equal(await h.page.locator('.sg-score-big').innerText(), String(total * 7))
       assert.equal(await h.page.locator('.sg-cityscape').count(), ['tez-gapir', 'error-hunt'].includes(slug) ? 0 : 1)
       if (slug === 'error-hunt') {
+        assert.equal(await h.page.locator('.sg-results > :first-child').innerText(), 'Great practice!')
+        assert.equal(await h.page.locator('.sg-results > .sg-prompt + .eh-treasure').count(), 1)
+        assert.equal(await h.page.locator('.sg-results .sg-score-big, .sg-results .sg-stat-grid, .sg-results .sg-character-note, .sg-results .sg-achievements').count(), 0)
         const chest = h.page.getByRole('region', { name: 'Treasure chest', exact: true })
+        assert.equal(await chest.innerText(), '', 'the chest reveals its score only after being opened')
         assert.equal(await chest.getByRole('status').innerText(), '')
         await screenshot(h.page, `error-hunt-chest-closed-${size}`)
         const calls = h.state.calls.length
         await chest.getByRole('button', { name: 'Open the chest', exact: true }).click()
         assert.equal(await chest.locator('.eh-treasure-result strong').innerText(), String(total * 7))
         assert.equal(await chest.getByRole('button').getAttribute('aria-expanded'), 'true')
+        assert.equal((await chest.innerText()).replace(/\s+/g, ' ').trim(), `${total * 7} Score`)
         await screenshot(h.page, `error-hunt-chest-open-${size}`)
         await chest.getByRole('button').press('Enter')
         assert.equal(h.session().score, total * 7)
@@ -852,8 +857,10 @@ for (const size of Object.keys(SIZES)) {
       assert.equal(await h.page.locator('details').count(), total)
       await h.page.locator('details summary').first().click()
       assert.ok((await h.page.locator('details').first().innerText()).includes(`${ANSWER} 1`))
-      assert.ok((await h.page.locator('.sg-stat-grid').innerText()).includes('+12'))
-      assert.ok((await h.page.locator('.sg-achievements').first().innerText()).includes('Mock achievement'))
+      if (slug !== 'error-hunt') {
+        assert.ok((await h.page.locator('.sg-stat-grid').innerText()).includes('+12'))
+        assert.ok((await h.page.locator('.sg-achievements').first().innerText()).includes('Mock achievement'))
+      }
       await screenshot(h.page, `results-${slug}-${size}`)
       await button(h.page, 'Play again').click()
       await button(h.page, slug === 'tez-gapir' ? 'Continue' : 'Start').waitFor()
@@ -1351,8 +1358,11 @@ for (const locale of Object.keys(COPY)) {
     await screenshot(h.page, `error-hunt-uzbek-feedback-${locale}`)
     complete(h.session())
     await h.page.reload()
-    await h.page.locator('.sg-score-big').waitFor()
-    assert.equal(await h.page.locator('.sg-score-big').innerText(), '2')
+    await h.page.locator('.sg-results').waitFor()
+    const chest = h.page.locator('.eh-treasure')
+    assert.equal(await chest.getByRole('status').innerText(), '')
+    await chest.getByRole('button').click()
+    assert.equal(await chest.locator('.eh-treasure-result strong').innerText(), '2')
     const history = h.page.locator('details').first()
     assert.doesNotMatch(await history.locator('summary').innerText(), /[+\-−]\d/)
     await history.locator('summary').click()
@@ -1401,9 +1411,12 @@ for (const slug of SLUGS) {
       await activePortrait.evaluate((image) => image.decode())
       complete(h.session())
       await h.page.reload()
-      await h.page.locator('.sg-score-big').waitFor()
-      assert.equal(await portrait.getAttribute('src'), expected)
-      await portrait.evaluate((image) => image.decode())
+      await h.page.locator('.sg-results').waitFor()
+      if (slug === 'error-hunt') assert.equal(await portrait.count(), 0)
+      else {
+        assert.equal(await portrait.getAttribute('src'), expected)
+        await portrait.evaluate((image) => image.decode())
+      }
     })
   }
 }

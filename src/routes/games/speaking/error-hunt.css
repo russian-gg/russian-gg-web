@@ -232,8 +232,6 @@
   background: radial-gradient(ellipse at 50% 70%, #ffd6600c, transparent 65%), #ffffff03;
   text-align: center;
 }
-.eh-treasure h2 { font-size: 18px; font-weight: 900; color: #fff1ba; }
-.eh-treasure > p { color: #cfc3de; font-size: 14px; line-height: 1.6; }
 .eh-treasure-stage { position: relative; width: min(100%, 280px); height: 260px; margin: 4px auto; }
 .eh-treasure-trigger { position: relative; display: block; width: 100%; height: 100%; border-radius: 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .eh-treasure-trigger > svg { position: absolute; width: min(100%, 240px); height: 200px; bottom: 0; left: 50%; transform: translateX(-50%); overflow: visible; filter: drop-shadow(0 6px 12px #08021355); }
