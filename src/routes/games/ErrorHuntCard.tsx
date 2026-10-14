@@ -60,7 +60,7 @@ export function ErrorHuntCard() {
             <span className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-lime-200 to-emerald-200 px-6 py-3 text-sm font-black text-[#173e2e] shadow-lg shadow-emerald-950/20 transition-colors group-hover:from-lime-100 group-hover:to-emerald-100">
               <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} /> {play}
             </span>
-            <span className="text-xs font-bold text-emerald-100/80">{copy.rounds}: 10</span>
+            <span className="text-xs font-bold text-emerald-100/80">{copy.rounds}: 5</span>
           </span>
         </span>
       </span>

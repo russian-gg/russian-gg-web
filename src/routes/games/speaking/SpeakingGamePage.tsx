@@ -357,9 +357,9 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
       {loading ? <div className="flex justify-center py-24"><Spinner /></div> : <>
         {error && <div className="sg-error" role="alert">{error}{!retryExhausted && <button onClick={() => { if (retryAction.current) void run(retryAction.current); else if (pending) void submit(); else setReload((n) => n + 1) }} disabled={busy}>{copy.retry}</button>}</div>}
         {!session && catalog && <>
-          <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1><p>{label.description}</p><div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
+          <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1>{slug !== 'error-hunt' && <p>{label.description}</p>}<div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
             <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} game={slug} disabled={busy || savedSetup} />
-              {!isMystery && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
+              {!isMystery && slug !== 'error-hunt' && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
                 setLevel(value); startRequest.current = null; setSetupError(null)
                 if (slug === 'tez-gapir') setRounds(0)
               }} options={[...(slug === 'tez-gapir' ? [{ value: '', label: copy.yourLevel, disabled: true }] : []), ...catalog.levels.map((value) => ({ value, label: value }))]} /></div>}
@@ -367,8 +367,8 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
                 setRounds(Number(value)); setSetupError(null); startRequest.current = null
               }} options={[{ value: '', label: copy.selectRounds, disabled: true }, ...[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></div>}
               {setupError && <p className="text-danger" role="alert">{setupError === 'level' ? copy.selectLevel : copy.selectRounds}</p>}
-              {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <><p className="sg-muted">{copy.savedGame}</p><Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : slug === 'tez-gapir' ? copy.continue : copy.start}</Button>}
-              <p className="sg-muted">{copy.timeNote}</p>
+              {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <>{slug !== 'error-hunt' && <p className="sg-muted">{copy.savedGame}</p>}<Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : slug === 'tez-gapir' ? copy.continue : copy.start}</Button>}
+              {slug !== 'error-hunt' && <p className="sg-muted">{copy.timeNote}</p>}
             </div></div>
           <Statistics slug={slug} copy={copy} dashboard={dashboard} />
         </>}
@@ -381,7 +381,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
             <div className="sg-board">
               {isMystery && <button disabled={busy || answering} onClick={() => { speech.abort(); stopAudio(); setLocation(null); setAccusing(false) }} className="mb-5 text-sm font-bold text-signal-ink">← {copy.leave}</button>}
               {slug === 'first-reaction' && session.prompt.kind !== 'ready' && <ReactionScene text={session.prompt.textRu} />}
-              {!isMystery && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} />}
+              {!isMystery && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}
               <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>
               {locale === 'uz' && session.prompt.titleUz && <p className="sg-muted mb-4">{session.prompt.titleUz}</p>}
               {!answering && !busy && !feedback && !accusing && session.prompt.kind !== 'ready' && <Button variant="ghost" disabled={playingAudio} onClick={() => void playAudio(session, 'prompt')}>{playingAudio ? copy.loading : copy.listen}</Button>}

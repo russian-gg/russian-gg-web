@@ -139,9 +139,9 @@ export const gameLabels: Record<GameSlug, Record<Locale, { title: string; descri
     en: { title: 'Speak fast', description: '30 seconds. One topic. How many Russian words do you know?', rules: 'Say Russian words or sentences on the topic in 30 seconds. Review mistakes and corrected examples after your answer.' },
   },
   'error-hunt': {
-    uz: { title: 'Xato ovchisi', description: 'Xatoni ko‘ring va to‘g‘ri variantni ovoz chiqarib ayting.', rules: 'Gapdagi xatoni topib, to‘g‘ri variantni ruscha ayting. Ayrim gaplarda xato yo‘q — buni ayting yoki gapni takrorlang. Javobdan keyin o‘zbekcha izoh va to‘g‘ri variantni ko‘ring.' },
-    ru: { title: 'Ловец ошибок', description: 'Найдите ошибку и произнесите правильный вариант.', rules: 'Найдите ошибку и скажите правильный вариант по-русски. Если ошибки нет, скажите об этом или повторите предложение. После ответа посмотрите объяснение на узбекском и правильный вариант.' },
-    en: { title: 'Error hunter', description: 'Spot the mistake and say the corrected sentence aloud.', rules: 'Find the mistake and say the corrected sentence in Russian. If it is already correct, say so or repeat it. Review the Uzbek explanation and corrected version after your answer.' },
+    uz: { title: 'Xato ovchisi', description: 'Xatoni ko‘ring va to‘g‘ri variantni ovoz chiqarib ayting.', rules: 'Gapdagi xatoni topib, to‘g‘ri variantni ruscha ayting. Javobdan keyin o‘zbekcha izoh va to‘g‘ri variantni ko‘ring.' },
+    ru: { title: 'Ловец ошибок', description: 'Найдите ошибку и произнесите правильный вариант.', rules: 'Найдите ошибку и скажите правильный вариант по-русски. После ответа посмотрите объяснение на узбекском и правильный вариант.' },
+    en: { title: 'Error hunter', description: 'Spot the mistake and say the corrected sentence aloud.', rules: 'Find the mistake and say the corrected sentence in Russian. Review the Uzbek explanation and corrected version after your answer.' },
   },
   'first-reaction': {
     uz: { title: 'Birinchi reaksiya', description: 'Kutilmagan vaziyat. Ruscha javob uchun 5 soniya.', rules: '7 ta vaziyat. Tezlik: +3, moslik: +2, grammatika: +2, hissiy ifoda: +1. Jim qolish: −1. Mavzudan tashqari: −2.' },

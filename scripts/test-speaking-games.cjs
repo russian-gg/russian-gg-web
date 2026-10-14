@@ -46,7 +46,7 @@ function catalog() {
   return SLUGS.map((slug, index) => ({
     slug, titleRu: COPY.ru.titles[index], titleUz: COPY.uz.titles[index], descriptionRu: `Game ${index + 1}`,
     isEnabled: true, isAccessible: true, lockReason: null,
-    durationSeconds: [30, 10, 5, 60][index], totalRounds: [3, 2, 7, 50][index], levels: ['A1', 'A2', 'B1'],
+    durationSeconds: [30, 10, 5, 60][index], totalRounds: [3, 5, 7, 50][index], levels: ['A1', 'A2', 'B1'],
     themes: [{ id: 'food-a1', titleRu: 'Food A1', titleUz: 'Taom A1', level: 'A1' }, { id: 'work-a2', titleRu: 'Work A2', titleUz: 'Ish A2', level: 'A2' }],
   }))
 }
@@ -577,6 +577,7 @@ for (const size of Object.keys(SIZES)) {
       const card = h.page.getByRole('link', { name: COPY[locale].titles[1], exact: true })
       await card.scrollIntoViewIfNeeded()
       assert.equal(await card.getAttribute('href'), '/games/error-hunt')
+      assert.ok((await card.textContent()).includes(`${COPY[locale].rounds}: 5`))
       assert.ok((await card.textContent()).includes({ uz: 'Xatoni toping', ru: 'Найдите ошибку', en: 'Spot the mistake' }[locale]))
       assert.ok((await card.textContent()).includes({ uz: 'Grammatika', ru: 'Грамматика', en: 'Grammar' }[locale]))
       assert.equal(await card.locator('a, button').count(), 0)
@@ -756,7 +757,17 @@ for (const size of Object.keys(SIZES)) {
             uz: 'Hamrohingizni tanlang', ru: 'Выберите напарника', en: 'Choose your companion',
           }[locale])
         }
-        if (slug !== 'ice-mystery') {
+        if (slug === 'error-hunt') {
+          assert.equal(await h.page.getByRole('combobox').count(), 0)
+          assert.equal(await h.page.locator('.sg-intro > section > p').count(), 0)
+          assert.equal(await h.page.locator('.sg-setup > .sg-muted').count(), 0)
+          assert.equal(await h.page.locator('.sg-rules p').innerText(), {
+            uz: 'Gapdagi xatoni topib, to‘g‘ri variantni ruscha ayting. Javobdan keyin o‘zbekcha izoh va to‘g‘ri variantni ko‘ring.',
+            ru: 'Найдите ошибку и скажите правильный вариант по-русски. После ответа посмотрите объяснение на узбекском и правильный вариант.',
+            en: 'Find the mistake and say the corrected sentence in Russian. Review the Uzbek explanation and corrected version after your answer.',
+          }[locale])
+        }
+        if (slug !== 'ice-mystery' && slug !== 'error-hunt') {
           await h.page.getByRole('combobox', { name: c.level, exact: true }).click()
           await h.page.getByRole('option', { name: 'A2', exact: true }).click()
         }
@@ -784,7 +795,7 @@ for (const size of Object.keys(SIZES)) {
         await h.page.locator('.sg-hud').waitFor()
         const body = h.calls('start')[0].body
         assert.equal(body.character, 'panda')
-        assert.equal(body.level, slug === 'ice-mystery' ? 'A1' : 'A2')
+        assert.equal(body.level, ['ice-mystery', 'error-hunt'].includes(slug) ? 'A1' : 'A2')
         if (slug === 'tez-gapir') assert.equal(body.rounds, 5)
         assert.equal(body.themeId, undefined)
         assert.equal(h.session().status, 'ready')
@@ -803,6 +814,7 @@ for (const size of Object.keys(SIZES)) {
       await h.start()
       const originalId = h.session().id
       const total = h.session().totalRounds
+      if (slug === 'error-hunt') assert.equal(total, 5)
       await screenshot(h.page, `ready-${slug}-${size}`)
       for (let round = 0; round < total; round++) {
         assert.equal(h.session().roundIndex, round)
@@ -1032,7 +1044,12 @@ for (const via of ['dashboard', 'url']) {
   scenario(`resume saved answering via ${via}`, { slug: 'error-hunt', saved: makeSession('error-hunt', { status: 'answering', version: 8, score: 7, deadlineUtc: new Date(Date.now() + 3600000).toISOString() }) }, async (h) => {
     const saved = h.session()
     await h.open(via === 'url' ? `?session=${saved.id}` : '')
-    if (via === 'dashboard') await button(h.page, 'Resume').click()
+    if (via === 'dashboard') {
+      assert.equal(await h.page.getByRole('combobox').count(), 0)
+      assert.equal(await h.page.locator('.sg-setup > .sg-muted').count(), 0)
+      await screenshot(h.page, 'error-hunt-saved-setup')
+      await button(h.page, 'Resume').click()
+    }
     await button(h.page, 'Submit answer').waitFor()
     assert.equal(h.calls('start').length, 0)
     assert.equal(h.calls('session').at(-1).id, saved.id)
@@ -1249,6 +1266,9 @@ for (const size of Object.keys(SIZES)) {
       await h.start()
       await beginVoice(h)
       const deadline = h.session().deadlineUtc
+      assert.equal(await h.page.getByRole('timer').getAttribute('aria-label'), '10 seconds')
+      assert.equal(await h.page.locator('.sg-timer-star[data-lit="true"]').count(), 10)
+      if (speakAt === 1) await screenshot(h.page, `error-hunt-star-timer-${size}`)
       await h.page.clock.fastForward(speakAt * 1000)
       await h.page.evaluate(() => {
         window.__gameSpeech.result('Моя', false)
@@ -1301,14 +1321,14 @@ for (const locale of Object.keys(COPY)) {
   })
   const review = makeSession('error-hunt', {
     status: 'feedback', score: 2, availableActions: ['next', 'end'],
-    feedback: { ...feedback('Моя мама'), points: 2, correctAnswer: 'Моя мама.', explanation: '«мама» ayol jinsiga mansub, shuning uchun «моя» ishlatiladi.', characterPhrase: tezCharacterPhrase },
+    feedback: { ...feedback('Моя мама'), points: 2, correctAnswer: 'Моя мама.', explanation: '«Мама» — женский род, shuning uchun «моя» ishlatiladi.', characterPhrase: "To'g'ri! Gapni yaxshi tekshirdingiz." },
   })
   review.history = [{ roundIndex: 0, prompt: prompt('error-hunt'), feedback: clone(review.feedback) }]
   scenario(`error-hunt Uzbek feedback and saved review omit added deducted points ${locale}`, { slug: 'error-hunt', locale, saved: review }, async (h) => {
     await h.open(`?session=${review.id}`)
     const panel = h.page.locator('.sg-feedback')
     assert.equal(await panel.locator('p[lang="uz"]').innerText(), review.feedback.explanation)
-    assert.equal(await h.page.locator('.sg-character-note [lang="uz"]').innerText(), tezCharacterPhrase)
+    assert.equal(await h.page.locator('.sg-character-note [lang="uz"]').innerText(), review.feedback.characterPhrase)
     assert.equal(await panel.locator('.sg-chip').count(), 0)
     assert.doesNotMatch(await panel.innerText(), /[+\-−]\d/)
     await screenshot(h.page, `error-hunt-uzbek-feedback-${locale}`)
@@ -1322,6 +1342,30 @@ for (const locale of Object.keys(COPY)) {
     assert.equal(await history.locator('p[lang="uz"]').innerText(), review.feedback.explanation)
     assert.equal(await history.locator('.sg-chip').count(), 0)
     assert.doesNotMatch(await history.innerText(), /[+\-−]\d/)
+  })
+}
+
+for (const size of Object.keys(SIZES)) {
+  const review = makeSession('error-hunt', {
+    status: 'feedback', availableActions: ['next', 'end'],
+    prompt: { ...prompt('error-hunt'), id: 'err_046', textRu: 'Мой сестра.' },
+    feedback: { answer: '', correct: false, points: 0, correctAnswer: 'Моя сестра.', criteria: [], words: [], evaluationKind: 'timeout',
+      explanation: "«Сестра» — женский род. Bu so'z bilan «мой» emas, «моя» ishlatiladi: «Моя сестра».",
+      characterPhrase: "Keyingi raundda yana urinib ko'ring." },
+  })
+  review.history = [{ roundIndex: 0, prompt: clone(review.prompt), feedback: clone(review.feedback) }]
+  scenario(`error-hunt unanswered round teaches the correction ${size}`, { slug: 'error-hunt', locale: 'uz', size, saved: review }, async (h) => {
+    await h.open(`?session=${review.id}`)
+    const panel = h.page.locator('.sg-feedback')
+    assert.equal(await panel.locator('p[lang="ru"]').first().innerText(), 'Javob berilmadi')
+    assert.equal(await panel.locator('p[lang="ru"]').nth(1).innerText(), 'Моя сестра.')
+    assert.equal(await panel.locator('p[lang="uz"]').innerText(), review.feedback.explanation)
+    assert.equal(await h.page.locator('.sg-hud strong').innerText(), '0')
+    assert.equal(await panel.locator('.sg-chip').count(), 0)
+    await screenshot(h.page, `error-hunt-unanswered-explanation-${size}`)
+    await button(h.page, 'Keyingi').click()
+    assert.equal(h.session().roundIndex, 1)
+    assert.equal(h.session().status, 'ready')
   })
 }
 
