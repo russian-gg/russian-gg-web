@@ -1267,9 +1267,12 @@ for (const size of Object.keys(SIZES)) {
       await beginVoice(h)
       const deadline = h.session().deadlineUtc
       assert.equal(await h.page.getByRole('timer').getAttribute('aria-label'), '10 seconds')
-      assert.equal(await h.page.locator('.sg-timer-star[data-lit="true"]').count(), 10)
+      assert.equal(await h.page.locator('.sg-timer-star path').count(), 1)
+      assert.equal(await h.page.locator('.sg-timer circle').count(), 0)
+      assert.equal(await h.page.locator('.sg-timer strong').innerText(), '10')
       if (speakAt === 1) await screenshot(h.page, `error-hunt-star-timer-${size}`)
       await h.page.clock.fastForward(speakAt * 1000)
+      assert.equal(await h.page.locator('.sg-timer strong').innerText(), String(Math.ceil(10 - speakAt)))
       await h.page.evaluate(() => {
         window.__gameSpeech.result('Моя', false)
         window.__gameSpeech.finalOnStop('Моя мама', 3000)

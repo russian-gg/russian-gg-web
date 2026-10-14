@@ -25,16 +25,11 @@ export function MicMark({ active }: { active?: boolean }) {
 
 export function Timer({ seconds, duration, label, starred = false }: { seconds: number; duration: number; label: string; starred?: boolean }) {
   const fraction = Math.max(0, Math.min(1, seconds / duration))
-  const radius = starred ? 33 : 44
-  const circumference = 2 * Math.PI * radius
+  const circumference = 2 * Math.PI * 44
   return <div className={`sg-timer ${starred ? 'sg-timer-starred' : ''} ${seconds <= 3 ? 'sg-timer-urgent' : ''}`} role="timer" aria-label={`${Math.ceil(seconds)} ${label}`}>
-    <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r={radius} /><circle cx="50" cy="50" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - fraction)} /></svg>
-    {starred && <svg className="sg-timer-stars" viewBox="0 0 100 100" aria-hidden="true">
-      {Array.from({ length: 10 }, (_, index) => {
-        const angle = (index * 36 - 90) * Math.PI / 180
-        return <path key={index} className="sg-timer-star" data-lit={index < Math.ceil(fraction * 10)} transform={`translate(${50 + 44 * Math.cos(angle)} ${50 + 44 * Math.sin(angle)})`} d="m0-5 1.5 3.3 3.6.5-2.6 2.5.6 3.6L0 3.2l-3.1 1.7.6-3.6-2.6-2.5 3.6-.5Z" />
-      })}
-    </svg>}
+    {starred ? <svg className="sg-timer-star" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M50 4 64 32 95 37 72 59 78 91 50 76 22 91 28 59 5 37 36 32Z" />
+    </svg> : <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" /><circle cx="50" cy="50" r="44" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - fraction)} /></svg>}
     <span><strong>{Math.ceil(seconds)}</strong><small>{label}</small></span>
   </div>
 }
