@@ -912,7 +912,7 @@ for (const size of Object.keys(SIZES)) {
   })
 
   for (const unsupported of [true, false]) {
-    scenario(`text fallback ${unsupported ? 'unsupported' : 'permission denied'} ${size}`, { slug: 'error-hunt', size, unsupported }, async (h) => {
+    scenario(`text fallback first-reaction ${unsupported ? 'unsupported' : 'permission denied'} ${size}`, { slug: 'first-reaction', size, unsupported }, async (h) => {
       await h.start()
       if (unsupported) {
         assert.equal(await button(h.page, 'Speak').isDisabled(), true)
@@ -937,27 +937,28 @@ for (const size of Object.keys(SIZES)) {
 }
 
 const modeCopy = {
-  en: { type: 'Type an answer', voice: 'Answer by voice', speak: 'Speak', finish: 'Finish', next: 'Next' },
-  uz: { type: 'Yozib javob berish', voice: 'Ovoz bilan javob berish', speak: 'Gapirish', finish: 'Yakunlash', next: 'Keyingi' },
-  ru: { type: 'Ответить текстом', voice: 'Ответить голосом', speak: 'Говорить', finish: 'Закончить', next: 'Дальше' },
+  en: { type: 'Type an answer', voice: 'Answer by voice', speak: 'Speak', finish: 'Finish', submit: 'Submit answer', next: 'Next' },
+  uz: { type: 'Yozib javob berish', voice: 'Ovoz bilan javob berish', speak: 'Gapirish', finish: 'Yakunlash', submit: 'Javobni yuborish', next: 'Keyingi' },
+  ru: { type: 'Ответить текстом', voice: 'Ответить голосом', speak: 'Говорить', finish: 'Закончить', submit: 'Отправить ответ', next: 'Дальше' },
 }
 
+for (const slug of ['tez-gapir', 'error-hunt']) {
 for (const size of Object.keys(SIZES)) {
   for (const locale of Object.keys(modeCopy)) {
-    scenario(`tez microphone only preserves voice answers ${locale} ${size}`, { size, locale }, async (h) => {
+    scenario(`${slug} microphone only preserves voice answers ${locale} ${size}`, { slug, size, locale }, async (h) => {
       const c = modeCopy[locale]
       await h.start()
       assert.equal(await button(h.page, c.type).count(), 0)
       assert.equal(await button(h.page, c.voice).count(), 0)
       assert.equal(await h.page.getByRole('textbox').count(), 0)
-      await screenshot(h.page, `tez-voice-only-${locale}-${size}`)
+      await screenshot(h.page, `${slug}-voice-only-${locale}-${size}`)
       await button(h.page, c.speak).click()
       await h.page.waitForFunction(() => window.__gameSpeech.snapshot().length === 1)
       assert.equal(h.calls('begin').length, 0, 'timer still waits for microphone readiness')
       await h.page.evaluate(() => window.__gameSpeech.started())
       await until(() => h.calls('begin').length === 1, 'microphone begins the round exactly once')
       await h.page.evaluate((text) => window.__gameSpeech.finalOnStop(text), ANSWER)
-      await button(h.page, c.finish).click()
+      await button(h.page, slug === 'tez-gapir' ? c.finish : c.submit).click()
       await button(h.page, c.next).waitFor()
       assert.equal(h.calls('answer').length, 1)
       assert.equal(h.calls('answer')[0].body.text, ANSWER)
@@ -970,7 +971,7 @@ for (const size of Object.keys(SIZES)) {
   }
 
   for (const unsupported of [true, false]) {
-    scenario(`tez microphone only after ${unsupported ? 'unsupported speech' : 'permission denial'} ${size}`, { size, unsupported }, async (h) => {
+    scenario(`${slug} microphone only after ${unsupported ? 'unsupported speech' : 'permission denial'} ${size}`, { slug, size, unsupported }, async (h) => {
       await h.start()
       if (!unsupported) {
         await button(h.page, 'Speak').click()
@@ -992,6 +993,7 @@ for (const size of Object.keys(SIZES)) {
       }
     })
   }
+}
 }
 
 scenario('tez total score follows server round allocations without plus minus feedback', { roundScores: [33, 33, 34] }, async (h) => {
