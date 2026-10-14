@@ -538,7 +538,7 @@ for (const size of Object.keys(SIZES)) {
         assert.ok(Math.abs(cardBox.width - runnerBox.width) < 2, 'Tez card must span the same shelf width as Runner')
         assert.ok(cardBox.y >= runnerBox.y + runnerBox.height, 'Runner stays first')
         assert.equal(await runner.locator('img').getAttribute('src'), '/characters/pingvin.webp')
-        assert.equal(await h.page.locator('a[href="/games/error-hunt"] img').count(), 0, 'other shelf cards keep their existing marks')
+        assert.equal(await h.page.locator('a[href="/games/error-hunt"] img[src^="/games/error-hunt/characters/"]').count(), 3, 'Error hunt has its own companion artwork')
         await screenshot(h.page, `tez-shelf-${locale}-${theme}-${size}`)
         await card.focus()
         assert.equal(await card.evaluate((element) => document.activeElement === element), true)
@@ -568,6 +568,54 @@ scenario('tez shelf card respects games disabled by admin', { shelfGames: shelfG
   await h.page.locator('a[href="/games/rod-runner"]').waitFor()
   assert.equal(await h.page.locator('a[href="/games/tez-gapir"]').count(), 0)
   assert.equal(await h.page.locator('img[src^="/games/characters/"]').count(), 0)
+})
+
+for (const size of Object.keys(SIZES)) {
+  for (const locale of Object.keys(COPY)) {
+    scenario(`error hunt shelf card ${locale} ${size}`, { locale, size, theme: size === 'mobile' ? 'dark' : 'light', shelfGames }, async (h) => {
+      await h.page.goto(`${BASE}/games`)
+      const card = h.page.getByRole('link', { name: COPY[locale].titles[1], exact: true })
+      await card.scrollIntoViewIfNeeded()
+      assert.equal(await card.getAttribute('href'), '/games/error-hunt')
+      assert.ok((await card.textContent()).includes({ uz: 'Xatoni toping', ru: 'Найдите ошибку', en: 'Spot the mistake' }[locale]))
+      assert.ok((await card.textContent()).includes({ uz: 'Grammatika', ru: 'Грамматика', en: 'Grammar' }[locale]))
+      assert.equal(await card.locator('a, button').count(), 0)
+      assert.equal(await card.locator('img').count(), 3)
+      for (const name of ['penguin', 'panda', 'pero']) {
+        const img = card.locator(`img[src="/games/error-hunt/characters/${name}.webp"]`)
+        await img.evaluate((image) => image.decode())
+        assert.equal(await img.evaluate((image) => image.naturalWidth), 512)
+      }
+      const tezBox = await h.page.locator('a[href="/games/tez-gapir"]').boundingBox()
+      const cardBox = await card.boundingBox()
+      assert.ok(Math.abs(cardBox.width - tezBox.width) < 2, 'Error hunt spans the shelf like Tez gapir')
+      assert.equal(await card.locator('img[src^="/games/characters/"]').count(), 0, 'Error hunt must not reuse Tez gapir companions')
+      await screenshot(h.page, `error-hunt-shelf-${locale}-${size}`)
+      await card.focus()
+      if (size === 'desktop') await h.page.keyboard.press('Enter')
+      else await card.getByText(shelfCopy[locale].play, { exact: true }).click()
+      await h.page.waitForURL(`${BASE}/games/error-hunt`)
+      await h.page.locator('.sg-setup').waitFor()
+      assert.equal(h.calls('start').length, 0)
+      assert.equal((await h.page.evaluate(() => window.__gameSpeech.snapshot())).length, 0)
+    })
+  }
+}
+
+scenario('error hunt shelf card fits a narrow phone', { locale: 'ru', theme: 'dark', viewport: { width: 320, height: 740 }, shelfGames }, async (h) => {
+  await h.page.goto(`${BASE}/games`)
+  const card = h.page.locator('a[href="/games/error-hunt"]')
+  await card.scrollIntoViewIfNeeded()
+  for (const img of await card.locator('img').all()) await img.evaluate((image) => image.decode())
+  assert.ok(await card.getByText('Играть', { exact: true }).isVisible())
+  await screenshot(h.page, 'error-hunt-shelf-320-ru-dark')
+})
+
+scenario('error hunt shelf card respects games disabled by admin', { shelfGames: shelfGames.filter((game) => game.slug !== 'error-hunt') }, async (h) => {
+  await h.page.goto(`${BASE}/games`)
+  await h.page.locator('a[href="/games/tez-gapir"]').waitFor()
+  assert.equal(await h.page.locator('a[href="/games/error-hunt"]').count(), 0)
+  assert.equal(await h.page.locator('img[src^="/games/error-hunt/characters/"]').count(), 0)
 })
 
 async function beginVoice(h, alreadyAnswering = false, accusation = false) {
@@ -684,9 +732,10 @@ for (const size of Object.keys(SIZES)) {
         const portraits = h.page.locator('.sg-companions img')
         assert.equal(await portraits.count(), 3)
         for (const portrait of await portraits.all()) {
-          assert.match(await portrait.getAttribute('src'), ['tez-gapir', 'error-hunt'].includes(slug)
-            ? /^\/games\/characters\/(penguin|panda|pero)\.webp$/
-            : /^\/characters\/(pingvin|panda|pero)\.webp$/)
+          assert.match(await portrait.getAttribute('src'), slug === 'error-hunt'
+            ? /^\/games\/error-hunt\/characters\/(penguin|panda|pero)\.webp$/
+            : slug === 'tez-gapir' ? /^\/games\/characters\/(penguin|panda|pero)\.webp$/
+              : /^\/characters\/(pingvin|panda|pero)\.webp$/)
           await portrait.evaluate((image) => image.decode())
           assert.ok(await portrait.evaluate((image) => image.naturalWidth > 0))
         }
@@ -1279,8 +1328,9 @@ for (const slug of SLUGS) {
     scenario(`companion artwork isolated ${slug} ${companion}`, { slug, saved: makeSession(slug, {
       status: 'feedback', character: companion, feedback: feedback(ANSWER), availableActions: ['next', 'end'],
     }) }, async (h) => {
-      const expected = ['tez-gapir', 'error-hunt'].includes(slug) ? `/games/characters/${companion}.webp`
-        : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
+      const expected = slug === 'error-hunt' ? `/games/error-hunt/characters/${companion}.webp`
+        : slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
+          : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
       await h.open(`?session=${h.session().id}`)
       const portrait = h.page.locator('.sg-character-note img')
       const activePortrait = slug === 'ice-mystery' ? h.page.locator(`.sg-map img[src="${expected}"]`) : portrait
