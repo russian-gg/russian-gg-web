@@ -267,6 +267,7 @@ export function SequenceInView({
   className,
   as = 'div',
   amount = 'some',
+  margin,
 }: {
   children: ReactNode
   gap?: number
@@ -280,6 +281,16 @@ export function SequenceInView({
    * height, and never for a list.
    */
   amount?: 'some' | 'all' | number
+  /**
+   * Shrinks (or grows) the viewport the block is tested against, as a CSS margin string.
+   *
+   * `'some'` fires on the first pixel, which on a long marketing page means a section plays
+   * its entrance while it is still a sliver at the bottom edge and has finished by the time
+   * anybody looks at it. A negative bottom margin — `'0px 0px -15% 0px'` — waits until the
+   * block has actually come up into the screen. Unlike a fractional `amount` this cannot become
+   * unreachable for a tall element, because it is measured against the viewport, not the block.
+   */
+  margin?: string
 }) {
   /*
     Narrowed to one element type. `m[as]` is a union, and TypeScript resolves the `ref` on a
@@ -304,7 +315,7 @@ export function SequenceInView({
           scroll behaviour is untouched.
         */
         animate={rescued ? 'shown' : undefined}
-        viewport={{ once: true, amount }}
+        viewport={{ once: true, amount, margin }}
         className={className}
       >
         {children}

@@ -566,6 +566,63 @@ export const en: Dictionary = {
       milestonesTitle: 'The 90-day path',
     },
 
+    showcase: {
+      live: 'Live conversation',
+      videoLabel: 'A video showing a voice practice session with the AI coach',
+      play: 'Play video',
+      pause: 'Pause video',
+    },
+
+    proof: {
+      learners: 'learners already speaking',
+      days: 'days — from first phrases to free conversation',
+      minutes: 'minutes a day — out loud',
+    },
+
+    report: {
+      eyebrow: 'Sample report',
+      title: 'After every drill — your progress in numbers',
+      subtitle:
+        "This is what your progress page looks like: speaking confidence, your level, your " +
+        "activity, and the AI coach's note on every answer.",
+      sample: 'Sample',
+      now: 'Today',
+      forecast: 'Forecast',
+      feedbackTitle: "AI coach's note",
+      strength: 'Strength',
+      strengthBody: 'Your greeting and introduction phrases sounded natural.',
+      correction: 'Correction',
+      ctaBody: 'You will get a report like this too — the first drill is free.',
+      live: 'Live correction',
+      listening: 'You are speaking…',
+      analyzing: 'AI is analysing…',
+      found: 'Mistake found',
+      fixed: 'Fixed',
+      rule: 'Rule',
+      ruleLocation: 'Talking about a place, «в» takes the prepositional case: add -е.',
+      ruleWith: 'After «с» (with) comes the instrumental case: -о becomes -ом.',
+      ruleNo: 'After «нет» (there is no) comes the genitive case: add -а.',
+    },
+
+    faq: {
+      eyebrow: 'Questions',
+      title: 'Frequently asked questions',
+      levelQ: 'Do I need to know Russian to start?',
+      levelA:
+        'No. We find your level in 2 minutes and the drills start from there. ' +
+        'Every task comes with Uzbek support.',
+      tutorQ: 'How does the AI coach work?',
+      tutorA:
+        'You speak into the microphone in real situations — meeting someone, work, everyday errands. ' +
+        'The AI coach replies, then shows you one strength and one precise correction.',
+      timeQ: 'How much time do I need each day?',
+      timeA: '15–20 minutes. A new situation every day, for 90 days.',
+      certificateQ: 'Does this give me a language certificate?',
+      payQ: 'How do I pay?',
+      payA: 'You start for free — no card needed. Pro: {price} {unit}, {alt}. {pay}',
+      phoneQ: 'Does it work on my phone?',
+    },
+
     games: {
       eyebrow: 'Games',
       title: 'Turn practice into a game',
@@ -598,6 +655,11 @@ export const en: Dictionary = {
       nativeBody: 'For iOS and Android — in development.',
       nativeBadge: 'Soon',
       installedStat: 'phones already installed',
+      notificationBody: "Today's lesson is ready — 15 minutes of voice practice.",
+      now: 'now',
+      featureFullscreen: 'Full screen',
+      featurePush: 'Reminders',
+      featureOffline: 'Offline-ready',
     },
 
     pricing: {
@@ -629,6 +691,11 @@ export const en: Dictionary = {
       proAlt: 'or 90 days — 299,000 so‘m',
       proCta: 'Choose Pro',
       payNote: 'Uzcard and Humo — secure payment via Click or Payme.',
+      ninetyPrice: '299,000',
+      ninetyUnit: 'so‘m / 90 days',
+      ninetyBody: 'One payment for the whole course',
+      ninetyCta: 'Choose 90 days',
+      saveBadge: 'Save {percent}%',
     },
 
     characters: {

@@ -1009,3 +1009,320 @@
     }
   }
 }
+
+/*
+  Landing page.
+
+  The public page is the one place the product leans into atmosphere: a soft aurora field, frosted
+  glass surfaces and floating 3D props — the same clay-blue 3D artwork the signed-in app already
+  uses for its cards (`src/assets/images`), so the first impression and the product read as one
+  thing. Scoped to `.landing` rather than promoted to global tokens: none of the signed-in
+  screens have any use for a glass card, and keeping it here means they never grow one by
+  accident.
+
+  Every value is a variable re-pointed for the dark theme, the same way the home hero does it —
+  a glass panel tuned for a pale field turns into a grey slab on a dark one.
+*/
+@property --ring-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@layer utilities {
+  .landing {
+    --landing-field: #f5f8ff;
+    --aurora-a: #8fc2ff;
+    --aurora-b: #b6a6ff;
+    --aurora-c: #7fe0ee;
+    --aurora-d: #cfe0ff;
+    --aurora-opacity: 0.55;
+    --grid-line: rgb(45 118 221 / 0.07);
+    --dot-color: rgb(45 118 221 / 0.28);
+
+    --glass-bg: rgb(255 255 255 / 0.58);
+    --glass-bg-strong: rgb(255 255 255 / 0.78);
+    --glass-border: rgb(255 255 255 / 0.85);
+    --glass-edge: rgb(91 155 245 / 0.16);
+    --glass-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.9),
+      0 1px 2px rgb(22 24 29 / 0.04),
+      0 24px 48px -28px rgb(45 118 221 / 0.4);
+    --glass-sheen: rgb(255 255 255 / 0.55);
+
+    /* The gradient the headline accent and the featured ring are painted in. Signal blue
+       leaning into violet and cyan — the "AI" register, but still unmistakably the brand. */
+    --spectrum: linear-gradient(100deg, #1f6fe0 0%, #6d5cf2 45%, #13a8c8 100%);
+
+    background-color: var(--landing-field);
+  }
+
+  :root[data-theme='dark'] .landing {
+    --landing-field: #0d1016;
+    --aurora-a: #1e4f9c;
+    --aurora-b: #4a3a9e;
+    --aurora-c: #0f6a7a;
+    --aurora-d: #1a2c4f;
+    --aurora-opacity: 0.5;
+    --grid-line: rgb(125 179 250 / 0.06);
+    --dot-color: rgb(125 179 250 / 0.22);
+
+    --glass-bg: rgb(23 26 31 / 0.55);
+    --glass-bg-strong: rgb(23 26 31 / 0.78);
+    --glass-border: rgb(255 255 255 / 0.08);
+    --glass-edge: rgb(125 179 250 / 0.14);
+    --glass-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.06),
+      0 24px 48px -28px rgb(0 0 0 / 0.7);
+    --glass-sheen: rgb(125 179 250 / 0.14);
+
+    --spectrum: linear-gradient(100deg, #7db3fa 0%, #a99cff 45%, #5fd6e8 100%);
+  }
+
+  /* Frosted glass. The border is white-ish on light and near-invisible on dark, and an outer
+     hairline in the brand hue keeps the edge readable where the field behind is pale. */
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 0 0 1px var(--glass-edge), var(--glass-shadow);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+  }
+
+  .glass-strong {
+    background: var(--glass-bg-strong);
+  }
+
+  /*
+    A light that follows the pointer across a card. `Tilt` writes --mx/--my as the pointer
+    moves; without a pointer (a phone) the variables are unset and the sheen sits off-card.
+  */
+  .sheen {
+    position: relative;
+    isolation: isolate;
+  }
+
+  /* Under the content and over the card's own fill: `isolate` makes the card the stacking
+     context, so -1 lands between its background and its children rather than behind the page. */
+  .sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      420px circle at var(--mx, -200%) var(--my, -200%),
+      var(--glass-sheen),
+      transparent 42%
+    );
+    opacity: 0;
+    transition: opacity 240ms ease;
+  }
+
+  .sheen:hover::after {
+    opacity: 1;
+  }
+
+  .text-spectrum {
+    background-image: var(--spectrum);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: spectrumShift 9s ease-in-out infinite alternate;
+  }
+
+  /* The aurora: a few large, heavily blurred colour fields drifting on long, unequal loops so
+     the field never visibly repeats. Composited only — nothing here touches layout. */
+  .aurora__blob {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(72px);
+    opacity: var(--aurora-opacity);
+    will-change: transform;
+    animation: auroraDrift var(--drift, 22s) ease-in-out var(--drift-delay, 0s) infinite alternate;
+  }
+
+  .aurora__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+  }
+
+  /* A prop bobbing in the air. Offsets come in as variables so a cluster never moves in step. */
+  .float {
+    animation: landingFloat var(--float-duration, 6s) ease-in-out var(--float-delay, 0s) infinite;
+  }
+
+  /*
+    A gradient border that slowly turns. Drawn on a pseudo-element masked down to the padding
+    ring, so the card keeps its own glass fill and radius untouched.
+  */
+  .spectrum-ring {
+    position: relative;
+  }
+
+  .spectrum-ring::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    z-index: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--ring-angle),
+      #5b9bf5,
+      #8b7cf6,
+      #2cc5dd,
+      #5b9bf5
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: ringSpin 6s linear infinite;
+    pointer-events: none;
+  }
+
+  /*
+    The landing navigation. Full width and flush to the top while the page is at rest; once it
+    scrolls, the same element draws itself in to a floating glass pill. Everything that changes
+    is a plain length or colour, so the browser interpolates it — the bar visibly gathers in
+    rather than swapping for a second component.
+
+    `max-width` goes from the viewport to the content column; the wrapper's inline padding is
+    what keeps the pill off the edges on a screen narrower than the column.
+  */
+  .landing-nav-wrap {
+    padding-inline: 0;
+    padding-top: 0;
+    transition: padding 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .landing-nav-wrap[data-floating='true'] {
+    padding-inline: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .landing-nav {
+    max-width: 100vw;
+    margin-inline: auto;
+    border: 1px solid transparent;
+    border-bottom-color: var(--glass-border);
+    border-radius: 0;
+    background: var(--glass-bg);
+    box-shadow: 0 1px 0 0 var(--glass-edge);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+    transition:
+      max-width 620ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 620ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 360ms ease,
+      border-color 360ms ease,
+      box-shadow 360ms ease;
+  }
+
+  .landing-nav-wrap[data-floating='true'] .landing-nav {
+    max-width: 74rem;
+    border-color: var(--glass-border);
+    border-radius: 999px;
+    background: var(--glass-bg-strong);
+    box-shadow: 0 0 0 1px var(--glass-edge), var(--glass-shadow);
+  }
+
+  /* The iPhone's titanium rim: brushed metal, lit from the upper left. */
+  .iphone-rim {
+    background: linear-gradient(
+      150deg,
+      #e9ebef 0%,
+      #a7acb4 18%,
+      #dfe2e6 38%,
+      #8d939c 62%,
+      #c9cdd3 82%,
+      #8a9098 100%
+    );
+    box-shadow:
+      0 40px 70px -30px rgb(22 40 90 / 0.55),
+      0 18px 30px -18px rgb(22 40 90 / 0.4),
+      inset 0 0 0 1px rgb(255 255 255 / 0.45);
+  }
+
+  .iphone-button {
+    position: absolute;
+    width: 1.8%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #8d939c, #d5d8dd 60%, #9aa0a8);
+  }
+
+  /* A field of small dots in a corner of a section — texture rather than a shape, fading out at
+     its edges so it never reads as a box. */
+  .dot-grid {
+    pointer-events: none;
+    background-image: radial-gradient(var(--dot-color) 1.3px, transparent 1.6px);
+    background-size: 20px 20px;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
+    mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
+  }
+
+  /* Edge fade for the full-bleed reels strip, so cards dissolve into the page instead of being
+     cut off by the viewport. */
+  .fade-edges {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aurora__blob,
+    .float,
+    .text-spectrum,
+    .spectrum-ring::before {
+      animation: none !important;
+    }
+  }
+}
+
+@keyframes auroraDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(var(--dx, 6%), var(--dy, -4%), 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(calc(var(--dx, 6%) * -0.6), calc(var(--dy, -4%) * -1), 0) scale(0.96);
+  }
+}
+
+@keyframes landingFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--float-tilt, 0deg));
+  }
+  50% {
+    transform: translateY(var(--float-lift, -12px)) rotate(calc(var(--float-tilt, 0deg) * -1));
+  }
+}
+
+@keyframes spectrumShift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes ringSpin {
+  to {
+    --ring-angle: 360deg;
+  }
+}

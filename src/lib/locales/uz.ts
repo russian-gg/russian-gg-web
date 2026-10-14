@@ -592,6 +592,63 @@ export const uz = {
       milestonesTitle: "90 kunlik yo'l",
     },
 
+    showcase: {
+      live: 'Jonli suhbat',
+      videoLabel: "AI murabbiy bilan ovozli mashq qanday o'tishini ko'rsatuvchi video",
+      play: "Videoni qo'yish",
+      pause: "Videoni to'xtatish",
+    },
+
+    proof: {
+      learners: "o'quvchi allaqachon gapiryapti",
+      days: "kun — birinchi iboralardan erkin suhbatgacha",
+      minutes: 'daqiqa kuniga — ovoz chiqarib',
+    },
+
+    report: {
+      eyebrow: 'Namuna hisobot',
+      title: "Har bir mashqdan keyin — natijangiz raqamlarda",
+      subtitle:
+        "Progress sahifangiz shunday ko'rinadi: gapirishga ishonch, darajangiz, faolligingiz " +
+        "va AI murabbiyning har bir javobingizga izohi.",
+      sample: 'Namuna',
+      now: 'Bugun',
+      forecast: 'Prognoz',
+      feedbackTitle: 'AI murabbiy izohi',
+      strength: 'Kuchli tomon',
+      strengthBody: "Salomlashuv va tanishuv iboralari tabiiy chiqdi.",
+      correction: 'Tuzatish',
+      ctaBody: "Sizda ham shunday hisobot bo'ladi — birinchi mashq bepul.",
+      live: 'Jonli tuzatish',
+      listening: 'Siz gapiryapsiz…',
+      analyzing: 'AI tahlil qilmoqda…',
+      found: 'Xato topildi',
+      fixed: 'Tuzatildi',
+      rule: 'Qoida',
+      ruleLocation: "Joy haqida gapirganda «в» dan keyin — Предложный падеж: oxiriga -е qo'shiladi.",
+      ruleWith: "«с» (bilan) dan keyin — Творительный падеж: -о o'rniga -ом.",
+      ruleNo: "«нет» (yo'q) dan keyin — Родительный падеж: oxiriga -а qo'shiladi.",
+    },
+
+    faq: {
+      eyebrow: 'Savollar',
+      title: "Ko'p beriladigan savollar",
+      levelQ: 'Boshlash uchun rus tilini bilishim kerakmi?',
+      levelA:
+        "Yo'q. Darajangizni 2 daqiqada aniqlaymiz va mashqlar shu darajadan boshlanadi. " +
+        "Har bir topshiriqda o'zbek tilidagi qo'llab-quvvatlash bor.",
+      tutorQ: 'AI murabbiy qanday ishlaydi?',
+      tutorA:
+        "Siz mikrofon orqali haqiqiy vaziyatlarda gaplashasiz — tanishuv, ish, kundalik ishlar. " +
+        "AI murabbiy javob beradi, so'ng bitta kuchli tomoningizni va bitta aniq tuzatishni ko'rsatadi.",
+      timeQ: 'Kuniga qancha vaqt kerak?',
+      timeA: "15–20 daqiqa. Har kuni bitta yangi vaziyat — 90 kun davomida.",
+      certificateQ: 'Bu til sertifikatini beradimi?',
+      payQ: "Qanday to'lash mumkin?",
+      payA: "Bepul boshlaysiz — karta talab qilinmaydi. Pro: {price} {unit}, {alt}. {pay}",
+      phoneQ: 'Telefonda ishlaydimi?',
+    },
+
     games: {
       eyebrow: "O'yinlar",
       title: "Mashqni o'yinga aylantiring",
@@ -624,6 +681,11 @@ export const uz = {
       nativeBody: 'iOS va Android uchun — ishlab chiqilyapti.',
       nativeBadge: 'Tez orada',
       installedStat: 'telefonga allaqachon o‘rnatildi',
+      notificationBody: "Bugungi darsingiz tayyor — 15 daqiqa ovozli mashq.",
+      now: 'hozir',
+      featureFullscreen: "To'liq ekran",
+      featurePush: 'Eslatmalar',
+      featureOffline: 'Oflayn tayyor',
     },
 
     pricing: {
@@ -655,6 +717,11 @@ export const uz = {
       proAlt: 'yoki 90 kun — 299 000 so‘m',
       proCta: "Pro'ni tanlash",
       payNote: "Uzcard va Humo — Click yoki Payme orqali xavfsiz to'lov.",
+      ninetyPrice: '299 000',
+      ninetyUnit: "so'm / 90 kun",
+      ninetyBody: "Butun kurs uchun bir martalik to'lov",
+      ninetyCta: '90 kunlikni tanlash',
+      saveBadge: '{percent}% tejash',
     },
 
     characters: {

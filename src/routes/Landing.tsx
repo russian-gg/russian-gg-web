@@ -1,45 +1,93 @@
-import { useState } from 'react'
-import { ArrowUpRight, Check, CircleAlert, CircleCheck, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useRef, useState } from 'react'
+import {
+  ArrowRight,
+  BellRing,
+  Gem,
+  Maximize2,
+  WifiOff,
+  ArrowUpRight,
+  AudioLines,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Crown,
+  Plus,
+  Mic,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Sprout,
+  TrendingUp,
+  Volume2,
+  WandSparkles,
+} from 'lucide-react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { LinkButton } from '../components/ui'
-import { Reveal, Sequence, SequenceInView } from '../components/motion'
-import { fadeIn, rise, stagger } from '../lib/motion'
+import { Reveal, Sequence } from '../components/motion'
+import { collapse, ease, fadeIn, rise, stagger, useCountUp } from '../lib/motion'
 import * as m from 'motion/react-m'
-import { ProductPreview, ReelThumb } from '../components/landing/visuals'
+import { AnimatePresence, useInView, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { AiTutorScene, ProductPreview, ReelThumb } from '../components/landing/visuals'
+import { Aurora, FloatingProp, LandingVideo, Stage, Tilt, VIEW_MARGIN } from '../components/landing/effects'
+import { BrowserFrame, IPhoneFrame } from '../components/landing/devices'
+import { VoiceSignal } from '../components/VoiceSignal'
+import { SampleReport } from '../components/landing/report'
 import { cx } from '../lib/cx'
 import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
 import { playLandingCharacterVoice } from '../lib/liveVoice'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
+import targetArt from '../assets/images/progress_main_card_2.webp'
+import missionsArt from '../assets/images/missions_main_card.webp'
+import starArt from '../assets/images/progress_icon_3.webp'
+import orbArt from '../assets/images/progress_icon_1.webp'
 
 /**
  * The public face of Russian.gg. Two audiences read this page: a learner deciding whether to
  * speak into a microphone, and an investor deciding whether this is a business. Both are served
  * by the same thing — showing the real product and the real numbers, not adjectives about them.
  *
- * The hero leads into the product; every section after it answers one honest question an
- * investor asks in order (does anyone use it, how does it work, is it sticky, does it earn),
- * and the last word is the PRD's own promise: this is practice, not a certificate.
+ * The look is soft 3D and frosted glass over a drifting aurora field (`.landing` in
+ * `styles.css`), built from the signed-in app's own clay-blue 3D artwork and its live voice
+ * orb, so the first impression and the product read as one thing. Every loop on the page is
+ * stilled under reduced motion.
  */
 export function Landing() {
   return (
-    <div className="min-h-dvh bg-ground text-ink">
+    <div className="landing min-h-dvh text-ink">
       <TopBar />
       <main>
         <Hero />
+        {/* The four numbers worth knowing, in one band, before any section asks to be read. */}
+        <ProofBand />
         {/* A full-bleed reels strip right after the hero: the first proof that real people use
             this, before a single claim about it. */}
         <ReelMarquee />
+        {/* What a session actually is: the AI tutor turn, as a video or its live stand-in. */}
+        <Showcase />
         {/* The problem-and-solution narrative, told by the three characters. */}
         <Characters />
+        {/* What the learner gets back: the progress screen, as a sample. */}
+        <Report />
         <Games />
         <Mobile />
         <Pricing />
+        <Faq />
         <FinalCta />
       </main>
       <Footer />
     </div>
   )
+}
+
+/**
+ * Product clips for the page, produced separately (Motion) and served from `public/landing/`.
+ *
+ * A slot left `null` renders its animated stand-in instead — see `LandingVideo`. Fill in a
+ * path once the file is in `public/` and the section starts playing it, with no other change.
+ */
+const LANDING_VIDEOS: { showcase: string | null; showcasePoster?: string } = {
+  showcase: null,
 }
 
 /* -------------------------------------------------------------------------- chrome */
@@ -97,74 +145,124 @@ function LocaleSwitch({ className, onSignal = false }: { className?: string; onS
   )
 }
 
+/** A floating glass pill rather than a full-width bar: the aurora runs up behind it. */
+/**
+ * The navigation. Full width and flush to the top while the page is at rest; past the first
+ * few pixels of scroll it gathers into a floating glass pill (`.landing-nav` in `styles.css`
+ * does the drawing, so the change is one continuous transition rather than two components).
+ * Fixed rather than sticky: its height changes as it floats, and a sticky element changing
+ * height would push the whole page down by the difference every time it did.
+ */
 function TopBar() {
   const t = useT().landing
+  const { scrollY } = useScroll()
+  const [floating, setFloating] = useState(() => typeof window !== 'undefined' && window.scrollY > 40)
+  useMotionValueEvent(scrollY, 'change', (y) => setFloating(y > 40))
+
   return (
-    <header className="sticky top-0 z-40 border-b border-hairline bg-ground/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-5">
-        <a href="#top" className="flex items-center" aria-label="russian.gg">
-          <Wordmark className="text-xl" />
-        </a>
+    <m.header
+      initial={{ y: -32, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: ease.enter }}
+      className="landing-nav-wrap fixed inset-x-0 top-0 z-40"
+      data-floating={floating}
+    >
+      <div className="landing-nav">
+        <div
+          className={cx(
+            'mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 transition-[height,padding] duration-500 sm:gap-4',
+            floating ? 'h-14 pr-2' : 'h-16',
+          )}
+        >
+          <a href="#top" className="flex items-center" aria-label="russian.gg">
+            <Wordmark className="text-xl" />
+          </a>
 
-        <nav className="hidden items-center gap-5 text-sm font-bold whitespace-nowrap text-ink-muted lg:flex">
-          <a className="transition-colors hover:text-ink" href="#method">
-            {t.nav.method}
-          </a>
-          <a className="transition-colors hover:text-ink" href="#games">
-            {t.nav.games}
-          </a>
-          <a className="transition-colors hover:text-ink" href="#pricing">
-            {t.nav.pricing}
-          </a>
-        </nav>
+          <nav className="hidden items-center gap-1 text-sm font-bold whitespace-nowrap text-ink-muted lg:flex">
+            {[
+              { href: '#method', label: t.nav.method },
+              { href: '#games', label: t.nav.games },
+              { href: '#pricing', label: t.nav.pricing },
+            ].map((link) => (
+              <a
+                key={link.href}
+                className="rounded-full px-3.5 py-2 transition-colors hover:bg-signal-soft hover:text-ink"
+                href={link.href}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <LocaleSwitch className="hidden sm:inline-flex" />
-          <LinkButton to="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
-            {t.nav.signIn}
-          </LinkButton>
-          <LinkButton to="/signin" size="md" className="max-sm:px-4">
-            {t.nav.getStarted}
-          </LinkButton>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* `max-sm:hidden` rather than `hidden sm:inline-flex`: both of these carry their own
+                `inline-flex`, which wins the cascade over `hidden` and kept them on screen on phones. */}
+            <LocaleSwitch className="max-sm:hidden" />
+            <LinkButton to="/signin" variant="ghost" size="md" className="max-sm:hidden">
+              {t.nav.signIn}
+            </LinkButton>
+            <LinkButton to="/signin" size="md" className="max-sm:px-4">
+              {t.nav.getStarted}
+            </LinkButton>
+          </div>
         </div>
       </div>
-    </header>
+    </m.header>
   )
 }
 
 /* ---------------------------------------------------------------------------- hero */
 
+/**
+ * Paints the "90 days" phrase of a headline in the spectrum gradient. The number is the
+ * promise, and it sits in a different place in each locale ("90 kunda…", "За 90 дней…",
+ * "…in 90 days"), so it is found rather than hard-coded. No number, no accent.
+ */
+function Accented({ text }: { text: string }) {
+  // A number, or a range like "15–20", and the word after it.
+  const match = /\d+(?:[–-]\d+)?\s+\p{L}+/u.exec(text)
+  if (!match) return <>{text}</>
+  const start = match.index
+  const end = start + match[0].length
+  return (
+    <>
+      {text.slice(0, start)}
+      <span className="text-spectrum">{match[0]}</span>
+      {text.slice(end)}
+    </>
+  )
+}
+
 function Hero() {
   const t = useT().landing
   return (
-    <section id="top" className="relative overflow-hidden">
-      {/* A single soft field of the brand tint. Reads as a glow in light, a deep wash in dark,
-          because signal-soft is a token that flips with the theme. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/2 h-[38rem] w-[54rem] -translate-x-1/2 rounded-full bg-signal-soft opacity-70 blur-3xl" />
-      </div>
+    /* The nav is fixed over the top of the page, so the hero clears its height and the aurora
+       runs up behind it. */
+    <section id="top" className="relative isolate overflow-hidden pt-16">
+      <Aurora />
 
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
         {/*
           The hero is the only block on this page that animates on load rather than on scroll,
           because it is the only one already on screen when the page arrives.
 
           A wide beat here, not the ordinary one. These are five separate claims - a label, a
           promise, an explanation, a way in, a reason to trust it - and they are meant to be
-          read in that order rather than taken in as a block. 90ms is slow enough that the eye
-          follows the argument down the column, and the whole run still finishes inside half a
-          second, which is roughly how long the hero artwork takes to decode anyway.
+          read in that order rather than taken in as a block.
         */}
         <Sequence className="min-w-0" gap={stagger.wide}>
           <Reveal>
-            <p className="inline-flex items-center rounded-[var(--radius-control)] border border-hairline bg-ground-raised px-3.5 py-1.5 text-xs font-extrabold tracking-[0.06em] text-signal-ink uppercase">
+            <p className="glass inline-flex items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-xs font-extrabold tracking-[0.06em] text-signal-ink uppercase">
+              <span className="grid size-6 place-items-center rounded-full bg-[image:var(--spectrum)] text-white">
+                <Sparkles aria-hidden="true" strokeWidth={0} className="size-3.5 fill-current" />
+              </span>
               {t.hero.eyebrow}
             </p>
           </Reveal>
 
           <Reveal>
-            <h1 className="mt-6 text-4xl leading-[1.08] font-extrabold tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]">
-              {t.headline}
+            <h1 className="mt-6 text-4xl leading-[1.06] font-black tracking-tight text-balance text-ink sm:text-5xl lg:text-[3.6rem]">
+              <Accented text={t.headline} />
             </h1>
           </Reveal>
 
@@ -173,17 +271,23 @@ function Hero() {
           </Reveal>
 
           <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <LinkButton to="/signin" className="w-full sm:w-auto">
+            <LinkButton to="/signin" className="w-full gap-2 sm:w-auto">
               {t.hero.primaryCta}
+              <ArrowRight aria-hidden="true" strokeWidth={2.2} className="size-[18px]" />
             </LinkButton>
             <LinkButton to="/onboarding" variant="secondary" className="w-full max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
               {t.hero.secondaryCta}
             </LinkButton>
           </Reveal>
 
-          <Reveal className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="font-bold text-ink">{t.hero.socialProof}</span>
-            <span className="inline-flex items-center gap-1.5 text-ink-faint">
+          <Reveal className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 font-bold text-ink">
+              <span className="grid size-5 place-items-center rounded-full bg-milestone-soft">
+                <Check aria-hidden="true" strokeWidth={3} className="size-3 text-milestone" />
+              </span>
+              {t.hero.socialProof}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-ink-muted">
               <Tick />
               {t.hero.trustNote}
             </span>
@@ -192,16 +296,268 @@ function Hero() {
 
         {/*
           The mock arrives from the right, a beat behind the column it belongs to, so it reads
-          as the evidence for the claim rather than a second thing competing with it.
+          as the evidence for the claim rather than a second thing competing with it. The 3D
+          props and the two glass chips around it are the signed-in app's own artwork and its
+          own two promises — speak, get corrected.
         */}
-        <Reveal variants={fadeIn('right', 24)} delay={0.3} className="lg:pl-6">
-          <ProductPreview
-            day={t.hero.mockDay}
-            objective={t.hero.mockObjective}
-            hint={t.hero.mockHint}
-            action={t.hero.mockAction}
-          />
+        <Reveal variants={fadeIn('right', 24)} delay={0.3} className="relative lg:pl-6">
+          <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 size-[26rem] -translate-1/2 rounded-full bg-[image:var(--spectrum)] opacity-25 blur-3xl" />
+
+          <FloatingProp src={targetArt} className="-top-6 -left-4 w-32 sm:w-40 lg:-left-10" duration={7} tilt={-4} />
+          <FloatingProp src={missionsArt} className="-right-2 -bottom-6 w-32 sm:w-40 lg:-right-8" duration={6.5} delay={-2} tilt={3} />
+          <FloatingProp src={starArt} className="top-10 right-2 hidden w-14 sm:block lg:-right-4" duration={5} delay={-1} lift={-16} />
+          <FloatingProp src={orbArt} className="bottom-24 -left-2 hidden w-12 sm:block lg:-left-8" duration={5.5} delay={-3} lift={-10} />
+
+          <Tilt className="relative z-10 mx-auto w-[15.5rem] sm:w-[17.5rem]">
+            <ProductPreview
+              day={t.hero.mockDay}
+              objective={t.hero.mockObjective}
+              hint={t.hero.mockHint}
+              action={t.hero.mockAction}
+            />
+          </Tilt>
+
+          <HeroChip className="top-[38%] -left-2 lg:-left-14" delay={-1.5} icon={<Mic aria-hidden="true" strokeWidth={1.9} className="size-4" />}>
+            {t.method.step1Title}
+          </HeroChip>
+          <HeroChip className="right-0 bottom-[30%] lg:-right-12" delay={-3.5} icon={<CircleCheck aria-hidden="true" strokeWidth={1.9} className="size-4" />} tone="milestone">
+            {t.method.step2Title}
+          </HeroChip>
         </Reveal>
+      </div>
+    </section>
+  )
+}
+
+/** A small glass label hanging beside the hero mock. Decorative: the copy says the same. */
+function HeroChip({
+  children,
+  icon,
+  className,
+  delay = 0,
+  tone = 'signal',
+}: {
+  children: ReactNode
+  icon: ReactNode
+  className?: string
+  delay?: number
+  tone?: 'signal' | 'milestone'
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cx(
+        'glass glass-strong float absolute z-20 hidden items-center gap-2 rounded-2xl py-2 pr-3.5 pl-2 text-sm font-extrabold whitespace-nowrap text-ink sm:inline-flex',
+        className,
+      )}
+      style={{ '--float-delay': `${delay}s`, '--float-lift': '-8px' } as CSSProperties}
+    >
+      <span
+        className={cx(
+          'grid size-7 place-items-center rounded-xl text-white',
+          tone === 'signal' ? 'bg-[image:var(--spectrum)]' : 'bg-milestone',
+        )}
+      >
+        {icon}
+      </span>
+      {children}
+    </span>
+  )
+}
+
+/* --------------------------------------------------------------------------- proof */
+
+/**
+ * The stats band under the hero: four figures, each one already claimed elsewhere on the page
+ * (the learner count in the hero, the creators' reach in the reels strip) or a fact of the
+ * course itself. The figures rise in one after another and count up once the band is on screen.
+ */
+function ProofBand() {
+  const t = useT().landing
+  const figures = [
+    { value: 2500, suffix: '+', label: t.proof.learners },
+    { value: 90, label: t.proof.days },
+    { text: '15–20', label: t.proof.minutes },
+    { value: 480, suffix: '+', label: t.creators.channelStat },
+  ]
+
+  return (
+    <section className="relative z-10 mx-auto -mt-6 max-w-6xl px-5">
+      <Stage className="glass glass-strong grid grid-cols-2 rounded-[2rem] lg:grid-cols-4" gap={stagger.wide}>
+        {figures.map((figure, index) => (
+          <Reveal
+            key={figure.label}
+            variants={rise}
+            className={cx(
+              'px-5 py-6 text-center sm:py-7',
+              index % 2 === 1 && 'border-l border-hairline',
+              index >= 2 && 'border-t border-hairline lg:border-t-0',
+              index === 2 && 'lg:border-l',
+            )}
+          >
+            <div className="text-spectrum text-3xl font-black tracking-tight tabular-nums sm:text-4xl">
+              {figure.text ?? <CountTo value={figure.value ?? 0} />}
+              {figure.suffix}
+            </div>
+            <p className="mx-auto mt-1.5 max-w-[14rem] text-xs leading-snug font-bold text-ink-muted sm:text-sm">
+              {figure.label}
+            </p>
+          </Reveal>
+        ))}
+      </Stage>
+    </section>
+  )
+}
+
+/** Grouped the way the current locale writes numbers: "2 500" in uz/ru, "2,500" in en. */
+function useNumberFormat() {
+  const { locale } = useLocale()
+  return (value: number) => new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU').format(Math.round(value))
+}
+
+/** Counts up to `value` once it has come up into the screen. */
+function CountTo({ value, ms = 1200 }: { value: number; ms?: number }) {
+  const format = useNumberFormat()
+  const ref = useRef<HTMLSpanElement>(null)
+  // Half of the figure on screen, not the section trigger: a figure that is visible must never
+  // sit at zero waiting for a stricter line further up the screen.
+  const seen = useInView(ref, { once: true, amount: 0.5 })
+  const shown = useCountUp(seen ? value : 0, ms)
+  return <span ref={ref}>{format(shown)}</span>
+}
+
+/* -------------------------------------------------------------------------- report */
+
+/** The sample progress report, with a strip under it that sends the reader to measure their own. */
+function Report() {
+  const t = useT().landing
+  return (
+    <section className="relative isolate overflow-hidden py-20">
+      <Aurora blobs={2} grid={false} className="opacity-60" />
+      <span aria-hidden="true" className="dot-grid absolute top-24 left-0 -z-10 h-64 w-64" />
+      <div className="mx-auto max-w-6xl px-5">
+        <Stage>
+          <Reveal>
+            <SectionEyebrow>{t.report.eyebrow}</SectionEyebrow>
+          </Reveal>
+          <Reveal>
+            <h2 className="mt-4 max-w-3xl text-3xl leading-[1.12] font-black tracking-tight text-ink sm:text-4xl">
+              {t.report.title}
+            </h2>
+          </Reveal>
+          <Reveal>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted">{t.report.subtitle}</p>
+          </Reveal>
+        </Stage>
+
+        <div className="mt-10">
+          <SampleReport />
+        </div>
+
+        <Stage className="mt-4">
+          <Reveal
+            variants={rise}
+            className="glass sheen flex flex-col items-start justify-between gap-5 rounded-[1.75rem] px-6 py-5 sm:flex-row sm:items-center"
+          >
+            <p className="flex items-center gap-3 text-base font-extrabold text-ink">
+              <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-[image:var(--spectrum)] text-white">
+                <TrendingUp aria-hidden="true" strokeWidth={1.9} className="size-5" />
+              </span>
+              {t.report.ctaBody}
+            </p>
+            <LinkButton to="/onboarding" className="w-full shrink-0 gap-2 max-sm:h-auto max-sm:min-h-14 max-sm:whitespace-normal sm:w-auto">
+              {t.hero.secondaryCta}
+              <ArrowRight aria-hidden="true" strokeWidth={2.2} className="size-[18px]" />
+            </LinkButton>
+          </Reveal>
+        </Stage>
+      </div>
+    </section>
+  )
+}
+
+/* ------------------------------------------------------------------------ showcase */
+
+/**
+ * How a session works, shown rather than listed: the three steps on the left, and on the
+ * right one real tutor turn — the produced clip when there is one, otherwise the mission
+ * screen's own voice orb playing the turn live. Carries id="method" so the nav's "how it
+ * works" lands here.
+ */
+function Showcase() {
+  const t = useT().landing
+  const steps = [
+    { title: t.method.step1Title, body: t.method.step1Body, icon: Mic },
+    { title: t.method.step2Title, body: t.method.step2Body, icon: WandSparkles },
+    { title: t.method.step3Title, body: t.method.step3Body, icon: TrendingUp },
+  ]
+
+  return (
+    <section id="method" className="relative isolate scroll-mt-20 overflow-hidden py-24">
+      <Aurora blobs={2} grid={false} className="opacity-60" />
+      <span aria-hidden="true" className="dot-grid absolute right-0 bottom-16 -z-10 h-56 w-72" />
+
+      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <Stage gap={stagger.wide}>
+          <Reveal>
+            <SectionEyebrow>{t.method.eyebrow}</SectionEyebrow>
+          </Reveal>
+          <Reveal>
+            <h2 className="mt-4 text-3xl leading-[1.12] font-black tracking-tight text-ink sm:text-4xl">
+              <Accented text={t.method.title} />
+            </h2>
+          </Reveal>
+          <Reveal>
+            <p className="mt-4 max-w-md text-base leading-relaxed text-ink-muted">{t.method.subtitle}</p>
+          </Reveal>
+
+          <ol className="relative mt-9 space-y-3">
+            {/* The thread the three steps hang on. */}
+            <span aria-hidden="true" className="absolute top-6 bottom-6 left-[1.85rem] w-px bg-gradient-to-b from-signal/50 via-signal/25 to-transparent" />
+            {steps.map(({ title, body, icon: Icon }, index) => (
+              <Reveal as="li" key={title} variants={rise}>
+                <div className="glass sheen relative flex items-start gap-4 rounded-[1.25rem] p-4">
+                  <span className="relative grid size-11 shrink-0 place-items-center rounded-2xl bg-[image:var(--spectrum)] text-white shadow-[0_10px_20px_-8px_rgb(45_118_221/0.7),inset_0_1px_0_rgb(255_255_255/0.4)]">
+                    <Icon aria-hidden="true" strokeWidth={1.9} className="size-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold text-ink-faint tabular-nums">0{index + 1}</span>
+                      <h3 className="text-base font-extrabold text-ink">{title}</h3>
+                    </div>
+                    <p className="mt-1 text-[15px] leading-relaxed text-ink-muted">{body}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </ol>
+        </Stage>
+
+        <Stage className="relative">
+        <Reveal variants={rise}>
+          <div aria-hidden="true" className="absolute inset-8 -z-10 rounded-full bg-[image:var(--spectrum)] opacity-30 blur-3xl" />
+          <Tilt max={4}>
+            <div className="glass sheen relative min-h-[32rem] overflow-hidden rounded-[2rem]">
+              <LandingVideo
+                src={LANDING_VIDEOS.showcase}
+                poster={LANDING_VIDEOS.showcasePoster}
+                label={t.showcase.videoLabel}
+                playLabel={t.showcase.play}
+                pauseLabel={t.showcase.pause}
+                className="absolute inset-0"
+                fallback={
+                  <AiTutorScene
+                    liveLabel={t.showcase.live}
+                    tutorName={t.characters.names.pingvin}
+                    hint={t.hero.mockHint}
+                    feedbackLabel={t.method.step2Title}
+                  />
+                }
+              />
+            </div>
+          </Tilt>
+        </Reveal>
+        </Stage>
       </div>
     </section>
   )
@@ -211,7 +567,7 @@ function Hero() {
 
 /** The three product characters carry the pitch: Panda names the problem every learner feels,
  *  the Penguin and Pero answer it. The image and colour of each are fixed here; the words are
- *  localised. Reuses id="method" so the nav's "how it works" link still lands here. */
+ *  localised. */
 type CharacterKey = 'panda' | 'pingvin' | 'pero'
 
 const CHARACTERS: Array<{
@@ -223,7 +579,7 @@ const CHARACTERS: Array<{
   bubble: string
 }> = [
   // `bubble` is a vibrant Duolingo-style fill (white text on it); `accent` is the soft same-hue
-  // card border. Both are fixed brand illustration colours, not theme tokens.
+  // glow behind the character. Both are fixed brand illustration colours, not theme tokens.
   { key: 'panda', n: '01', status: 'problem', image: '/characters/panda.webp', accent: '#f3a9cb', bubble: '#e83e8c' },
   { key: 'pingvin', n: '02', status: 'solution', image: '/characters/pingvin.webp', accent: '#9cc3f7', bubble: '#1c8fe0' },
   { key: 'pero', n: '03', status: 'solution', image: '/characters/pero.webp', accent: '#f3d178', bubble: '#e08a0a' },
@@ -232,17 +588,14 @@ const CHARACTERS: Array<{
 function Characters() {
   const t = useT().landing.characters
   return (
-    <section id="method" className="border-t border-hairline bg-ground-sunken/40">
+    <section className="relative">
       <div className="mx-auto max-w-6xl px-5 py-20">
-        <SequenceInView className="text-center">
+        <Stage className="text-center">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-signal-soft px-4 py-1.5 text-xs font-extrabold tracking-[0.12em] text-signal-ink uppercase">
-              <SparkleGlyph />
-              {t.eyebrow}
-            </span>
+            <SectionEyebrow center>{t.eyebrow}</SectionEyebrow>
           </Reveal>
           <Reveal>
-            <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-extrabold leading-[1.15] tracking-tight text-ink sm:text-4xl">
+            <h2 className="mx-auto mt-5 max-w-3xl text-3xl leading-[1.15] font-black tracking-tight text-ink sm:text-4xl">
               {t.title}
             </h2>
           </Reveal>
@@ -251,27 +604,28 @@ function Characters() {
               {t.subtitle}
             </p>
           </Reveal>
-        </SequenceInView>
+        </Stage>
 
         {/*
           The three characters carry the argument in order - the Panda names the problem, the
-          other two answer it - so they arrive in that order too. A wide beat, because these
-          are three statements and not three items in a grid.
+          other two answer it - so they arrive in that order too.
         */}
-        <SequenceInView className="mx-auto mt-12 grid max-w-md gap-6 lg:max-w-none lg:grid-cols-3" gap={stagger.wide}>
-          {CHARACTERS.map((character) => (
-            <Reveal key={character.key} variants={rise}>
-              <CharacterCard character={character} />
+        <Stage className="mx-auto mt-12 grid max-w-md gap-6 lg:max-w-none lg:grid-cols-3" gap={stagger.wide}>
+          {CHARACTERS.map((character, index) => (
+            <Reveal key={character.key} variants={rise} className="h-full">
+              <Tilt className="h-full">
+                <CharacterCard character={character} index={index} />
+              </Tilt>
             </Reveal>
           ))}
-        </SequenceInView>
+        </Stage>
 
         <m.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
+          viewport={{ once: true, margin: VIEW_MARGIN }}
           transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-8 flex flex-col items-start justify-between gap-6 rounded-[var(--radius-card)] border border-hairline bg-ground-raised px-6 py-7 sm:flex-row sm:items-center sm:px-9"
+          className="glass sheen mt-8 flex flex-col items-start justify-between gap-6 rounded-[1.75rem] px-6 py-7 sm:flex-row sm:items-center sm:px-9"
         >
           <div>
             <h3 className="text-lg font-extrabold text-ink sm:text-xl">{t.ctaTitle}</h3>
@@ -286,7 +640,7 @@ function Characters() {
   )
 }
 
-function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }) {
+function CharacterCard({ character, index }: { character: (typeof CHARACTERS)[number]; index: number }) {
   const t = useT().landing.characters
   const { locale } = useLocale()
   const name = t.names[character.key]
@@ -294,32 +648,29 @@ function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }
   const isProblem = character.status === 'problem'
 
   return (
-    <article
-      className="flex flex-col rounded-[var(--radius-card)] border-2 bg-ground-raised p-5"
-      style={{ borderColor: character.accent }}
-    >
+    <article className="glass sheen flex h-full flex-col rounded-[1.75rem] p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="whitespace-nowrap rounded-[var(--radius-control)] bg-ground-sunken px-3 py-1 text-[11px] font-extrabold tracking-[0.06em] text-ink-muted uppercase">
+        <span className="rounded-[var(--radius-control)] bg-ground-sunken/70 px-3 py-1 text-[11px] font-extrabold tracking-[0.06em] whitespace-nowrap text-ink-muted uppercase">
           {fill(t.stage, { n: character.n })} · {name}
         </span>
         {isProblem ? (
-          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] bg-danger-soft px-2.5 py-1 text-[11px] font-extrabold text-danger">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] bg-danger-soft px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap text-danger">
             <AlertGlyph />
             {t.statusProblem}
           </span>
         ) : (
-          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold text-milestone">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap text-milestone">
             <CheckGlyph />
             {t.statusSolution}
           </span>
         )}
       </div>
 
-      {/* The character's line, in a vibrant Duolingo-style bubble with a tail. The colour is the
-          character's own; white text sits on it. */}
+      {/* The character's line, in a vibrant bubble with a tail. The colour is the character's
+          own; white text sits on it. */}
       <div className="relative mt-4">
         <div
-          className="rounded-2xl p-4 shadow-[0_12px_30px_-14px_rgb(17_24_39/0.4)]"
+          className="rounded-2xl p-4 shadow-[0_16px_34px_-16px_rgb(17_24_39/0.45),inset_0_1px_0_rgb(255_255_255/0.25)]"
           style={{ backgroundColor: character.bubble }}
         >
           <p className="text-[15px] leading-relaxed font-medium text-white">«{quote}»</p>
@@ -337,12 +688,20 @@ function CharacterCard({ character }: { character: (typeof CHARACTERS)[number] }
         />
       </div>
 
-      <div className="flex flex-1 items-end justify-center py-6">
+      {/* The character floats over a soft glow of its own colour — the 3D figure standing on
+          light rather than pasted on a card. */}
+      <div className="relative flex flex-1 items-end justify-center py-7">
+        <span
+          aria-hidden="true"
+          className="absolute bottom-6 left-1/2 h-24 w-40 -translate-x-1/2 rounded-full opacity-60 blur-2xl"
+          style={{ backgroundColor: character.accent }}
+        />
         <img
           src={character.image}
           alt={name}
           loading="lazy"
-          className="h-40 w-auto object-contain drop-shadow-[0_14px_22px_rgb(17_24_39/0.16)]"
+          className="float relative h-40 w-auto object-contain drop-shadow-[0_18px_22px_rgb(17_24_39/0.2)]"
+          style={{ '--float-delay': `${index * -1.6}s`, '--float-lift': '-8px' } as CSSProperties}
         />
       </div>
 
@@ -390,21 +749,17 @@ function ListenButton({
     <button
       type="button"
       onClick={speak}
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] bg-white/10 px-3 py-1.5 text-xs font-extrabold text-white transition-colors hover:bg-white/20"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] bg-white/15 px-3 py-1.5 text-xs font-extrabold text-white transition-colors hover:bg-white/25"
     >
       {status === 'loading' ? (
         <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      ) : status === 'playing' ? (
+        <AudioLines aria-hidden="true" strokeWidth={2} className="size-3.5" />
       ) : (
         <SpeakerGlyph />
       )}
       {label}
     </button>
-  )
-}
-
-function SparkleGlyph() {
-  return (
-    <Sparkles aria-hidden="true" strokeWidth={0} className="size-3.5 fill-current" />
   )
 }
 
@@ -428,46 +783,96 @@ function SpeakerGlyph() {
 
 /* ---------------------------------------------------------------------------- games */
 
+/**
+ * The two games, shown as they actually run — screenshots of real play, not illustrations.
+ * Each sits in the device it is built for: the runner is a landscape game and gets a browser
+ * window, the voice game is a phone game and gets the phone, rising into its card.
+ */
 function Games() {
   const t = useT().landing
-  const games = [
-    { title: t.games.runnerTitle, body: t.games.runnerBody, image: '/games/rod-runner.webp' },
-    { title: t.games.sawTitle, body: t.games.sawBody, image: '/games/lazer.webp' },
-  ]
 
   return (
-    <section id="games" className="mx-auto max-w-6xl px-5 py-20">
-      <SectionEyebrow>{t.games.eyebrow}</SectionEyebrow>
-      <h2 className="mt-3 max-w-2xl text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-        {t.games.title}
-      </h2>
-      <p className="mt-3 max-w-xl text-base text-ink-muted">{t.games.subtitle}</p>
-
-      <SequenceInView className="mt-10 grid gap-6 lg:grid-cols-2" gap={stagger.wide}>
-        {games.map((game) => (
-          <Reveal
-            as="article"
-            key={game.title}
-            variants={rise}
-            className="overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-3"
-          >
-            <div className="overflow-hidden rounded-[1.15rem]">
-              <img
-                src={game.image}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                className="aspect-[16/9] w-full object-cover"
-              />
-            </div>
-            <div className="px-3 pt-5 pb-4">
-              <h3 className="text-lg font-extrabold text-ink">{game.title}</h3>
-              <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">{game.body}</p>
-            </div>
+    <section id="games" className="relative isolate scroll-mt-20 overflow-hidden">
+      <Aurora blobs={2} grid={false} className="opacity-50" />
+      <div className="mx-auto max-w-6xl px-5 py-20">
+        <Stage>
+          <Reveal>
+            <SectionEyebrow>{t.games.eyebrow}</SectionEyebrow>
           </Reveal>
-        ))}
-      </SequenceInView>
+          <Reveal>
+            <h2 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-ink sm:text-4xl">{t.games.title}</h2>
+          </Reveal>
+          <Reveal>
+            <p className="mt-3 max-w-xl text-base text-ink-muted">{t.games.subtitle}</p>
+          </Reveal>
+        </Stage>
+
+        <Stage className="mt-10 grid gap-6 lg:grid-cols-[1.45fr_1fr]" gap={stagger.wide}>
+          <Reveal variants={rise} className="h-full">
+            <Tilt max={4} className="h-full">
+              <article className="glass sheen flex h-full flex-col rounded-[1.75rem] p-4 sm:p-5">
+                <BrowserFrame url="russian.gg/games/rod-runner">
+                  <div className="overflow-hidden">
+                    {/* A slow push-in as the card arrives: the road is moving, so the shot does too. */}
+                    <m.img
+                      src="/games/rod-runner-play.webp"
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="aspect-[1600/891] w-full object-cover"
+                      initial={{ scale: 1.14 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true, margin: VIEW_MARGIN }}
+                      transition={{ duration: 1.6, ease: ease.enter }}
+                    />
+                  </div>
+                </BrowserFrame>
+                <GameText title={t.games.runnerTitle} body={t.games.runnerBody} />
+              </article>
+            </Tilt>
+          </Reveal>
+
+          <Reveal variants={rise} className="h-full">
+            <Tilt max={4} className="h-full">
+              <article className="glass sheen flex h-full flex-col rounded-[1.75rem] p-4 sm:p-5">
+                <div className="relative h-[23rem] overflow-hidden rounded-[1.25rem] bg-[radial-gradient(120%_90%_at_50%_0%,var(--color-signal-soft),transparent_70%)]">
+                  <span aria-hidden="true" className="dot-grid absolute inset-0 opacity-60" />
+                  {/* The phone comes up out of the card's floor, the way it comes out of a pocket. */}
+                  <m.div
+                    className="absolute top-7 left-1/2 w-[13rem] -translate-x-1/2"
+                    initial={{ y: 120, rotate: -4 }}
+                    whileInView={{ y: 0, rotate: 0 }}
+                    viewport={{ once: true, margin: VIEW_MARGIN }}
+                    transition={{ type: 'spring', duration: 1, bounce: 0.25 }}
+                  >
+                    <IPhoneFrame tone="light" screenClassName="bg-[#f2f4f7]">
+                      <img src="/games/arra-play.webp" alt="" aria-hidden="true" loading="lazy" className="absolute inset-x-0 top-[12cqw] w-full" />
+                    </IPhoneFrame>
+                  </m.div>
+                  <span
+                    aria-hidden="true"
+                    className="glass glass-strong float absolute top-24 right-4 grid place-items-center rounded-2xl px-3 py-2.5"
+                    style={{ '--float-lift': '-8px' } as CSSProperties}
+                  >
+                    <VoiceSignal state="listening" size="sm" labelled={false} />
+                  </span>
+                </div>
+                <GameText title={t.games.sawTitle} body={t.games.sawBody} />
+              </article>
+            </Tilt>
+          </Reveal>
+        </Stage>
+      </div>
     </section>
+  )
+}
+
+function GameText({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="px-2 pt-5 pb-2">
+      <h3 className="text-lg font-extrabold text-ink">{title}</h3>
+      <p className="mt-2 text-[15px] leading-relaxed text-ink-muted">{body}</p>
+    </div>
   )
 }
 
@@ -493,29 +898,31 @@ const CREATORS: Creator[] = [
 
 /**
  * The reels strip. A contained header carries the words; the strip itself is full-bleed — it
- * runs edge to edge with no page gutter, and loops by rendering the cards twice and translating
- * the track by exactly one half. The second copy is `aria-hidden` so a screen reader reads each
- * reel once.
+ * runs edge to edge with no page gutter, dissolving into the page at both ends, and loops by
+ * rendering the cards twice and translating the track by exactly one half. The second copy is
+ * `aria-hidden` so a screen reader reads each reel once.
  */
 function ReelMarquee() {
   const t = useT().landing
   return (
-    <section className="overflow-hidden border-b border-hairline bg-ground-sunken/40 py-12">
-      <div className="mx-auto mb-8 flex max-w-6xl flex-wrap items-end justify-between gap-4 px-5">
-        <div>
+    <section className="overflow-hidden py-14">
+      <Stage className="mx-auto mb-8 max-w-6xl px-5">
+        <Reveal>
           <SectionEyebrow>{t.creators.eyebrow}</SectionEyebrow>
-          <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-            {t.creators.title}
-          </h2>
-        </div>
-        <p className="text-sm font-semibold text-ink-muted">
-          <span className="font-extrabold text-signal-ink tabular-nums">480+</span>{' '}
-          {t.creators.channelStat}
-        </p>
-      </div>
+        </Reveal>
+        <Reveal>
+          <h2 className="mt-4 text-2xl font-black tracking-tight text-ink sm:text-3xl">{t.creators.title}</h2>
+        </Reveal>
+      </Stage>
 
       {/* Full-bleed: no max-width, no horizontal padding — the strip fills the viewport width. */}
-      <div className="reel-viewport w-full overflow-hidden">
+      <m.div
+        className="reel-viewport fade-edges w-full overflow-hidden py-3"
+        initial={{ opacity: 0, x: 80 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: VIEW_MARGIN }}
+        transition={{ duration: 0.9, ease: ease.enter }}
+      >
         <div
           className="reel-track flex w-max hover:[animation-play-state:paused]"
           style={{ animation: 'var(--animate-marquee)' }}
@@ -530,7 +937,7 @@ function ReelMarquee() {
             </ul>
           ))}
         </div>
-      </div>
+      </m.div>
     </section>
   )
 }
@@ -546,12 +953,11 @@ function CreatorCard({
   index: number
   watch: string
 }) {
-  const cardClass =
-    'flex h-full w-full flex-col rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4'
+  const cardClass = 'glass flex h-full w-full flex-col rounded-[1.5rem] p-3'
   const inner = (
     <>
       <ReelThumb seed={index} watch={watch} cover={creator.cover} />
-      <div className="mt-4">
+      <div className="mt-3 px-1 pb-1">
         <div className="flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">
           {creator.handle}
           {creator.url && <ExternalGlyph />}
@@ -573,11 +979,7 @@ function CreatorCard({
       target="_blank"
       rel="noreferrer"
       aria-label={`${creator.handle} — Instagram`}
-      className={cx(
-        cardClass,
-        'transition-[transform,border-color,box-shadow] duration-150',
-        'hover:-translate-y-0.5 hover:border-ink-faint hover:shadow-[0_10px_24px_-16px_rgb(45_118_221/0.55)]',
-      )}
+      className={cx(cardClass, 'transition-transform duration-200 hover:-translate-y-1')}
     >
       {inner}
     </a>
@@ -586,31 +988,103 @@ function CreatorCard({
 
 /* ---------------------------------------------------------------------------- mobile */
 
+/**
+ * The app on a phone. The real home screen sits in the iPhone frame and turns toward the reader
+ * as the section scrolls through — a scroll-linked lean, not a one-off entrance — while a
+ * reminder slides down over it, which is the thing installing the web app actually buys you.
+ * Under reduced motion the phone stands still and the notification is simply there.
+ */
 function Mobile() {
   const t = useT().landing
+  const reduced = useReducedMotion()
+  const stage = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: stage, offset: ['start end', 'end start'] })
+  const rotateY = useTransform(scrollYProgress, [0, 0.5, 1], [-24, -6, 10])
+  const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [14, 4, -6])
+  const lift = useTransform(scrollYProgress, [0, 1], [70, -50])
+
+  const features = [
+    { icon: Maximize2, label: t.mobile.featureFullscreen },
+    { icon: BellRing, label: t.mobile.featurePush },
+    { icon: WifiOff, label: t.mobile.featureOffline },
+  ]
+
   return (
-    <section className="mx-auto max-w-6xl px-5 py-20">
-      <div className="grid items-center gap-12 lg:grid-cols-2">
-        <div className="order-2 flex justify-center lg:order-1">
-          <img
-            src="/mobile/app-home.webp"
-            alt=""
-            aria-hidden="true"
-            className="w-full max-w-[19rem] drop-shadow-[0_34px_60px_-26px_rgb(45_118_221/0.45)]"
-          />
+    /* Clipped sideways only: the glass rings are wider than a phone screen, and would otherwise
+       give the whole page a horizontal scroll. Vertically the tilting phone may overhang. */
+    <section className="relative isolate mx-auto max-w-6xl overflow-x-clip px-5 py-24">
+      <div className="grid items-center gap-14 lg:grid-cols-2">
+        <div ref={stage} className="relative order-2 flex min-h-[36rem] items-center justify-center [perspective:1400px] lg:order-1">
+          {/* Concentric glass rings behind the phone: the device sitting in its own field. */}
+          <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 -translate-1/2">
+            <span className="absolute top-1/2 left-1/2 size-[24rem] -translate-1/2 rounded-full bg-[image:var(--spectrum)] opacity-20 blur-3xl" />
+            <span className="glass absolute top-1/2 left-1/2 size-[30rem] -translate-1/2 rounded-full opacity-50" />
+            <span className="glass absolute top-1/2 left-1/2 size-[21rem] -translate-1/2 rounded-full opacity-80" />
+          </div>
+          <FloatingProp src={starArt} className="top-10 right-[10%] w-16" duration={5} lift={-14} />
+          <FloatingProp src={orbArt} className="bottom-16 left-[8%] w-14" duration={6} delay={-2} />
+
+          <m.div
+            style={reduced ? undefined : { rotateX, rotateY, y: lift }}
+            className="relative w-[15.5rem] [transform-style:preserve-3d] sm:w-[17.5rem]"
+          >
+            <IPhoneFrame bare screenClassName="bg-white">
+              <img src="/mobile/app-home-screen.webp" alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover object-top" />
+
+              {/* A reminder arriving: the reason to put the app on the home screen at all. */}
+              <m.div
+                className="absolute inset-x-[3.5cqw] top-[14cqw] z-30 flex items-start gap-[3cqw] rounded-[5.5cqw] border border-white/60 bg-white/80 p-[3.2cqw] shadow-[0_12px_30px_-12px_rgb(22_40_90/0.45)] backdrop-blur-xl"
+                initial={reduced ? false : { y: '-140%', opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true, margin: VIEW_MARGIN }}
+                transition={{ delay: 0.7, type: 'spring', duration: 0.8, bounce: 0.3 }}
+              >
+                <img src="/icons/apple-touch-icon.png" alt="" aria-hidden="true" className="size-[9.5cqw] shrink-0 rounded-[2.4cqw]" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between text-[3.4cqw] font-bold text-[#111]">
+                    russian.gg
+                    <span className="font-semibold text-[#8a8f98]">{t.mobile.now}</span>
+                  </span>
+                  <span className="mt-[0.6cqw] block text-[3.3cqw] leading-snug text-[#30343a]">{t.mobile.notificationBody}</span>
+                </span>
+              </m.div>
+            </IPhoneFrame>
+          </m.div>
         </div>
 
-        <div className="order-1 lg:order-2">
-          <SectionEyebrow>{t.mobile.eyebrow}</SectionEyebrow>
-          <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-            {t.mobile.title}
-          </h2>
-          <p className="mt-4 max-w-lg text-base leading-relaxed text-ink-muted">{t.mobile.body}</p>
+        <Stage className="order-1 lg:order-2">
+          <Reveal>
+            <SectionEyebrow>{t.mobile.eyebrow}</SectionEyebrow>
+          </Reveal>
+          <Reveal>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">{t.mobile.title}</h2>
+          </Reveal>
+          <Reveal>
+            <p className="mt-4 max-w-lg text-base leading-relaxed text-ink-muted">{t.mobile.body}</p>
+          </Reveal>
 
-          <div className="mt-8 space-y-3">
-            <div className="flex items-start gap-4 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5">
-              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-soft">
-                <Tick />
+          <Reveal className="mt-7 grid grid-cols-3 gap-3">
+            {features.map(({ icon: Icon, label }, index) => (
+              <m.div
+                key={label}
+                className="glass sheen flex flex-col items-center gap-2.5 rounded-[1.25rem] px-2 py-4 text-center"
+                initial={{ opacity: 0, y: 14, scale: 0.94 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: VIEW_MARGIN }}
+                transition={{ delay: 0.25 + index * 0.12, type: 'spring', duration: 0.6, bounce: 0.3 }}
+              >
+                <span className="grid size-10 place-items-center rounded-2xl bg-[image:var(--spectrum)] text-white shadow-[0_10px_20px_-8px_rgb(45_118_221/0.7)]">
+                  <Icon aria-hidden="true" strokeWidth={1.9} className="size-5" />
+                </span>
+                <span className="text-xs leading-tight font-extrabold text-ink sm:text-sm">{label}</span>
+              </m.div>
+            ))}
+          </Reveal>
+
+          <Reveal className="mt-3 space-y-3">
+            <div className="glass sheen flex items-start gap-4 rounded-[1.25rem] p-5">
+              <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-2xl bg-milestone-soft text-milestone">
+                <Check aria-hidden="true" strokeWidth={2.6} className="size-4" />
               </span>
               <div>
                 <div className="text-base font-extrabold text-ink">{t.mobile.pwaTitle}</div>
@@ -618,8 +1092,8 @@ function Mobile() {
               </div>
             </div>
 
-            <div className="flex items-start gap-4 rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-5">
-              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-ground-sunken">
+            <div className="glass sheen flex items-start gap-4 rounded-[1.25rem] p-5">
+              <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-2xl bg-ground-sunken">
                 <PhoneGlyph />
               </span>
               <div className="flex-1">
@@ -632,8 +1106,8 @@ function Mobile() {
                 <p className="mt-1 text-sm text-ink-muted">{t.mobile.nativeBody}</p>
               </div>
             </div>
-          </div>
-        </div>
+          </Reveal>
+        </Stage>
       </div>
     </section>
   )
@@ -641,64 +1115,108 @@ function Mobile() {
 
 /* --------------------------------------------------------------------------- pricing */
 
+/** The digits of a localised price string: "119 000" and "119,000" are both 119000. */
+const digits = (price: string) => Number(price.replace(/\D/g, '')) || 0
+
+/**
+ * All three ways in, side by side: free, Pro by the month, and Pro for the whole 90 days.
+ *
+ * The 90-day plan's saving and both per-day figures are computed from the two prices rather
+ * than written into the copy, so they cannot drift from the prices printed above them — and
+ * per day is the comparison the in-app plan picker makes too (`paywall/PlanSelector.tsx`).
+ * Every price counts up from zero the first time the cards come into view.
+ */
 function Pricing() {
-  const t = useT().landing
+  const t = useT()
+  const p = t.landing.pricing
+  const format = useNumberFormat()
+  const monthly = digits(p.proPrice)
+  const ninety = digits(p.ninetyPrice)
+  const threeMonths = monthly * 3
+  const savePercent = Math.round((1 - ninety / threeMonths) * 100)
+  const money = (value: number) => `${format(value)} ${p.freeUnit}`
+
   return (
-    <section id="pricing" className="border-t border-hairline bg-ground-sunken/40">
-      <div className="mx-auto max-w-5xl px-5 py-20">
-        <SequenceInView className="text-center">
+    <section id="pricing" className="relative isolate scroll-mt-20 overflow-hidden">
+      <Aurora blobs={3} grid className="opacity-60" />
+      <div className="mx-auto max-w-6xl px-5 py-24">
+        <Stage className="text-center">
           <Reveal>
-            <SectionEyebrow center>{t.pricing.eyebrow}</SectionEyebrow>
+            <SectionEyebrow center>{p.eyebrow}</SectionEyebrow>
           </Reveal>
           <Reveal>
-            <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-              {t.pricing.title}
-            </h2>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">{p.title}</h2>
           </Reveal>
           <Reveal>
-            <p className="mx-auto mt-3 max-w-md text-base text-ink-muted">{t.pricing.subtitle}</p>
+            <p className="mx-auto mt-3 max-w-md text-base text-ink-muted">{p.subtitle}</p>
           </Reveal>
-        </SequenceInView>
+        </Stage>
 
         {/*
-          Free first, then Pro. The order is the argument, so the beat is wide enough to be
-          read as one - here is what you get for nothing, and here is what the other one adds.
-          Landing them together turns a comparison into a pair of price tags.
+          Free, then the two ways to pay for the same course. The order is the argument, so the
+          beat is wide enough to be read: what you get for nothing, what Pro adds, what it costs
+          if you commit to the whole path.
         */}
-        <SequenceInView className="mx-auto mt-10 grid max-w-3xl gap-6 md:grid-cols-2" gap={stagger.wide}>
-          <Reveal variants={rise}>
-          <PlanCard
-            title={t.pricing.freeTitle}
-            price={t.pricing.freePrice}
-            unit={t.pricing.freeUnit}
-            body={t.pricing.freeBody}
-            features={t.pricing.freeFeatures}
-            cta={<LinkButton to="/signin" variant="secondary" block>{t.pricing.freeCta}</LinkButton>}
-          />
+        <Stage className="mx-auto mt-12 grid max-w-md gap-6 lg:max-w-none lg:grid-cols-3" gap={stagger.wide}>
+          <Reveal variants={rise} className="h-full">
+            <Tilt max={4} className="h-full">
+              <PlanCard
+                icon={<Sprout aria-hidden="true" strokeWidth={1.8} className="size-6" />}
+                iconTone="milestone"
+                title={p.freeTitle}
+                body={p.freeBody}
+                amount={0}
+                unit={p.freeUnit}
+                features={p.freeFeatures}
+                cta={<LinkButton to="/signin" variant="secondary" block>{p.freeCta}</LinkButton>}
+              />
+            </Tilt>
           </Reveal>
-          <Reveal variants={rise}>
-          <PlanCard
-            featured
-            badge={t.pricing.proBadge}
-            title={t.pricing.proTitle}
-            price={t.pricing.proPrice}
-            unit={t.pricing.proUnit}
-            body={t.pricing.proBody}
-            features={t.pricing.proFeatures}
-            note={t.pricing.proAlt}
-            cta={<LinkButton to="/signin" block>{t.pricing.proCta}</LinkButton>}
-          />
+          <Reveal variants={rise} className="h-full">
+            <Tilt max={4} className="h-full">
+              <PlanCard
+                featured
+                badge={p.proBadge}
+                icon={<Crown aria-hidden="true" strokeWidth={1.8} className="size-6" />}
+                iconTone="spectrum"
+                title={`${p.proTitle} · ${t.billing.periodLabel.Monthly}`}
+                body={p.proBody}
+                amount={monthly}
+                unit={p.proUnit}
+                note={fill(t.billing.perDay, { amount: money(monthly / 30) })}
+                features={p.proFeatures}
+                cta={<LinkButton to="/signin" block>{p.proCta}</LinkButton>}
+              />
+            </Tilt>
           </Reveal>
-        </SequenceInView>
+          <Reveal variants={rise} className="h-full">
+            <Tilt max={4} className="h-full">
+              <PlanCard
+                badge={fill(p.saveBadge, { percent: savePercent })}
+                badgeTone="milestone"
+                icon={<Gem aria-hidden="true" strokeWidth={1.8} className="size-6" />}
+                iconTone="coin"
+                title={`${p.proTitle} · ${t.billing.periodLabel.NinetyDay}`}
+                body={p.ninetyBody}
+                amount={ninety}
+                was={money(threeMonths)}
+                unit={p.ninetyUnit}
+                note={fill(t.billing.perDay, { amount: money(ninety / 90) })}
+                features={p.proFeatures}
+                cta={<LinkButton to="/signin" variant="secondary" block>{p.ninetyCta}</LinkButton>}
+              />
+            </Tilt>
+          </Reveal>
+        </Stage>
 
         <m.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.28 }}
+          viewport={{ once: true, margin: VIEW_MARGIN }}
+          transition={{ duration: 0.4, delay: 0.5 }}
           className="mt-6 text-center text-sm text-ink-muted"
         >
-          {t.pricing.payNote}
+          {p.payNote}
         </m.p>
       </div>
     </section>
@@ -707,53 +1225,86 @@ function Pricing() {
 
 function PlanCard({
   title,
-  price,
-  unit,
   body,
+  amount,
+  unit,
   features,
   cta,
+  icon,
+  iconTone,
   note,
+  was,
   badge,
+  badgeTone = 'spectrum',
   featured = false,
 }: {
   title: string
-  price: string
-  unit: string
   body: string
+  amount: number
+  unit: string
   features: string[]
   cta: ReactNode
+  icon: ReactNode
+  iconTone: 'milestone' | 'spectrum' | 'coin'
+  /** A line under the price — the per-day figure. */
   note?: string
+  /** What the same time would cost month by month, struck through beside the price. */
+  was?: string
   badge?: string
+  badgeTone?: 'spectrum' | 'milestone'
   featured?: boolean
 }) {
   return (
     <div
       className={cx(
-        'flex flex-col rounded-[var(--radius-card)] bg-ground-raised p-7',
-        featured ? 'border-2 border-signal' : 'border border-hairline',
+        'glass sheen flex h-full flex-col rounded-[1.75rem] p-7',
+        // The featured plan wears a slowly turning spectrum ring instead of a flat border.
+        featured && 'glass-strong spectrum-ring',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-lg font-extrabold text-ink">{title}</h3>
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className={cx(
+            'grid size-12 place-items-center rounded-2xl',
+            iconTone === 'spectrum' &&
+              'bg-[image:var(--spectrum)] text-white shadow-[0_12px_24px_-10px_rgb(109_92_242/0.7),inset_0_1px_0_rgb(255_255_255/0.4)]',
+            iconTone === 'milestone' && 'bg-milestone-soft text-milestone',
+            iconTone === 'coin' && 'bg-coin-soft text-coin-ink',
+          )}
+        >
+          {icon}
+        </span>
         {badge && (
-          <span className="shrink-0 whitespace-nowrap rounded-[var(--radius-control)] bg-signal px-3 py-1 text-xs font-extrabold text-on-signal">
+          <span
+            className={cx(
+              'inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] px-3 py-1 text-xs font-extrabold whitespace-nowrap',
+              badgeTone === 'spectrum' ? 'bg-[image:var(--spectrum)] text-white' : 'bg-milestone text-white',
+            )}
+          >
+            <Sparkles aria-hidden="true" strokeWidth={0} className="size-3 fill-current" />
             {badge}
           </span>
         )}
       </div>
+      <h3 className="mt-5 text-lg font-extrabold text-ink">{title}</h3>
       <p className="mt-1 text-sm text-ink-muted">{body}</p>
 
       <div className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
-        <span className="text-4xl font-extrabold tracking-tight text-ink tabular-nums">{price}</span>
+        <span className={cx('text-4xl font-black tracking-tight tabular-nums', featured ? 'text-spectrum' : 'text-ink')}>
+          <CountTo value={amount} ms={1400} />
+        </span>
         <span className="text-sm font-bold whitespace-nowrap text-ink-muted">{unit}</span>
       </div>
-      {note && <p className="mt-1 text-sm font-semibold text-signal-ink">{note}</p>}
+      <p className="mt-1 flex min-h-5 flex-wrap items-center gap-x-2 text-sm font-semibold">
+        {was && <span className="text-ink-faint line-through decoration-danger/60 decoration-2">{was}</span>}
+        {note && <span className="text-signal-ink">{note}</span>}
+      </p>
 
       <ul className="mt-6 flex-1 space-y-3">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-3 text-[15px] text-ink">
-            <span className="mt-0.5">
-              <Tick />
+            <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-signal-soft">
+              <Check aria-hidden="true" strokeWidth={3} className="size-3 text-signal-ink" />
             </span>
             {feature}
           </li>
@@ -765,119 +1316,175 @@ function PlanCard({
   )
 }
 
-/* -------------------------------------------------------------------------- final cta */
+/* ------------------------------------------------------------------------------ faq */
 
-function FinalCta() {
+/**
+ * The questions a learner asks before speaking into a microphone, answered from the product's
+ * own copy wherever it already says it: the certificate answer is the PRD's disclaimer, the
+ * price answer is assembled from the pricing strings so it can never drift from the cards
+ * above, and the phone answer is the mobile section's.
+ *
+ * One open at a time. The answer's height animates open and shut (`collapse` measures the real
+ * height, so it holds in all three languages) and the plus turns into a cross.
+ */
+function Faq() {
   const t = useT().landing
+  const [open, setOpen] = useState<number | null>(0)
+  const items = [
+    { q: t.faq.levelQ, a: t.faq.levelA },
+    { q: t.faq.tutorQ, a: t.faq.tutorA },
+    { q: t.faq.timeQ, a: t.faq.timeA },
+    { q: t.faq.certificateQ, a: t.disclaimer },
+    {
+      q: t.faq.payQ,
+      a: fill(t.faq.payA, {
+        price: t.pricing.proPrice,
+        unit: t.pricing.proUnit,
+        alt: t.pricing.proAlt,
+        pay: t.pricing.payNote,
+      }),
+    },
+    { q: t.faq.phoneQ, a: t.mobile.body },
+  ]
+
   return (
-    <section className="mx-auto max-w-6xl px-5 py-16">
-      <div
-        className="relative overflow-hidden rounded-[2rem] shadow-[0_22px_54px_-18px_rgb(28_140_230/0.55)]"
-        style={{ background: 'linear-gradient(180deg,#5cb6f7 0%,#3f9dee 58%,#2f92e7 100%)' }}
-      >
-        <SkyScene />
-        <div className="relative grid items-center gap-2 px-6 py-10 sm:px-12 sm:py-14 lg:grid-cols-[1.25fr_1fr]">
-          <div>
-            <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl lg:text-[2.4rem]">
-              {t.final.title}
-            </h2>
-            <p className="mt-3 max-w-md text-base text-white/90">{t.final.body}</p>
-            <div className="mt-7 flex flex-col items-start gap-3">
-              <Link
-                to="/signin"
-                className="raised inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-6 text-base font-extrabold whitespace-nowrap sm:px-9 text-[#1c8fe0] [--depth:rgb(19_120_205/0.28)] [--edge:5px] [--glow:rgb(19_120_205/0.2)]"
-              >
-                {t.final.cta}
-              </Link>
-              <Link to="/signin" className="text-sm font-bold text-white hover:underline">
-                {t.final.signIn}
-              </Link>
-            </div>
-          </div>
-          <div className="hidden justify-end lg:flex">
-            <img
-              src="/characters/panda.webp"
-              alt=""
-              aria-hidden="true"
-              className="h-64 w-auto drop-shadow-[0_20px_30px_rgb(18_54_110/0.28)]"
-            />
-          </div>
-        </div>
+    <section id="faq" className="relative isolate scroll-mt-20">
+      <span aria-hidden="true" className="dot-grid absolute top-10 right-0 -z-10 h-56 w-72" />
+      <span aria-hidden="true" className="dot-grid absolute bottom-10 left-0 -z-10 h-56 w-72" />
+      <div className="mx-auto max-w-3xl px-5 py-20">
+        <Stage className="text-center">
+          <Reveal>
+            <SectionEyebrow center>{t.faq.eyebrow}</SectionEyebrow>
+          </Reveal>
+          <Reveal>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">{t.faq.title}</h2>
+          </Reveal>
+        </Stage>
+
+        <Stage className="mt-10 space-y-3" gap={stagger.base}>
+          {items.map((item, index) => {
+            const isOpen = open === index
+            const panel = `faq-answer-${index}`
+            return (
+              <Reveal key={item.q} variants={rise}>
+                <div className={cx('glass rounded-[1.25rem] transition-[background-color] duration-300', isOpen && 'glass-strong')}>
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={panel}
+                    onClick={() => setOpen(isOpen ? null : index)}
+                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-base font-extrabold text-ink"
+                  >
+                    {item.q}
+                    <m.span
+                      animate={{ rotate: isOpen ? 45 : 0 }}
+                      transition={{ type: 'spring', duration: 0.4, bounce: 0.3 }}
+                      className={cx(
+                        'grid size-8 shrink-0 place-items-center rounded-full transition-colors duration-300',
+                        isOpen ? 'bg-signal text-on-signal' : 'bg-signal-soft text-signal-ink',
+                      )}
+                    >
+                      <Plus aria-hidden="true" strokeWidth={2.2} className="size-4" />
+                    </m.span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <m.div
+                        id={panel}
+                        key="answer"
+                        role="region"
+                        variants={collapse}
+                        initial="hidden"
+                        animate="shown"
+                        exit="exit"
+                        className="overflow-hidden"
+                      >
+                        <p className="px-5 pb-5 text-[15px] leading-relaxed text-ink-muted">{item.a}</p>
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </Reveal>
+            )
+          })}
+        </Stage>
       </div>
     </section>
   )
 }
 
-/** The sky behind the closing band: clouds, a faint onion-dome skyline, and green hills. All
- *  decorative and fixed-colour — it is a blue billboard, not a themed surface. */
-function SkyScene() {
+/* -------------------------------------------------------------------------- final cta */
+
+/**
+ * The closing line in two tones: everything before the last sentence slightly dimmed, the last
+ * one — the instruction — at full strength. A headline with one sentence stays one tone.
+ */
+function TwoTone({ text }: { text: string }) {
+  const parts = text.split(/(?<=[.!?])\s+/)
+  if (parts.length < 2) return <>{text}</>
+  const last = parts.pop()
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Clouds live only in the upper-right sky, above the panda — the left half is left clear
-          for the heading. A gaussian blur keeps their edges soft rather than cut-out. */}
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <filter id="cloudSoft" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2.6" />
-          </filter>
-        </defs>
-        <g fill="#ffffff" filter="url(#cloudSoft)">
-          <g opacity="0.9">
-            <CloudPuff cx={618} cy={60} s={1} />
-          </g>
-          <g opacity="0.65">
-            <CloudPuff cx={742} cy={104} s={0.72} />
-          </g>
-          <g opacity="0.5">
-            <CloudPuff cx={548} cy={34} s={0.8} />
-          </g>
-        </g>
-      </svg>
-      <div className="absolute bottom-9 left-5 opacity-[0.16] sm:left-9">
-        <OnionDomes />
-      </div>
-      <svg className="absolute inset-x-0 bottom-0 w-full" viewBox="0 0 800 120" preserveAspectRatio="none">
-        <path d="M0 72 Q200 36 400 60 T800 56 V120 H0Z" fill="#95d271" />
-        <path d="M0 94 Q240 66 500 84 T800 80 V120 H0Z" fill="#7cc457" />
-      </svg>
-    </div>
+    <>
+      <span className="text-white/70">{parts.join(' ')}</span> {last}
+    </>
   )
 }
 
-/** A soft, fluffy cloud: a flat-ish base ellipse topped with a run of overlapping puffs. */
-function CloudPuff({ cx, cy, s = 1 }: { cx: number; cy: number; s?: number }) {
-  return (
-    <g transform={`translate(${cx} ${cy}) scale(${s})`}>
-      <ellipse cx="0" cy="10" rx="62" ry="18" />
-      <circle cx="-36" cy="6" r="17" />
-      <circle cx="-14" cy="-6" r="23" />
-      <circle cx="14" cy="-9" r="26" />
-      <circle cx="40" cy="-1" r="19" />
-    </g>
-  )
-}
 
-/** A simplified St. Basil's cluster — three onion-domed towers, drawn as a flat silhouette. */
-function OnionDomes() {
+/**
+ * The closing band: a deep blue-to-violet field with its own drifting light, a glass panel for
+ * the words and the Panda floating beside it. Fixed colours rather than tokens — it is a lit
+ * billboard in both themes, not a themed surface.
+ */
+function FinalCta() {
+  const t = useT().landing
   return (
-    <svg viewBox="0 0 160 130" className="h-24 w-auto" fill="#ffffff" aria-hidden="true">
-      <g>
-        <rect x="70" y="58" width="20" height="62" />
-        <path d="M70 60 C66 42 74 38 80 24 C86 38 94 42 90 60 Z" />
-        <rect x="79" y="12" width="2" height="12" />
-        <circle cx="80" cy="10" r="3" />
-      </g>
-      <g>
-        <rect x="34" y="78" width="16" height="42" />
-        <path d="M34 80 C31 66 39 62 42 52 C45 62 53 66 50 80 Z" />
-        <rect x="41" y="45" width="2" height="7" />
-      </g>
-      <g>
-        <rect x="110" y="82" width="15" height="38" />
-        <path d="M110 84 C107 70 115 66 117.5 57 C120 66 128 70 125 84 Z" />
-        <rect x="116.5" y="50" width="2" height="7" />
-      </g>
-    </svg>
+    <section className="mx-auto max-w-6xl px-5 py-16">
+      <m.div
+        initial={{ opacity: 0, y: 48, scale: 0.96 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, margin: VIEW_MARGIN }}
+        transition={{ type: 'spring', duration: 0.9, bounce: 0.2 }}
+        className="relative isolate overflow-hidden rounded-[2.25rem] shadow-[0_30px_70px_-24px_rgb(45_80_200/0.6)]"
+        style={{ background: 'linear-gradient(125deg,#1f5fd6 0%,#3d7cf0 38%,#6d5cf2 72%,#22a9cf 100%)' }}
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <span className="aurora__blob -top-24 -left-16 h-80 w-96 bg-[#8fd0ff] [--aurora-opacity:0.45]" />
+          <span className="aurora__blob -right-20 -bottom-28 h-96 w-[28rem] bg-[#b59cff] [--aurora-opacity:0.5] [--drift-delay:-8s]" />
+          <span className="aurora__grid [--grid-line:rgb(255_255_255/0.08)]" />
+        </div>
+
+        <div className="relative grid items-center gap-2 px-6 py-12 sm:px-12 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
+          <div>
+            <h2 className="text-3xl leading-tight font-black tracking-tight text-balance text-white sm:text-4xl lg:text-[2.6rem]">
+              <TwoTone text={t.final.title} />
+            </h2>
+            <p className="mt-3 max-w-md text-base text-white/85">{t.final.body}</p>
+            <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <Link
+                to="/signin"
+                className="raised inline-flex h-14 items-center justify-center gap-2 rounded-[var(--radius-control)] bg-white px-7 text-base font-extrabold whitespace-nowrap text-[#1f5fd6] [--depth:rgb(19_60_160/0.35)] [--edge:5px] [--glow:rgb(19_60_160/0.3)] sm:px-9"
+              >
+                {t.final.cta}
+                <ArrowRight aria-hidden="true" strokeWidth={2.2} className="size-[18px]" />
+              </Link>
+              <Link to="/signin" className="text-sm font-bold text-white/90 hover:text-white hover:underline">
+                {t.final.signIn}
+              </Link>
+            </div>
+          </div>
+          <div className="relative hidden justify-center lg:flex">
+            <span aria-hidden="true" className="absolute top-1/2 left-1/2 size-72 -translate-1/2 rounded-full border border-white/25 bg-white/10 backdrop-blur-md" />
+            <img
+              src="/characters/panda.webp"
+              alt=""
+              aria-hidden="true"
+              className="float relative h-64 w-auto drop-shadow-[0_24px_30px_rgb(18_30_90/0.4)]"
+            />
+          </div>
+        </div>
+      </m.div>
+    </section>
   )
 }
 
@@ -916,7 +1523,7 @@ function Footer() {
   ]
 
   return (
-    <footer className="relative overflow-hidden border-t border-hairline bg-ground-sunken/50">
+    <footer className="relative overflow-hidden border-t border-hairline bg-[var(--glass-bg)]">
       {/* A faint Moscow skyline watermark in the corner, the way the reference closes the page. */}
       <div aria-hidden="true" className="pointer-events-none absolute right-0 bottom-0 text-signal opacity-[0.09]">
         <Skyline />
@@ -1059,16 +1666,15 @@ function Skyline() {
 
 /* --------------------------------------------------------------------------- shared */
 
+/** A section's label: a small glass chip with a spark, so every section opens the same way. */
 function SectionEyebrow({ children, center = false }: { children: ReactNode; center?: boolean }) {
   return (
-    <p
-      className={cx(
-        'text-xs font-extrabold tracking-[0.14em] text-signal-ink uppercase',
-        center && 'text-center',
-      )}
-    >
-      {children}
-    </p>
+    <div className={cx('flex', center && 'justify-center')}>
+      <p className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-extrabold tracking-[0.14em] text-signal-ink uppercase">
+        <Sparkles aria-hidden="true" strokeWidth={0} className="size-3.5 fill-current" />
+        {children}
+      </p>
+    </div>
   )
 }
 
