@@ -210,6 +210,7 @@ function installSpeech({ locale, unsupported, theme = 'light' }) {
   localStorage.setItem('rgg.access', 'local-speaking-games-test-only')
   localStorage.setItem('rgg.locale', locale)
   localStorage.setItem('rgg.audio-muted', 'true')
+  localStorage.setItem('rgg.install.never', 'true')
   localStorage.setItem('rgg.theme', theme)
   const instances = []
   const emit = (recognition, text, final) => {

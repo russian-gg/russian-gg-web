@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, Headphones } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Spinner } from '../../../components/ui'
 import { Select } from '../../../components/forms/Select'
@@ -11,6 +12,7 @@ import { copies, gameLabels, isSpeakingGame, type GameCopy, type GameSlug } from
 import { CharacterNote, CompanionPicker, GameMark, MicMark, ReactionScene, Timer, type Companion } from './visuals'
 import { Feedback, Results, Statistics } from './Results'
 import { Evidence, MysteryMap } from './MysteryMap'
+import { ErrorHuntProgress, ErrorHuntScene } from './ErrorHuntScene'
 
 function gameError(caught: unknown, copy: GameCopy) {
   if (!(caught instanceof RequestError)) return caught instanceof TypeError ? copy.connectionError : copy.error
@@ -376,13 +378,14 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
         {session?.status === 'completed' && <><Results session={session} copy={copy} onAgain={again} /><Statistics slug={slug} copy={copy} dashboard={dashboard} /></>}
         {session && session.status !== 'completed' && <>
           <div className="sg-hud"><span>{isMystery ? copy.questions : copy.rounds} {Math.min(session.roundIndex + 1, session.totalRounds)} / {session.totalRounds}</span><span>{copy.score} <strong>{session.score}</strong></span></div>
-          {!isMystery && <div className="sg-progress"><span style={{ width: `${session.history.length / session.totalRounds * 100}%` }} /></div>}
+          {!isMystery && slug !== 'error-hunt' && <div className="sg-progress"><span style={{ width: `${session.history.length / session.totalRounds * 100}%` }} /></div>}
           {showMap ? <MysteryMap session={session} copy={copy} busy={busy} visit={(id) => void command(session.status === 'feedback' ? 'next' : 'visit', id)} accuse={() => void enterAccusation()} /> : <>
-            <div className="sg-board">
+            <div className="sg-board" data-listening={slug === 'error-hunt' ? answering && speechStatus === 'listening' : undefined}>
               {isMystery && <button disabled={busy || answering} onClick={() => { speech.abort(); stopAudio(); setLocation(null); setAccusing(false) }} className="mb-5 text-sm font-bold text-signal-ink">← {copy.leave}</button>}
               {slug === 'first-reaction' && session.prompt.kind !== 'ready' && <ReactionScene text={session.prompt.textRu} />}
-              {!isMystery && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}
-              <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>
+              <ErrorHuntScene enabled={slug === 'error-hunt'} session={session} seconds={answering ? seconds : session.durationSeconds} timer={!isMystery && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}>
+                <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>
+              </ErrorHuntScene>
               {locale === 'uz' && session.prompt.titleUz && <p className="sg-muted mb-4">{session.prompt.titleUz}</p>}
               {!answering && !busy && !feedback && !accusing && session.prompt.kind !== 'ready' && <Button variant="ghost" disabled={playingAudio} onClick={() => void playAudio(session, 'prompt')}>{playingAudio ? copy.loading : copy.listen}</Button>}
               {!feedback && <>
@@ -395,17 +398,18 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
                   {answering || pending ? <>
                     {!textMode && speechStatus !== 'listening' && !busy && !pending && <button className="sg-mic" aria-label={copy.speak} onClick={() => void begin()}><MicMark /></button>}
                     <Button size="lg" disabled={busy || retryExhausted} onClick={() => void submit()}>{busy ? copy.saving : pending ? copy.retry : slug === 'tez-gapir' ? copy.stop : copy.submit}</Button>
-                  </> : <Button size="lg" disabled={busy || (!textMode && !speech.supported)} onClick={() => void begin()}><MicMark />{busy ? copy.preparing : copy.speak}</Button>}
+                  </> : <Button className={slug === 'error-hunt' ? 'eh-speak' : undefined} size="lg" disabled={busy || (!textMode && !speech.supported)} onClick={() => void begin()}><MicMark />{busy ? copy.preparing : copy.speak}</Button>}
                 </div>
                 {answering && speechStatus === 'listening' && <p className="sg-status" role="status">{copy.listening}</p>}
                 {slug === 'tez-gapir' && answering && !transcript && seconds < session.durationSeconds - 3 && <p className="sg-muted">{copy.silence}</p>}
               </>}
-              {feedback && <><CharacterNote game={slug} companion={isMystery ? session.locations.find((item) => item.id === location)?.character ?? session.character : session.character}>{isMystery ? feedback.explanation : feedback.characterPhrase}</CharacterNote><Feedback feedback={feedback} copy={copy} hideExplanation={isMystery} languageOnly={languageOnly} /><div className="sg-actions"><Button variant="secondary" disabled={busy || playingAudio} onClick={() => void playAudio(session, 'feedback')}>{copy.listen}</Button><Button size="lg" disabled={busy} onClick={() => void command('next', location ?? undefined)}>{copy.next}</Button></div></>}
+              {feedback && <><CharacterNote game={slug} companion={isMystery ? session.locations.find((item) => item.id === location)?.character ?? session.character : session.character}>{isMystery ? feedback.explanation : feedback.characterPhrase}</CharacterNote><Feedback feedback={feedback} copy={copy} hideExplanation={isMystery} languageOnly={languageOnly} /><div className="sg-actions"><Button variant="secondary" disabled={busy || playingAudio} onClick={() => void playAudio(session, 'feedback')}>{slug === 'error-hunt' && <Headphones size={18} aria-hidden="true" />}{copy.listen}</Button><Button size="lg" disabled={busy} onClick={() => void command('next', location ?? undefined)}>{copy.next}{slug === 'error-hunt' && <ArrowRight size={18} aria-hidden="true" />}</Button></div></>}
               {audioFailed && <p className="sg-muted mt-4" role="status">{copy.audioFailed}</p>}
               {isMystery && session.history.length > 0 && <div className="sg-dialogue" aria-label={copy.history}>{session.history.filter((turn) => turn.locationId === location).map((turn, index) => <div key={index}><blockquote data-speaker="player"><small>{copy.answer}</small><span lang="ru">{turn.feedback.answer}</span></blockquote><blockquote className="mt-2" lang="ru">{turn.feedback.explanation}</blockquote></div>)}</div>}
             </div>
             {isMystery && <div className="mt-8"><Evidence session={session} copy={copy} /></div>}
           </>}
+          {slug === 'error-hunt' && <ErrorHuntProgress session={session} copy={copy} />}
           {(!answering || pending) && <div className="mt-10 text-center"><Button variant="ghost" disabled={busy} onClick={() => { if (window.confirm(copy.endConfirm)) void command('end') }}>{copy.finish}</Button></div>}
         </>}
       </>}

@@ -8,10 +8,10 @@ export function Feedback({ feedback, copy, hideExplanation = false, languageOnly
   const names: Record<string, string> = { speed: copy.speed, fast: copy.speed, relevance: copy.relevance, relevant: copy.relevance, grammar: copy.grammar, emotion: copy.emotion, emotional: copy.emotion, bonus: copy.bonus, lesson: copy.lessonBonus }
   const legacyExplanation = languageOnly && feedback.explanation.startsWith('Слова проверены по тематическому словарю:')
   const explanation = legacyExplanation ? copy.legacyFeedback : feedback.explanation
-  return <section className="sg-feedback" aria-label={copy.review}>
-    <h2>{copy.answer}</h2><p lang="ru">{feedback.answer || copy.noAnswer}</p>
-    {feedback.correctAnswer && <><h2 className="mt-5">{copy.correct}</h2><p lang="ru">{feedback.correctAnswer}</p></>}
-    {explanation && !hideExplanation && <><h2 className="mt-5">{copy.explanation}</h2><p lang={legacyExplanation ? undefined : languageOnly ? 'uz' : 'ru'} className="whitespace-pre-line">{explanation}</p></>}
+  return <section className="sg-feedback" aria-label={copy.review} data-correct={feedback.correct} data-answered={Boolean(feedback.answer.trim())}>
+    <h2>{copy.answer}</h2><p className="sg-feedback-answer" lang="ru">{feedback.answer || copy.noAnswer}</p>
+    {feedback.correctAnswer && <><h2 className="mt-5">{copy.correct}</h2><p className="sg-feedback-correction" lang="ru">{feedback.correctAnswer}</p></>}
+    {explanation && !hideExplanation && <><h2 className="mt-5">{copy.explanation}</h2><p lang={legacyExplanation ? undefined : languageOnly ? 'uz' : 'ru'} className="sg-feedback-explanation whitespace-pre-line">{explanation}</p></>}
     {!languageOnly && <><div className="sg-criteria">{feedback.criteria.map((criterion, index) => <span key={`${criterion.code}-${index}`} className="sg-chip" data-positive={criterion.passed}>
       {names[criterion.code] ?? criterion.label} <strong>{criterion.points > 0 ? '+' : ''}{criterion.points}</strong>
     </span>)}</div>
