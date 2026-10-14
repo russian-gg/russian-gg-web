@@ -659,9 +659,10 @@ async function checkFeedback(h, text = ANSWER) {
   assert.equal(h.session().status, 'feedback')
   assert.ok((await panel.innerText()).includes(text))
   assert.ok((await h.page.locator('.sg-board').innerText()).includes('Mock explanation'))
-  assert.equal(await panel.locator('[data-positive="true"]').count(), h.options.slug === 'tez-gapir' ? 0 : 4)
-  assert.equal(await panel.locator('[data-positive="false"]').count(), h.options.slug === 'tez-gapir' ? 0 : 1)
-  if (h.options.slug === 'tez-gapir') assert.doesNotMatch(await panel.innerText(), /[+\-−]\d|Score:/)
+  const languageOnly = ['tez-gapir', 'error-hunt'].includes(h.options.slug)
+  assert.equal(await panel.locator('[data-positive="true"]').count(), languageOnly ? 0 : 4)
+  assert.equal(await panel.locator('[data-positive="false"]').count(), languageOnly ? 0 : 1)
+  if (languageOnly) assert.doesNotMatch(await panel.innerText(), /[+\-−]\d|Score:/)
   const nexts = h.calls('next').length
   const version = h.session().version
   await h.page.clock.fastForward(65000)
@@ -683,7 +684,7 @@ for (const size of Object.keys(SIZES)) {
         const portraits = h.page.locator('.sg-companions img')
         assert.equal(await portraits.count(), 3)
         for (const portrait of await portraits.all()) {
-          assert.match(await portrait.getAttribute('src'), slug === 'tez-gapir'
+          assert.match(await portrait.getAttribute('src'), ['tez-gapir', 'error-hunt'].includes(slug)
             ? /^\/games\/characters\/(penguin|panda|pero)\.webp$/
             : /^\/characters\/(pingvin|panda|pero)\.webp$/)
           await portrait.evaluate((image) => image.decode())
@@ -1191,12 +1192,94 @@ scenario('Android tez submits one transcript instead of cumulative hypotheses', 
 
 const languageCorrection = "«он 4 лет» o'rniga «ему 4 года» deng: yoshni aytishda «ему», 4 dan keyin «года» ishlatiladi."
 const tezCharacterPhrase = "Javobingiz tahlilini ko'rib chiqing."
+for (const size of Object.keys(SIZES)) {
+  for (const speakAt of [1, 5, 9.9]) {
+    scenario(`error-hunt accepts speech at second ${speakAt} and waits for finalization ${size}`, { slug: 'error-hunt', size, android: size === 'mobile', roundScores: [2] }, async (h) => {
+      await h.start()
+      await beginVoice(h)
+      const deadline = h.session().deadlineUtc
+      await h.page.clock.fastForward(speakAt * 1000)
+      await h.page.evaluate(() => {
+        window.__gameSpeech.result('Моя', false)
+        window.__gameSpeech.finalOnStop('Моя мама', 3000)
+      })
+      await h.page.clock.fastForward((10 - speakAt) * 1000 + 250)
+      const recordings = await h.page.evaluate(() => window.__gameSpeech.snapshot())
+      assert.equal(recordings.at(-1).stops, 1)
+      assert.equal(recordings.at(-1).active, false)
+      assert.equal(h.session().deadlineUtc, deadline)
+      assert.equal(h.calls('answer').length, 0)
+      await h.page.clock.fastForward(1250)
+      assert.equal(h.calls('answer').length, 0)
+      await h.page.clock.fastForward(2000)
+      await until(() => h.calls('answer').length === 1, 'last-second correction must be submitted once')
+      assert.equal(h.calls('answer')[0].body.text, 'Моя мама')
+      await checkFeedback(h, 'Моя мама')
+      assert.equal(await h.page.locator('.sg-hud strong').innerText(), '2')
+    })
+  }
+}
+
+for (const confidence of [0, undefined]) {
+  scenario(`error-hunt Android cumulative corrections are not repeated confidence=${confidence}`, { slug: 'error-hunt', size: 'mobile', android: true }, async (h) => {
+    await h.start()
+    for (const hypotheses of [['Моя', 'Моя мама'], ['Я', 'Я хочу', 'Я хочу стать', 'Я хочу стать врачом']]) {
+      await beginVoice(h)
+      await h.page.evaluate(({ hypotheses, confidence }) => {
+        const entries = []
+        for (const text of hypotheses) {
+          entries.push([text, confidence])
+          window.__gameSpeech.results(entries)
+        }
+      }, { hypotheses, confidence })
+      assert.equal(await h.page.locator('.sg-transcript div[lang="ru"]').innerText(), hypotheses.at(-1))
+      const count = h.calls('answer').length
+      await button(h.page, 'Submit answer').click()
+      await until(() => h.calls('answer').length === count + 1, 'submit correction')
+      assert.equal(h.calls('answer').at(-1).body.text, hypotheses.at(-1))
+      await checkFeedback(h, hypotheses.at(-1))
+      await button(h.page, 'Next').click()
+    }
+  })
+}
+
+for (const locale of Object.keys(COPY)) {
+  scenario(`error-hunt rules omit timing and point arithmetic ${locale}`, { slug: 'error-hunt', locale }, async (h) => {
+    await h.open()
+    assert.doesNotMatch(await h.page.locator('.sg-rules').innerText(), /10|[+\-−]\d/)
+  })
+  const review = makeSession('error-hunt', {
+    status: 'feedback', score: 2, availableActions: ['next', 'end'],
+    feedback: { ...feedback('Моя мама'), points: 2, correctAnswer: 'Моя мама.', explanation: '«мама» ayol jinsiga mansub, shuning uchun «моя» ishlatiladi.', characterPhrase: tezCharacterPhrase },
+  })
+  review.history = [{ roundIndex: 0, prompt: prompt('error-hunt'), feedback: clone(review.feedback) }]
+  scenario(`error-hunt Uzbek feedback and saved review omit added deducted points ${locale}`, { slug: 'error-hunt', locale, saved: review }, async (h) => {
+    await h.open(`?session=${review.id}`)
+    const panel = h.page.locator('.sg-feedback')
+    assert.equal(await panel.locator('p[lang="uz"]').innerText(), review.feedback.explanation)
+    assert.equal(await h.page.locator('.sg-character-note [lang="uz"]').innerText(), tezCharacterPhrase)
+    assert.equal(await panel.locator('.sg-chip').count(), 0)
+    assert.doesNotMatch(await panel.innerText(), /[+\-−]\d/)
+    await screenshot(h.page, `error-hunt-uzbek-feedback-${locale}`)
+    complete(h.session())
+    await h.page.reload()
+    await h.page.locator('.sg-score-big').waitFor()
+    assert.equal(await h.page.locator('.sg-score-big').innerText(), '2')
+    const history = h.page.locator('details').first()
+    assert.doesNotMatch(await history.locator('summary').innerText(), /[+\-−]\d/)
+    await history.locator('summary').click()
+    assert.equal(await history.locator('p[lang="uz"]').innerText(), review.feedback.explanation)
+    assert.equal(await history.locator('.sg-chip').count(), 0)
+    assert.doesNotMatch(await history.innerText(), /[+\-−]\d/)
+  })
+}
+
 for (const slug of SLUGS) {
   for (const companion of ['penguin', 'panda', 'pero']) {
     scenario(`companion artwork isolated ${slug} ${companion}`, { slug, saved: makeSession(slug, {
       status: 'feedback', character: companion, feedback: feedback(ANSWER), availableActions: ['next', 'end'],
     }) }, async (h) => {
-      const expected = slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
+      const expected = ['tez-gapir', 'error-hunt'].includes(slug) ? `/games/characters/${companion}.webp`
         : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
       await h.open(`?session=${h.session().id}`)
       const portrait = h.page.locator('.sg-character-note img')

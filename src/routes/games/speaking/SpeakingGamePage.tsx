@@ -36,6 +36,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const { locale } = useLocale()
   const copy = copies[locale]
   const label = gameLabels[slug][locale]
+  const languageOnly = slug === 'tez-gapir' || slug === 'error-hunt'
   const [search, setSearch] = useSearchParams()
   const initialId = useRef(search.get('session'))
   const [catalog, setCatalog] = useState<SpeakingGame | null>(null)
@@ -263,7 +264,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     if (!pendingAnswer.current) {
       busyRef.current = true
       setBusy(true)
-      const answer = textMode ? typed.trim() : await speech.finish(slug === 'tez-gapir' ? 5000 : undefined)
+      const answer = textMode ? typed.trim() : await speech.finish(languageOnly ? 5000 : undefined)
       if (!alive.current) return
       pendingAnswer.current = {
         id: value.id,
@@ -398,7 +399,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
                 {answering && speechStatus === 'listening' && <p className="sg-status" role="status">{copy.listening}</p>}
                 {slug === 'tez-gapir' && answering && !transcript && seconds < session.durationSeconds - 3 && <p className="sg-muted">{copy.silence}</p>}
               </>}
-              {feedback && <><CharacterNote game={slug} companion={isMystery ? session.locations.find((item) => item.id === location)?.character ?? session.character : session.character}>{isMystery ? feedback.explanation : feedback.characterPhrase}</CharacterNote><Feedback feedback={feedback} copy={copy} hideExplanation={isMystery} languageOnly={slug === 'tez-gapir'} /><div className="sg-actions"><Button variant="secondary" disabled={busy || playingAudio} onClick={() => void playAudio(session, 'feedback')}>{copy.listen}</Button><Button size="lg" disabled={busy} onClick={() => void command('next', location ?? undefined)}>{copy.next}</Button></div></>}
+              {feedback && <><CharacterNote game={slug} companion={isMystery ? session.locations.find((item) => item.id === location)?.character ?? session.character : session.character}>{isMystery ? feedback.explanation : feedback.characterPhrase}</CharacterNote><Feedback feedback={feedback} copy={copy} hideExplanation={isMystery} languageOnly={languageOnly} /><div className="sg-actions"><Button variant="secondary" disabled={busy || playingAudio} onClick={() => void playAudio(session, 'feedback')}>{copy.listen}</Button><Button size="lg" disabled={busy} onClick={() => void command('next', location ?? undefined)}>{copy.next}</Button></div></>}
               {audioFailed && <p className="sg-muted mt-4" role="status">{copy.audioFailed}</p>}
               {isMystery && session.history.length > 0 && <div className="sg-dialogue" aria-label={copy.history}>{session.history.filter((turn) => turn.locationId === location).map((turn, index) => <div key={index}><blockquote data-speaker="player"><small>{copy.answer}</small><span lang="ru">{turn.feedback.answer}</span></blockquote><blockquote className="mt-2" lang="ru">{turn.feedback.explanation}</blockquote></div>)}</div>}
             </div>

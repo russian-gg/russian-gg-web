@@ -4,7 +4,7 @@ import type { GameCopy, GameSlug } from './copy'
 import './speaking-games.css'
 
 export type Companion = 'penguin' | 'panda' | 'pero'
-const companionImage = (companion: Companion, game?: GameSlug) => game === 'tez-gapir' ? `/games/characters/${companion}.webp` : mascotImage(companion)
+const companionImage = (companion: Companion, game?: GameSlug) => game === 'tez-gapir' || game === 'error-hunt' ? `/games/characters/${companion}.webp` : mascotImage(companion)
 
 export function GameMark({ game, className = '' }: { game: GameSlug; className?: string }) {
   return <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
@@ -43,7 +43,7 @@ export function CharacterPortrait({ character, game }: { character: string; game
 }
 
 export function CharacterNote({ companion, children, game }: { companion: string; children: ReactNode; game: GameSlug }) {
-  return <div className="sg-character-note"><CharacterPortrait character={companion} game={game} /><div lang={game === 'tez-gapir' ? 'uz' : 'ru'}>{children}</div></div>
+  return <div className="sg-character-note"><CharacterPortrait character={companion} game={game} /><div lang={game === 'tez-gapir' || game === 'error-hunt' ? 'uz' : 'ru'}>{children}</div></div>
 }
 
 export function ReactionScene({ text }: { text: string }) {

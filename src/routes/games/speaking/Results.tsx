@@ -38,6 +38,7 @@ export function City({ points, objects, copy }: { points: number; objects: strin
 
 export function Results({ session, copy, onAgain }: { session: GameSession; copy: GameCopy; onAgain: () => void }) {
   const summary = session.summary
+  const languageOnly = session.gameSlug === 'tez-gapir' || session.gameSlug === 'error-hunt'
   return <div className="sg-board">
     <p className="sg-muted">{copy.saved}</p>
     <h1 className="sg-prompt">{summary?.won === true ? copy.solved : summary?.won === false ? copy.unsolved : copy.completed}</h1>
@@ -48,7 +49,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
     <div className="sg-actions"><Button onClick={onAgain} size="lg">{copy.again}</Button></div>
     {session.achievements.length > 0 && <section className="mt-8 text-left"><h2 className="text-base font-extrabold">{copy.achievements}</h2><div className="sg-achievements">{session.achievements.map((achievement) => <span key={achievement.code} lang="ru">{achievement.titleRu} +{achievement.reward}</span>)}</div></section>}
     {summary && session.gameSlug !== 'tez-gapir' && <City points={summary.cityPoints} objects={summary.cityObjects} copy={copy} />}
-    <section className="mt-8 text-left"><h2 className="text-xl font-extrabold">{copy.review}</h2>{session.history.map((turn, index) => <details key={`${turn.roundIndex}-${index}`} className="mt-3 rounded-2xl border border-hairline p-4"><summary className="cursor-pointer text-sm font-bold" lang="ru">{turn.prompt.textRu} {session.gameSlug !== 'tez-gapir' && <span className="ml-2">{turn.feedback.points > 0 ? '+' : ''}{turn.feedback.points}</span>}</summary><Feedback feedback={turn.feedback} copy={copy} languageOnly={session.gameSlug === 'tez-gapir'} /></details>)}</section>
+    <section className="mt-8 text-left"><h2 className="text-xl font-extrabold">{copy.review}</h2>{session.history.map((turn, index) => <details key={`${turn.roundIndex}-${index}`} className="mt-3 rounded-2xl border border-hairline p-4"><summary className="cursor-pointer text-sm font-bold" lang="ru">{turn.prompt.textRu} {!languageOnly && <span className="ml-2">{turn.feedback.points > 0 ? '+' : ''}{turn.feedback.points}</span>}</summary><Feedback feedback={turn.feedback} copy={copy} languageOnly={languageOnly} /></details>)}</section>
   </div>
 }
 

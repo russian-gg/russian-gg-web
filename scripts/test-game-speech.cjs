@@ -272,6 +272,36 @@ test('Android confirmed repeated words and phrases remain legitimate speech', as
   assert.equal(h.speech.transcript, 'yes yes my family my family')
 })
 
+for (const confidence of [0, undefined]) {
+  for (const hypotheses of [
+    ['Моя', 'Моя мама'],
+    ['Я', 'Я хочу', 'Я хочу стать', 'Я хочу стать', 'Я хочу стать врачом'],
+  ]) {
+    test(`Error hunt keeps one Russian correction with Android confidence=${confidence}: ${hypotheses.at(-1)}`, async (t) => {
+      const h = harness(t, { android: true })
+      const recognition = await h.listen()
+      const entries = []
+      for (const text of hypotheses) {
+        entries.push([text, true, 0])
+        const event = resultEvent(entries, entries.length - 1)
+        if (confidence === undefined) {
+          for (let i = 0; i < event.results.length; i++) delete event.results[i][0].confidence
+        }
+        recognition.onresult(event)
+        assert.equal(h.texts.at(-1), text)
+      }
+      const finish = observe(h.speech.finish(5000))
+      await h.clock.advance(3000)
+      entries.push([hypotheses.at(-1), true, 0.9])
+      recognition.emitResults(entries, entries.length - 1)
+      recognition.emitEnd()
+      await flush()
+      assert.equal(finish.value, hypotheses.at(-1))
+      assert.equal(recognition.active, false)
+    })
+  }
+}
+
 test('Android restart does not carry cumulative hypothesis history into the next utterance', async (t) => {
   const h = harness(t, { android: true })
   const first = await h.listen()

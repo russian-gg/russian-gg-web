@@ -92,7 +92,7 @@ export class GameSpeech {
           const result = event.results[i]
           const text = result[0]?.transcript.trim()
           if (!text) continue
-          const provisionalAndroidResult = android && result.isFinal && result[0]?.confidence === 0
+          const provisionalAndroidResult = android && result.isFinal && (result[0]?.confidence ?? 0) === 0
           if (result.isFinal && !provisionalAndroidResult) {
             if (!received.has(i)) {
               received.add(i)

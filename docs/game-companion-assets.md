@@ -1,6 +1,6 @@
 # Game companion assets
 
-These Tez gapir-only assets were generated with the built-in image generation tool from the existing lesson mascot references. Other games and lessons keep their original source images. Outputs were converted to 512px WebP with alpha preserved for lightweight UI use.
+These game assets were generated with the built-in image generation tool from the existing lesson mascot references. Tez gapir and Error hunt share them, preserving the same Penguin, Panda and Pero identities. Other games and lessons keep their original source images. Outputs were converted to 512px WebP with alpha preserved for lightweight UI use.
 
 ## penguin
 
