@@ -17,10 +17,8 @@ export function ErrorHuntScene({ enabled, session, seconds, timer, children }: {
   return <div className="eh-scene" data-result={resultTone(session.feedback)} data-ready={session.prompt.kind === 'ready'}>
     <div className="eh-stage-grid" aria-hidden="true" />
     <div className="eh-countdown" data-tone={seconds <= 3 ? 'urgent' : seconds <= 6 ? 'warning' : 'calm'}>{timer}</div>
-    <div className="eh-cast" aria-hidden="true">
-      {(['penguin', 'panda', 'pero'] as const).map((character) => <div key={character} className={`eh-mascot eh-mascot-${character}`} data-selected={session.character === character}>
-        <img src={`/games/error-hunt/characters/${character}.webp`} alt="" width="512" height="512" />
-      </div>)}
+    <div className="eh-mascot" aria-hidden="true">
+      <img src={`/games/error-hunt/characters/${session.character}.webp`} alt="" width="512" height="512" />
     </div>
     <div className="eh-hologram" key={session.prompt.id}>
       <span className="eh-signal" aria-hidden="true"><i /><i /><i /></span>

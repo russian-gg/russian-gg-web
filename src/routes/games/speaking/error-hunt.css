@@ -107,7 +107,7 @@
 .sg[data-game="error-hunt"] .sg-hud strong { margin-left: 7px; color: #ffd600; font-size: 28px; }
 .sg[data-game="error-hunt"] .sg-board { max-width: 900px; }
 
-.eh-scene { position: relative; isolation: isolate; padding: 125px 140px 46px; }
+.eh-scene { position: relative; isolation: isolate; padding: 125px 140px 12px; }
 .eh-stage-grid {
   position: absolute;
   inset: 25% 0 0;
@@ -136,16 +136,9 @@
 .sg[data-game="error-hunt"] .eh-countdown[data-tone="warning"] .sg-timer-star { fill: #463622; stroke: #ffd600; filter: drop-shadow(0 0 8px #ffd60035); }
 .sg[data-game="error-hunt"] .eh-countdown[data-tone="urgent"] .sg-timer { color: #ffb9d0; }
 .sg[data-game="error-hunt"] .eh-countdown[data-tone="urgent"] .sg-timer-star { fill: #4a203e; stroke: #ff4081; filter: drop-shadow(0 0 10px #ff408155); }
-.eh-cast { pointer-events: none; }
-.eh-mascot { position: absolute; width: 132px; filter: drop-shadow(0 10px 15px #06020c70); }
+.eh-mascot { position: absolute; width: 78px; top: 14px; left: calc(50% - 39px); pointer-events: none; filter: drop-shadow(0 10px 15px #06020c70); transform-origin: top center; animation: eh-sway 6s ease-in-out infinite; }
 .eh-mascot img { display: block; width: 100%; height: auto; object-fit: contain; }
-.eh-mascot::after { content: ''; position: absolute; width: 70%; height: 9px; bottom: 1px; left: 15%; background: #a78bfa25; border-radius: 50%; box-shadow: 0 0 16px #a78bfa30; }
-.eh-mascot[data-selected="true"]::after { background: #00e67635; box-shadow: 0 0 20px #00e67635; }
-.eh-mascot-penguin { left: 0; bottom: 16px; transform: rotate(-4deg); }
-.eh-mascot-panda { right: 0; bottom: 16px; transform: rotate(4deg); }
-.eh-mascot-pero { width: 78px; top: 14px; left: calc(50% - 39px); transform-origin: top center; animation: eh-sway 6s ease-in-out infinite; }
-.eh-mascot-pero::before { content: ''; position: absolute; bottom: 93%; height: 22px; width: 1px; left: 50%; background: #d2bafc66; }
-.eh-mascot-pero::after { display: none; }
+.eh-mascot::before { content: ''; position: absolute; bottom: 93%; height: 22px; width: 1px; left: 50%; background: #d2bafc66; }
 .eh-hologram {
   --eh-glow: #ff4081;
   position: relative;
@@ -163,8 +156,8 @@
 .eh-scene[data-ready="true"] .eh-hologram { --eh-glow: #a78bfa; }
 .eh-scene[data-result="correct"] .eh-hologram { --eh-glow: #00e676; }
 .eh-scene[data-result="unanswered"] .eh-hologram { --eh-glow: #b0bec5; }
-.eh-scene[data-result="correct"] .eh-mascot[data-selected="true"] img { animation: eh-nod .6s ease-out; }
-.eh-scene[data-result="review"] .eh-mascot[data-selected="true"] img { animation: eh-shake .5s ease-out; }
+.eh-scene[data-result="correct"] .eh-mascot img { animation: eh-nod .6s ease-out; }
+.eh-scene[data-result="review"] .eh-mascot img { animation: eh-shake .5s ease-out; }
 .eh-signal { position: absolute; top: 16px; left: 20px; display: flex; gap: 5px; }
 .eh-signal i { width: 4px; height: 4px; background: var(--eh-glow); border-radius: 50%; }
 .eh-signal i:nth-child(2) { opacity: .55; }.eh-signal i:nth-child(3) { opacity: .25; }
@@ -249,16 +242,14 @@
   .sg[data-game="error-hunt"] .sg-companions legend { font-size: 15px; }
   .sg[data-game="error-hunt"] .sg-hud { padding: 8px 14px; margin-bottom: 6px; border-radius: 14px; }
   .sg[data-game="error-hunt"] .sg-hud strong { font-size: 25px; }
-  .eh-scene { padding: 96px 0 88px; }
+  .eh-scene { padding: 96px 0 8px; }
   .eh-hologram { min-height: 130px; padding: 30px 20px 24px; border-radius: 20px; }
   .sg[data-game="error-hunt"] .eh-hologram .sg-prompt { font-size: 28px; }
   .eh-countdown { top: 0; right: 4px; }
   .sg[data-game="error-hunt"] .eh-countdown .sg-timer-starred { width: 94px; height: 94px; }
   .sg[data-game="error-hunt"] .sg-timer strong { font-size: 23px; }
   .sg[data-game="error-hunt"] .sg-timer small { font-size: 9px; }
-  .eh-mascot-penguin { width: 88px; left: 14px; bottom: 0; }
-  .eh-mascot-panda { width: 80px; right: 14px; bottom: 0; }
-  .eh-mascot-pero { width: 62px; top: 18px; left: 20px; }
+  .eh-mascot { width: 62px; top: 18px; left: 20px; }
   .sg[data-game="error-hunt"] .sg-actions { margin-top: 16px; gap: 12px; }
   .sg[data-game="error-hunt"] .sg-actions .eh-speak { width: 112px; height: 112px; }
   .sg[data-game="error-hunt"] .sg-transcript { margin-top: 12px; padding: 14px 18px; }
