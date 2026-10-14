@@ -223,6 +223,43 @@
 .sg[data-game="error-hunt"] details { border-color: #b79adb35; background: #ffffff03; }
 .sg[data-game="error-hunt"] details .sg-feedback { margin-top: 16px; }
 
+.eh-treasure {
+  max-width: 620px;
+  margin: 28px auto 0;
+  padding: 24px 18px;
+  border: 1px solid #ffd66035;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at 50% 70%, #ffd6600c, transparent 65%), #ffffff03;
+  text-align: center;
+}
+.eh-treasure h2 { font-size: 18px; font-weight: 900; color: #fff1ba; }
+.eh-treasure > p { color: #cfc3de; font-size: 14px; line-height: 1.6; }
+.eh-treasure-stage { position: relative; width: min(100%, 280px); height: 260px; margin: 4px auto; }
+.eh-treasure-trigger { position: relative; display: block; width: 100%; height: 100%; border-radius: 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eh-treasure-trigger > svg { position: absolute; width: min(100%, 240px); height: 200px; bottom: 0; left: 50%; transform: translateX(-50%); overflow: visible; filter: drop-shadow(0 6px 12px #08021355); }
+.eh-treasure-lid { transform-box: fill-box; transform-origin: center bottom; transition: transform .65s cubic-bezier(.2,.8,.2,1); }
+.eh-treasure-opening, .eh-treasure-sparkles { opacity: 0; transition: opacity .4s; }
+.eh-treasure-rays {
+  position: absolute;
+  inset: 8px 10px 62px;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: center bottom;
+  background: linear-gradient(0deg, #ffd66099, #ffe7a128 70%, transparent);
+  clip-path: polygon(46% 100%, 0 0, 35% 15%, 47% 0, 65% 18%, 100% 0, 54% 100%);
+}
+.eh-treasure-result { position: absolute; inset: 4px 0 auto; display: grid; justify-items: center; color: #ffe987; pointer-events: none; }
+.eh-treasure-result strong { max-width: 100%; font-size: clamp(34px, 7vw, 46px); font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-shadow: 0 0 24px #ffd60045; }
+.eh-treasure-result span { font-size: 14px; font-weight: 800; }
+.eh-treasure[data-open="true"] .eh-treasure-lid { transform: translateY(-18px) rotate(-10deg); }
+.eh-treasure[data-open="true"] .eh-treasure-opening,
+.eh-treasure[data-open="true"] .eh-treasure-sparkles { opacity: 1; }
+.eh-treasure[data-open="true"] .eh-treasure-rays { opacity: .65; animation: eh-treasure-glow 1.2s ease-out; }
+.eh-treasure[data-open="true"] .eh-treasure-result { animation: eh-treasure-reveal .8s cubic-bezier(.2,.8,.2,1) both; }
+.eh-treasure[data-open="false"] .eh-treasure-trigger:hover .eh-treasure-lid { transform: translateY(-3px); }
+@keyframes eh-treasure-glow { 0% { opacity: 0; transform: scale(.5); } 45% { opacity: .9; } 100% { opacity: .65; transform: scale(1); } }
+@keyframes eh-treasure-reveal { from { opacity: 0; transform: translateY(80px) scale(.6); } to { opacity: 1; transform: none; } }
+
 @keyframes eh-materialize { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes eh-explanation { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes eh-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }

@@ -835,7 +835,20 @@ for (const size of Object.keys(SIZES)) {
       await button(h.page, 'Play again').waitFor()
       assert.equal(h.session().status, 'completed')
       assert.equal(await h.page.locator('.sg-score-big').innerText(), String(total * 7))
-      assert.equal(await h.page.locator('.sg-cityscape').count(), slug === 'tez-gapir' ? 0 : 1)
+      assert.equal(await h.page.locator('.sg-cityscape').count(), ['tez-gapir', 'error-hunt'].includes(slug) ? 0 : 1)
+      if (slug === 'error-hunt') {
+        const chest = h.page.getByRole('region', { name: 'Treasure chest', exact: true })
+        assert.equal(await chest.getByRole('status').innerText(), '')
+        await screenshot(h.page, `error-hunt-chest-closed-${size}`)
+        const calls = h.state.calls.length
+        await chest.getByRole('button', { name: 'Open the chest', exact: true }).click()
+        assert.equal(await chest.locator('.eh-treasure-result strong').innerText(), String(total * 7))
+        assert.equal(await chest.getByRole('button').getAttribute('aria-expanded'), 'true')
+        await screenshot(h.page, `error-hunt-chest-open-${size}`)
+        await chest.getByRole('button').press('Enter')
+        assert.equal(h.session().score, total * 7)
+        assert.equal(h.state.calls.length, calls, 'opening the chest must not submit or award more points')
+      }
       assert.equal(await h.page.locator('details').count(), total)
       await h.page.locator('details summary').first().click()
       assert.ok((await h.page.locator('details').first().innerText()).includes(`${ANSWER} 1`))

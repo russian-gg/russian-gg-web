@@ -3,6 +3,7 @@ import { Button } from '../../../components/ui'
 import { speakingGames, type GameDashboard, type GameFeedback, type GameSession, type LeaderboardEntry } from '../../../lib/speaking-games'
 import type { GameCopy, GameSlug } from './copy'
 import { CharacterNote } from './visuals'
+import { ErrorHuntTreasure } from './ErrorHuntTreasure'
 
 export function Feedback({ feedback, copy, hideExplanation = false, languageOnly = false }: { feedback: GameFeedback; copy: GameCopy; hideExplanation?: boolean; languageOnly?: boolean }) {
   const names: Record<string, string> = { speed: copy.speed, fast: copy.speed, relevance: copy.relevance, relevant: copy.relevance, grammar: copy.grammar, emotion: copy.emotion, emotional: copy.emotion, bonus: copy.bonus, lesson: copy.lessonBonus }
@@ -48,7 +49,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
     {session.feedback?.characterPhrase && <CharacterNote companion={session.character} game={session.gameSlug}>{session.feedback.characterPhrase}</CharacterNote>}
     <div className="sg-actions"><Button onClick={onAgain} size="lg">{copy.again}</Button></div>
     {session.achievements.length > 0 && <section className="mt-8 text-left"><h2 className="text-base font-extrabold">{copy.achievements}</h2><div className="sg-achievements">{session.achievements.map((achievement) => <span key={achievement.code} lang="ru">{achievement.titleRu} +{achievement.reward}</span>)}</div></section>}
-    {summary && session.gameSlug !== 'tez-gapir' && <City points={summary.cityPoints} objects={summary.cityObjects} copy={copy} />}
+    {session.gameSlug === 'error-hunt' ? <ErrorHuntTreasure key={session.id} score={session.score} copy={copy} /> : summary && session.gameSlug !== 'tez-gapir' && <City points={summary.cityPoints} objects={summary.cityObjects} copy={copy} />}
     <section className="mt-8 text-left"><h2 className="text-xl font-extrabold">{copy.review}</h2>{session.history.map((turn, index) => <details key={`${turn.roundIndex}-${index}`} className="mt-3 rounded-2xl border border-hairline p-4"><summary className="cursor-pointer text-sm font-bold" lang="ru">{turn.prompt.textRu} {!languageOnly && <span className="ml-2">{turn.feedback.points > 0 ? '+' : ''}{turn.feedback.points}</span>}</summary><Feedback feedback={turn.feedback} copy={copy} languageOnly={languageOnly} /></details>)}</section>
   </div>
 }
