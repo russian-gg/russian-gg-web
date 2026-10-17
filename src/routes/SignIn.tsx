@@ -13,7 +13,6 @@ import { Reveal, Sequence } from '../components/motion'
 import { collapse, stagger } from '../lib/motion'
 import { RequestError, track } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
-import { needsPhone, skipPhoneLink } from '../lib/country'
 import {
   loadGoogleIdentityScript,
   renderGoogleButton,
@@ -27,10 +26,7 @@ import type { UserProfile } from '../lib/types'
 const DEFAULT_GOOGLE_CLIENT_ID =
   '718388409500-ljra0b5j8j3dpubieljmd228gd1c55p3.apps.googleusercontent.com'
 
-const JUST_LINKED_KEY = 'rgg.justLinked'
-
 function postAuthDestination(user: UserProfile, from?: string) {
-  if (needsPhone(user)) return '/link-phone'
   if (onboardingDraft.exists()) return '/onboarding'
   if (!user.hasCompletedDiagnostic) return '/onboarding'
   return from ?? '/home'
@@ -53,17 +49,6 @@ export function SignIn() {
   const [busy, setBusy] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [justLinked] = useState(() => {
-    try {
-      if (sessionStorage.getItem(JUST_LINKED_KEY)) {
-        sessionStorage.removeItem(JUST_LINKED_KEY)
-        return true
-      }
-    } catch {
-      // The banner is optional; authentication is not.
-    }
-    return false
-  })
 
   const phoneComplete = local.length === 9
 
@@ -74,8 +59,7 @@ export function SignIn() {
     setError(null)
     try {
       const user = await signIn('+998' + local, password)
-      const destination = postAuthDestination(user, returnTo)
-      navigate(destination, { replace: destination !== '/link-phone' })
+      navigate(postAuthDestination(user, returnTo), { replace: true })
     } catch (caught) {
       setError(
         authErrorText(caught, t.auth.signInFailed, {
@@ -98,8 +82,7 @@ export function SignIn() {
     setError(null)
     try {
       const user = await signInWithGoogle(response.credential)
-      const destination = postAuthDestination(user, returnTo)
-      navigate(destination, { replace: destination !== '/link-phone' })
+      navigate(postAuthDestination(user, returnTo), { replace: true })
     } catch (caught) {
       setError(authErrorText(caught, t.auth.googleFailed, {}))
     } finally {
@@ -120,12 +103,6 @@ export function SignIn() {
         </>
       }
     >
-      {justLinked && (
-        <p className="mb-5 rounded-xl bg-milestone-soft px-4 py-3 text-sm font-medium text-milestone">
-          {t.auth.phone.linkedBanner}
-        </p>
-      )}
-
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNote>{error}</ErrorNote>}
         <PhoneNumberInput label={t.auth.phone.label} value={local} onChange={setLocal} />
@@ -264,8 +241,7 @@ export function SignUp() {
       const user = await signInWithGoogle(response.credential)
       track('signup_completed')
       trackMetaRegistration('google')
-      const destination = postAuthDestination(user)
-      navigate(destination, { replace: destination !== '/link-phone' })
+      navigate(postAuthDestination(user), { replace: true })
     } catch (caught) {
       setError(authErrorText(caught, t.auth.googleFailed, {}))
     } finally {
@@ -326,64 +302,15 @@ export function SignUp() {
   )
 }
 
-/**
- * Existing email/Google learners verify a phone once and set its reusable password — or put it
- * off: "later" remembers the choice on this device and lets them through to the product.
- */
-export function LinkPhonePage() {
-  const t = useT()
-  const { user, requestPhoneLink, confirmPhoneLinkCode, completePhoneLink, signOut } = useAuth()
-  const navigate = useNavigate()
-
-  async function finishAndLeave() {
-    try {
-      sessionStorage.setItem(JUST_LINKED_KEY, '1')
-    } catch {
-      // The banner is optional.
-    }
-    await signOut()
-  }
-
-  return (
-    <AuthLayout title={t.auth.phone.linkTitle} subtitle={t.auth.phone.linkSubtitle}>
-      <PhoneCredentialSetupFlow
-        requestCode={requestPhoneLink}
-        confirmCode={confirmPhoneLinkCode}
-        initialDisplayName={user?.displayName ?? ''}
-        completeSetup={async (verificationToken, name, newPassword) => {
-          await completePhoneLink(verificationToken, name, newPassword)
-          await finishAndLeave()
-        }}
-        submitLabel={t.auth.phone.savePhonePassword}
-      />
-
-      {user && (
-        <button
-          type="button"
-          onClick={() => {
-            skipPhoneLink(user)
-            navigate(postAuthDestination(user), { replace: true })
-          }}
-          className="mt-5 block w-full text-center text-sm font-semibold text-ink-muted transition-colors hover:text-ink"
-        >
-          {t.common.later}
-        </button>
-      )}
-    </AuthLayout>
-  )
-}
-
 function PhoneCredentialSetupFlow({
   requestCode,
   confirmCode,
   completeSetup,
-  initialDisplayName = '',
   submitLabel,
 }: {
   requestCode: (phoneE164: string) => Promise<{ resendInSeconds: number }>
   confirmCode: (phoneE164: string, code: string) => Promise<{ verificationToken: string }>
   completeSetup: (verificationToken: string, displayName: string, password: string) => Promise<void>
-  initialDisplayName?: string
   submitLabel: string
 }) {
   const t = useT()
@@ -392,7 +319,7 @@ function PhoneCredentialSetupFlow({
   const [local, setLocal] = useState('')
   const [code, setCode] = useState('')
   const [verificationToken, setVerificationToken] = useState('')
-  const [displayName, setDisplayName] = useState(initialDisplayName)
+  const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)

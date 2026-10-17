@@ -754,18 +754,11 @@ export const ru: Dictionary = {
       resendIn: 'Повторная отправка через {seconds}с',
       changeNumber: 'Изменить номер',
       completeRegistration: 'Завершите регистрацию',
-      savePhonePassword: 'Сохранить и продолжить',
       setupTitle: 'Введите имя и пароль',
       setupSubtitle:
         'Номер телефона подтверждён. Теперь укажите имя и пароль для следующих входов.',
       googleSecondary: 'Продолжить с Google',
       googlePrimaryNote: 'Если вы за границей, войдите через Google.',
-      linkTitle: 'Привяжите номер телефона',
-      linkSubtitle:
-        'Подтвердите номер один раз и установите пароль. Затем входите по номеру и паролю.',
-      linkDoneTitle: 'Номер телефона привязан',
-      linkDoneBody: 'Теперь входите по номеру телефона и паролю.',
-      linkedBanner: 'Номер телефона подтверждён. Теперь войдите по номеру и паролю.',
       continue: 'Продолжить',
       errors: {
         invalid_phone_number: 'Введите корректный номер телефона.',

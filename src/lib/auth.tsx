@@ -131,23 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(false)
         return auth.user
       },
-      requestPhoneLink(phoneNumber) {
-        return api.post<PhoneCodeChallenge>('/auth/phone/link/request', { phoneNumber })
-      },
-      confirmPhoneLinkCode(phoneNumber, code) {
-        return api.post<PhoneVerificationChallenge>('/auth/phone/link/confirm', {
-          phoneNumber,
-          code,
-        })
-      },
-      // The OTP was already confirmed; this one-time token creates the reusable credential.
-      completePhoneLink(verificationToken, displayName, password) {
-        return api.post<UserProfile>('/auth/phone/link/complete', {
-          verificationToken,
-          displayName,
-          password,
-        })
-      },
       async signOut() {
         const refreshToken = tokenStore.refresh()
         if (refreshToken) {

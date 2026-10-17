@@ -28,7 +28,7 @@ const AUTO_ADVANCE_MS = 320
 /** Screens where the learner is mid-lesson or mid-game. The survey waits until they come out. */
 function isBusyPath(pathname: string) {
   if (pathname.startsWith('/missions/')) return !pathname.endsWith('/result')
-  return ['/lessons/', '/games/', '/onboarding', '/link-phone'].some((prefix) => pathname.startsWith(prefix))
+  return ['/lessons/', '/games/', '/onboarding'].some((prefix) => pathname.startsWith(prefix))
 }
 
 /**

@@ -748,18 +748,11 @@ export const en: Dictionary = {
       resendIn: 'Resend in {seconds}s',
       changeNumber: 'Change number',
       completeRegistration: 'Complete registration',
-      savePhonePassword: 'Save and continue',
       setupTitle: 'Enter your name and password',
       setupSubtitle:
         'Your phone number is verified. Now enter your name and a password for future sign-ins.',
       googleSecondary: 'Continue with Google',
       googlePrimaryNote: 'If you are abroad, sign in with Google.',
-      linkTitle: 'Link your phone number',
-      linkSubtitle:
-        'Verify your number once and set a password. Then sign in with your number and password.',
-      linkDoneTitle: 'Phone number linked',
-      linkDoneBody: 'Now sign in with your phone number and password.',
-      linkedBanner: 'Your phone number is confirmed. Now sign in with your number and password.',
       continue: 'Continue',
       errors: {
         invalid_phone_number: 'Enter a valid phone number.',

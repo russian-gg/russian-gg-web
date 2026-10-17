@@ -11,7 +11,6 @@ import { Button, EmptyState, Spinner } from './components/ui'
 import { trackVisit } from './lib/api'
 import { useAuth } from './lib/auth-context'
 import { useT } from './lib/i18n'
-import { needsPhone } from './lib/country'
 import { playUiSound, type UiSound } from './lib/ui-sounds'
 import { Home } from './routes/Home'
 
@@ -65,7 +64,6 @@ const Progress = route(() => import('./routes/Progress'), 'Progress')
 const Settings = route(() => import('./routes/Settings'), 'Settings')
 const SignIn = route(() => import('./routes/SignIn'), 'SignIn')
 const SignUp = route(() => import('./routes/SignIn'), 'SignUp')
-const LinkPhonePage = route(() => import('./routes/SignIn'), 'LinkPhonePage')
 
 export function App() {
   useVisitBeacon()
@@ -97,14 +95,6 @@ export function App() {
               server by a hard per-address limit rather than by a sign-up form here.
             */}
             <Route path="/onboarding" element={<Onboarding />} />
-
-            {/*
-              Phone linking for a signed-in learner who has no confirmed phone (the Google → phone
-              migration). They are sent here once and may put it off. Full screen and outside the
-              shell: linking ends in a sign-out, so there is nothing to navigate to from here.
-            */}
-            <Route path="/link-phone" element={<RequireAuth><LinkPhonePage /></RequireAuth>} />
-
 
             <Route element={<RequireAuth><AppShell /></RequireAuth>}>
               <Route path="/home" element={<Home />} />
@@ -200,10 +190,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (isLoading) return <Spinner />
   if (!user) return <Navigate to="/signin" replace state={{ from: location.pathname }} />
-  // A learner still owing a verified phone links one before reaching anything else.
-  if (needsPhone(user) && location.pathname !== '/link-phone') {
-    return <Navigate to="/link-phone" replace />
-  }
   if (isPendingOnboarding && location.pathname !== '/onboarding') {
     return <Navigate to="/signup" replace state={{ clearPendingOnboarding: true }} />
   }
@@ -235,7 +221,7 @@ function PublicOnly({ children }: { children: ReactNode }) {
 
   if (isLoading) return <Spinner />
   if (isPendingOnboarding) return <>{children}</>
-  if (user && !needsPhone(user)) {
+  if (user) {
     return <Navigate to={user.hasCompletedDiagnostic ? '/home' : '/onboarding'} replace />
   }
 
