@@ -16,14 +16,6 @@ export interface AuthState {
     displayName: string,
     password: string,
   ) => Promise<UserProfile>
-  /** Attach a phone and reusable password to the signed-in account. */
-  requestPhoneLink: (phoneNumber: string) => Promise<PhoneCodeChallenge>
-  confirmPhoneLinkCode: (phoneNumber: string, code: string) => Promise<PhoneVerificationChallenge>
-  completePhoneLink: (
-    verificationToken: string,
-    displayName: string,
-    password: string,
-  ) => Promise<UserProfile>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   completePendingOnboarding: () => Promise<void>

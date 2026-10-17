@@ -774,18 +774,11 @@ export const uz = {
       resendIn: '{seconds}s dan so‘ng qayta yuborish',
       changeNumber: 'Raqamni o‘zgartirish',
       completeRegistration: "Ro'yxatdan o'tishni yakunlash",
-      savePhonePassword: 'Saqlash va davom etish',
       setupTitle: 'Ism va parolni kiriting',
       setupSubtitle:
         "Telefon raqamingiz tasdiqlandi. Endi ism va keyingi kirishlar uchun parol o'rnating.",
       googleSecondary: 'Google bilan davom etish',
       googlePrimaryNote: 'Chet elda bo‘lsangiz, Google bilan kiring.',
-      linkTitle: 'Telefon raqamingizni ulang',
-      linkSubtitle:
-        "Telefon raqamingizni bir marta tasdiqlang va parol o‘rnating. Keyingi safar raqam va parol bilan kirasiz.",
-      linkDoneTitle: 'Telefon raqamingiz ulandi',
-      linkDoneBody: 'Endi telefon raqamingiz va parolingiz orqali kiring.',
-      linkedBanner: 'Telefon raqamingiz tasdiqlandi. Endi raqam va parol bilan kiring.',
       continue: 'Davom etish',
       errors: {
         invalid_phone_number: "To‘g‘ri telefon raqamini kiriting.",
