@@ -20,6 +20,7 @@ import {
   type GoogleCredentialResponse,
 } from '../lib/google-auth'
 import { fill, useT } from '../lib/i18n'
+import { trackMetaRegistration } from '../lib/meta-pixel'
 import { onboardingDraft } from '../lib/onboardingDraft'
 import type { UserProfile } from '../lib/types'
 
@@ -262,6 +263,7 @@ export function SignUp() {
     try {
       const user = await signInWithGoogle(response.credential)
       track('signup_completed')
+      trackMetaRegistration('google')
       const destination = postAuthDestination(user)
       navigate(destination, { replace: destination !== '/link-phone' })
     } catch (caught) {
@@ -308,6 +310,7 @@ export function SignUp() {
           completeSetup={async (verificationToken, name, newPassword) => {
             const user = await completePhoneRegistration(verificationToken, name, newPassword)
             track('signup_completed')
+            trackMetaRegistration('phone')
             navigate(postAuthDestination(user), { replace: true })
           }}
           submitLabel={t.auth.phone.completeRegistration}
