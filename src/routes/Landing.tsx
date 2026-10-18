@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowUpRight, Check, CircleAlert, CircleCheck, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -10,6 +10,7 @@ import { ProductPreview, ReelThumb } from '../components/landing/visuals'
 import { cx } from '../lib/cx'
 import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
 import { playLandingCharacterVoice } from '../lib/liveVoice'
+import { trackLandingVisit } from '../lib/meta-pixel'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
 
 /**
@@ -22,6 +23,11 @@ import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
  * and the last word is the PRD's own promise: this is practice, not a certificate.
  */
 export function Landing() {
+  // Meta hears about this page and no other; the reasoning lives in lib/meta-pixel.
+  useEffect(() => {
+    trackLandingVisit()
+  }, [])
+
   return (
     <div className="min-h-dvh bg-ground text-ink">
       <TopBar />
