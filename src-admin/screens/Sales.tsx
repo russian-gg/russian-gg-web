@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
 import { useStickyTab } from '../lib/sticky-tab'
 import type {
-  ChatSender,
+  SalesMessage,
   SalesChat,
   SalesDashboard as SalesDashboardData,
   SalesChatPage,
@@ -12,12 +13,13 @@ import type {
   SalesSettings,
   SalesUserStatus,
 } from '../lib/types'
-import { Badge, Button, Card, EmptyNote, ErrorNote, Loading, PageHeader, PeriodToggle, Screen, SectionHeading, Stat, Tabs } from '../components/ui'
+import { Badge, Button, Card, ErrorNote, Loading, PageHeader, PeriodToggle, Screen, SectionHeading, Stat, Tabs } from '../components/ui'
 import { Checkbox } from '../../src/components/forms/Checkbox'
 import { BarList, ColumnChart } from '../components/charts'
 import { cx } from '../../src/lib/cx'
-import { DashboardGlyph, InboxGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
+import { AiGlyph, ArchiveGlyph, BackGlyph, DashboardGlyph, InboxGlyph, PaymentGlyph, PinGlyph, SlidersGlyph, SoundGlyph } from '../components/icons'
 import { playIncomingChime, soundMuted } from '../lib/notify'
+import { Avatar, ChatThread, Composer } from '../components/ChatThread'
 
 const statusLabel: Record<SalesUserStatus, string> = {
   Unregistered: "Ro'yxatdan o'tmagan",
@@ -63,9 +65,50 @@ const FOLDER_TABS: Array<{ id: SalesFolder; label: string }> = [
   { id: 'Archived', label: 'Arxiv' },
 ]
 
-/** The count rides on Yangilar, which is the folder it describes. */
-const foldersWithBadge = (waiting: number) =>
-  FOLDER_TABS.map((tab) => (tab.id === 'New' ? { ...tab, badge: waiting } : tab))
+/**
+ * The folders as Telegram draws them: a row of words with a line under the open one. The pill
+ * switch this replaced did not fit the list column — the last folder was cut in half.
+ * The count rides on Yangilar, which is the folder it describes.
+ */
+function FolderTabs({
+  value,
+  onChange,
+  waiting,
+}: {
+  value: SalesFolder
+  onChange: (folder: SalesFolder) => void
+  waiting: number
+}) {
+  return (
+    <div role="tablist" aria-label="Papkalar" className="-mb-[2px] flex">
+      {FOLDER_TABS.map((tab) => {
+        const active = tab.id === value
+        const badge = tab.id === 'New' ? waiting : 0
+
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.id)}
+            className={cx(
+              'flex min-w-0 flex-1 items-center justify-center gap-1 border-b-2 px-1 pt-1 pb-2 text-[13px] font-extrabold transition-colors',
+              active ? 'border-signal text-signal-ink' : 'border-transparent text-ink-muted hover:text-ink',
+            )}
+          >
+            <span className="truncate">{tab.label}</span>
+            {badge > 0 && (
+              <span className="min-w-4 shrink-0 rounded-full bg-signal px-1 text-center text-[10px] leading-4 text-on-signal">
+                {badge > 99 ? '99+' : badge}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 /** Each folder is empty for its own reason, and saying which one is the whole value. */
 const EMPTY: Record<SalesFolder, string> = {
@@ -158,7 +201,7 @@ export function Sales() {
 
       {tab === 'dashboard' && <SalesDashboardTab />}
       {tab === 'inbox' && <Inbox waiting={unread?.chats ?? 0} />}
-      {tab === 'settings' && <AgentSettings />}
+      {tab === 'settings' && <AgentSettings />}
     </Screen>
   )
 }
@@ -302,9 +345,16 @@ function Inbox({ waiting }: { waiting: number }) {
    */
   const [take, setTake] = useState(PAGE)
   const [folder, setFolder] = useStickyTab('sales-folder', FOLDERS)
+  const [selected, setSelected] = useState<string | null>(null)
 
+  /*
+   * The open chat is sent along so the server keeps it in Yangilar. Opening a chat is what
+   * marks it read, and without this the row left the list on the next poll — it vanished from
+   * under the operator still reading it, and when it was the only new chat the whole inbox went
+   * with it. A messenger's unread filter holds on to the chat you are in the same way.
+   */
   const { data, error, isLoading, refresh } = useAdminQuery<SalesChatPage | SalesChatSummary[]>(
-    `/api/admin-portal/sales/chats?take=${take}&folder=${folder}`,
+    `/api/admin-portal/sales/chats?take=${take}&folder=${folder}${selected ? `&keep=${selected}` : ''}`,
   )
 
   /*
@@ -317,7 +367,6 @@ function Inbox({ waiting }: { waiting: number }) {
     [data],
   )
   const total = Array.isArray(data) ? data.length : (data?.total ?? chats.length)
-  const [selected, setSelected] = useState<string | null>(null)
   const [muted, setMuted] = useState(soundMuted.get)
   const { shell, height } = useViewportHeight()
 
@@ -380,203 +429,275 @@ function Inbox({ waiting }: { waiting: number }) {
    * jumped to somebody else while the operator was still reading. A new arrival taking the top
    * of the list did the same thing.
    *
-   * The conversation pane loads by id and does not need the chat to be in the list, so there
-   * is nothing to fix when it leaves one. Only a person clicking a row changes what is open.
+   * Only on a wide screen. On a phone the list and the chat take turns, as in Telegram, and a
+   * chat that opened by itself would hide the list the operator came to read.
    */
   useEffect(() => {
-    if (selected === null && chats.length > 0) setSelected(chats[0].id)
+    if (selected !== null || chats.length === 0) return
+    if (!window.matchMedia('(min-width: 1024px)').matches) return
+    setSelected(chats[0].id)
   }, [chats, selected])
 
   if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
-  if (chats.length === 0) {
-    return (
-      <div className="space-y-3">
-        <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
-        <Card>
-          <EmptyNote>{EMPTY[folder]}</EmptyNote>
-        </Card>
-      </div>
-    )
-  }
-
   return (
+    /*
+      One panel, list and conversation side by side with a rule between them, as Telegram
+      Desktop draws it. Two separate cards with a gap read as two screens.
+    */
     <div
       ref={shell}
       style={height ? { height } : undefined}
-      className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
+      className="grid min-h-0 grid-cols-1 overflow-hidden rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]"
     >
-      {/*
-        Its own scroll, so reading down the list leaves the open conversation exactly where it
-        was. Before this the whole page moved and the thread went with it — which is not how
-        any messenger behaves, and it is disorienting for the same reason.
-      */}
-      <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
+      <aside className={cx('flex min-h-0 flex-col lg:border-r-2 lg:border-hairline', selected && 'max-lg:hidden')}>
         {/*
-          Pinned to the top of the column, not scrolled with it. The folders are how you change
-          what the list is showing, and having to scroll back up to reach them is the one thing
-          a folder switch must never ask for. The background is the page's own, so rows pass
-          underneath rather than through.
+          The folders and the count stay put above the list. They are how you change what the
+          list shows, and scrolling back up to reach them is the one thing a switch must never ask.
         */}
-        <div className="sticky top-0 z-10 -mt-1 space-y-2 bg-ground-sunken pt-1 pb-1">
-          <Tabs value={folder} onChange={setFolder} options={foldersWithBadge(waiting)} />
-        {/* A line rather than a section heading: it is a count and a toggle, and on a short
-            window every row it costs is a conversation not on screen. */}
-        <div className="flex items-center justify-between gap-2 px-1 text-xs">
-          <span className="font-bold text-ink-faint">
-            {formatNumber(chats.length)} / {formatNumber(total)}
+        <div className="border-b-2 border-hairline px-3 pt-2">
+          <div className="flex items-center justify-between gap-2 px-1 pb-1.5 text-xs">
+            <span className="font-bold text-ink-faint">
+              {formatNumber(chats.length)} / {formatNumber(total)}
+            </span>
+            {/*
+              The icon is the state. It replaced the words "Ovoz yoqilgan", which said the same
+              thing across half a column the list needs for names.
+            */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !muted
+                setMuted(next)
+                soundMuted.set(next)
+                // Played on unmuting, which both confirms the choice and is the user gesture
+                // browsers want before they will let a page make a sound at all.
+                if (!next) playIncomingChime()
+              }}
+              title={muted ? "Ovoz o'chirilgan — yoqish" : "Ovoz yoqilgan — o'chirish"}
+              aria-label={muted ? 'Ovozni yoqish' : "Ovozni o'chirish"}
+              aria-pressed={!muted}
+              className={cx(
+                'grid size-6 place-items-center rounded-full transition-colors',
+                muted ? 'text-ink-faint hover:text-ink' : 'text-signal-ink hover:bg-ground-sunken',
+              )}
+            >
+              <SoundGlyph on={!muted} />
+            </button>
+          </div>
+          <FolderTabs value={folder} onChange={setFolder} waiting={waiting} />
+        </div>
+
+        {/*
+          Its own scroll, so reading down the list leaves the open conversation exactly where it
+          was — which is how every messenger behaves.
+        */}
+        <div className="min-h-0 flex-1 overflow-y-auto py-1 [scrollbar-width:thin] max-lg:max-h-[75vh]">
+          {chats.length === 0 && (
+            <p className="px-6 py-10 text-center text-sm text-ink-faint">{EMPTY[folder]}</p>
+          )}
+
+          {chats.map((chat) => (
+            <ChatRow
+              key={chat.id}
+              chat={chat}
+              active={selected === chat.id}
+              onOpen={() => setSelected(chat.id)}
+              onPin={() => void pin(chat.id, !chat.isPinned)}
+            />
+          ))}
+
+          {chats.length < total && (
+            <button
+              type="button"
+              onClick={() => setTake((current) => current + PAGE)}
+              className="mx-3 my-2 w-[calc(100%-1.5rem)] rounded-full py-2 text-sm font-bold text-signal-ink transition-colors hover:bg-ground-sunken"
+            >
+              Yana {formatNumber(Math.min(PAGE, total - chats.length))} ta
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Keyed by chat, so a draft, a reply in progress or a picked file never follows the
+          operator into somebody else's conversation. */}
+      {selected ? (
+        <Conversation key={selected} chatId={selected} onChanged={refresh} onBack={() => setSelected(null)} />
+      ) : (
+        <div className="hidden place-items-center bg-ground-sunken lg:grid">
+          <span className="rounded-full bg-ground-raised/80 px-4 py-1.5 text-sm font-bold text-ink-muted">
+            Suhbatni tanlang
           </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Uzbek short weekday names, Sunday first, as `Date.getDay` counts. */
+const WEEKDAYS = ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan']
+
+/** The time beside a chat: the hour today, the weekday this week, the date before that — Telegram's rule. */
+function listTime(value: string) {
+  const date = new Date(value)
+  const now = new Date()
+
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const days = (now.getTime() - date.getTime()) / 86_400_000
+  if (days < 6) return WEEKDAYS[date.getDay()]
+
+  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+/**
+ * One conversation in the list, the way Telegram draws one: avatar, name and time, the last
+ * line with its unread count, and — the part Telegram does not have — where this person stands
+ * and how close they look to buying, small enough not to cost a row its height.
+ */
+function ChatRow({
+  chat,
+  active,
+  onOpen,
+  onPin,
+}: {
+  chat: SalesChatSummary
+  active: boolean
+  onOpen: () => void
+  onPin: () => void
+}) {
+  const quiet = 'text-ink-faint'
+
+  return (
+    /*
+      A div rather than a button, because the pin inside it is a button and one cannot live
+      inside the other. The role and the key handler put back what was lost.
+    */
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+      aria-current={active ? 'true' : undefined}
+      className={cx(
+        'group relative mx-1.5 flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+        active
+          ? 'bg-signal-soft before:absolute before:inset-y-2.5 before:left-0 before:w-[3px] before:rounded-full before:bg-signal'
+          : 'hover:bg-ground-sunken',
+      )}
+    >
+      <Avatar name={chat.displayName} seed={chat.chatId} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className={cx('truncate text-[15px]', chat.unread > 0 ? 'font-black' : 'font-extrabold')}>
+            {chat.displayName}
+          </span>
+          {chat.isPinned && (
+            <span className={cx('shrink-0', quiet)} title="Tepada ushlab turilgan">
+              <PinGlyph filled />
+            </span>
+          )}
+          <span className={cx('ml-auto shrink-0 text-xs', quiet)}>{listTime(chat.lastInteractionAt)}</span>
+        </div>
+
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">
+            {/* Telegram's "You:" — our side of the conversation said the last thing. */}
+            {!chat.lastMessageFromUser && chat.lastMessage && (
+              <span className="font-bold text-signal-ink">Siz: </span>
+            )}
+            {chat.lastMessage ?? '—'}
+          </p>
+
           {/*
-            The icon is the state. It replaced the words "Ovoz yoqilgan", which said the same
-            thing across half a column the list needs for names.
+            Visible when pinned or under the pointer, always in the layout: appearing on hover
+            alone would shift the row every time the mouse crossed it.
           */}
           <button
             type="button"
-            onClick={() => {
-              const next = !muted
-              setMuted(next)
-              soundMuted.set(next)
-              // Played on unmuting, which both confirms the choice and is the user gesture
-              // browsers want before they will let a page make a sound at all.
-              if (!next) playIncomingChime()
+            onClick={(event) => {
+              event.stopPropagation()
+              onPin()
             }}
-            title={muted ? "Ovoz o'chirilgan — yoqish" : "Ovoz yoqilgan — o'chirish"}
-            aria-label={muted ? "Ovozni yoqish" : "Ovozni o'chirish"}
-            aria-pressed={!muted}
+            title={chat.isPinned ? 'Tepadan olib tashlash' : 'Tepada ushlab turish'}
+            aria-label={chat.isPinned ? 'Tepadan olib tashlash' : 'Tepada ushlab turish'}
+            aria-pressed={chat.isPinned ?? false}
             className={cx(
-              'grid size-6 place-items-center rounded-[var(--radius-control)] transition-colors',
-              muted ? 'text-ink-faint hover:text-ink' : 'text-signal-ink hover:bg-ground-raised',
+              'grid size-5 shrink-0 place-items-center rounded transition-opacity',
+              quiet,
+              'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
             )}
           >
-            <SoundGlyph on={!muted} />
+            <PinGlyph filled={chat.isPinned ?? false} />
           </button>
-          </div>
-        </div>
-        {chats.map((chat) => (
-          /*
-            A div rather than a button, because the pin inside it is a button and one cannot
-            live inside the other. The role and the key handler put back what was lost.
-          */
-          <div
-            key={chat.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => setSelected(chat.id)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                setSelected(chat.id)
-              }
-            }}
-            className={cx(
-              'group block w-full cursor-pointer rounded-[var(--radius-card)] border-2 px-3.5 py-2.5 text-left transition-colors',
-              selected === chat.id
-                ? 'border-signal bg-signal-soft/40'
-                : 'border-hairline bg-ground-raised hover:border-ink-faint',
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              {/*
-                The name and the handle on one line, because height is what this column is
-                short of. The handle is what an operator actually needs — it is how they find
-                the person in Telegram, and a first name alone is not an address.
-              */}
-              <span className="flex min-w-0 items-baseline gap-1.5">
-                <span
-                  className={cx(
-                    'truncate text-sm text-ink',
-                    // Unread is heavier as well as counted, so the row reads as waiting at a
-                    // glance rather than only under the number.
-                    chat.unread > 0 ? 'font-black' : 'font-extrabold',
-                  )}
-                >
-                  {chat.displayName}
-                </span>
-                {/*
-                  Not everybody has one. The numeric id is what is left, and it is still the
-                  thing that identifies them — better than a blank where an address should be.
-                */}
-                <span className="shrink truncate text-xs text-ink-faint">
-                  {chat.username ? `@${chat.username}` : `#${chat.chatId}`}
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-1.5">
-                {!chat.aiAutoReply && <Badge>Qo'lda</Badge>}
-                {chat.unread > 0 && (
-                  <span
-                    aria-label={`${chat.unread} ta o'qilmagan xabar`}
-                    className="min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[11px] leading-none font-extrabold text-on-danger"
-                  >
-                    {chat.unread > 99 ? '99+' : chat.unread}
-                  </span>
-                )}
-                {/*
-                  Always in the layout, visible only when it is pinned or under the pointer.
-                  Appearing on hover alone would move the name every time the mouse crossed a
-                  row, and a list that shifts under the cursor is a list you misclick.
-                */}
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    pin(chat.id, !chat.isPinned)
-                  }}
-                  title={chat.isPinned ? 'Tepadan olib tashlash' : 'Tepada ushlab turish'}
-                  aria-label={chat.isPinned ? 'Tepadan olib tashlash' : 'Tepada ushlab turish'}
-                  aria-pressed={chat.isPinned ?? false}
-                  className={cx(
-                    'grid size-5 place-items-center rounded transition-opacity',
-                    chat.isPinned
-                      ? 'text-signal-ink opacity-100'
-                      : 'text-ink-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
-                  )}
-                >
-                  <PinGlyph filled={chat.isPinned ?? false} />
-                </button>
-              </span>
-            </div>
 
-            <p
+          {chat.unread > 0 && (
+            <span
+              aria-label={`${chat.unread} ta o'qilmagan xabar`}
               className={cx(
-                'mt-1 truncate text-sm',
-                chat.unread > 0 ? 'font-bold text-ink' : 'text-ink-muted',
+                'min-w-5 shrink-0 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-extrabold',
+                'bg-signal text-on-signal',
               )}
             >
-              {chat.lastMessageFromUser ? '' : '↩ '}
-              {chat.lastMessage ?? '—'}
-            </p>
+              {chat.unread > 99 ? '99+' : chat.unread}
+            </span>
+          )}
+        </div>
 
-            {/*
-              One line instead of four. The label and the signal moved into the tooltip and the
-              bar shrank to a rule under the row: on a laptop running Windows the list was
-              showing three conversations, and a caption repeating "sotib olishga yaqinlik"
-              against every one of them was most of what it was spending the height on.
-            */}
-            <div className="mt-1.5 flex items-center gap-2">
-              <Badge tone={statusTone[chat.status]}>{statusLabel[chat.status]}</Badge>
-              <Readiness value={chat.readiness} signal={chat.readinessSignal} />
-              <span className="ml-auto shrink-0 text-xs text-ink-faint">
-                {formatDate(chat.lastInteractionAt)}
-              </span>
-            </div>
-          </div>
-        ))}
-
-        {chats.length < total && (
-          <button
-            type="button"
-            onClick={() => setTake((current) => current + PAGE)}
-            className="w-full rounded-[var(--radius-card)] border-2 border-hairline py-2.5 text-sm font-bold text-signal-ink transition-colors hover:border-ink-faint"
-          >
-            Yana {formatNumber(Math.min(PAGE, total - chats.length))} ta
-          </button>
-        )}
+        <div className={cx('mt-1 flex items-center gap-1.5 text-[11px] font-bold', quiet)}>
+          <span className="truncate">{statusLabel[chat.status]}</span>
+          {!chat.aiAutoReply && (
+            <span
+              title="AI o'chiq — operator javob beradi"
+              className={cx(
+                'shrink-0 rounded-full px-1.5 py-px',
+                'bg-caution-soft text-caution',
+              )}
+            >
+              Qo'lda
+            </span>
+          )}
+          <ReadinessTag value={chat.readiness} signal={chat.readinessSignal} />
+        </div>
       </div>
-
-      {selected && <Conversation chatId={selected} onChanged={refresh} />}
     </div>
+  )
+}
+
+/**
+ * How close this conversation looks to a purchase.
+ *
+ * A guess, and labelled as one: it is the model's read of what the person has said, floored by
+ * what the product already knows about them. Kept to a short bar and a number so twenty rows
+ * can be compared at a glance; the reason is in the tooltip, for the one an operator stops at.
+ */
+function ReadinessTag({ value, signal }: { value?: number | null; signal?: string | null }) {
+  // Nothing has judged it yet, which is not the same as zero and must not look like it.
+  if (value === null || value === undefined) return null
+
+  return (
+    <span title={signal ?? undefined} className="ml-auto flex shrink-0 items-center gap-1">
+      <span className="h-1 w-8 overflow-hidden rounded-full bg-ink-faint/20">
+        <span
+          className={cx(
+            'block h-full rounded-full',
+            value >= 80 ? 'bg-milestone' : 'bg-signal',
+          )}
+          style={{ width: `${Math.max(4, value)}%` }}
+        />
+      </span>
+      <span className="tabular-nums">{value}%</span>
+    </span>
   )
 }
 
@@ -624,15 +745,23 @@ function useViewportHeight() {
   return { shell: setShell, height }
 }
 
-function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => void }) {
+function Conversation({
+  chatId,
+  onChanged,
+  onBack,
+}: {
+  chatId: string
+  onChanged: () => void
+  /** Back to the list, on a screen too narrow to show both. */
+  onBack: () => void
+}) {
   const { data, error, isLoading, refresh } = useAdminQuery<SalesChat>(
     `/api/admin-portal/sales/chats/${chatId}`,
   )
-  const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  const [offerSent, setOfferSent] = useState(false)
-  const threadRef = useRef<HTMLDivElement>(null)
+  const [replyTo, setReplyTo] = useState<SalesMessage | null>(null)
+  const [showCard, setShowCard] = useState(true)
 
   useEffect(() => {
     const timer = window.setInterval(refresh, 4000)
@@ -640,199 +769,199 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
     return () => window.clearInterval(timer)
   }, [refresh])
 
-  // A conversation is read at the bottom: that is where the message somebody is answering is.
-  useEffect(() => {
-    const thread = threadRef.current
-    if (thread) thread.scrollTop = thread.scrollHeight
-  }, [data?.messages.length])
-
-  if (error) return <ErrorNote onRetry={refresh}>{error}</ErrorNote>
+  if (error) {
+    return (
+      <div className="p-4">
+        <ErrorNote onRetry={refresh}>{error}</ErrorNote>
+      </div>
+    )
+  }
   if (!data && isLoading) return <Loading />
   if (!data) return null
 
   const { chat, user, messages } = data
 
-  async function act(path: string, body?: unknown) {
+  /** Runs one action, and says whether it worked so the composer knows to clear itself. */
+  async function act(path: string, body?: unknown | FormData) {
     setBusy(true)
     setFailure('')
     try {
       await adminFetch(`/api/admin-portal/sales/chats/${chatId}${path}`, {
         method: 'POST',
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
       })
       refresh()
       onChanged()
+      return true
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
+      return false
     } finally {
       setBusy(false)
     }
   }
 
-  async function send() {
-    const text = draft.trim()
-    if (!text) return
-
-    setDraft('')
-    await act('/messages', { text })
+  async function sendText(text: string) {
+    const sent = await act('/messages', { text, replyToMessageId: replyTo?.id ?? null })
+    if (sent) setReplyTo(null)
+    return sent
   }
 
-  /**
-   * Builds the minute and sends the link, right now rather than through the queue: somebody
-   * who pressed a button is owed an answer about whether it worked.
+  async function sendFile(file: File, caption: string) {
+    const form = new FormData()
+    form.append('file', file)
+    if (caption) form.append('caption', caption)
+    if (replyTo) form.append('replyToMessageId', replyTo.id)
+
+    const sent = await act('/media', form)
+    if (sent) setReplyTo(null)
+    return sent
+  }
+
+  // Fire and forget: an indicator that did not arrive is not worth an error on screen.
+  function typing() {
+    void adminFetch(`/api/admin-portal/sales/chats/${chatId}/typing`, { method: 'POST' }).catch(() => undefined)
+  }
+
+  /*
+   * Archive, not delete. Somebody who blocked the bot leaves a thread that will never move
+   * again — but what they said before that is why they did not buy, and the weekly plan reads
+   * it. It comes back on its own if they write again.
    */
-  async function archive(next: boolean) {
-    setBusy(true)
-    setFailure('')
-    try {
-      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/archive?archived=${next}`, {
-        method: 'POST',
-      })
+  const archive = () => act(`/archive?archived=${!chat.isArchived}`)
 
-      // The list owns which chats are on which shelf, and this one just moved.
-      onChanged()
-      refresh()
-    } catch (caught) {
-      setFailure(caught instanceof Error ? caught.message : 'Bajarilmadi')
-    } finally {
-      setBusy(false)
-    }
-  }
+  /*
+   * The agent sends the payment page itself when somebody agrees. This is for the
+   * conversations it reads differently from the person watching them — and it leaves the
+   * agent on, because it is a nudge, not a handover.
+   */
+  const sendOffer = () => act('/offer')
 
-  async function sendOffer() {
-    setBusy(true)
-    setFailure('')
-    try {
-      await adminFetch(`/api/admin-portal/sales/chats/${chatId}/offer`, { method: 'POST' })
-
-      setOfferSent(true)
-      refresh()
-      onChanged()
-    } catch (caught) {
-      setFailure(caught instanceof Error ? caught.message : 'Yuborilmadi')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const linked = Boolean(user.userId)
 
   return (
     <div
       className={cx(
-        'grid min-h-0 grid-cols-1 gap-4 overflow-hidden',
+        'grid min-h-0 grid-cols-1',
         // The card is a column of facts about an account. With no account there are no facts,
-        // and a panel that exists only to say so is width the conversation should have had —
-        // which is most of them, because people write to the bot before they sign up.
-        user.userId && 'xl:grid-cols-[minmax(0,1fr)_minmax(0,15rem)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]',
+        // and a panel that exists only to say so is width the conversation should have had.
+        linked && showCard && 'xl:grid-cols-[minmax(0,1fr)_minmax(0,17rem)]',
       )}
     >
-      <Card className="flex min-h-0 flex-col lg:overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-hairline pb-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-extrabold text-ink">{chat.displayName}</h2>
-            <div className="mt-0.5 flex flex-wrap items-center gap-2">
-              {/* A handle an operator can act on: this opens the person in Telegram. */}
-              {chat.username ? (
-                <a
-                  href={`https://t.me/${chat.username}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-bold text-signal-ink underline underline-offset-2"
-                >
-                  @{chat.username}
-                </a>
-              ) : (
-                <p className="text-xs text-ink-faint">#{chat.chatId}</p>
-              )}
-              {/* Kept when the card is not shown, because "have they signed up" is the one
-                  thing about them that changes how this conversation should go. */}
-              <Badge tone={statusTone[user.status]}>{statusLabel[user.status]}</Badge>
-            </div>
-          </div>
+      <section className="flex min-h-0 flex-col">
+        {/* Telegram's chat header: who, where they stand, and the few things you do to a chat. */}
+        <header className="flex items-center gap-3 border-b-2 border-hairline px-3 py-2">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Suhbatlar ro'yxatiga"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-ground-sunken lg:hidden"
+          >
+            <BackGlyph />
+          </button>
 
-          {/*
-            The one control that decides who is answering. Turning it back on after a handover
-            is deliberate — nothing turns it on by itself, because the operator who took the
-            chat is the only one who knows whether they are finished with it.
-          */}
-          <div className="flex items-center gap-4">
-            <Checkbox
-              checked={chat.aiAutoReply}
-              disabled={busy}
-              onChange={(checked) => void act(`/auto-reply?enabled=${checked}`)}
-              className="text-sm font-bold text-ink"
-            >
-              AI javob beradi
-            </Checkbox>
+          <button
+            type="button"
+            onClick={() => setShowCard((current) => !current)}
+            disabled={!linked}
+            title={linked ? 'Foydalanuvchi kartasi' : undefined}
+            className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
+          >
+            <Avatar name={chat.displayName} seed={chat.chatId} size="sm" />
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-extrabold text-ink">{chat.displayName}</span>
+              <span className="flex min-w-0 items-center gap-1.5 text-xs text-ink-faint">
+                <span className="truncate">{chat.username ? `@${chat.username}` : `#${chat.chatId}`}</span>
+                <span aria-hidden="true" className="max-sm:hidden">·</span>
+                {/* Kept in the header, because "have they signed up" is the one thing about
+                    them that changes how this conversation should go. */}
+                <span className="truncate max-sm:hidden">{statusLabel[user.status]}</span>
+                {chat.readiness != null && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span title={chat.readinessSignal ?? undefined} className="shrink-0 font-bold text-signal-ink">
+                      {chat.readiness}% tayyor
+                    </span>
+                  </>
+                )}
+              </span>
+            </span>
+          </button>
+
+          <div className="flex shrink-0 items-center gap-1">
+            {chat.username && (
+              <a
+                href={`https://t.me/${chat.username}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden rounded-full px-3 py-1.5 text-xs font-bold text-signal-ink hover:bg-ground-sunken md:block"
+              >
+                Telegramda ochish
+              </a>
+            )}
 
             {/*
-              Archive, not delete. Somebody who blocked the bot leaves a thread that will never
-              move again — but what they said before that is why they did not buy, and the
-              weekly plan reads it. It comes back on its own if they write again.
+              The one control that decides who is answering. Turning it back on after a
+              handover is deliberate — nothing turns it on by itself, because the operator who
+              took the chat is the only one who knows whether they are finished with it.
             */}
             <button
               type="button"
+              onClick={() => void act(`/auto-reply?enabled=${!chat.aiAutoReply}`)}
               disabled={busy}
-              onClick={() => void archive(!chat.isArchived)}
-              className="text-sm font-bold text-ink-muted transition-colors hover:text-ink disabled:opacity-45"
+              aria-pressed={chat.aiAutoReply}
+              aria-label={chat.aiAutoReply ? "AI javob beradi" : "AI o'chiq"}
+              title={chat.aiAutoReply ? "AI javob beryapti — o'chirish" : 'AI o\'chiq — yoqish'}
+              className={cx(
+                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold transition-colors disabled:opacity-45',
+                chat.aiAutoReply
+                  ? 'bg-signal-soft text-signal-ink hover:bg-signal-soft/70'
+                  : 'bg-ground-sunken text-ink-muted hover:text-ink',
+              )}
             >
-              {chat.isArchived ? 'Arxivdan chiqarish' : 'Arxivlash'}
+              <AiGlyph />
+              <span className="max-sm:hidden">{chat.aiAutoReply ? 'AI yoqiq' : "AI o'chiq"}</span>
             </button>
+
+            <HeaderAction title="To'lov havolasini yuborish" onClick={() => void sendOffer()} disabled={busy}>
+              <PaymentGlyph />
+            </HeaderAction>
+            <HeaderAction
+              title={chat.isArchived ? 'Arxivdan chiqarish' : 'Arxivlash'}
+              onClick={() => void archive()}
+              disabled={busy}
+            >
+              <ArchiveGlyph restore={chat.isArchived ?? false} />
+            </HeaderAction>
           </div>
-        </div>
+        </header>
 
-        {/*
-          The agent sends this itself when somebody agrees. This is for the conversations it
-          reads differently from the person watching them — and it leaves the agent on,
-          because it is a nudge, not a handover.
-        */}
-        <div className="mt-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void sendOffer()}
-            className="text-sm font-bold text-signal-ink disabled:opacity-45"
-          >
-            {offerSent ? "Yana to'lov havolasi" : "To'lov havolasi"}
-          </button>
-        </div>
+        <ChatThread
+          messages={messages}
+          previousReadAt={data.previousReadAt}
+          onReply={setReplyTo}
+          className="min-h-0 flex-1 max-lg:h-[62vh]"
+        />
 
-        {/* The cap is a floor under the measured height, not a replacement for it: if the
-            measurement ever fails, the panel is still one screen rather than a page. */}
-        <div
-          ref={threadRef}
-          className="my-4 max-h-[26rem] min-h-0 flex-1 space-y-3 overflow-y-auto lg:max-h-[calc(100vh-22rem)]"
-        >
-          {messages.length === 0 ? (
-            <EmptyNote>Xabar yo'q</EmptyNote>
-          ) : (
-            messages.map((message) => <Bubble key={message.id} sender={message.sender} text={message.text} at={message.occurredAt} />)
-          )}
-        </div>
+        {failure && (
+          <div className="border-t-2 border-hairline px-3 py-2">
+            <ErrorNote>{failure}</ErrorNote>
+          </div>
+        )}
 
-        {failure && <ErrorNote>{failure}</ErrorNote>}
+        <Composer
+          busy={busy}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          onSendText={sendText}
+          onSendFile={sendFile}
+          onTyping={typing}
+          placeholder={chat.aiAutoReply ? "Xabar yozing — yuborsangiz AI o'chadi" : 'Xabar yozing'}
+        />
+      </section>
 
-        <div className="mt-2 flex flex-wrap items-end gap-2">
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                void send()
-              }
-            }}
-            rows={2}
-            placeholder="Javob yozing — yuborsangiz AI o'chadi"
-            className="min-w-40 flex-1 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
-          />
-          <Button onClick={() => void send()} disabled={busy || !draft.trim()}>
-            Yuborish
-          </Button>
-        </div>
-      </Card>
-
-      {user.userId && (
-        <div className="min-h-0 lg:max-xl:hidden xl:overflow-y-auto">
+      {linked && showCard && (
+        <div className="hidden min-h-0 overflow-y-auto border-l-2 border-hairline p-3 [scrollbar-width:thin] xl:block">
           <UserCard card={user} />
         </div>
       )}
@@ -840,71 +969,28 @@ function Conversation({ chatId, onChanged }: { chatId: string; onChanged: () => 
   )
 }
 
-/**
- * How close this conversation looks to a purchase.
- *
- * A guess, and labelled as one: it is the model's read of what the person has said, floored by
- * what the product already knows about them. Shown as a bar rather than only a number because
- * the useful question is "which of these is closest", and bars answer that at a glance where
- * percentages have to be compared one at a time.
- */
-function Readiness({ value, signal }: { value?: number | null; signal?: string | null }) {
-  // Nothing has judged it yet, which is not the same as a score of zero and must not look
-  // like one — a new conversation would otherwise sort below somebody who has said no.
-  if (value === null || value === undefined) {
-    return <span className="truncate text-xs text-ink-faint">baholanmagan</span>
-  }
-
+function HeaderAction({
+  title,
+  onClick,
+  disabled,
+  children,
+}: {
+  title: string
+  onClick: () => void
+  disabled?: boolean
+  children: ReactNode
+}) {
   return (
-    <span
-      // The signal is why the number is what it is. In the list it lives here rather than on
-      // its own line: an operator scanning twenty rows is comparing numbers, and reads the
-      // reason only for the one they stop at.
-      title={signal ?? undefined}
-      className="flex min-w-0 flex-1 items-center gap-1.5"
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      className="grid size-9 place-items-center rounded-full text-ink-muted transition-colors hover:bg-ground-sunken hover:text-ink disabled:opacity-45"
     >
-      <span className="h-1 min-w-8 flex-1 overflow-hidden rounded-[var(--radius-control)] bg-ground-sunken">
-        <span
-          className={cx(
-            'block h-full rounded-[var(--radius-control)]',
-            // One hue for the scale, and the milestone colour only at the top: a bar that
-            // changes colour halfway invites reading the colour instead of the length.
-            value >= 80 ? 'bg-milestone' : 'bg-signal',
-          )}
-          style={{ width: `${Math.max(3, value)}%` }}
-        />
-      </span>
-      <span className="shrink-0 text-xs font-extrabold tabular-nums text-ink">{value}%</span>
-    </span>
-  )
-}
-
-function Bubble({ sender, text, at }: { sender: ChatSender; text: string; at: string }) {
-  const fromUs = sender !== 'User'
-
-  return (
-    <div className={cx('flex', fromUs ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cx(
-          'max-w-[85%] rounded-[var(--radius-card)] px-4 py-2.5',
-          // The agent and a human are both "us" to the customer, and are told apart here
-          // because an operator reading back needs to know which one made a promise.
-          sender === 'User'
-            ? 'bg-ground-sunken text-ink'
-            : sender === 'Ai'
-              ? 'bg-signal-soft text-ink'
-              : 'bg-milestone-soft text-ink',
-        )}
-      >
-        {fromUs && (
-          <div className="mb-0.5 text-xs font-bold text-ink-faint">
-            {sender === 'Ai' ? 'AI agent' : 'Operator'}
-          </div>
-        )}
-        <p className="text-sm whitespace-pre-wrap break-words">{text}</p>
-        <div className="mt-1 text-right text-[11px] text-ink-faint">{formatDateTime(at)}</div>
-      </div>
-    </div>
+      {children}
+    </button>
   )
 }
 

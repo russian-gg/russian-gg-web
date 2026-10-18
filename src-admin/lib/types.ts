@@ -390,11 +390,33 @@ export type SalesUnread = {
   messages: number
 }
 
+/** What a message carries besides text. Mirrors ChatMediaKind on the server. */
+export type ChatMediaKind =
+  | 'None'
+  | 'Photo'
+  | 'Voice'
+  | 'Audio'
+  | 'Video'
+  | 'VideoNote'
+  | 'Document'
+  | 'Sticker'
+  | 'Animation'
+
 export type SalesMessage = {
   id: string
   sender: ChatSender
+  /** The message, or a file's caption. Empty for a file sent without one; a sticker's emoji. */
   text: string
   occurredAt: string
+  /** Telegram's id. On our side it is also the delivery tick: set once Telegram took it. */
+  telegramMessageId?: number | null
+  /** The message this one quotes, by Telegram id. */
+  replyToTelegramMessageId?: number | null
+  /** Optional so a panel newer than its API still renders the old shape. */
+  mediaKind?: ChatMediaKind
+  mediaFileName?: string | null
+  mediaMimeType?: string | null
+  mediaDurationSeconds?: number | null
 }
 
 export type SalesUserCard = {
@@ -413,6 +435,8 @@ export type SalesChat = {
   chat: SalesChatSummary
   user: SalesUserCard
   messages: SalesMessage[]
+  /** Where the operator had read up to before this request marked the chat read. */
+  previousReadAt?: string | null
 }
 
 export type SalesSettings = {
