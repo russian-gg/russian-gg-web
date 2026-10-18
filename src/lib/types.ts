@@ -440,6 +440,12 @@ export interface PlanOption {
   savingsPercent: number
 }
 
+/** A one-time `t.me/<bot>?start=<token>` link that ties the chat it opens to this account. */
+export interface TelegramLink {
+  url: string
+  expiresAt: string
+}
+
 export interface PlansView {
   options: PlanOption[]
   trialDays: number

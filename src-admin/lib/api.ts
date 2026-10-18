@@ -92,10 +92,31 @@ export class AdminRequestError extends Error {
  * error box after the token ran out.
  */
 export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await authorizedFetch(path, init)
+
+  if (response.status === 204) return undefined as T
+
+  return (await response.json()) as T
+}
+
+/**
+ * A file the API serves behind the session — a photo or voice note from a sales chat. An
+ * `<img src>` cannot carry the bearer token, so the bytes are fetched here and shown from a
+ * blob URL instead.
+ */
+export async function adminFetchBlob(path: string): Promise<Blob> {
+  const response = await authorizedFetch(path)
+
+  return response.blob()
+}
+
+async function authorizedFetch(path: string, init?: RequestInit): Promise<Response> {
   const response = await fetch(adminApiPath(path), {
     ...init,
     headers: {
-      ...(init?.body ? { 'content-type': 'application/json' } : {}),
+      // JSON only for a string body. A FormData upload must be left alone so the browser can
+      // write the multipart boundary into the header itself.
+      ...(typeof init?.body === 'string' ? { 'content-type': 'application/json' } : {}),
       ...init?.headers,
       authorization: `Bearer ${session.token()}`,
     },
@@ -114,9 +135,7 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
     throw new AdminRequestError(payload.message ?? payload.title ?? "So'rov bajarilmadi.", response.status)
   }
 
-  if (response.status === 204) return undefined as T
-
-  return (await response.json()) as T
+  return response
 }
 
 export function useAdminQuery<T>(path: string | null) {

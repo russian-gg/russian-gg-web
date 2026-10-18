@@ -1,6 +1,12 @@
 import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  Check,
+  ChevronDown,
   ClipboardCheck,
   CreditCard,
+  FileText,
   Gamepad2,
   Inbox,
   LayoutDashboard,
@@ -8,8 +14,13 @@ import {
   MessageSquare,
   MessagesSquare,
   MousePointerClick,
+  Paperclip,
+  Pause,
   Pin,
   PinOff,
+  Play,
+  Reply,
+  SendHorizontal,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -17,6 +28,7 @@ import {
   Users,
   Volume2,
   VolumeX,
+  X,
 } from 'lucide-react'
 import { cx } from '../../src/lib/cx'
 
@@ -118,4 +130,59 @@ export function InboxGlyph() {
 
 export function SlidersGlyph() {
   return <SlidersHorizontal {...props} />
+}
+
+/** Attach a file to the next message. */
+export function AttachGlyph() {
+  return <Paperclip {...props} />
+}
+
+/** Quote a message in the answer, as a Telegram reply does. */
+export function ReplyGlyph() {
+  return <Reply {...props} />
+}
+
+/**
+ * Telegram accepted it. One tick, never two: a bot is never told whether a message was read,
+ * and a second tick would claim something nobody knows.
+ */
+export function SentGlyph() {
+  return <Check {...props} className="size-3.5 shrink-0" />
+}
+
+export function CloseGlyph() {
+  return <X {...props} />
+}
+
+/** Back down to the newest message. */
+export function LatestGlyph() {
+  return <ChevronDown {...props} />
+}
+
+export function FileGlyph() {
+  return <FileText {...props} />
+}
+
+/** Send the payment page to this customer. */
+export function PaymentGlyph() {
+  return <CreditCard {...props} />
+}
+
+export function ArchiveGlyph({ restore = false }: { restore?: boolean }) {
+  const Icon = restore ? ArchiveRestore : Archive
+  return <Icon {...props} />
+}
+
+/** Back to the chat list, on a screen too narrow to show both. */
+export function BackGlyph() {
+  return <ArrowLeft {...props} />
+}
+
+export function SendGlyph() {
+  return <SendHorizontal {...props} />
+}
+
+export function PlayGlyph({ playing }: { playing: boolean }) {
+  const Icon = playing ? Pause : Play
+  return <Icon {...props} className={cx(glyph, 'fill-current')} />
 }

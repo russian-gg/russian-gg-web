@@ -1,11 +1,35 @@
-import { SUPPORT_TELEGRAM_URL } from '../lib/support'
+import type { MouseEvent } from 'react'
+import { useAuth } from '../lib/auth-context'
+import { SUPPORT_TELEGRAM_URL, linkedTelegramUrl } from '../lib/support'
 import { useT } from '../lib/i18n'
 
 export function TelegramFloatingButton() {
   const t = useT().dayPreview
+  const { user } = useAuth()
+
+  /*
+    Signed in, the link is minted on press rather than on render: it is single-use and rate
+    limited, and most visits never press this. The tab is opened before the request, inside the
+    click, because a window opened after an await is one the browser treats as a popup and
+    blocks. Signed out, the plain link in `href` does the work on its own.
+  */
+  function openLinked(event: MouseEvent<HTMLAnchorElement>) {
+    if (!user) return
+    event.preventDefault()
+
+    const tab = window.open('', '_blank')
+    if (tab) tab.opener = null
+
+    void linkedTelegramUrl().then((url) => {
+      if (tab) tab.location.href = url
+      else window.location.assign(url)
+    })
+  }
+
   return (
     <a
       href={SUPPORT_TELEGRAM_URL}
+      onClick={openLinked}
       target="_blank"
       rel="noreferrer"
       aria-label={t.telegram}
