@@ -1,4 +1,4 @@
-import { useId, type ComponentProps, type CSSProperties, type ReactNode } from 'react'
+import { useId, useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react'
 import { AudioLines, Sparkles } from 'lucide-react'
 import type { Select } from '../../../components/forms/Select'
 import type { GameSession } from '../../../lib/speaking-games'
@@ -24,10 +24,21 @@ export function TezGapirBackdrop() {
 
 function TezGapirFireTimer({ session, seconds, copy }: { session: GameSession; seconds: number; copy: GameCopy }) {
   const gradient = useId()
-  const remaining = Math.max(0, Math.min(1, seconds / Math.max(1, session.durationSeconds)))
+  const [lastActiveSeconds, setLastActiveSeconds] = useState(() => {
+    const turn = session.history.find((entry) => entry.roundIndex === session.roundIndex)
+    if (session.status !== 'feedback' || !session.roundStartedAt || !turn) return seconds
+    const elapsed = (Date.parse(turn.answeredAt) - Date.parse(session.roundStartedAt)) / 1000
+    return Number.isFinite(elapsed) ? Math.max(0, Math.min(session.durationSeconds, session.durationSeconds - elapsed)) : seconds
+  })
+  if (session.status === 'answering' && lastActiveSeconds !== seconds) setLastActiveSeconds(seconds)
+  const displayedSeconds = session.status === 'feedback' ? lastActiveSeconds : seconds
+  const remaining = Math.max(0, Math.min(1, displayedSeconds / Math.max(1, session.durationSeconds)))
+  const frame = remaining === 0 ? 4 : Math.min(3, (1 - remaining) * 4)
+  const stages = ['intact', 'singed', 'burning', 'charred', 'ash']
+  const opacity = (index: number) => Math.max(0, 1 - Math.abs(frame - index))
   const star = 'M110 12 Q123 53 138 75 Q174 75 207 84 Q182 111 156 132 Q168 167 170 202 Q136 184 110 165 Q82 187 50 202 Q53 166 64 132 Q36 112 13 84 Q49 76 82 75 Q98 45 110 12Z'
   return <div className="tg-fire-mentor">
-    <div className="tg-fire-timer" role="timer" aria-label={`${Math.ceil(seconds)} ${copy.seconds}`} data-running={session.status === 'answering'} style={{ '--tg-heat': 5 + remaining * 50, '--tg-fire-speed': `${.7 + remaining * .7}s` } as CSSProperties}>
+    <div className="tg-fire-timer" role="timer" aria-label={`${Math.ceil(displayedSeconds)} ${copy.seconds}`} data-running={session.status === 'answering'} data-burn-stage={stages[Math.floor(frame)]} style={{ '--tg-heat': 5 + remaining * 50, '--tg-burn': 1 - remaining, '--tg-fire-speed': `${.7 + remaining * .7}s` } as CSSProperties}>
       <svg className="tg-fire-shape" viewBox="0 0 220 220" aria-hidden="true">
         <defs><radialGradient id={gradient} cx="50%" cy="48%" r="60%">
           <stop offset="0" stopColor="#11162f" /><stop offset=".48" stopColor="#251b27" />
@@ -43,9 +54,13 @@ function TezGapirFireTimer({ session, seconds, copy }: { session: GameSession; s
           <path d="M160 164C175 172 169 194 190 210C166 206 155 192 159 180C162 190 168 193 174 195C166 183 168 173 160 164Z" />
         </g>
       </svg>
-      <img className="tg-fire-character" src={`/games/characters/${session.character}.webp`} alt="" width="512" height="512" />
+      <div className="tg-fire-character" aria-hidden="true" style={{ '--tg-burn-sprite': `url("/games/tez-gapir/burning/${session.character}.webp")` } as CSSProperties}>
+        <img className="tg-fire-original" src={`/games/characters/${session.character}.webp`} alt="" width="512" height="512" style={{ opacity: opacity(0) }} />
+        {['0% 0%', '100% 0%', '0% 100%', '100% 100%'].map((position, index) => <span className="tg-burn-frame" key={position} data-stage={stages[index + 1]} style={{ backgroundPosition: position, opacity: opacity(index + 1) }} />)}
+      </div>
+      <div className="tg-fire-smoke" aria-hidden="true">{[0, 1, 2].map((index) => <i key={index} style={{ '--tg-delay': `${index * -.9}s`, '--tg-drift': `${(index - 1) * 18}px` } as CSSProperties} />)}</div>
       <div className="tg-fire-sparks" aria-hidden="true">{[18, 78, 35, 87, 10, 64, 43, 94].map((left, index) => <i key={index} style={{ '--tg-x': `${left}%`, '--tg-y': `${28 + index % 4 * 16}%`, '--tg-drift': `${index % 2 ? 16 : -16}px`, '--tg-delay': `${index * -.23}s` } as CSSProperties} />)}</div>
-      <span className="tg-fire-time"><strong>{Math.ceil(seconds)}</strong><small>{copy.seconds}</small></span>
+      <span className="tg-fire-time"><strong>{Math.ceil(displayedSeconds)}</strong><small>{copy.seconds}</small></span>
     </div>
     <span className="tg-fire-name">{copy[session.character === 'pero' ? 'feather' : session.character]}</span>
   </div>
@@ -56,7 +71,7 @@ export function TezGapirScene({ enabled, session, seconds, listening, copy, chil
 }) {
   if (!enabled) return <>{children}</>
   return <div className="tg-scene" data-character={session.character} data-listening={listening}>
-    <TezGapirFireTimer session={session} seconds={seconds} copy={copy} />
+    <TezGapirFireTimer key={`${session.id}:${session.roundIndex}`} session={session} seconds={seconds} copy={copy} />
     <div className="tg-topic" key={session.prompt.id}>
       {session.prompt.kind !== 'ready' && <span className="tg-eyebrow"><AudioLines size={16} aria-hidden="true" />{copy.theme}</span>}
       {children}

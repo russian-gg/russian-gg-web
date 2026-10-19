@@ -92,8 +92,10 @@ body:has(.sg[data-game="tez-gapir"]) [role="listbox"] { --color-ground-raised: #
 .tg-fire-body { stroke: hsl(var(--tg-heat) 100% 78%); stroke-width: 2px; stroke-linejoin: round; }
 .tg-fire-tongues { fill: var(--tg-fire); transform-origin: 50% 75%; }
 .tg-fire-tongues path:nth-child(even) { fill: hsl(var(--tg-heat) 100% 76%); }
-.tg-fire-character { position: absolute; top: 19%; left: 25%; width: 50%; height: 50%; object-fit: contain; filter: drop-shadow(0 0 6px hsl(var(--tg-heat) 100% 50% / .6)); }
-.tg-fire-time { position: absolute; top: 62%; left: 31%; width: 38%; display: flex; flex-direction: column; align-items: center; padding: 2px 4px 5px; border-radius: 10px; background: linear-gradient(#11162fed, #11162fbe); }
+.tg-fire-character { position: absolute; top: 8%; left: 16%; width: 68%; height: 68%; filter: drop-shadow(0 0 6px hsl(var(--tg-heat) 100% 50% / .6)); transform-origin: 50% 95%; }
+.tg-fire-original { position: absolute; top: 4%; left: 7%; width: 86%; height: 92%; object-fit: contain; transition: opacity .45s ease-out; }
+.tg-burn-frame { position: absolute; inset: 0; background-image: var(--tg-burn-sprite); background-size: 200% 200%; background-repeat: no-repeat; transition: opacity .45s ease-out; }
+.tg-fire-time { position: absolute; top: 77%; left: 31%; width: 38%; display: flex; flex-direction: column; align-items: center; padding: 2px 4px 5px; border-radius: 10px; background: linear-gradient(#11162fed, #11162fbe); }
 .tg-fire-time strong { font-size: 30px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; color: #fff5db; text-shadow: 0 0 12px var(--tg-fire); }
 .tg-fire-time small { font-size: 10px; line-height: 1.4; color: #ffe9bd; }
 .tg-fire-name { margin-top: 2px; color: #dbe8ff; font-size: 13px; font-weight: 900; }
@@ -102,6 +104,12 @@ body:has(.sg[data-game="tez-gapir"]) [role="listbox"] { --color-ground-raised: #
 .tg-fire-timer[data-running="true"] .tg-fire-tongues { animation: tg-flame-flicker var(--tg-fire-speed) ease-in-out infinite alternate; }
 .tg-fire-timer[data-running="true"] .tg-fire-halo { animation: tg-fire-glow var(--tg-fire-speed) ease-in-out infinite alternate; }
 .tg-fire-timer[data-running="true"] .tg-fire-sparks i { animation: tg-ember-rise 1.6s ease-out infinite; animation-delay: var(--tg-delay); }
+.tg-fire-smoke { position: absolute; inset: 0; pointer-events: none; opacity: calc(var(--tg-burn) * .6); }
+.tg-fire-smoke i { position: absolute; top: 54%; left: 40%; width: 22%; height: 18%; border-radius: 50%; background: radial-gradient(ellipse, #a4a0a477, transparent 70%); filter: blur(3px); opacity: .4; }
+.tg-fire-timer[data-running="true"] .tg-fire-smoke i, .tg-fire-timer[data-burn-stage="ash"] .tg-fire-smoke i { animation: tg-smoke-rise 2.7s ease-out infinite; animation-delay: var(--tg-delay); }
+.tg-fire-timer[data-burn-stage="ash"] .tg-fire-shape { opacity: .3; filter: grayscale(.6); transition: opacity .6s, filter .6s; }
+.tg-fire-timer[data-burn-stage="ash"] .tg-fire-character { animation: none; filter: drop-shadow(0 0 4px #ff773344); }
+.tg-fire-timer[data-burn-stage="ash"] .tg-fire-sparks i { width: 3px; height: 3px; background: #b5abb2; box-shadow: none; animation: tg-ember-rise 2.7s ease-out infinite; animation-delay: var(--tg-delay); }
 .tg-topic { min-width: 0; padding: 32px 24px 18px; border: 1px solid #00b0ff50; border-radius: 24px; background: radial-gradient(ellipse at 50% 0, #00b0ff12, transparent 80%), #101934b3; }
 .tg-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #8bdfff; font-size: 11px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .sg[data-game="tez-gapir"] .tg-topic .sg-prompt { margin: 16px 0; font-size: clamp(26px, 4vw, 38px); }
@@ -110,7 +118,8 @@ body:has(.sg[data-game="tez-gapir"]) [role="listbox"] { --color-ground-raised: #
 .tg-wave i:nth-child(3n) { color: #ff4081; }
 .tg-wave i:nth-child(5n) { color: #ffd600; }
 .tg-scene[data-listening="true"] .tg-wave i { opacity: .85; animation: tg-equalize .8s ease-in-out infinite alternate; animation-delay: var(--tg-delay); }
-.tg-scene[data-listening="true"] .tg-fire-character { animation: tg-nod 2s ease-in-out infinite; }
+.tg-scene[data-listening="true"] .tg-fire-timer:not([data-burn-stage="ash"]) .tg-fire-character { animation: tg-nod 2s ease-in-out infinite; }
+.tg-scene[data-listening="true"] .tg-fire-timer[data-burn-stage="charred"] .tg-fire-character { animation: tg-burn-shiver .18s ease-in-out infinite alternate; }
 .sg[data-game="tez-gapir"] .sg-transcript { padding: 20px; min-height: 126px; border-color: #00b0ff35; border-radius: 22px; background: #080e25a6; }
 .sg[data-game="tez-gapir"] .sg-transcript small { color: #a8badd; margin-bottom: 14px; }
 .tg-word-wave { line-height: 2.4; }
@@ -161,6 +170,8 @@ body:has(.sg[data-game="tez-gapir"]) [role="listbox"] { --color-ground-raised: #
 @keyframes tg-flame-flicker { from { transform: scale(.97, .96) skewX(-2deg); opacity: .8; } to { transform: scale(1.02, 1.04) skewX(2deg); opacity: 1; } }
 @keyframes tg-fire-glow { from { opacity: .2; } to { opacity: .5; } }
 @keyframes tg-ember-rise { 0% { opacity: 0; transform: translate(0, 8px) scale(.5); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--tg-drift), -38px) scale(.2); } }
+@keyframes tg-smoke-rise { 0% { opacity: 0; transform: translate(0, 12px) scale(.45); } 25% { opacity: .6; } 100% { opacity: 0; transform: translate(var(--tg-drift), -70px) scale(1.7); } }
+@keyframes tg-burn-shiver { from { transform: translateX(-1px) rotate(-1deg); } to { transform: translateX(1px) rotate(1deg); } }
 @keyframes tg-word-in { from { opacity: 0; transform: translateY(9px) scale(.95); } to { opacity: 1; transform: none; } }
 @keyframes tg-mic-pulse { 50% { box-shadow: 0 4px 0 #9b280d, 0 0 0 10px #ff6b0014, 0 0 0 22px #ff6b0008; } }
 @keyframes tg-confetti { from { opacity: 0; translate: 0 -12px; } to { opacity: .7; translate: 0 18px; } }
@@ -171,9 +182,10 @@ body:has(.sg[data-game="tez-gapir"]) [role="listbox"] { --color-ground-raised: #
   .sg[data-game="tez-gapir"] { padding: 12px 16px 36px; }
   .sg[data-game="tez-gapir"] .sg-nav { margin-bottom: 20px; padding-bottom: 10px; }
   .sg[data-game="tez-gapir"] .sg-intro { gap: 24px; }
-  .sg[data-game="tez-gapir"] .sg-intro > section { padding-left: 0; padding-top: 0; }
-  .sg[data-game="tez-gapir"] .sg-mark { position: static; width: 52px; height: 52px; padding: 9px; border-radius: 17px; margin-bottom: 14px; }
-  .sg[data-game="tez-gapir"] .sg-intro h1 { font-size: 38px; }
+  .sg[data-game="tez-gapir"] .sg-intro > section { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; column-gap: 14px; padding-left: 0; padding-top: 0; }
+  .sg[data-game="tez-gapir"] .sg-mark { position: static; width: 52px; height: 52px; padding: 9px; border-radius: 17px; margin: 0; }
+  .sg[data-game="tez-gapir"] .sg-intro h1 { font-size: clamp(28px, 8vw, 38px); line-height: 1.15; margin: 0; }
+  .sg[data-game="tez-gapir"] .sg-rules { grid-column: 1 / -1; }
   .sg[data-game="tez-gapir"] .sg-setup { display: flex; flex-direction: column; padding: 22px 18px; gap: 20px; }
   .sg[data-game="tez-gapir"] .sg-setup > .sg-companions { align-self: stretch; gap: 8px; padding: 0; }
   .sg[data-game="tez-gapir"] .sg-companions legend { margin-bottom: 16px; font-size: 14px; }

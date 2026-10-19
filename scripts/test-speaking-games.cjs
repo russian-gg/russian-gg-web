@@ -359,6 +359,70 @@ function scenario(name, options, action) {
   })
 }
 
+for (const [character, size, width] of [['penguin', 'mobile', 390], ['panda', 'mobile', 320], ['pero', 'mobile', 390], ['penguin', 'desktop', 1280]]) {
+  scenario(`tez burning countdown ${character} ${size}`, { slug: 'tez-gapir', size, viewport: { width, height: 960 } }, async (h) => {
+    await h.open()
+    await button(h.page, character === 'penguin' ? 'Penguin' : character === 'panda' ? 'Panda' : 'Feather').click()
+    await chooseTezSetup(h)
+    await button(h.page, 'Continue').click()
+    const timer = h.page.locator('.tg-fire-timer')
+    await timer.waitFor()
+    assert.equal(await timer.getAttribute('data-burn-stage'), 'intact')
+    assert.equal(await timer.locator('.tg-fire-original').getAttribute('src'), `/games/characters/${character}.webp`)
+    assert.ok((await timer.locator('.tg-burn-frame').first().evaluate((node) => getComputedStyle(node).backgroundImage)).includes(`/games/tez-gapir/burning/${character}.webp`))
+    await beginVoice(h)
+    const deadline = h.session().deadlineUtc
+    for (const [elapsed, stage] of [[8000, 'singed'], [8000, 'burning'], [9000, 'charred']]) {
+      await h.page.clock.fastForward(elapsed)
+      await until(async () => await timer.getAttribute('data-burn-stage') === stage, `character must become ${stage}`)
+      assert.equal(h.calls('answer').length, 0, 'burning visuals must not submit answers')
+      assert.equal(h.session().deadlineUtc, deadline, 'burning visuals must not change the deadline')
+      await screenshot(h.page, `burning-${character}-${size}-${stage}`)
+    }
+    await h.page.evaluate((text) => window.__gameSpeech.finalOnStop(text, 3000), ANSWER)
+    await h.page.clock.fastForward(6000)
+    await until(async () => await timer.getAttribute('data-burn-stage') === 'ash', 'zero seconds must leave only ash')
+    assert.equal(await timer.locator('.tg-fire-original').evaluate((node) => getComputedStyle(node).opacity), '0')
+    assert.deepEqual(await timer.locator('.tg-burn-frame').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).opacity)), ['0', '0', '0', '1'])
+    assert.equal(await timer.getAttribute('aria-label'), '0 seconds')
+    await screenshot(h.page, `burning-${character}-${size}-ash`)
+    await h.page.clock.fastForward(4000)
+    await checkFeedback(h)
+    assert.equal(h.calls('answer').length, 1)
+    assert.equal(h.calls('answer')[0].body.text, ANSWER)
+    assert.equal(await timer.getAttribute('data-burn-stage'), 'ash', 'feedback must not restore an expired character')
+    assert.equal(await timer.getAttribute('aria-label'), '0 seconds')
+    await button(h.page, 'Next').click()
+    await button(h.page, 'Speak').waitFor()
+    assert.equal(await timer.getAttribute('data-burn-stage'), 'intact', 'new round must restore the character')
+    assert.equal(await timer.getAttribute('aria-label'), '30 seconds')
+    await beginVoice(h)
+    await h.page.clock.fastForward(8000)
+    await sendVoice(h)
+    await checkFeedback(h)
+    assert.equal(await timer.getAttribute('data-burn-stage'), 'singed', 'finishing early must preserve the current visual stage')
+    assert.equal(h.calls('answer').length, 2)
+    assert.equal(h.calls('begin').length, 2)
+  })
+}
+
+for (const [elapsed, stage, seconds] of [[50, 'charred', 10], [65, 'ash', 0]]) {
+  const saved = makeSession('tez-gapir', {
+    status: 'feedback', durationSeconds: 60, roundStartedAt: '2026-01-01T00:00:00Z', feedback: feedback(ANSWER),
+    history: [{ roundIndex: 0, prompt: prompt('tez-gapir'), feedback: feedback(ANSWER), answeredAt: new Date(Date.parse('2026-01-01T00:00:00Z') + elapsed * 1000).toISOString(), locationId: null }],
+  })
+  scenario(`tez burning restored feedback ${stage}`, { slug: 'tez-gapir', saved }, async (h) => {
+    await h.open(`?session=${saved.id}`)
+    const timer = h.page.locator('.tg-fire-timer')
+    assert.equal(await timer.getAttribute('data-burn-stage'), stage)
+    assert.equal(await timer.getAttribute('aria-label'), `${seconds} seconds`)
+    await h.page.clock.fastForward(65000)
+    assert.equal(await timer.getAttribute('data-burn-stage'), stage)
+    assert.equal(h.calls('answer').length, 0)
+    assert.equal(h.calls('begin').length, 0)
+  })
+}
+
 const shelfGames = [
   { slug: 'tez-gapir', titleUz: 'Tez gapir', bodyUz: '30 soniya. Bitta mavzu.', isBuilt: true, isEnabled: true },
   { slug: 'rod-runner', titleUz: 'Penguin Ice Runner', bodyUz: "Ruscha so‘zni to‘g‘ri rod yo‘lagiga olib boring.", isBuilt: true, isEnabled: true },
