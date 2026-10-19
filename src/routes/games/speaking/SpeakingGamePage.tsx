@@ -356,14 +356,14 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
 
   const LevelPicker = slug === 'tez-gapir' ? TezGapirLevelPicker : Select
 
-  return <main className="sg" data-game={slug}>
+  return <main className="sg" data-game={slug} data-session={slug === 'tez-gapir' && session && session.status !== 'completed' ? 'active' : undefined}>
     {slug === 'tez-gapir' && <TezGapirBackdrop />}
     <nav className="sg-nav"><Link to="/games" onClick={() => { speech.abort(); stopAudio() }}><span aria-hidden="true">←</span>{copy.games}</Link><strong>{label.title}</strong></nav>
     <div className="sg-content">
       {loading ? <div className="flex justify-center py-24"><Spinner /></div> : <>
         {error && <div className="sg-error" role="alert">{error}{!retryExhausted && <button onClick={() => { if (retryAction.current) void run(retryAction.current); else if (pending) void submit(); else setReload((n) => n + 1) }} disabled={busy}>{copy.retry}</button>}</div>}
         {!session && catalog && <>
-          <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1>{slug !== 'error-hunt' && <p>{label.description}</p>}<div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
+          <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1>{slug !== 'error-hunt' && slug !== 'tez-gapir' && <p>{label.description}</p>}<div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
             <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} game={slug} disabled={busy || savedSetup} />
               {!isMystery && slug !== 'error-hunt' && <div className="sg-field">{copy.level}<LevelPicker label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
                 setLevel(value); startRequest.current = null; setSetupError(null)
@@ -374,21 +374,21 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
               }} options={[{ value: '', label: copy.selectRounds, disabled: true }, ...[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></div>}
               {setupError && <p className="text-danger" role="alert">{setupError === 'level' ? copy.selectLevel : copy.selectRounds}</p>}
               {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <>{slug !== 'error-hunt' && <p className="sg-muted">{copy.savedGame}</p>}<Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : slug === 'tez-gapir' ? copy.continue : copy.start}</Button>}
-              {slug !== 'error-hunt' && <p className="sg-muted">{copy.timeNote}</p>}
+              {slug !== 'error-hunt' && slug !== 'tez-gapir' && <p className="sg-muted">{copy.timeNote}</p>}
             </div></div>
           <Statistics slug={slug} copy={copy} dashboard={dashboard} />
         </>}
         {!session && !catalog && !error && <p className="sg-muted">{copy.disabled}</p>}
         {session?.status === 'completed' && <><Results session={session} copy={copy} onAgain={again} /><Statistics slug={slug} copy={copy} dashboard={dashboard} /></>}
         {session && session.status !== 'completed' && <>
-          <div className="sg-hud"><span>{isMystery ? copy.questions : copy.rounds} {Math.min(session.roundIndex + 1, session.totalRounds)} / {session.totalRounds}</span><span>{copy.score} <strong>{session.score}</strong></span></div>
+          <div className="sg-hud" data-round={slug === 'tez-gapir' ? session.roundIndex % 5 : undefined}><span>{isMystery ? copy.questions : copy.rounds} {Math.min(session.roundIndex + 1, session.totalRounds)} / {session.totalRounds}</span><span>{copy.score} <strong>{session.score}</strong></span></div>
           {!isMystery && slug !== 'error-hunt' && <div className="sg-progress"><span style={{ width: `${session.history.length / session.totalRounds * 100}%` }} /></div>}
           {showMap ? <MysteryMap session={session} copy={copy} busy={busy} visit={(id) => void command(session.status === 'feedback' ? 'next' : 'visit', id)} accuse={() => void enterAccusation()} /> : <>
             <div className="sg-board" data-listening={slug === 'error-hunt' || slug === 'tez-gapir' ? answering && speechStatus === 'listening' : undefined}>
               {isMystery && <button disabled={busy || answering} onClick={() => { speech.abort(); stopAudio(); setLocation(null); setAccusing(false) }} className="mb-5 text-sm font-bold text-signal-ink">← {copy.leave}</button>}
               {slug === 'first-reaction' && session.prompt.kind !== 'ready' && <ReactionScene text={session.prompt.textRu} />}
               <ErrorHuntScene enabled={slug === 'error-hunt'} session={session} seconds={answering ? seconds : session.durationSeconds} timer={!isMystery && slug !== 'tez-gapir' && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}>
-                <TezGapirScene enabled={slug === 'tez-gapir'} session={session} seconds={answering ? seconds : session.durationSeconds} listening={answering && speechStatus === 'listening'} copy={copy} timer={slug === 'tez-gapir' && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} />}>
+                <TezGapirScene enabled={slug === 'tez-gapir'} session={session} seconds={answering ? seconds : session.durationSeconds} listening={answering && speechStatus === 'listening'} copy={copy}>
                 <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>
                 </TezGapirScene>
               </ErrorHuntScene>

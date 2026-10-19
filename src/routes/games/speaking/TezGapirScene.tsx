@@ -22,19 +22,43 @@ export function TezGapirBackdrop() {
   </div>
 }
 
-export function TezGapirScene({ enabled, session, seconds, listening, timer, copy, children }: {
-  enabled: boolean; session: GameSession; seconds: number; listening: boolean; timer: ReactNode; copy: GameCopy; children: ReactNode
+function TezGapirFireTimer({ session, seconds, copy }: { session: GameSession; seconds: number; copy: GameCopy }) {
+  const gradient = useId()
+  const remaining = Math.max(0, Math.min(1, seconds / Math.max(1, session.durationSeconds)))
+  const star = 'M110 12 Q123 53 138 75 Q174 75 207 84 Q182 111 156 132 Q168 167 170 202 Q136 184 110 165 Q82 187 50 202 Q53 166 64 132 Q36 112 13 84 Q49 76 82 75 Q98 45 110 12Z'
+  return <div className="tg-fire-mentor">
+    <div className="tg-fire-timer" role="timer" aria-label={`${Math.ceil(seconds)} ${copy.seconds}`} data-running={session.status === 'answering'} style={{ '--tg-heat': 5 + remaining * 50, '--tg-fire-speed': `${.7 + remaining * .7}s` } as CSSProperties}>
+      <svg className="tg-fire-shape" viewBox="0 0 220 220" aria-hidden="true">
+        <defs><radialGradient id={gradient} cx="50%" cy="48%" r="60%">
+          <stop offset="0" stopColor="#11162f" /><stop offset=".48" stopColor="#251b27" />
+          <stop offset=".76" stopColor="hsl(var(--tg-heat) 100% 52%)" /><stop offset="1" stopColor="hsl(var(--tg-heat) 100% 68%)" />
+        </radialGradient></defs>
+        <path className="tg-fire-halo" d={star} />
+        <path className="tg-fire-body" d={star} fill={`url(#${gradient})`} />
+        <g className="tg-fire-tongues">
+          <path d="M94 55C88 34 111 25 106 2C128 20 111 38 126 53C114 44 111 34 112 27C103 39 108 48 94 55Z" />
+          <path d="M37 105C12 107 24 84 4 68C31 73 28 91 49 91C35 94 29 87 23 83C26 94 24 98 37 105Z" />
+          <path d="M179 102C196 89 183 73 210 59C201 80 224 91 200 110C205 98 201 92 198 87C194 99 186 103 179 102Z" />
+          <path d="M58 162C44 175 49 196 31 215C56 208 65 190 61 180C57 190 52 194 48 196C55 183 52 175 58 162Z" />
+          <path d="M160 164C175 172 169 194 190 210C166 206 155 192 159 180C162 190 168 193 174 195C166 183 168 173 160 164Z" />
+        </g>
+      </svg>
+      <img className="tg-fire-character" src={`/games/characters/${session.character}.webp`} alt="" width="512" height="512" />
+      <div className="tg-fire-sparks" aria-hidden="true">{[18, 78, 35, 87, 10, 64, 43, 94].map((left, index) => <i key={index} style={{ '--tg-x': `${left}%`, '--tg-y': `${28 + index % 4 * 16}%`, '--tg-drift': `${index % 2 ? 16 : -16}px`, '--tg-delay': `${index * -.23}s` } as CSSProperties} />)}</div>
+      <span className="tg-fire-time"><strong>{Math.ceil(seconds)}</strong><small>{copy.seconds}</small></span>
+    </div>
+    <span className="tg-fire-name">{copy[session.character === 'pero' ? 'feather' : session.character]}</span>
+  </div>
+}
+
+export function TezGapirScene({ enabled, session, seconds, listening, copy, children }: {
+  enabled: boolean; session: GameSession; seconds: number; listening: boolean; copy: GameCopy; children: ReactNode
 }) {
   if (!enabled) return <>{children}</>
   return <div className="tg-scene" data-character={session.character} data-listening={listening}>
-    <div className="tg-countdown" data-tone={seconds <= 5 ? 'urgent' : seconds <= 15 ? 'warning' : 'calm'}>{timer}</div>
-    <div className="tg-mentor">
-      <div className="tg-mentor-orbit" aria-hidden="true" />
-      <img src={`/games/characters/${session.character}.webp`} alt="" width="512" height="512" />
-      <span>{copy[session.character === 'pero' ? 'feather' : session.character]}</span>
-    </div>
+    <TezGapirFireTimer session={session} seconds={seconds} copy={copy} />
     <div className="tg-topic" key={session.prompt.id}>
-      <span className="tg-eyebrow"><AudioLines size={16} aria-hidden="true" />{session.prompt.kind === 'ready' ? copy.microphone : copy.theme}</span>
+      {session.prompt.kind !== 'ready' && <span className="tg-eyebrow"><AudioLines size={16} aria-hidden="true" />{copy.theme}</span>}
       {children}
       <div className="tg-wave" aria-hidden="true">
         {[14, 24, 38, 20, 46, 30, 18, 36, 48, 26, 16, 32, 22, 12, 24].map((height, index) => <i key={index} style={{ '--tg-bar': `${height}px`, '--tg-delay': `${index * -0.11}s` } as CSSProperties} />)}
