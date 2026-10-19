@@ -13,6 +13,7 @@ import { CharacterNote, CompanionPicker, GameMark, MicMark, ReactionScene, Timer
 import { Feedback, Results, Statistics } from './Results'
 import { Evidence, MysteryMap } from './MysteryMap'
 import { ErrorHuntProgress, ErrorHuntScene } from './ErrorHuntScene'
+import { TezGapirBackdrop, TezGapirLevelPicker, TezGapirScene, TezGapirTranscript } from './TezGapirScene'
 
 function gameError(caught: unknown, copy: GameCopy) {
   if (!(caught instanceof RequestError)) return caught instanceof TypeError ? copy.connectionError : copy.error
@@ -353,7 +354,10 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const modeEditable = textModeAllowed && !busy && !answering && !feedback
   const pending = Boolean(pendingAnswer.current || session?.pendingAnswer)
 
+  const LevelPicker = slug === 'tez-gapir' ? TezGapirLevelPicker : Select
+
   return <main className="sg" data-game={slug}>
+    {slug === 'tez-gapir' && <TezGapirBackdrop />}
     <nav className="sg-nav"><Link to="/games" onClick={() => { speech.abort(); stopAudio() }}><span aria-hidden="true">←</span>{copy.games}</Link><strong>{label.title}</strong></nav>
     <div className="sg-content">
       {loading ? <div className="flex justify-center py-24"><Spinner /></div> : <>
@@ -361,7 +365,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
         {!session && catalog && <>
           <div className="sg-intro"><section><GameMark game={slug} className="sg-mark" /><h1>{label.title}</h1>{slug !== 'error-hunt' && <p>{label.description}</p>}<div className="sg-rules"><h2>{copy.rules}</h2><p>{label.rules}</p></div></section>
             <div className="sg-setup"><CompanionPicker value={character} onChange={(value) => { setCharacter(value); startRequest.current = null }} copy={copy} game={slug} disabled={busy || savedSetup} />
-              {!isMystery && slug !== 'error-hunt' && <div className="sg-field">{copy.level}<Select label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
+              {!isMystery && slug !== 'error-hunt' && <div className="sg-field">{copy.level}<LevelPicker label={copy.level} size="lg" block value={level} disabled={busy || savedSetup} onChange={(value) => {
                 setLevel(value); startRequest.current = null; setSetupError(null)
                 if (slug === 'tez-gapir') setRounds(0)
               }} options={[...(slug === 'tez-gapir' ? [{ value: '', label: copy.yourLevel, disabled: true }] : []), ...catalog.levels.map((value) => ({ value, label: value }))]} /></div>}
@@ -380,11 +384,13 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
           <div className="sg-hud"><span>{isMystery ? copy.questions : copy.rounds} {Math.min(session.roundIndex + 1, session.totalRounds)} / {session.totalRounds}</span><span>{copy.score} <strong>{session.score}</strong></span></div>
           {!isMystery && slug !== 'error-hunt' && <div className="sg-progress"><span style={{ width: `${session.history.length / session.totalRounds * 100}%` }} /></div>}
           {showMap ? <MysteryMap session={session} copy={copy} busy={busy} visit={(id) => void command(session.status === 'feedback' ? 'next' : 'visit', id)} accuse={() => void enterAccusation()} /> : <>
-            <div className="sg-board" data-listening={slug === 'error-hunt' ? answering && speechStatus === 'listening' : undefined}>
+            <div className="sg-board" data-listening={slug === 'error-hunt' || slug === 'tez-gapir' ? answering && speechStatus === 'listening' : undefined}>
               {isMystery && <button disabled={busy || answering} onClick={() => { speech.abort(); stopAudio(); setLocation(null); setAccusing(false) }} className="mb-5 text-sm font-bold text-signal-ink">← {copy.leave}</button>}
               {slug === 'first-reaction' && session.prompt.kind !== 'ready' && <ReactionScene text={session.prompt.textRu} />}
-              <ErrorHuntScene enabled={slug === 'error-hunt'} session={session} seconds={answering ? seconds : session.durationSeconds} timer={!isMystery && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}>
+              <ErrorHuntScene enabled={slug === 'error-hunt'} session={session} seconds={answering ? seconds : session.durationSeconds} timer={!isMystery && slug !== 'tez-gapir' && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}>
+                <TezGapirScene enabled={slug === 'tez-gapir'} session={session} seconds={answering ? seconds : session.durationSeconds} listening={answering && speechStatus === 'listening'} copy={copy} timer={slug === 'tez-gapir' && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} />}>
                 <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>
+                </TezGapirScene>
               </ErrorHuntScene>
               {locale === 'uz' && session.prompt.titleUz && <p className="sg-muted mb-4">{session.prompt.titleUz}</p>}
               {!answering && !busy && !feedback && !accusing && session.prompt.kind !== 'ready' && <Button variant="ghost" disabled={playingAudio} onClick={() => void playAudio(session, 'prompt')}>{playingAudio ? copy.loading : copy.listen}</Button>}
@@ -393,12 +399,12 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
                 {(speechStatus === 'denied' || speechStatus === 'failed') && <div className="sg-error" role="alert"><strong>{speechStatus === 'denied' ? copy.micDenied : copy.micFailed}</strong>{speechStatus === 'denied' && <p>{copy.micHelp}</p>}</div>}
                 {modeEditable && <div className="sg-actions"><Button variant="ghost" onClick={() => { speech.abort(); setTextMode(!textMode) }}>{textMode ? copy.voice : copy.type}</Button></div>}
                 {textMode && <p className="sg-muted mt-4">{copy.textMode}</p>}
-                {(answering || transcript || pending) && <div className="sg-transcript"><small>{copy.answer}</small>{textMode && answering ? <textarea aria-label={copy.answer} lang="ru" maxLength={4000} value={typed} onChange={(event) => setTyped(event.target.value)} disabled={busy} className="sg-textarea" autoFocus /> : <div lang="ru">{transcript || session.pendingAnswer?.text || '...'}</div>}</div>}
+                {(answering || transcript || pending) && <div className="sg-transcript"><small>{copy.answer}</small>{textMode && answering ? <textarea aria-label={copy.answer} lang="ru" maxLength={4000} value={typed} onChange={(event) => setTyped(event.target.value)} disabled={busy} className="sg-textarea" autoFocus /> : slug === 'tez-gapir' ? <TezGapirTranscript text={transcript || session.pendingAnswer?.text || '...'} /> : <div lang="ru">{transcript || session.pendingAnswer?.text || '...'}</div>}</div>}
                 <div className="sg-actions">
                   {answering || pending ? <>
                     {!textMode && speechStatus !== 'listening' && !busy && !pending && <button className="sg-mic" aria-label={copy.speak} onClick={() => void begin()}><MicMark /></button>}
-                    <Button size="lg" disabled={busy || retryExhausted} onClick={() => void submit()}>{busy ? copy.saving : pending ? copy.retry : slug === 'tez-gapir' ? copy.stop : copy.submit}</Button>
-                  </> : <Button className={slug === 'error-hunt' ? 'eh-speak' : undefined} size="lg" disabled={busy || (!textMode && !speech.supported)} onClick={() => void begin()}><MicMark />{busy ? copy.preparing : copy.speak}</Button>}
+                    <Button className={slug === 'tez-gapir' ? 'tg-speak' : undefined} size="lg" disabled={busy || retryExhausted} onClick={() => void submit()}>{slug === 'tez-gapir' && <MicMark active />}{busy ? copy.saving : pending ? copy.retry : slug === 'tez-gapir' ? copy.stop : copy.submit}</Button>
+                  </> : <Button className={slug === 'error-hunt' ? 'eh-speak' : slug === 'tez-gapir' ? 'tg-speak' : undefined} size="lg" disabled={busy || (!textMode && !speech.supported)} onClick={() => void begin()}><MicMark />{busy ? copy.preparing : copy.speak}</Button>}
                 </div>
                 {answering && speechStatus === 'listening' && <p className="sg-status" role="status">{copy.listening}</p>}
                 {slug === 'tez-gapir' && answering && !transcript && seconds < session.durationSeconds - 3 && <p className="sg-muted">{copy.silence}</p>}

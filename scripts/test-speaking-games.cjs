@@ -371,6 +371,8 @@ const shelfCopy = {
 }
 
 async function choose(page, label, value) {
+  const cards = page.getByRole('radiogroup', { name: label, exact: true, includeHidden: true })
+  if (await cards.count()) { await cards.getByRole('radio', { name: value, exact: true }).check(); return }
   await page.getByRole('combobox', { name: label, exact: true }).click()
   await page.getByRole('option', { name: value, exact: true }).click()
 }
@@ -466,8 +468,8 @@ for (const size of Object.keys(SIZES)) {
     await h.open(via === 'url' ? `?session=${saved.id}` : '')
     if (via === 'dashboard') {
       for (const [name, value] of [['Level', 'A2'], ['Round', '5']]) {
-        const field = h.page.getByRole('combobox', { name, exact: true })
-        assert.equal(await field.innerText(), value)
+        const field = name === 'Level' ? h.page.getByRole('radiogroup', { name, exact: true }).getByRole('radio', { checked: true }) : h.page.getByRole('combobox', { name, exact: true })
+        assert.equal(name === 'Level' ? await field.inputValue() : await field.innerText(), value)
         assert.equal(await field.isDisabled(), true)
       }
       assert.equal(await button(h.page, 'Panda').getAttribute('aria-pressed'), 'true')
@@ -742,7 +744,7 @@ for (const size of Object.keys(SIZES)) {
           assert.ok(await portrait.evaluate((image) => image.naturalWidth > 0))
         }
         if (slug === 'tez-gapir') {
-          assert.equal(await h.page.getByRole('combobox', { name: c.level, exact: true }).innerText(), SETUP[locale][0])
+          assert.equal(await h.page.getByRole('radiogroup', { name: c.level, exact: true }).getByRole('radio', { checked: true }).count(), 0)
           assert.equal(await h.page.getByRole('combobox', { name: c.theme, exact: true }).count(), 0)
           assert.equal(await h.page.getByRole('combobox', { name: c.rounds, exact: true }).count(), 0)
           if (locale === 'uz') await screenshot(h.page, `setup-empty-tez-${size}`)
@@ -769,8 +771,7 @@ for (const size of Object.keys(SIZES)) {
           }[locale])
         }
         if (slug !== 'ice-mystery' && slug !== 'error-hunt') {
-          await h.page.getByRole('combobox', { name: c.level, exact: true }).click()
-          await h.page.getByRole('option', { name: 'A2', exact: true }).click()
+          await choose(h.page, c.level, 'A2')
         }
         if (slug === 'tez-gapir') {
           assert.equal(await h.page.getByRole('combobox', { name: c.theme, exact: true }).count(), 0)
@@ -866,8 +867,8 @@ for (const size of Object.keys(SIZES)) {
       await button(h.page, slug === 'tez-gapir' ? 'Continue' : 'Start').waitFor()
       assert.equal(new URL(h.page.url()).search, '')
       if (slug === 'tez-gapir') {
-        assert.equal(await h.page.getByRole('combobox', { name: 'Level', exact: true }).innerText(), 'Your level')
-        assert.equal(await h.page.getByRole('combobox').count(), 1)
+        assert.equal(await h.page.getByRole('radiogroup', { name: 'Level', exact: true }).getByRole('radio', { checked: true }).count(), 0)
+        assert.equal(await h.page.getByRole('combobox').count(), 0)
         await button(h.page, 'Continue').click()
         assert.equal(await h.page.getByRole('alert').innerText(), 'Choose a level')
         assert.equal(h.calls('start').length, 1)

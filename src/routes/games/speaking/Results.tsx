@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { TezGapirCelebration } from './TezGapirScene'
 import { Button } from '../../../components/ui'
 import { speakingGames, type GameDashboard, type GameFeedback, type GameSession, type LeaderboardEntry } from '../../../lib/speaking-games'
 import type { GameCopy, GameSlug } from './copy'
@@ -42,6 +43,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
   const isErrorHunt = session.gameSlug === 'error-hunt'
   const languageOnly = session.gameSlug === 'tez-gapir' || session.gameSlug === 'error-hunt'
   return <div className="sg-board sg-results">
+    {session.gameSlug === 'tez-gapir' && <TezGapirCelebration />}
     {!isErrorHunt && <p className="sg-muted">{copy.saved}</p>}
     <h1 className="sg-prompt">{summary?.won === true ? copy.solved : summary?.won === false ? copy.unsolved : copy.completed}</h1>
     {isErrorHunt ? <ErrorHuntTreasure key={session.id} score={session.score} copy={copy} /> : <>
