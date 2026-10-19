@@ -1,5 +1,5 @@
 import { useId, type ComponentProps, type CSSProperties, type ReactNode } from 'react'
-import { AudioLines, Sparkles, Trophy } from 'lucide-react'
+import { AudioLines, Sparkles } from 'lucide-react'
 import type { Select } from '../../../components/forms/Select'
 import type { GameSession } from '../../../lib/speaking-games'
 import type { GameCopy } from './copy'
@@ -73,9 +73,33 @@ export function TezGapirTranscript({ text }: { text: string }) {
   </div>
 }
 
-export function TezGapirCelebration() {
-  return <div className="tg-celebration" aria-hidden="true">
-    <div className="tg-trophy"><Trophy size={42} strokeWidth={1.8} /></div>
-    {Array.from({ length: 14 }, (_, index) => <i key={index} style={{ '--tg-i': index } as CSSProperties} />)}
+export function TezGapirCelebration({ score, label }: { score: number; label: string }) {
+  const gold = useId()
+  return <div className="tg-celebration">
+    <div className="tg-trophy" role="img" aria-label={`${label}: ${score}`}>
+      <svg viewBox="0 0 240 240" aria-hidden="true">
+        <defs><linearGradient id={gold} x1="0" y1="0" x2="1" y2="1">
+          <stop stopColor="#fff4ad" /><stop offset=".35" stopColor="#ffda55" /><stop offset=".7" stopColor="#e9a524" /><stop offset="1" stopColor="#fff09a" />
+        </linearGradient></defs>
+        <path d="M64 48H30v24c0 32 21 50 49 50M176 48h34v24c0 32-21 50-49 50" fill="none" stroke="#f1be46" strokeWidth="11" strokeLinejoin="round" />
+        <path d="M111 143h18v49h-18zM91 192h58l10 17H81zM75 209h90v17H75z" fill={`url(#${gold})`} stroke="#ffe894" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M62 26h116v68a58 58 0 0 1-116 0Z" fill={`url(#${gold})`} stroke="#fff0a3" strokeWidth="3" />
+        <path d="M73 39v52c0 18 7 30 18 39" fill="none" stroke="#fff8d4" strokeWidth="5" strokeLinecap="round" opacity=".6" />
+      </svg>
+      <strong className="sg-score-big" aria-hidden="true" style={{ fontSize: `${Math.min(52, 190 / String(score).length)}px` }}>{score}</strong>
+    </div>
+    {Array.from({ length: 14 }, (_, index) => <i key={index} aria-hidden="true" style={{ '--tg-i': index } as CSSProperties} />)}
+  </div>
+}
+
+export function TezGapirThanks({ character, copy }: { character: GameSession['character']; copy: GameCopy }) {
+  const message = character === 'penguin' ? copy.tezPenguinThanks : character === 'panda' ? copy.tezPandaThanks : copy.tezPeroThanks
+  return <div className="tg-thanks" data-character={character}>
+    <div className="tg-happy-character" aria-hidden="true">
+      <Sparkles className="tg-happy-spark" size={25} />
+      <img src={`/games/characters/${character}.webp`} alt="" width="512" height="512" />
+      <Sparkles className="tg-happy-spark" size={18} />
+    </div>
+    <p>{message}</p>
   </div>
 }

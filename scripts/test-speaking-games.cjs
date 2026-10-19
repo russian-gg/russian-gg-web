@@ -858,7 +858,11 @@ for (const size of Object.keys(SIZES)) {
       assert.equal(await h.page.locator('details').count(), total)
       await h.page.locator('details summary').first().click()
       assert.ok((await h.page.locator('details').first().innerText()).includes(`${ANSWER} 1`))
-      if (slug !== 'error-hunt') {
+      if (slug === 'tez-gapir') {
+        assert.equal(await h.page.locator('.sg-results .sg-stat-grid, .sg-results .sg-achievements').count(), 0)
+        assert.equal(await h.page.locator('.tg-trophy .sg-score-big').innerText(), String(total * 7))
+        assert.equal(await h.page.locator('.sg-results h1').innerText(), 'Great result!')
+      } else if (slug !== 'error-hunt') {
         assert.ok((await h.page.locator('.sg-stat-grid').innerText()).includes('+12'))
         assert.ok((await h.page.locator('.sg-achievements').first().innerText()).includes('Mock achievement'))
       }
@@ -1044,7 +1048,7 @@ scenario('tez total score follows server round allocations without plus minus fe
   await button(h.page, 'Play again').waitFor()
   assert.equal(await h.page.locator('.sg-score-big').innerText(), '100')
   assert.equal(await h.page.locator('.sg-cityscape').count(), 0)
-  assert.ok((await h.page.locator('.sg-stat-grid').innerText()).includes('100'))
+  assert.equal(await h.page.locator('.sg-results .sg-stat-grid, .sg-results .sg-achievements').count(), 0)
   await screenshot(h.page, 'tez-total-score-100')
   assert.equal(h.calls('answer').length, 3)
 })
