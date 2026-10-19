@@ -22,7 +22,6 @@ import { Button } from '../../components/ui'
 import { readAudioPreferences, storeAudioPreferences } from '../../lib/audio-preferences'
 import { playUiSound } from '../../lib/ui-sounds'
 import { cx } from '../../lib/cx'
-import { mascotImage } from '../../lib/mascot-images'
 
 type Gender = 'masculine' | 'feminine' | 'neuter'
 type Phase = 'ready' | 'playing' | 'paused' | 'falling' | 'gameover'
@@ -52,6 +51,7 @@ type World = {
   collected: number
   lives: number
   distance: number
+  animationTime: number
   nextObstacleAt: number
   nextCoinAt: number
   lastTime: number
@@ -153,6 +153,7 @@ function makeWorld(): World {
     collected: 0,
     lives: 3,
     distance: 0,
+    animationTime: 0,
     nextObstacleAt: 0.68,
     nextCoinAt: 0.62,
     lastTime: performance.now(),
@@ -366,6 +367,7 @@ export function GenderRunnerGame() {
     const observer = new ResizeObserver(resize)
     observer.observe(canvas)
     resize()
+    getRunnerPenguins()
 
     const showMessage = (message: string, kind: 'correct' | 'wrong') => {
       window.clearTimeout(messageTimer)
@@ -390,6 +392,7 @@ export function GenderRunnerGame() {
       world.lastTime = now
       if (phaseRef.current !== 'playing') return
 
+      world.animationTime += delta
       const speed = DIFFICULTIES[difficultyRef.current].speed
       const step = delta * 0.00028 * speed
       world.distance += step
@@ -806,14 +809,24 @@ function drawWorld(context: CanvasRenderingContext2D, width: number, height: num
   const player = project(world.displayedLane - 1, 0.03 + slideDepth, width, height)
   const drop = fallProgress > 0.58 ? ((fallProgress - 0.58) / 0.42) ** 2 * height * 0.7 : 0
   if (phase === 'falling') drawIceHole(context, player.x, player.y + 22, Math.max(0.45, player.scale))
+  const shadowScale = 1 - (jumpHeight / (height * 0.14)) * 0.35
+  context.save()
+  context.fillStyle = 'rgba(0,0,0,.22)'
+  context.filter = 'blur(4px)'
+  context.beginPath()
+  context.ellipse(player.x, player.y + 5, 28 * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2)
+  context.fill()
+  context.restore()
   drawProjectPenguin(
     context,
     player.x,
     player.y - jumpHeight + drop,
-    Math.max(0.5, width / 690) * (1 - fallProgress * 0.38),
+    Math.max(0.8, Math.min(1.45, width / 390)) * (1 - fallProgress * 0.35),
     phase === 'playing',
-    now,
-    -fallProgress * 1.15,
+    world.animationTime,
+    Math.max(0, world.jumpUntil - now),
+    world.lane - world.displayedLane,
+    -fallProgress * 1.1,
   )
 }
 
@@ -976,15 +989,18 @@ function drawIceHole(context: CanvasRenderingContext2D, x: number, y: number, sc
   }
 }
 
-let projectPenguinImage: HTMLImageElement | null = null
+let runnerPenguins: { forward: HTMLImageElement; turning: HTMLImageElement } | null = null
 
-function getProjectPenguin() {
-  if (!projectPenguinImage && typeof Image !== 'undefined') {
-    projectPenguinImage = new Image()
-    projectPenguinImage.decoding = 'async'
-    projectPenguinImage.src = mascotImage('penguin')
+function getRunnerPenguins() {
+  if (!runnerPenguins && typeof Image !== 'undefined') {
+    const forward = new Image()
+    const turning = new Image()
+    forward.decoding = turning.decoding = 'async'
+    forward.src = '/games/rod-runner/runner-penguin-forward-sprites.png'
+    turning.src = '/games/rod-runner/runner-penguin-sprites.png'
+    runnerPenguins = { forward, turning }
   }
-  return projectPenguinImage
+  return runnerPenguins
 }
 
 function drawProjectPenguin(
@@ -993,22 +1009,35 @@ function drawProjectPenguin(
   y: number,
   scale: number,
   running: boolean,
-  now: number,
+  animationTime: number,
+  jumpRemaining: number,
+  laneDelta: number,
   rotation: number,
 ) {
-  const stride = running ? Math.sin(now / 75) : 0
-  const bob = running ? Math.abs(Math.sin(now / 75)) * 3 : 0
-  const image = getProjectPenguin()
+  const sprites = getRunnerPenguins()
+  const facing = Math.abs(laneDelta) < 0.02 ? 'forward' : laneDelta < 0 ? 'left' : 'right'
+  const preferred = facing === 'forward' ? sprites?.forward : sprites?.turning
+  const alternate = facing === 'forward' ? sprites?.turning : sprites?.forward
+  const image = preferred?.complete && preferred.naturalWidth > 0 ? preferred : alternate
   context.save()
-  context.translate(x, y + bob + 10)
-  context.rotate(rotation + stride * 0.035)
+  context.translate(x, y)
   context.scale(scale, scale)
-  context.fillStyle = 'rgba(0,0,0,.25)'
-  context.beginPath()
-  context.ellipse(0, 5, 31, 8, 0, 0, Math.PI * 2)
-  context.fill()
+  context.rotate(rotation + laneDelta * 0.18)
   if (image?.complete && image.naturalWidth > 0) {
-    context.drawImage(image, 110, 0, 930, 1254, -38, -94, 76, 94)
+    const frame = jumpRemaining > 0
+      ? jumpRemaining > 550 ? 6 : 7
+      : running ? Math.floor(animationTime * 0.012) % 6 : 0
+    const frameWidth = image.naturalWidth / 4
+    const frameHeight = image.naturalHeight / 2
+    if (facing === 'left') context.scale(-1, 1)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'medium'
+    context.drawImage(
+      image,
+      (frame % 4) * frameWidth, Math.floor(frame / 4) * frameHeight,
+      frameWidth, frameHeight,
+      -68, -128, 136, 136,
+    )
   } else {
     drawFallbackPenguin(context)
   }
