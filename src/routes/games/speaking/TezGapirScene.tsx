@@ -103,13 +103,12 @@ export function TezGapirCelebration({ score, label }: { score: number; label: st
 }
 
 export function TezGapirThanks({ character, copy }: { character: GameSession['character']; copy: GameCopy }) {
-  const message = character === 'penguin' ? copy.tezPenguinThanks : character === 'panda' ? copy.tezPandaThanks : copy.tezPeroThanks
   return <div className="tg-thanks" data-character={character}>
     <div className="tg-happy-character" aria-hidden="true">
       <Sparkles className="tg-happy-spark" size={25} />
       <img src={`/games/characters/${character}.webp`} alt="" width="512" height="512" />
       <Sparkles className="tg-happy-spark" size={18} />
     </div>
-    <p>{message}</p>
+    <p>{copy.tezResultNote}</p>
   </div>
 }
