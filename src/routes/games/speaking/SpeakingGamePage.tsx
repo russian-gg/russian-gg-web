@@ -14,7 +14,6 @@ import { Feedback, Results, Statistics } from './Results'
 import { Evidence, MysteryMap } from './MysteryMap'
 import { ErrorHuntProgress, ErrorHuntScene } from './ErrorHuntScene'
 import { TezGapirBackdrop, TezGapirLevelPicker, TezGapirScene, TezGapirTranscript } from './TezGapirScene'
-import { TezGapirAmbience } from './TezGapirAmbience'
 
 function gameError(caught: unknown, copy: GameCopy) {
   if (!(caught instanceof RequestError)) return caught instanceof TypeError ? copy.connectionError : copy.error
@@ -359,7 +358,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
 
   return <main className="sg" data-game={slug} data-session={slug === 'tez-gapir' && session && session.status !== 'completed' ? 'active' : undefined}>
     {slug === 'tez-gapir' && <TezGapirBackdrop />}
-    <nav className="sg-nav"><Link to="/games" onClick={() => { speech.abort(); stopAudio() }}><span aria-hidden="true">←</span>{copy.games}</Link><strong>{label.title}</strong>{slug === 'tez-gapir' && <TezGapirAmbience copy={copy} listening={answering && speechStatus === 'listening'} transcript={transcript} completed={session?.status === 'completed'} feedback={Boolean(feedback?.words.some((word) => word.points > 0))} playingAudio={playingAudio} remaining={answering && session ? Math.max(0, Math.min(1, seconds / Math.max(1, session.durationSeconds))) : 0} />}</nav>
+    <nav className="sg-nav"><Link to="/games" onClick={() => { speech.abort(); stopAudio() }}><span aria-hidden="true">←</span>{copy.games}</Link><strong>{label.title}</strong></nav>
     <div className="sg-content">
       {loading ? <div className="flex justify-center py-24"><Spinner /></div> : <>
         {error && <div className="sg-error" role="alert">{error}{!retryExhausted && <button onClick={() => { if (retryAction.current) void run(retryAction.current); else if (pending) void submit(); else setReload((n) => n + 1) }} disabled={busy}>{copy.retry}</button>}</div>}
@@ -374,7 +373,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
                 setRounds(Number(value)); setSetupError(null); startRequest.current = null
               }} options={[{ value: '', label: copy.selectRounds, disabled: true }, ...[3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></div>}
               {setupError && <p className="text-danger" role="alert">{setupError === 'level' ? copy.selectLevel : copy.selectRounds}</p>}
-              {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <>{slug !== 'error-hunt' && <p className="sg-muted">{copy.savedGame}</p>}<Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : copy.start}</Button>}
+              {!catalog.isEnabled ? <p role="status" className="sg-muted">{copy.disabled}</p> : !catalog.isAccessible ? <p role="status" className="sg-muted">{copy.locked} {copy.unlock}</p> : active ? <>{slug !== 'error-hunt' && <p className="sg-muted">{copy.savedGame}</p>}<Button disabled={busy} onClick={() => void resume(active.id)}>{copy.resume}</Button></> : <Button size="lg" disabled={busy} onClick={() => void start()}>{busy ? copy.loading : slug === 'tez-gapir' ? copy.continue : copy.start}</Button>}
               {slug !== 'error-hunt' && slug !== 'tez-gapir' && <p className="sg-muted">{copy.timeNote}</p>}
             </div></div>
           <Statistics slug={slug} copy={copy} dashboard={dashboard} />
@@ -389,7 +388,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
               {isMystery && <button disabled={busy || answering} onClick={() => { speech.abort(); stopAudio(); setLocation(null); setAccusing(false) }} className="mb-5 text-sm font-bold text-signal-ink">← {copy.leave}</button>}
               {slug === 'first-reaction' && session.prompt.kind !== 'ready' && <ReactionScene text={session.prompt.textRu} />}
               <ErrorHuntScene enabled={slug === 'error-hunt'} session={session} seconds={answering ? seconds : session.durationSeconds} timer={!isMystery && slug !== 'tez-gapir' && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}>
-                <TezGapirScene enabled={slug === 'tez-gapir'} session={session} seconds={answering ? seconds : session.durationSeconds} listening={answering && speechStatus === 'listening'} transcript={transcript} copy={copy}>
+                <TezGapirScene enabled={slug === 'tez-gapir'} session={session} seconds={answering ? seconds : session.durationSeconds} listening={answering && speechStatus === 'listening'} copy={copy}>
                 <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>
                 </TezGapirScene>
               </ErrorHuntScene>

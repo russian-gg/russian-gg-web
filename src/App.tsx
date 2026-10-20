@@ -175,7 +175,7 @@ function useGlobalUiSounds() {
         : null
       if (!source || source.matches(':disabled') || source.getAttribute('aria-disabled') === 'true') return
       const requested = source.dataset.uiSound as UiSound | 'none' | undefined
-      if (requested === 'none' || source.closest('[data-game="tez-gapir"]')) return
+      if (requested === 'none') return
       playUiSound(requested ?? 'click')
     }
 

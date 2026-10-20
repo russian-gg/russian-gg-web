@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { mascotImage } from '../../../lib/mascot-images'
 import type { GameCopy, GameSlug } from './copy'
-import { TezGapirPortrait } from './TezGapirScene'
 import './speaking-games.css'
 
 export type Companion = 'penguin' | 'panda' | 'pero'
@@ -38,13 +37,12 @@ export function Timer({ seconds, duration, label, starred = false }: { seconds: 
 export function CompanionPicker({ value, onChange, copy, game, disabled = false }: { value: Companion; onChange: (value: Companion) => void; copy: GameCopy; game: GameSlug; disabled?: boolean }) {
   return <fieldset disabled={disabled} className="sg-companions"><legend>{game === 'tez-gapir' ? copy.conversationPartner : copy.character}</legend>
     {(['penguin', 'panda', 'pero'] as const).map((companion) => <button type="button" key={companion} aria-pressed={value === companion} onClick={() => onChange(companion)}>
-      {game === 'tez-gapir' ? <TezGapirPortrait character={companion} selected={value === companion} /> : <img src={companionImage(companion, game)} alt="" />}<span>{copy[companion === 'pero' ? 'feather' : companion]}</span>
+      <img src={companionImage(companion, game)} alt="" /><span>{copy[companion === 'pero' ? 'feather' : companion]}</span>
     </button>)}
   </fieldset>
 }
 
 export function CharacterPortrait({ character, game }: { character: string; game?: GameSlug }) {
-  if (game === 'tez-gapir') return <TezGapirPortrait character={character === 'panda' ? 'panda' : character === 'pero' || character === 'feather' ? 'pero' : 'penguin'} />
   if (character === 'bear' || character === 'fox') return <svg viewBox="0 0 60 64" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-[70px] w-[58px] shrink-0 text-signal-ink">{character === 'fox' ? <path d="m12 28-1-18 19 10 19-10-1 18 4 15-22 16L8 43zm10 9h1m14 0h1m-11 9h6" /> : <><circle cx="15" cy="18" r="8" /><circle cx="45" cy="18" r="8" /><circle cx="30" cy="35" r="23" /><path d="M20 31h1m18 0h1m-13 9h6m-3 0v6m-6 0q6 5 12 0" /></>}</svg>
   return <img src={companionImage(character === 'panda' ? 'panda' : character === 'pero' || character === 'feather' ? 'pero' : 'penguin', game)} alt="" />
 }

@@ -20,7 +20,7 @@ const COPY = {
   ru: { start: '\u041d\u0430\u0447\u0430\u0442\u044c', panda: '\u041f\u0430\u043d\u0434\u0430', level: '\u0423\u0440\u043e\u0432\u0435\u043d\u044c', theme: '\u0422\u0435\u043c\u0430', rounds: '\u0420\u0430\u0443\u043d\u0434', weekly: '\u0420\u0435\u0439\u0442\u0438\u043d\u0433 \u0437\u0430 \u043d\u0435\u0434\u0435\u043b\u044e', all: '\u0417\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f', progress: '\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u0438 \u0434\u043e\u0441\u0442\u0438\u0436\u0435\u043d\u0438\u044f', titles: ['\u0413\u043e\u0432\u043e\u0440\u0438 \u0431\u044b\u0441\u0442\u0440\u043e', '\u041b\u043e\u0432\u0435\u0446 \u043e\u0448\u0438\u0431\u043e\u043a', '\u041f\u0435\u0440\u0432\u0430\u044f \u0440\u0435\u0430\u043a\u0446\u0438\u044f', '\u0422\u0430\u0439\u043d\u0430 \u043b\u0435\u0434\u044f\u043d\u043e\u0433\u043e \u0433\u043e\u0440\u043e\u0434\u0430'] },
 }
 const READY = { en: 'Ready', uz: 'Tayyorman', ru: '\u042f \u0433\u043e\u0442\u043e\u0432' }
-const CONTINUE = { en: 'Start', uz: 'Boshlash', ru: 'Начать' }
+const CONTINUE = { en: 'Continue', uz: 'Davom ettirish', ru: 'Продолжить' }
 const SETUP = {
   en: ['Your level', 'Choose a level', 'Choose a topic', 'Choose the number of rounds'],
   uz: ['Darajangiz', 'Darajani tanlang', 'Mavzuni tanlang', 'Raund sonini tanlang'],
@@ -359,144 +359,69 @@ function scenario(name, options, action) {
   })
 }
 
-for (const shareMode of ['native', 'clipboard', 'manual', 'cancel']) {
-  const saved = makeSession('tez-gapir', {
-    score: 69, character: shareMode === 'clipboard' ? 'panda' : shareMode === 'manual' ? 'pero' : 'penguin',
-    history: [0, 1, 2].map((roundIndex) => ({ roundIndex, prompt: prompt('tez-gapir', roundIndex), feedback: feedback(ANSWER), answeredAt: now(), locationId: null })),
-  })
-  complete(saved)
-  scenario('living fire share ' + shareMode, { saved, size: 'mobile', locale: shareMode === 'manual' ? 'ru' : 'uz' }, async (h) => {
-    await h.context.addInitScript((mode) => {
-      window.__shares = []
-      Object.defineProperty(navigator, 'share', { configurable: true, value: mode === 'native' || mode === 'cancel' ? async (value) => {
-        if (mode === 'cancel') throw new DOMException('Cancelled', 'AbortError')
-        window.__shares.push(value)
-      } : undefined })
-      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (value) => {
-        if (mode === 'manual') throw new Error('Clipboard unavailable')
-        window.__shares.push(value)
-      } } })
-    }, shareMode)
-    await h.open('?session=' + saved.id)
-    await h.page.locator('.sg-results').waitFor()
-    assert.equal(await h.page.locator('.tg-result-numbers > div').first().locator('strong').innerText(), '12')
-    assert.equal(await h.page.locator('.tg-result-numbers .sg-score-big').innerText(), '69')
-    const before = h.state.calls.length
-    await h.page.locator('.tg-share').click()
-    if (shareMode === 'native' || shareMode === 'clipboard') {
-      await until(async () => await h.page.evaluate(() => window.__shares.length) === 1, 'share must contain the completed result')
-      const value = await h.page.evaluate(() => window.__shares[0])
-      const text = shareMode === 'native' ? value.text : value
-      assert.match(text, /69/)
-      assert.match(text, /12/)
-      assert.ok(!JSON.stringify(value).includes(saved.id), 'shared result must not expose a session URL')
-      assert.ok(!JSON.stringify(value).includes(ANSWER), 'shared result must not expose answer transcripts')
-      assert.ok(JSON.stringify(value).includes(BASE + '/games/tez-gapir'))
-      if (shareMode === 'clipboard') await button(h.page, 'Nusxa olindi').waitFor()
-    } else if (shareMode === 'manual') {
-      const field = h.page.locator('.tg-share-fallback textarea')
-      await field.waitFor()
-      assert.match(await field.inputValue(), /69/)
-      assert.equal(await field.getAttribute('readonly'), '')
-    } else {
-      await until(async () => await h.page.locator('.tg-share').isEnabled(), 'cancelling the share sheet must restore the button')
-      assert.equal(await h.page.locator('.tg-share-fallback').count(), 0)
-    }
-    assert.equal(h.state.calls.length, before, 'sharing must not change the game session')
-    await screenshot(h.page, 'living-fire-results-' + shareMode)
-    await button(h.page, shareMode === 'manual' ? 'Играть ещё' : "Yana o'ynash").click()
-    await h.page.locator('.sg-setup').waitFor()
-    assert.equal(await h.page.locator('.tg-share-fallback').count(), 0)
-    await screenshot(h.page, 'living-fire-setup-' + shareMode)
-  })
-}
-
-scenario('living fire ambience needs a gesture and releases audio', { slug: 'tez-gapir' }, async (h) => {
-  await h.context.addInitScript(() => {
-    const NativeAudioContext = window.AudioContext
-    window.__fireAudio = { opened: 0, closed: 0, microphoneRequests: 0 }
-    window.AudioContext = class extends NativeAudioContext {
-      constructor(...args) { super(...args); window.__fireAudio.opened++ }
-      close() { window.__fireAudio.closed++; return super.close() }
-    }
-    if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = async () => {
-      window.__fireAudio.microphoneRequests++
-      throw new Error('Ambience must not open a microphone')
-    }
-  })
-  await h.open()
-  assert.deepEqual(await h.page.evaluate(() => window.__fireAudio), { opened: 0, closed: 0, microphoneRequests: 0 })
-  await button(h.page, 'Turn on nature sounds').click()
-  await until(async () => await h.page.evaluate(() => window.__fireAudio.opened) === 1, 'user gesture must enable ambience')
-  await h.page.clock.fastForward(2500)
-  await button(h.page, 'Panda').click()
-  assert.equal(await h.page.evaluate(() => window.__fireAudio.opened), 1, 'subsequent clicks must reuse the audio context')
-  await button(h.page, 'Turn off nature sounds').click()
-  assert.deepEqual(await h.page.evaluate(() => window.__fireAudio), { opened: 1, closed: 1, microphoneRequests: 0 })
-  assert.equal(await h.page.evaluate(() => localStorage.getItem('rgg.audio-muted')), 'true')
-  await button(h.page, 'Turn on nature sounds').click()
-  await h.page.getByRole('link', { name: 'Games', exact: false }).click()
-  await until(async () => await h.page.evaluate(() => window.__fireAudio.closed) === 2, 'leaving the game must release ambience')
-  assert.equal(await h.page.evaluate(() => window.__fireAudio.microphoneRequests), 0)
-})
-
 for (const [character, size, width] of [['penguin', 'mobile', 390], ['panda', 'mobile', 320], ['pero', 'mobile', 390], ['penguin', 'desktop', 1280]]) {
-  scenario('living fire countdown ' + character + ' ' + size, { slug: 'tez-gapir', size, viewport: { width, height: 960 } }, async (h) => {
-    const artwork = []
-    h.page.on('request', (request) => { if (request.url().includes('/games/tez-gapir/')) artwork.push(request.url()) })
+  scenario(`tez radiant star countdown ${character} ${size}`, { slug: 'tez-gapir', size, viewport: { width, height: 960 } }, async (h) => {
+    const requests = []
+    h.page.on('request', (request) => requests.push(request.url()))
     await h.open()
     await button(h.page, character === 'penguin' ? 'Penguin' : character === 'panda' ? 'Panda' : 'Feather').click()
     await chooseTezSetup(h)
-    await button(h.page, 'Start').click()
-    const timer = h.page.locator('.tg-fire-timer')
-    const fire = h.page.locator('.tg-scene .tg-campfire')
-    const scene = h.page.locator('.tg-scene')
+    await button(h.page, 'Continue').click()
+    const timer = h.page.locator('.tg-star-timer')
+    const mentor = h.page.locator('.tg-mentor img')
+    const glow = () => timer.evaluate((node) => parseFloat(getComputedStyle(node).getPropertyValue('--tg-star-glow')))
     await timer.waitFor()
+    await mentor.evaluate((image) => image.decode())
+    assert.equal(await mentor.getAttribute('src'), `/games/characters/${character}.webp`)
     assert.equal(await timer.getAttribute('aria-label'), '30 seconds')
-    assert.equal(await fire.getAttribute('data-extinguished'), 'false')
-    assert.equal(await h.page.locator('.tg-mentor img').getAttribute('src'), '/games/characters/' + character + '.webp')
+    assert.equal(await glow(), 6)
+    const characterBox = await mentor.boundingBox()
+    const starBox = await timer.boundingBox()
+    assert.ok(characterBox.x + characterBox.width <= starBox.x, 'character must remain to the left of the star')
+    assert.ok(characterBox.y < starBox.y + starBox.height && starBox.y < characterBox.y + characterBox.height, 'character and star must share the same row')
+    assert.equal(await timer.locator('img').count(), 0, 'character must not appear inside the timer')
+    await screenshot(h.page, `star-${character}-${size}-start`)
     await beginVoice(h)
     const deadline = h.session().deadlineUtc
-    const initial = await fire.evaluate((node) => Number(node.style.getPropertyValue('--tg-fire-scale')))
-    await h.page.clock.fastForward(10000)
-    const middle = await fire.evaluate((node) => Number(node.style.getPropertyValue('--tg-fire-scale')))
-    assert.ok(middle < initial, 'the fire must shrink as time runs out')
-    await h.page.evaluate(() => window.__gameSpeech.result('Я люблю русский язык', false))
-    await until(async () => await scene.getAttribute('data-voice-active') === 'true', 'recognised speech must brighten the fire')
-    assert.ok(await fire.evaluate((node) => Number(node.style.getPropertyValue('--tg-fire-light'))) > 1)
-    assert.equal(await h.page.locator('.tg-word-sparks').getAttribute('data-verified'), 'false', 'interim words must not be presented as checked answers')
-    await screenshot(h.page, 'living-fire-speaking-' + character + '-' + size)
-    await h.page.clock.fastForward(1500)
-    await until(async () => await scene.getAttribute('data-voice-active') === 'false', 'fire must settle when speech stops')
-    await h.page.clock.fastForward(14500)
-    assert.ok(await fire.evaluate((node) => Number(node.style.getPropertyValue('--tg-fire-scale'))) < middle)
-    assert.equal(h.calls('answer').length, 0)
-    assert.equal(h.session().deadlineUtc, deadline, 'voice effects must not extend the deadline')
+    let previousGlow = await glow()
+    for (const elapsed of [8000, 8000, 9000]) {
+      await h.page.clock.fastForward(elapsed)
+      await until(async () => await glow() > previousGlow, 'star must shine more strongly as the deadline approaches')
+      previousGlow = await glow()
+      assert.equal(await mentor.getAttribute('src'), `/games/characters/${character}.webp`)
+      assert.equal(await mentor.evaluate((node) => getComputedStyle(node).opacity), '1')
+      assert.equal(h.calls('answer').length, 0, 'star visuals must not submit answers')
+      assert.equal(h.session().deadlineUtc, deadline, 'star visuals must not change the deadline')
+    }
     await h.page.evaluate((text) => window.__gameSpeech.finalOnStop(text, 3000), ANSWER)
-    await h.page.clock.fastForward(5000)
-    await until(async () => await fire.getAttribute('data-extinguished') === 'true', 'zero seconds must leave embers')
-    assert.equal(await fire.evaluate((node) => node.style.getPropertyValue('--tg-fire-opacity')), '0')
+    await h.page.clock.fastForward(6000)
+    await until(async () => await timer.getAttribute('data-finished') === 'true', 'zero seconds must leave the brightest star')
+    assert.equal(await glow(), 34)
+    assert.equal(await mentor.evaluate((node) => getComputedStyle(node).opacity), '1')
+    assert.equal(await h.page.locator('.tg-burn-frame, .tg-fire-smoke, .tg-campfire').count(), 0)
     assert.equal(await timer.getAttribute('aria-label'), '0 seconds')
-    await screenshot(h.page, 'living-fire-embers-' + character + '-' + size)
+    await screenshot(h.page, `star-${character}-${size}-finish`)
     await h.page.clock.fastForward(4000)
     await checkFeedback(h)
     assert.equal(h.calls('answer').length, 1)
     assert.equal(h.calls('answer')[0].body.text, ANSWER)
+    assert.equal(await glow(), 34, 'feedback must preserve the brightness reached at the deadline')
     assert.equal(await timer.getAttribute('aria-label'), '0 seconds')
-    assert.equal(await h.page.locator('.tg-word-sparks').getAttribute('data-verified'), 'true')
-    assert.equal(await h.page.locator('.tg-word-sparks span').count(), 1, 'only positive server feedback earns reward sparks')
     await button(h.page, 'Next').click()
     await button(h.page, 'Speak').waitFor()
-    assert.equal(await fire.getAttribute('data-extinguished'), 'false')
+    assert.equal(await glow(), 6, 'new round must reset the star glow')
     assert.equal(await timer.getAttribute('aria-label'), '30 seconds')
     await beginVoice(h)
     await h.page.clock.fastForward(8000)
     await sendVoice(h)
+    await h.page.locator('.sg-feedback').waitFor()
+    const earlyGlow = await glow()
+    assert.ok(earlyGlow > 6 && earlyGlow < 34, 'finishing early must keep a partially bright star')
     await checkFeedback(h)
-    assert.equal(await fire.getAttribute('data-extinguished'), 'false', 'early finish must preserve the remaining fire')
+    assert.equal(await glow(), earlyGlow, 'finishing early must preserve the current star glow')
     assert.equal(h.calls('answer').length, 2)
     assert.equal(h.calls('begin').length, 2)
-    assert.ok(artwork.every((url) => !url.includes('/burning/')), 'saved burning sprites must not be loaded by the new design')
+    assert.ok(requests.every((url) => !url.includes('/tez-gapir/burning/') && !url.includes('/tez-gapir/living-fire/')), 'restored design must not load fire or burning artwork')
   })
 }
 
@@ -505,13 +430,14 @@ for (const [elapsed, seconds] of [[50, 10], [65, 0]]) {
     status: 'feedback', durationSeconds: 60, roundStartedAt: '2026-01-01T00:00:00Z', feedback: feedback(ANSWER),
     history: [{ roundIndex: 0, prompt: prompt('tez-gapir'), feedback: feedback(ANSWER), answeredAt: new Date(Date.parse('2026-01-01T00:00:00Z') + elapsed * 1000).toISOString(), locationId: null }],
   })
-  scenario('living fire restored feedback ' + seconds, { slug: 'tez-gapir', saved }, async (h) => {
-    await h.open('?session=' + saved.id)
-    const timer = h.page.locator('.tg-fire-timer')
-    assert.equal(await timer.getAttribute('aria-label'), seconds + ' seconds')
-    assert.equal(await timer.getAttribute('data-extinguished'), String(seconds === 0))
+  scenario(`tez radiant star restored feedback ${seconds}`, { slug: 'tez-gapir', saved }, async (h) => {
+    await h.open(`?session=${saved.id}`)
+    const timer = h.page.locator('.tg-star-timer')
+    const glow = await timer.evaluate((node) => node.style.getPropertyValue('--tg-star-glow'))
+    assert.equal(await timer.getAttribute('data-finished'), String(seconds === 0))
+    assert.equal(await timer.getAttribute('aria-label'), `${seconds} seconds`)
     await h.page.clock.fastForward(65000)
-    assert.equal(await timer.getAttribute('aria-label'), seconds + ' seconds')
+    assert.equal(await timer.evaluate((node) => node.style.getPropertyValue('--tg-star-glow')), glow)
     assert.equal(h.calls('answer').length, 0)
     assert.equal(h.calls('begin').length, 0)
   })
@@ -548,11 +474,11 @@ scenario('tez setup has no topic selection and resets rounds when level changes'
   await choose(h.page, 'Level', 'A1')
   assert.equal(await h.page.getByRole('combobox', { name: 'Topic', exact: true }).count(), 0)
   assert.equal(await h.page.getByRole('combobox', { name: 'Round', exact: true }).innerText(), 'Choose the number of rounds')
-  await button(h.page, 'Start').click()
+  await button(h.page, 'Continue').click()
   assert.equal(await h.page.getByRole('alert').innerText(), 'Choose the number of rounds')
   assert.equal(h.calls('start').length, 0)
   await choose(h.page, 'Round', '3')
-  await button(h.page, 'Start').click()
+  await button(h.page, 'Continue').click()
   await h.page.locator('.sg-hud').waitFor()
   assert.equal(h.calls('start').length, 1)
   assert.deepEqual({ ...h.calls('start')[0].body, requestId: undefined }, {
@@ -1018,7 +944,7 @@ for (const size of Object.keys(SIZES)) {
       assert.ok((await h.page.locator('details').first().innerText()).includes(`${ANSWER} 1`))
       if (slug === 'tez-gapir') {
         assert.equal(await h.page.locator('.sg-results .sg-stat-grid, .sg-results .sg-achievements').count(), 0)
-        assert.equal(await h.page.locator('.tg-result-numbers .sg-score-big').innerText(), String(total * 7))
+        assert.equal(await h.page.locator('.tg-trophy .sg-score-big').innerText(), String(total * 7))
         assert.equal(await h.page.locator('.sg-results h1').innerText(), 'Great result!')
       } else if (slug !== 'error-hunt') {
         assert.ok((await h.page.locator('.sg-stat-grid').innerText()).includes('+12'))
@@ -1026,17 +952,17 @@ for (const size of Object.keys(SIZES)) {
       }
       await screenshot(h.page, `results-${slug}-${size}`)
       await button(h.page, 'Play again').click()
-      await button(h.page, 'Start').waitFor()
+      await button(h.page, slug === 'tez-gapir' ? 'Continue' : 'Start').waitFor()
       assert.equal(new URL(h.page.url()).search, '')
       if (slug === 'tez-gapir') {
         assert.equal(await h.page.getByRole('radiogroup', { name: 'Level', exact: true }).getByRole('radio', { checked: true }).count(), 0)
         assert.equal(await h.page.getByRole('combobox').count(), 0)
-        await button(h.page, 'Start').click()
+        await button(h.page, 'Continue').click()
         assert.equal(await h.page.getByRole('alert').innerText(), 'Choose a level')
         assert.equal(h.calls('start').length, 1)
         await chooseTezSetup(h)
       }
-      await button(h.page, 'Start').click()
+      await button(h.page, slug === 'tez-gapir' ? 'Continue' : 'Start').click()
       await h.page.locator('.sg-hud').waitFor()
       assert.notEqual(h.session().id, originalId)
       assert.notEqual(h.calls('start')[0].body.requestId, h.calls('start')[1].body.requestId)
@@ -1701,10 +1627,10 @@ scenario('pending 503 answer can finish once and replay a fresh session', { slug
   await screenshot(h.page, 'pending-answer-finish-results-mobile')
 
   await button(h.page, 'Play again').click()
-  await button(h.page, 'Start').waitFor()
+  await button(h.page, 'Continue').waitFor()
   assert.equal(new URL(h.page.url()).search, '')
   await chooseTezSetup(h)
-  await button(h.page, 'Start').click()
+  await button(h.page, 'Continue').click()
   await h.page.locator('.sg-hud').waitFor()
   assert.notEqual(h.session().id, originalId)
   assert.notEqual(h.calls('start')[1].body.requestId, originalStart.requestId)
