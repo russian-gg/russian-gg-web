@@ -50,6 +50,7 @@ const Onboarding = route(() => import('./routes/Onboarding'), 'Onboarding')
 const Paywall = route(() => import('./routes/Paywall'), 'Paywall')
 const BillingReturn = route(() => import('./routes/Paywall'), 'BillingReturn')
 const Games = route(() => import('./routes/games/Games'), 'Games')
+const FightForLife = route(() => import('./routes/games/fight-for-life/FightForLife'), 'FightForLife')
 const GenderRunnerGame = route(() => import('./routes/games/GenderRunnerGame'), 'GenderRunnerGame')
 const SawGame = route(() => import('./routes/games/SawGame'), 'SawGame')
 const SpeakingGamePage = route(
@@ -126,6 +127,7 @@ export function App() {
             {/* Full screen, outside the shell: a blade rolling at you should not share a page
                 with navigation. */}
             <Route path="/games/arra" element={<RequireAuth><SawGame /></RequireAuth>} />
+            <Route path="/games/fight-for-life" element={<RequireAuth><FightForLife /></RequireAuth>} />
             <Route path="/games/rod-runner" element={<RequireAuth><GenderRunnerGame /></RequireAuth>} />
             <Route path="/games/:slug" element={<RequireAuth><SpeakingGamePage /></RequireAuth>} />
 

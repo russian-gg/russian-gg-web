@@ -58,6 +58,8 @@ export class VoiceError extends Error {
 }
 
 export interface LiveVoiceCallbacks {
+  onInputLevel?: (rms: number, speaking: boolean, milliseconds: number) => void
+  onPlayback?: (playing: boolean) => void
   onStatus: (status: LiveVoiceStatus) => void
   /** The provider socket finished setup; from here the session has truly reached voice. */
   onConnected: () => void
@@ -603,6 +605,7 @@ export class LiveVoiceSession {
        */
       this.noiseFloor = rms < this.noiseFloor ? rms : this.noiseFloor * 0.995 + rms * 0.005
       const speaking = rms >= Math.max(MIN_SPEECH_RMS, this.noiseFloor * SPEECH_OVER_NOISE)
+      this.callbacks.onInputLevel?.(rms, speaking, input.length / (this.captureContext?.sampleRate ?? INPUT_SAMPLE_RATE) * 1000)
 
       if (speaking) {
         this.heardSpeechThisTurn = true
@@ -679,7 +682,9 @@ export class LiveVoiceSession {
     source.connect(this.playbackContext.destination)
     source.onended = () => {
       this.playbackSources = this.playbackSources.filter((queued) => queued !== source)
+      if (this.playbackSources.length === 0) this.callbacks.onPlayback?.(false)
     }
+    if (this.playbackSources.length === 0) this.callbacks.onPlayback?.(true)
     this.playbackSources.push(source)
 
     const startAt = Math.max(this.playbackContext.currentTime, this.nextPlaybackTime)
@@ -714,6 +719,7 @@ export class LiveVoiceSession {
     }
 
     this.playbackSources = []
+    this.callbacks.onPlayback?.(false)
     this.nextPlaybackTime = 0
   }
 
