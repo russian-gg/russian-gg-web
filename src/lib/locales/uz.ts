@@ -63,13 +63,12 @@ export const uz = {
    */
   arcade: {
     title: "O'yinlar",
-    subtitle: "Gapirishni mashq qilishning eng qisqa yo'li — o'ynab.",
+    subtitle: "O'ynab gapirishni o'rgan!",
     newGame: 'Yangi o‘yin',
     record: 'Rekord',
     runnerTitle: 'Лёд и род',
     runnerTagline: '3D muzlik yugurishi',
-    runnerBlurb:
-      'Pingvinni uchta muz yo‘lakda boshqaring, Z-shakldagi tangalarni yig‘ing, muzlardan sakrang va ruscha otlarning rodini toping.',
+    runnerBlurb: "Pingvin bilan muz ustida sayohat qil! Tangalarni yig' va so'zlarning rodini to'g'ri top!",
     play: 'O‘ynash',
     proRequired: 'Pro kerak',
 
@@ -931,10 +930,11 @@ export const uz = {
       day: '{day}-kun',
     },
     hero: {
-      eyebrow: "RUS TILINI O'RGANING",
-      title: 'Kichik qadamlardan katta imkoniyatlar!',
-      subtitle: 'Har kuni bir oz — erkin rus tili sari.',
-      cta: 'Bugungi darsni boshlash',
+      greeting: 'Salom, {name}!',
+      greetingNoName: 'Salom!',
+      title: 'Bugungi 10 daqiqa – ertangi imkoniyatlar kaliti!',
+      subtitle: 'Har kuni 1 ta dars. 90 kunda erkin gaplashing!',
+      cta: 'Darsni boshlash',
     },
     activity: {
       title: 'Faollik',
@@ -960,14 +960,15 @@ export const uz = {
   path: {
     hero: {
       eyebrow: "RUS TILINI O'RGANING",
-      subtitle: 'Har kuni bir oz — erkin rus tili sari.',
+      subtitle: 'Sen {day}-kundasan! Davom et!',
       dayUnit: 'kun',
       noteTitle: 'Siz buni uddalaysiz!',
-      noteBody: "Har kuni o'qish — yangi imkoniyatlar sari qadam.",    },
+      noteBody: "Har kuni o'qish — yangi imkoniyatlar sari qadam.",
+    },
     filterPro: 'Pro kerak',
     inProgress: 'Jarayonda',
-    title: "90 kunlik yo'l",
-    subtitle: "Har kuni bitta aniq vazifa — yurgan sari yo'l ochiladi.",
+    title: 'Sening 90 kunlik sayohating',
+    subtitle: "Har kuni bitta aniq vazifa. Yurgan sari yo'l ochiladi.",
     today: 'Bugun',
     done: 'Bajarilgan',
     locked: 'Yopiq',
@@ -1006,8 +1007,8 @@ export const uz = {
     time: 'Vaqt',
     phrases: 'Iboralar',
     phrasesValue: '{count} ta ibora',
-    passMark: "O'tish bali",
-    passValue: 'Kamida {score}%',
+    passMark: 'Urinishlar',
+    passValue: 'Xato qilsang ham, qayta urinish mumkin!',
     conversationBody:
       "Sherigingiz gapiradi — siz ovoz bilan javob berasiz. Maqsadga yetganingizda yoki vaqt " +
       'tugaganda suhbat yakunlanadi.',
@@ -1016,15 +1017,13 @@ export const uz = {
     registerNote: "Bu suhbat uslubiga e'tibor bering — u har joyda ham mos kelavermaydi.",
   },
   practice: {
-    title: 'Topshiriqlarni bajarishga tayyormisiz?',
-    subtitle:
-      "Kun davomida kerak bo'ladigan suhbat va iboralarni topshiriqlarni bajarish orqali " +
-      "oson va tez o'rganing.",
+    title: 'Hayotiy vaziyatlarga tayyormisiz?',
+    subtitle: "Bu yerda faqat hayotiy vaziyatlarda kerak bo'ladigan suhbatlar!",
     empty: "Hozircha topshiriq yo'q",
     emptyBody: "90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda.",
-    start: 'Bajarish',
+    start: "Sinab ko'rish",
     bestScore: 'Eng yaxshi natija: {score}%',
-    passMark: "O'tish bali: {score}%",
+    passMark: 'Xato qilsang ham, qayta urinish mumkin!',
     notTried: 'Hali urinilmagan',
     statTotal: 'Jami topshiriqlar',
     statDone: 'Bajarilgan',
@@ -1116,9 +1115,9 @@ export const uz = {
     subtitle: "O'qish jarayoningiz va natijalarni kuzatib boring.",
     overall: 'Umumiy progress',
     steadyTitle: "Ajoyib! Siz barqaror o'qishda davom etyapsiz.",
-    steadyBody: '{count} kun ketma-ket — shu maromda davom eting!',
-    startTitle: "Yaxshi boshladingiz!",
-    startBody: 'Har kuni bir oz mashq qiling — natija albatta keladi.',
+    steadyBody: "{count} kun ketma-ket! Olovni o'chirma 🔥",
+    startTitle: "Zo'r ketyapsiz!",
+    startBody: '{done} kun tugadi, {left} kun qoldi!',
     artCaption: 'Yangi bilimlar — sizning kelajagingiz!',
     tipLearnTitle: "Doimiy o'rganish",
     tipLearnBody: 'katta natijalarga olib keladi',
@@ -1130,11 +1129,9 @@ export const uz = {
     streakGood: 'Ajoyib natija!',
     streakStart: 'Bugun boshlang!',
     overallNote: '{total} kundan',
-    missionsLabel: 'Bajarilgan mashq',
-    missionsNote: 'Jami {count} ta',
+    missionsLabel: 'Yutilgan janglar',
+    missionsNote: 'Sen {count} ta jangni yutding!',
     levelLabel: 'Joriy daraja',
-    quote:
-      "Kichik qadamlar ham katta natijalarga olib keladi. Bugungi sa'y-harakatlaringiz ertangi imkoniyatlaringizni yaratadi.",
   },
 
   voiceErrors: {

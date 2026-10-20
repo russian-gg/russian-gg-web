@@ -906,7 +906,8 @@ export const en: Dictionary = {
       day: 'Day {day}',
     },
     hero: {
-      eyebrow: 'LEARN RUSSIAN',
+      greeting: 'Hi, {name}!',
+      greetingNoName: 'Hi!',
       title: 'Small steps, big possibilities!',
       subtitle: 'A little every day — towards fluent Russian.',
       cta: "Start today's lesson",
@@ -938,7 +939,8 @@ export const en: Dictionary = {
       subtitle: 'A little every day — towards fluent Russian.',
       dayUnit: 'days',
       noteTitle: 'You can do this!',
-      noteBody: 'Every day of study is a step towards something new.',    },
+      noteBody: 'Every day of study is a step towards something new.',
+    },
     filterPro: 'Pro needed',
     inProgress: 'In progress',
     title: '90-day path',
@@ -1106,8 +1108,6 @@ export const en: Dictionary = {
     missionsLabel: 'Missions completed',
     missionsNote: '{count} in total',
     levelLabel: 'Current level',
-    quote:
-      "Even small steps lead to big results. Today's effort creates tomorrow's opportunities.",
   },
 
   voiceErrors: {

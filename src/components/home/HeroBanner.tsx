@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { useT } from '../../lib/i18n'
+import { useAuth } from '../../lib/auth-context'
+import { fill, useT } from '../../lib/i18n'
 import { PlayGlyph } from '../ui'
 import heroBackdrop from '../../assets/images/landing_bg.webp'
 
@@ -27,6 +28,10 @@ import heroBackdrop from '../../assets/images/landing_bg.webp'
  */
 export function HeroBanner({ to }: { to: string }) {
   const t = useT()
+  const { user } = useAuth()
+  // First name only: "Salom, Ali!" rather than the whole display name.
+  const firstName = user?.displayName?.trim().split(/\s+/)[0]
+  const greeting = firstName ? fill(t.home.hero.greeting, { name: firstName }) : t.home.hero.greetingNoName
 
   return (
     <section
@@ -80,10 +85,10 @@ export function HeroBanner({ to }: { to: string }) {
       */}
       <div className="relative flex min-h-[20rem] flex-col px-5 pt-7 pb-6 sm:min-h-[22rem] sm:px-8 sm:pt-8 sm:pb-8 md:min-h-0 md:max-w-[58%] md:py-9 lg:py-10 lg:pl-10">
         <p
-          className="text-[11px] font-black tracking-[0.18em] uppercase sm:text-xs"
+          className="text-lg font-black sm:text-xl"
           style={{ color: 'var(--hero-script)' }}
         >
-          {t.home.hero.eyebrow}
+          {greeting}
         </p>
 
         <h1

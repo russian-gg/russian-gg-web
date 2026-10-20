@@ -6,7 +6,6 @@ import {
   BarChart3,
   BookOpen,
   GraduationCap,
-  Quote,
   TrendingUp,
   Trophy,
   type LucideIcon,
@@ -142,7 +141,7 @@ export function Progress() {
                       {steady ? t.progress.steadyTitle : t.progress.startTitle}
                     </p>
                     <p className="text-sm text-ink-muted">
-                      {steady ? fill(t.progress.steadyBody, { count: data.streakDays }) : t.progress.startBody}
+                      {steady ? fill(t.progress.steadyBody, { count: data.streakDays }) : fill(t.progress.startBody, { done: day, left: COURSE_DAYS - day })}
                     </p>
                   </div>
                 </Reveal>
@@ -233,15 +232,6 @@ export function Progress() {
                   note={t.labels.level[data.speakingLevel]}
                 />
               </SequenceInView>
-            </Card>
-          </Reveal>
-
-          <Reveal>
-            <Card className="flex items-center gap-4">
-              <Reveal as="span" variants={pop} className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-milestone-soft text-milestone">
-                <Quote aria-hidden="true" strokeWidth={2.2} className="size-6" />
-              </Reveal>
-              <p className="text-sm leading-relaxed text-ink">“{t.progress.quote}”</p>
             </Card>
           </Reveal>
 
