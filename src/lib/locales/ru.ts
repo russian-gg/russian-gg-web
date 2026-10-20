@@ -912,7 +912,8 @@ export const ru: Dictionary = {
       day: 'День {day}',
     },
     hero: {
-      eyebrow: 'УЧИТЕ РУССКИЙ ЯЗЫК',
+      greeting: 'Привет, {name}!',
+      greetingNoName: 'Привет!',
       title: 'Маленькие шаги — большие возможности!',
       subtitle: 'Понемногу каждый день — к свободному русскому.',
       cta: 'Начать сегодняшний урок',
@@ -944,7 +945,8 @@ export const ru: Dictionary = {
       subtitle: 'Каждый день понемногу — к свободному русскому.',
       dayUnit: 'дн.',
       noteTitle: 'У вас получится!',
-      noteBody: 'Каждый день занятий — шаг к новым возможностям.',    },
+      noteBody: 'Каждый день занятий — шаг к новым возможностям.',
+    },
     filterPro: 'Нужен Pro',
     inProgress: 'В процессе',
     title: '90-дневный путь',
@@ -1113,8 +1115,6 @@ export const ru: Dictionary = {
     missionsLabel: 'Выполнено заданий',
     missionsNote: 'Всего {count}',
     levelLabel: 'Текущий уровень',
-    quote:
-      'Даже маленькие шаги приводят к большим результатам. Сегодняшние усилия создают завтрашние возможности.',
   },
 
   voiceErrors: {

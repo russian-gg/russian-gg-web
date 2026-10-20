@@ -91,7 +91,7 @@ export function CoursePathHero({
                 className="mt-1.5 max-w-md text-[13px] leading-relaxed sm:text-[15px]"
                 style={{ color: 'var(--hero-ink-muted)' }}
               >
-                {copy.subtitle}
+                {fill(copy.subtitle, { day: Math.min(completedDays + 1, totalDays) })}
               </p>
             </Reveal>
           </Sequence>
