@@ -1,14 +1,41 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, AudioLines } from 'lucide-react'
+import * as m from 'motion/react-m'
 import { useLocale } from '../../../lib/i18n'
+import { rise } from '../../../lib/motion'
 import { lifeCopies } from './copy'
-import './life.css'
+
+const MotionLink = m.create(Link)
 
 export function LifeCard() {
   const { locale } = useLocale()
   const copy = lifeCopies[locale]
-  return <Link to="/games/fight-for-life" className="life-card">
-    <div className="life-card-copy"><span>{copy.tag}</span><h2 lang="ru">Борьба за жизнь</h2><p>{copy.intro}</p><strong>{copy.start}<ArrowRight size={17} /></strong></div>
-    <img src="/games/fight-for-life/characters/penguin.webp" alt="" loading="lazy" width="512" height="512" />
-  </Link>
+  return (
+    <MotionLink
+      variants={rise}
+      to="/games/fight-for-life"
+      aria-labelledby="life-card-title"
+      className="life-card group relative isolate overflow-hidden rounded-[32px] border border-cyan-300/30 bg-gradient-to-br from-[#101b32] via-[#172d48] to-[#21466a] p-5 text-white shadow-2xl transition-colors duration-300 hover:border-cyan-200/70 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-signal sm:p-7 lg:col-span-2"
+    >
+      <span className="flex flex-wrap items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-black tracking-wider text-cyan-100 uppercase">
+          <AudioLines aria-hidden="true" className="size-3.5 shrink-0" /> {copy.tag}
+        </span>
+      </span>
+
+      <span className="mt-4 grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">
+        <span aria-hidden="true" className="relative flex h-56 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/30 bg-[radial-gradient(ellipse_at_50%_60%,#21466a,#101b32_75%)]">
+          <img src="/games/fight-for-life/characters/penguin.webp" alt="" loading="lazy" decoding="async" width="512" height="512" className="h-52 w-full object-contain drop-shadow-xl transition-transform duration-300 motion-safe:group-hover:-translate-y-1" />
+        </span>
+
+        <span className="min-w-0">
+          <strong id="life-card-title" lang="ru" className="block text-2xl font-black sm:text-3xl">Борьба за жизнь</strong>
+          <span className="mt-2 block text-sm leading-relaxed text-slate-200/90">{copy.intro}</span>
+          <span className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition-colors group-hover:from-cyan-300 group-hover:to-sky-500">
+            {copy.start}<ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+          </span>
+        </span>
+      </span>
+    </MotionLink>
+  )
 }
