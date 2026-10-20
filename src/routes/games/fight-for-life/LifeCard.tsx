@@ -1,19 +1,20 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, AudioLines } from 'lucide-react'
+import { ArrowRight, AudioLines, LockKeyhole } from 'lucide-react'
 import * as m from 'motion/react-m'
-import { useLocale } from '../../../lib/i18n'
+import { useLocale, useT } from '../../../lib/i18n'
 import { rise } from '../../../lib/motion'
 import { lifeCopies } from './copy'
 
 const MotionLink = m.create(Link)
 
-export function LifeCard() {
+export function LifeCard({ to, requiresPro }: { to: string; requiresPro: boolean }) {
   const { locale } = useLocale()
   const copy = lifeCopies[locale]
+  const { proRequired } = useT().arcade
   return (
     <MotionLink
       variants={rise}
-      to="/games/fight-for-life"
+      to={to}
       aria-labelledby="life-card-title"
       className="life-card group relative isolate overflow-hidden rounded-[32px] border border-cyan-300/30 bg-gradient-to-br from-[#101b32] via-[#172d48] to-[#21466a] p-5 text-white shadow-2xl transition-colors duration-300 hover:border-cyan-200/70 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-signal sm:p-7 lg:col-span-2"
     >
@@ -21,6 +22,7 @@ export function LifeCard() {
         <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-black tracking-wider text-cyan-100 uppercase">
           <AudioLines aria-hidden="true" className="size-3.5 shrink-0" /> {copy.tag}
         </span>
+        {requiresPro && <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-black text-amber-100"><LockKeyhole aria-hidden="true" className="size-3.5" />{proRequired}</span>}
       </span>
 
       <span className="mt-4 grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">

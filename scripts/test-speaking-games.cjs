@@ -444,9 +444,9 @@ for (const [elapsed, seconds] of [[50, 10], [65, 0]]) {
 }
 
 const shelfGames = [
-  { slug: 'tez-gapir', titleUz: 'Tez gapir', bodyUz: '30 soniya. Bitta mavzu.', isBuilt: true, isEnabled: true },
-  { slug: 'rod-runner', titleUz: 'Penguin Ice Runner', bodyUz: "Ruscha so‘zni to‘g‘ri rod yo‘lagiga olib boring.", isBuilt: true, isEnabled: true },
-  { slug: 'error-hunt', titleUz: 'Xato ovchisi', bodyUz: '', isBuilt: true, isEnabled: true },
+  { slug: 'tez-gapir', titleUz: 'Tez gapir', bodyUz: '30 soniya. Bitta mavzu.', isBuilt: true, isEnabled: true, requiresPro: true, isAccessible: true },
+  { slug: 'rod-runner', titleUz: 'Лёд и род', bodyUz: "Ruscha so‘zni to‘g‘ri rod yo‘lagiga olib boring.", isBuilt: true, isEnabled: true, requiresPro: false, isAccessible: true },
+  { slug: 'error-hunt', titleUz: 'Xato ovchisi', bodyUz: '', isBuilt: true, isEnabled: true, requiresPro: true, isAccessible: true },
 ]
 const shelfCopy = {
   uz: { badge: 'Ovozli o‘yin', time: '30 soniya', rounds: 'Raund: 3–5', play: 'O‘ynash' },

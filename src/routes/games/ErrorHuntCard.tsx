@@ -1,4 +1,4 @@
-import { Check, Play, Search, SpellCheck } from 'lucide-react'
+import { Check, LockKeyhole, Play, Search, SpellCheck } from 'lucide-react'
 import * as m from 'motion/react-m'
 import { Link } from 'react-router-dom'
 import { useLocale, useT } from '../../lib/i18n'
@@ -12,16 +12,16 @@ const badges = {
   en: { hunt: 'Spot the mistake', skill: 'Grammar' },
 }
 
-export function ErrorHuntCard() {
+export function ErrorHuntCard({ to, requiresPro }: { to: string; requiresPro: boolean }) {
   const { locale } = useLocale()
   const copy = copies[locale]
   const label = gameLabels['error-hunt'][locale]
-  const { play } = useT().arcade
+  const { play, proRequired } = useT().arcade
 
   return (
     <MotionLink
       variants={rise}
-      to="/games/error-hunt"
+      to={to}
       aria-labelledby="error-hunt-card-title"
       className="group relative isolate overflow-hidden rounded-[32px] border border-violet-300/30 bg-gradient-to-br from-[#1A0B2E] via-[#2D1B4E] to-[#211238] p-5 text-white shadow-2xl transition-colors duration-300 hover:border-violet-200/70 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-signal sm:p-7 lg:col-span-2"
     >
@@ -30,8 +30,11 @@ export function ErrorHuntCard() {
         <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/25 bg-emerald-200/10 px-3 py-1 text-[11px] font-black tracking-wider text-emerald-100 uppercase">
           <Search aria-hidden="true" className="size-3.5" /> {badges[locale].hunt}
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200/25 bg-violet-200/10 px-3 py-1 text-xs font-black text-violet-100">
-          <SpellCheck aria-hidden="true" className="size-4" /> {badges[locale].skill}
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          {requiresPro && <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-black text-amber-100"><LockKeyhole aria-hidden="true" className="size-3.5" />{proRequired}</span>}
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200/25 bg-violet-200/10 px-3 py-1 text-xs font-black text-violet-100">
+            <SpellCheck aria-hidden="true" className="size-4" /> {badges[locale].skill}
+          </span>
         </span>
       </span>
 

@@ -66,11 +66,12 @@ export const uz = {
     subtitle: "Gapirishni mashq qilishning eng qisqa yo'li — o'ynab.",
     newGame: 'Yangi o‘yin',
     record: 'Rekord',
-    runnerTitle: 'Penguin Ice Runner',
+    runnerTitle: 'Лёд и род',
     runnerTagline: '3D muzlik yugurishi',
     runnerBlurb:
       'Pingvinni uchta muz yo‘lakda boshqaring, Z-shakldagi tangalarni yig‘ing, muzlardan sakrang va ruscha otlarning rodini toping.',
     play: 'O‘ynash',
+    proRequired: 'Pro kerak',
 
     runner: {
       exit: 'O‘yinlardan chiqish',
@@ -596,7 +597,7 @@ export const uz = {
       eyebrow: "O'yinlar",
       title: "Mashqni o'yinga aylantiring",
       subtitle: 'Gapirish va grammatikani o‘yin orqali refleksga aylantiring.',
-      runnerTitle: 'Род-раннер',
+      runnerTitle: 'Лёд и род',
       runnerBody:
         "So'zlarni jinsi bo'yicha ajrating — yugurib borarkansiz. Rus tilidagi род refleksga aylanadi.",
       sawTitle: 'Лазер',

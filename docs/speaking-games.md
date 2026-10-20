@@ -1,6 +1,6 @@
 # Speaking games
 
-The `games` branch adds four voice-first games without replacing Arra or Rod Runner. The server owns availability, lesson prerequisites, question selection, deadlines, scoring and saved results. The existing admin Games screen controls each new game's enabled switch.
+The `games` branch adds four voice-first games without replacing Arra or Лёд и род. The server owns availability, lesson prerequisites, question selection, deadlines, scoring and saved results. The existing admin Games screen controls each new game's enabled switch.
 
 | Route | Game | Session |
 | --- | --- | --- |

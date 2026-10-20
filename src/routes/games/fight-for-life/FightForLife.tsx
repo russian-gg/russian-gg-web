@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Gem, LockKeyhole, Mic, Share2, Square, Volume2 } from 'lucide-react'
 import { useLocale } from '../../../lib/i18n'
 import { RequestError } from '../../../lib/api'
 import { VoiceError } from '../../../lib/liveVoice'
-import { lifeApi, type LifeCharacter, type LifeTopic } from './api'
+import { lifeApi, type LifeCatalog, type LifeCharacter } from './api'
 import { lifeCopies } from './copy'
 import { LifeScene } from './LifeScene'
 import { useLifeGame } from './useLifeGame'
@@ -14,9 +14,10 @@ const characters: LifeCharacter[] = ['penguin', 'panda', 'pero']
 
 export function FightForLife() {
   const { locale } = useLocale()
+  const navigate = useNavigate()
   const copy = lifeCopies[locale]
   const game = useLifeGame()
-  const [catalog, setCatalog] = useState<{ isEnabled: boolean; topics: LifeTopic[] } | null>(null)
+  const [catalog, setCatalog] = useState<LifeCatalog | null>(null)
   const [catalogError, setCatalogError] = useState(false)
   const [reload, setReload] = useState(0)
   const [character, setCharacter] = useState<LifeCharacter>('penguin')
@@ -27,9 +28,20 @@ export function FightForLife() {
   useEffect(() => {
     let active = true
     setCatalogError(false)
-    void lifeApi.catalog().then(result => { if (active) setCatalog(result) }).catch(() => { if (active) setCatalogError(true) })
+    void lifeApi.catalog().then(result => {
+      if (!active) return
+      if (result.lockReason === 'pro_required') {
+        navigate('/paywall', { replace: true })
+        return
+      }
+      setCatalog(result)
+    }).catch((caught) => {
+      if (!active) return
+      if (caught instanceof RequestError && caught.isPaywall) navigate('/paywall', { replace: true })
+      else setCatalogError(true)
+    })
     return () => { active = false }
-  }, [reload])
+  }, [reload, navigate])
   const topics = catalog?.topics.filter(topic => topic.mode === mode && topic.level === (level === 'B1' ? 'B1' : 'A1-A2')) ?? []
   const selected = topics.find(topic => topic.id === topicId) ?? topics[0]
   const playing = game.phase === 'playing' || game.phase === 'saving'
@@ -55,7 +67,7 @@ export function FightForLife() {
       </header>
       {catalogError ? <div className="life-notice" role="alert"><p>{copy.error}</p><button onClick={() => setReload(n => n + 1)}>{copy.retry}</button></div>
         : !catalog ? <p className="life-notice" role="status">{copy.loading}</p>
-          : !catalog.isEnabled ? <div className="life-notice"><LockKeyhole size={34} /><p>{copy.disabled}</p></div>
+          : !catalog.isEnabled || !catalog.isAccessible ? <div className="life-notice"><LockKeyhole size={34} /><p>{copy.disabled}</p></div>
             : game.phase === 'setup' ? <>
               <section className="life-intro"><span className="life-eyebrow"><span />{copy.tag}</span><h1>{copy.intro}</h1><p>{copy.rules}</p></section>
               <section className="life-setup">

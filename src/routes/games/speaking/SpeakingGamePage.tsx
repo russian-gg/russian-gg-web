@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Headphones } from 'lucide-react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Spinner } from '../../../components/ui'
 import { Select } from '../../../components/forms/Select'
 import { RequestError } from '../../../lib/api'
@@ -37,6 +37,7 @@ export function SpeakingGamePage() {
 
 function GamePlayer({ slug }: { slug: GameSlug }) {
   const { locale } = useLocale()
+  const navigate = useNavigate()
   const copy = copies[locale]
   const label = gameLabels[slug][locale]
   const languageOnly = slug === 'tez-gapir' || slug === 'error-hunt'
@@ -159,6 +160,10 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
           ? stats.activeSessions.find((entry) => entry.gameSlug === slug) : null
         const settings = unfinished ? await speakingGames.session(slug, unfinished.id) : null
         if (!active) return
+        if (game?.lockReason === 'pro_required') {
+          navigate('/paywall', { replace: true })
+          return
+        }
         setCatalog(game)
         setDashboard(settings?.status === 'completed'
           ? { ...stats, activeSessions: stats.activeSessions.filter((entry) => entry.id !== settings.id) } : stats)
@@ -174,9 +179,13 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
           if (saved.gameSlug === 'ice-mystery' && saved.status === 'answering') setLocation(saved.prompt.id)
           if (saved.pendingAnswer) pendingAnswer.current = { id: saved.id, body: saved.pendingAnswer }
         }
-      }).catch((caught) => { if (active) setError(gameError(caught, copies[locale])) }).finally(() => { if (active) setLoading(false) })
+      }).catch((caught) => {
+        if (!active) return
+        if (caught instanceof RequestError && caught.isPaywall) navigate('/paywall', { replace: true })
+        else setError(gameError(caught, copies[locale]))
+      }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [slug, reload, locale])
+  }, [slug, reload, locale, navigate])
 
   async function playAudio(value: GameSession, target: 'prompt' | 'feedback') {
     stopAudio()

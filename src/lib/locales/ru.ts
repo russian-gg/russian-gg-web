@@ -52,11 +52,12 @@ export const ru: Dictionary = {
     subtitle: 'Самый короткий путь к разговорной практике — через игру.',
     newGame: 'Новая игра',
     record: 'Рекорд',
-    runnerTitle: 'Penguin Ice Runner',
+    runnerTitle: 'Лёд и род',
     runnerTagline: '3D-забег по льду',
     runnerBlurb:
       'Ведите пингвина по трём ледяным дорожкам, собирайте монеты, перепрыгивайте льдины и определяйте род русских существительных.',
     play: 'Играть',
+    proRequired: 'Нужен Pro',
 
     runner: {
       exit: 'Выйти из игр',
@@ -576,7 +577,7 @@ export const ru: Dictionary = {
       eyebrow: 'Игры',
       title: 'Превратите практику в игру',
       subtitle: 'Доведите речь и грамматику до автоматизма через игру.',
-      runnerTitle: 'Род-раннер',
+      runnerTitle: 'Лёд и род',
       runnerBody:
         'Разбирайте слова по роду прямо на бегу — русский род становится рефлексом.',
       sawTitle: 'Лазер',

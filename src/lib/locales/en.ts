@@ -49,11 +49,12 @@ export const en: Dictionary = {
     subtitle: 'The shortest way to practise speaking is to play.',
     newGame: 'New game',
     record: 'Best',
-    runnerTitle: 'Penguin Ice Runner',
+    runnerTitle: 'Лёд и род',
     runnerTagline: 'A 3D run across the ice',
     runnerBlurb:
       'Steer the penguin across three lanes of ice, collect the coin waves, jump the floes, and pick the gender of each Russian noun.',
     play: 'Play',
+    proRequired: 'Pro required',
 
     runner: {
       exit: 'Leave the games',
@@ -570,7 +571,7 @@ export const en: Dictionary = {
       eyebrow: 'Games',
       title: 'Turn practice into a game',
       subtitle: 'Make speaking and grammar automatic through play.',
-      runnerTitle: 'Род-раннер',
+      runnerTitle: 'Лёд и род',
       runnerBody:
         'Sort words by gender as you run — Russian gender turns into a reflex.',
       sawTitle: 'Лазер',

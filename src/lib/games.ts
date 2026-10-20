@@ -7,6 +7,8 @@ export type OpenGame = {
   bodyUz: string
   isBuilt: boolean
   isEnabled: boolean
+  requiresPro: boolean
+  isAccessible: boolean
 }
 
 /**

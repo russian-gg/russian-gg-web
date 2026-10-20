@@ -1,4 +1,4 @@
-import { AudioLines, Clock3, Play } from 'lucide-react'
+import { AudioLines, Clock3, LockKeyhole, Play } from 'lucide-react'
 import * as m from 'motion/react-m'
 import { Link } from 'react-router-dom'
 import { useLocale, useT } from '../../lib/i18n'
@@ -8,16 +8,16 @@ import { copies, gameLabels } from './speaking/copy'
 const MotionLink = m.create(Link)
 const badges = { uz: 'Ovozli o‘yin', ru: 'Голосовая игра', en: 'Voice challenge' }
 
-export function TezGapirCard() {
+export function TezGapirCard({ to, requiresPro }: { to: string; requiresPro: boolean }) {
   const { locale } = useLocale()
   const copy = copies[locale]
   const label = gameLabels['tez-gapir'][locale]
-  const { play } = useT().arcade
+  const { play, proRequired } = useT().arcade
 
   return (
     <MotionLink
       variants={rise}
-      to="/games/tez-gapir"
+      to={to}
       aria-labelledby="tez-gapir-card-title"
       className="group relative isolate overflow-hidden rounded-[32px] border border-sky-300/30 bg-gradient-to-br from-[#0a0e27] via-[#141b40] to-[#1a1f4e] p-5 text-white shadow-2xl transition-colors duration-300 hover:border-sky-200/70 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-signal sm:p-7 lg:col-span-2"
     >
@@ -26,8 +26,11 @@ export function TezGapirCard() {
         <span className="inline-flex items-center gap-2 rounded-full border border-sky-200/25 bg-sky-400/10 px-3 py-1 text-[11px] font-black tracking-wider text-sky-100 uppercase">
           <AudioLines aria-hidden="true" className="size-3.5" /> {badges[locale]}
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/25 bg-amber-200/10 px-3 py-1 text-xs font-black text-amber-200">
-          <Clock3 aria-hidden="true" className="size-3.5" /> 30 {copy.seconds}
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          {requiresPro && <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-black text-amber-100"><LockKeyhole aria-hidden="true" className="size-3.5" />{proRequired}</span>}
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/25 bg-amber-200/10 px-3 py-1 text-xs font-black text-amber-200">
+            <Clock3 aria-hidden="true" className="size-3.5" /> 30 {copy.seconds}
+          </span>
         </span>
       </span>
 
