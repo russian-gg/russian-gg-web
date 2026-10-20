@@ -454,7 +454,7 @@ for (const [character, size, width] of [['penguin', 'mobile', 390], ['panda', 'm
     await timer.waitFor()
     assert.equal(await timer.getAttribute('aria-label'), '30 seconds')
     assert.equal(await fire.getAttribute('data-extinguished'), 'false')
-    assert.ok((await h.page.locator('.tg-mentor img').getAttribute('src')).endsWith('/living-fire/' + character + '.webp'))
+    assert.equal(await h.page.locator('.tg-mentor img').getAttribute('src'), '/games/characters/' + character + '.webp')
     await beginVoice(h)
     const deadline = h.session().deadlineUtc
     const initial = await fire.evaluate((node) => Number(node.style.getPropertyValue('--tg-fire-scale')))
@@ -896,7 +896,7 @@ for (const size of Object.keys(SIZES)) {
         for (const portrait of await portraits.all()) {
           assert.match(await portrait.getAttribute('src'), slug === 'error-hunt'
             ? /^\/games\/error-hunt\/characters\/(penguin|panda|pero)\.webp$/
-            : slug === 'tez-gapir' ? /^\/games\/tez-gapir\/living-fire\/(penguin|panda|pero)\.webp$/
+            : slug === 'tez-gapir' ? /^\/games\/characters\/(penguin|panda|pero)\.webp$/
               : /^\/characters\/(pingvin|panda|pero)\.webp$/)
           await portrait.evaluate((image) => image.decode())
           assert.ok(await portrait.evaluate((image) => image.naturalWidth > 0))
@@ -1565,7 +1565,7 @@ for (const slug of SLUGS) {
       status: 'feedback', character: companion, feedback: feedback(ANSWER), availableActions: ['next', 'end'],
     }) }, async (h) => {
       const expected = slug === 'error-hunt' ? `/games/error-hunt/characters/${companion}.webp`
-        : slug === 'tez-gapir' ? `/games/tez-gapir/living-fire/${companion}.webp`
+        : slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
           : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
       await h.open(`?session=${h.session().id}`)
       const portrait = h.page.locator(slug === 'tez-gapir' ? '.sg-character-note img, .tg-thanks img' : '.sg-character-note img')

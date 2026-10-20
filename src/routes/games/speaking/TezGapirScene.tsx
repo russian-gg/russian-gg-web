@@ -5,7 +5,7 @@ import type { GameSession } from '../../../lib/speaking-games'
 import type { GameCopy } from './copy'
 import './tez-gapir.css'
 
-const art = '/games/tez-gapir/living-fire'
+const art = '/games/characters'
 
 export function TezGapirLevelPicker({ value, onChange, options, label, disabled }: ComponentProps<typeof Select>) {
   const name = useId()
@@ -27,7 +27,7 @@ export function TezGapirBackdrop() {
 export function TezGapirPortrait({ character, selected = false }: { character: GameSession['character']; selected?: boolean }) {
   return <span className="tg-portrait" data-character={character} data-selected={selected} aria-hidden="true">
     <span className="tg-portrait-motion"><span className="tg-portrait-window">
-      <img src={`${art}/${character}.webp`} alt="" width={character === 'pero' ? 640 : 1024} height={character === 'pero' ? 640 : 512} />
+      <img src={`${art}/${character}.webp`} alt="" width={512} height={512} />
     </span></span>
   </span>
 }
