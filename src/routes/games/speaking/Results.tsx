@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TezGapirCelebration, TezGapirThanks } from './TezGapirScene'
+import { TezGapirCelebration, TezGapirShare, TezGapirThanks } from './TezGapirScene'
 import { Button } from '../../../components/ui'
 import { speakingGames, type GameDashboard, type GameFeedback, type GameSession, type LeaderboardEntry } from '../../../lib/speaking-games'
 import type { GameCopy, GameSlug } from './copy'
@@ -44,7 +44,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
   const isTezGapir = session.gameSlug === 'tez-gapir'
   const languageOnly = isTezGapir || isErrorHunt
   return <div className="sg-board sg-results">
-    {isTezGapir && <TezGapirCelebration score={session.score} label={copy.score} />}
+    {isTezGapir && <TezGapirCelebration session={session} copy={copy} />}
     {!isErrorHunt && !isTezGapir && <p className="sg-muted">{copy.saved}</p>}
     <h1 className="sg-prompt">{isTezGapir ? copy.tezResult : summary?.won === true ? copy.solved : summary?.won === false ? copy.unsolved : copy.completed}</h1>
     {isErrorHunt ? <ErrorHuntTreasure key={session.id} score={session.score} copy={copy} /> : <>
@@ -53,7 +53,7 @@ export function Results({ session, copy, onAgain }: { session: GameSession; copy
       {!isTezGapir && <div className="sg-stat-grid"><div><strong>{summary?.bestScore ?? session.score}</strong><small>{copy.best}</small></div><div><strong>{summary?.roundsPlayed ?? session.history.length}</strong><small>{copy.rounds}</small></div><div><strong>+{summary?.rewardPoints ?? 0}</strong><small>{copy.bonus}</small></div></div>}
       {isTezGapir ? <TezGapirThanks character={session.character} copy={copy} /> : session.feedback?.characterPhrase && <CharacterNote companion={session.character} game={session.gameSlug}>{session.feedback.characterPhrase}</CharacterNote>}
     </>}
-    <div className="sg-actions"><Button onClick={onAgain} size="lg">{copy.again}</Button></div>
+    <div className="sg-actions"><Button onClick={onAgain} size="lg">{copy.again}</Button>{isTezGapir && <TezGapirShare session={session} copy={copy} />}</div>
     {!isErrorHunt && !isTezGapir && session.achievements.length > 0 && <section className="mt-8 text-left"><h2 className="text-base font-extrabold">{copy.achievements}</h2><div className="sg-achievements">{session.achievements.map((achievement) => <span key={achievement.code} lang="ru">{achievement.titleRu} +{achievement.reward}</span>)}</div></section>}
     {!languageOnly && summary && <City points={summary.cityPoints} objects={summary.cityObjects} copy={copy} />}
     <section className="mt-8 text-left"><h2 className="text-xl font-extrabold">{copy.review}</h2>{session.history.map((turn, index) => <details key={`${turn.roundIndex}-${index}`} className="mt-3 rounded-2xl border border-hairline p-4"><summary className="cursor-pointer text-sm font-bold" lang="ru">{turn.prompt.textRu} {!languageOnly && <span className="ml-2">{turn.feedback.points > 0 ? '+' : ''}{turn.feedback.points}</span>}</summary><Feedback feedback={turn.feedback} copy={copy} languageOnly={languageOnly} /></details>)}</section>
