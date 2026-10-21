@@ -94,6 +94,7 @@ export interface LiveVoiceOptions {
   playbackContext?: AudioContext
   respectAudioMute?: boolean
   outputTranscriptDeltas?: boolean
+  listenOnlyAfterOpening?: boolean
   /**
    * Stream the microphone for the whole session and let the provider decide when the learner
    * has finished speaking, instead of opening the microphone one turn at a time.
@@ -116,6 +117,10 @@ export class LiveVoiceSession {
   private readonly continuous: boolean
   private readonly respectAudioMute: boolean
   private readonly outputTranscriptDeltas: boolean
+  private readonly listenOnlyAfterOpening: boolean
+  private tutorOutputEnabled = true
+  private feedbackRequested = false
+  private waitingForFeedback = false
   private readonly tools: LiveFunctionDeclaration[]
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
@@ -178,6 +183,7 @@ export class LiveVoiceSession {
     this.playbackContext = options?.playbackContext ?? null
     this.respectAudioMute = options?.respectAudioMute ?? true
     this.outputTranscriptDeltas = options?.outputTranscriptDeltas ?? false
+    this.listenOnlyAfterOpening = options?.listenOnlyAfterOpening ?? false
     this.tools = options?.tools ?? []
   }
 
@@ -231,6 +237,11 @@ export class LiveVoiceSession {
      */
     await Promise.all([this.openMicrophone(), this.openWebSocket()])
     await this.openConversation()
+    if (this.listenOnlyAfterOpening) {
+      const remaining = Math.max(0, this.nextPlaybackTime - (this.playbackContext?.currentTime ?? 0)) * 1000
+      if (remaining) await wait(remaining)
+      this.tutorOutputEnabled = false
+    }
     await this.beginNextTurn()
   }
 
@@ -335,6 +346,35 @@ export class LiveVoiceSession {
     this.ensureTurnPromise()
     this.ws.send(JSON.stringify({ realtimeInput: { text } }))
     return true
+  }
+
+  async finishWithFeedback(text: string) {
+    if (this.closed || !this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return
+    this.pauseInput()
+    this.stopPlayback()
+    this.abandonTurn()
+    this.outputTranscript = ''
+    this.tutorOutputEnabled = true
+    this.feedbackRequested = true
+    this.waitingForFeedback = true
+    this.ensureTurnPromise()
+    const finished = this.turnCompletePromise!
+    let timer: number | undefined
+    this.ws.send(JSON.stringify({ clientContent: {
+      turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true,
+    } }))
+    try {
+      await Promise.race([
+        finished.then(async () => {
+          const remaining = Math.max(0, this.nextPlaybackTime - (this.playbackContext?.currentTime ?? 0)) * 1000
+          if (remaining) await wait(remaining)
+        }),
+        new Promise<void>(resolve => { timer = window.setTimeout(resolve, 20_000) }),
+      ])
+    } finally {
+      window.clearTimeout(timer)
+      await this.close()
+    }
   }
 
   /** Writes off the turn in flight so nothing arriving late can close it. */
@@ -465,7 +505,8 @@ export class LiveVoiceSession {
               this.callbacks.onInputTranscript(this.inputTranscript)
             }
 
-            if (serverContent.outputTranscription?.text) {
+            if (this.tutorOutputEnabled && serverContent.outputTranscription?.text) {
+              this.waitingForFeedback = false
               this.ensureTurnPromise()
               this.outputTranscript = this.outputTranscriptDeltas
                 ? this.outputTranscript + serverContent.outputTranscription.text
@@ -478,7 +519,8 @@ export class LiveVoiceSession {
             }
 
             for (const part of serverContent.modelTurn?.parts ?? []) {
-              if (part.inlineData?.data) {
+              if (this.tutorOutputEnabled && part.inlineData?.data) {
+                this.waitingForFeedback = false
                 this.ensureTurnPromise()
                 this.playAudioChunk(part.inlineData.data)
               }
@@ -494,6 +536,7 @@ export class LiveVoiceSession {
              */
             if (serverContent.interrupted) {
               this.stopPlayback()
+              if (this.feedbackRequested) this.waitingForFeedback = true
             }
 
             if (serverContent.generationComplete) {
@@ -764,7 +807,7 @@ export class LiveVoiceSession {
   }
 
   private finishTurn() {
-    if (this.turnSettled) {
+    if (this.turnSettled || this.waitingForFeedback) {
       return
     }
 

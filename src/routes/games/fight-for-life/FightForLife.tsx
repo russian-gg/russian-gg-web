@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, Coffee, Flower2, Gem, L
 import { useLocale } from '../../../lib/i18n'
 import { RequestError } from '../../../lib/api'
 import { VoiceError } from '../../../lib/liveVoice'
-import { lifeApi, type LifeCatalog, type LifeCharacter } from './api'
+import { lifeApi, type LifeCatalog, type LifeCharacter, type LifeMode } from './api'
 import { lifeCopies } from './copy'
 import { LifeScene } from './LifeScene'
 import { useLifeGame } from './useLifeGame'
@@ -22,7 +22,7 @@ export function FightForLife() {
   const [reload, setReload] = useState(0)
   const [character, setCharacter] = useState<LifeCharacter>('penguin')
   const [level, setLevel] = useState('A1')
-  const [mode, setMode] = useState('debate')
+  const [mode, setMode] = useState<LifeMode>('debate')
   const [topicId, setTopicId] = useState('01')
   const [shared, setShared] = useState(false)
   useEffect(() => {
@@ -42,7 +42,8 @@ export function FightForLife() {
     })
     return () => { active = false }
   }, [reload, navigate])
-  const topics = catalog?.topics.filter(topic => topic.mode === mode && topic.level === (level === 'B1' ? 'B1' : 'A1-A2')) ?? []
+  const topics = catalog?.topics.filter(topic => (topic.mode === 'both' || topic.mode === mode) &&
+    (topic.level === level || (topic.level === 'A1-A2' && level !== 'B1'))) ?? []
   const selected = topics.find(topic => topic.id === topicId) ?? topics[0]
   const playing = game.phase === 'playing' || game.phase === 'saving'
   const shownCharacter = game.view?.character ?? character
@@ -81,7 +82,7 @@ export function FightForLife() {
                 </div>
                 <label className="life-topic-label" htmlFor="life-topic">{copy.topic}</label>
                 <select id="life-topic" value={selected?.id ?? ''} onChange={event => setTopicId(event.target.value)} lang="ru">{topics.map(topic => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select>
-                <button className="life-start" disabled={!selected} onClick={() => selected && void game.start(character, level, selected.id)}><Mic size={22} />{copy.start}<ArrowRight size={20} /></button>
+                <button className="life-start" disabled={!selected} onClick={() => selected && void game.start(character, level, selected.id, mode)}><Mic size={22} />{copy.start}<ArrowRight size={20} /></button>
               </section>
             </> : game.phase === 'connecting' ? <section className="life-connecting" role="status"><div className="life-stage"><LifeScene character={shownCharacter} /><LifeSpeech key={`${game.visual.tutor}-${game.tutorLine}`} text={game.tutorLine} tutor={game.visual.tutor} /></div>{!game.tutorLine && <span className="life-eyebrow">{copy.connecting}</span>}</section>
               : game.phase === 'error' ? <section className="life-notice" role="alert"><p>{errorText}</p><button onClick={() => void game.recover()}>{copy.retry}</button><button onClick={game.reset}>{copy.again}</button></section>
@@ -96,9 +97,14 @@ export function FightForLife() {
                     {game.visual.speaking ? <span className="life-mic-bars">{[0, 1, 2, 3, 4].map(i => <i key={i} style={{ height: `${12 + game.visual.volume * (i % 2 ? 30 : 18)}px` }} />)}</span> : <Square size={23} fill="currentColor" />}<span>{game.phase === 'saving' ? copy.loading : copy.stop}</span>
                   </button>
                 </section> : game.view && <section className="life-results">
+                  {game.view.outcome === 'won' && <>
+                    <div className="life-victory" role="status"><Trophy aria-hidden="true" />2:00 — {copy.victory}</div>
+                    <div className="life-confetti" aria-hidden="true">{Array.from({ length: 28 }, (_, i) => <i key={i} style={{ '--i': i, left: `${i * 37 % 100}%`, background: ['#ffd166', '#06d6a0', '#ef476f', '#fff'][i % 4] } as CSSProperties} />)}</div>
+                  </>}
                   <h1>{game.view.outcome === 'won' ? copy.won : game.view.outcome === 'silence' ? copy.lost : copy.stopped}</h1>
                   <LifeScene character={shownCharacter} emotion={game.view.outcome === 'won' ? 'won' : game.view.outcome === 'silence' ? 'frozen' : 'idle'} energy={game.view.outcome === 'won' ? 1 : .25} />
                   <p className="life-result-note">{game.view.outcome === 'won' ? copy.wonNote : copy.lostNote}</p>
+                  {game.feedback && <p className="life-feedback" lang="ru" role="status">{game.feedback}</p>}
                   <div className="life-result-details">
                     <div><Clock3 aria-hidden="true" /><span>{copy.speech}</span><strong>{Math.floor(game.view.speechMilliseconds / 1000)} <small>{copy.seconds}</small></strong></div>
                     <div><Gem aria-hidden="true" /><span>{copy.crystals}</span><strong>{game.view.score}</strong></div>

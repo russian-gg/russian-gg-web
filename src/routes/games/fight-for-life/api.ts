@@ -2,11 +2,12 @@ import { api } from '../../../lib/api'
 import type { VoiceSessionTicket } from '../../../lib/types'
 
 export type LifeCharacter = 'penguin' | 'panda' | 'pero'
-export type LifeTopic = { id: string; title: string; level: string; mode: 'debate' | 'monologue'; opening?: string }
+export type LifeMode = 'debate' | 'monologue'
+export type LifeTopic = { id: string; title: string; level: string; mode: LifeMode | 'both'; opening?: string }
 export type LifeCatalog = { isEnabled: boolean; isAccessible: boolean; lockReason: string | null; topics: LifeTopic[] }
 export type LifeView = {
   id: string; status: 'ready' | 'connecting' | 'playing' | 'completed'; character: LifeCharacter
-  level: string; topic: LifeTopic; score: number; speechMilliseconds: number; silenceMilliseconds: number
+  level: string; topic: LifeTopic & { mode: LifeMode }; score: number; speechMilliseconds: number; silenceMilliseconds: number
   serverNowUtc: string; deadlineUtc?: string; outcome?: 'won' | 'silence' | 'stopped'; transcript: string
 }
 export type LifeActivity = {
@@ -16,8 +17,8 @@ export type LifeActivity = {
 const path = (id: string) => `/fight-for-life/sessions/${id}`
 export const lifeApi = {
   catalog: () => api.get<LifeCatalog>('/fight-for-life/catalog'),
-  start: (character: LifeCharacter, level: string, topicId: string) =>
-    api.post<LifeView>('/fight-for-life/sessions', { requestId: crypto.randomUUID(), character, level, topicId }),
+  start: (character: LifeCharacter, level: string, topicId: string, mode: LifeMode) =>
+    api.post<LifeView>('/fight-for-life/sessions', { requestId: crypto.randomUUID(), character, level, topicId, mode }),
   voice: (id: string) => api.post<VoiceSessionTicket>(`${path(id)}/voice`, {}),
   begin: (id: string) => api.post<LifeView>(`${path(id)}/begin`, {}),
   get: (id: string) => api.get<LifeView>(path(id)),

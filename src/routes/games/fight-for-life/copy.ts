@@ -1,7 +1,7 @@
 const uz = {
   back: 'O‘yinlar', tag: 'Ovozingiz — uning kuchi', intro: 'Gapiring. Qahramoningizga hayot bag‘ishlang.',
   rules: 'Ruscha gapiring. 10 soniya jim qolsangiz o‘yin tugaydi. 2 daqiqa davom etsangiz — g‘alaba. Qahramon gapirayotganda uni tinglang.',
-  silenceRule: '10 soniya jimlik — o‘yin tugaydi', victoryRule: '2 daqiqa nutq — g‘alaba',
+  silenceRule: '10 soniya jimlik — o‘yin tugaydi', victoryRule: '2 daqiqa nutq — g‘alaba', victory: "G‘alaba!",
   character: 'Qahramonni tanlang', penguin: 'Pingvin', panda: 'Panda', pero: 'Pero',
   penguinRole: 'Aniq fikr. Kuchli dalil.', pandaRole: 'Iliq suhbat. Samimiy hislar.', peroRole: 'O‘tkir savol. Sehrli fikr.',
   level: 'Daraja', mode: 'Suhbat turi', debate: 'Debat', monologue: 'Monolog', topic: 'Mavzu',
@@ -22,6 +22,7 @@ const uz = {
 }
 export type LifeCopy = typeof uz
 const ru: LifeCopy = {
+  victory: 'Победа!',
   back: 'Игры', tag: 'Твой голос — его сила', intro: 'Говори. Оживляй своего героя.',
   rules: 'Говори по-русски. 10 секунд тишины — игра окончена. Продержись 2 минуты, чтобы победить. Когда говорит герой, слушай.',
   silenceRule: '10 секунд тишины — конец', victoryRule: '2 минуты речи — победа',
@@ -44,6 +45,7 @@ const ru: LifeCopy = {
   speakingPero: 'О, искра! Я записываю.', waitingPero: 'Куда улетела твоя мысль?', coldPero: 'Продолжай свою магию…',
 }
 const en: LifeCopy = {
+  victory: 'Victory!',
   back: 'Games', tag: 'Your voice is their strength', intro: 'Speak. Bring your companion to life.',
   rules: 'Speak Russian. Ten seconds of silence ends the game. Keep going for two minutes to win. Listen when your companion speaks.',
   silenceRule: '10 seconds of silence — game over', victoryRule: '2 minutes of speech — victory',

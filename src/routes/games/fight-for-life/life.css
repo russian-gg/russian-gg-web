@@ -56,16 +56,16 @@
 .life-game[data-character=pero] .life-topic h1,.life-game[data-character=pero] .life-results h1{text-shadow:0 2px 2px #6c369b,0 0 22px #5a2f7566}
 .life-stage{position:relative;max-width:540px;margin:12px auto 0;padding-top:65px}
 .life-speech{position:absolute;top:8px;right:0;max-width:64%;max-height:110px;overflow-y:auto;padding:14px 19px;border:1px solid #fff;border-radius:23px 23px 23px 4px;background:#fffffff0;color:#234457;box-shadow:0 10px 30px #17426018;font-size:14px;font-weight:800;line-height:1.55;text-align:left;animation:life-speech-in .3s ease-out;z-index:3}
-.life-mic{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin:8px auto 0;width:98px;height:98px;border-radius:50%;border:1px solid #ffffff90;color:#fff;background:linear-gradient(145deg,#879ea8,#536575);box-shadow:0 6px 0 #374f5a,0 10px 30px #1b526333,inset 0 3px 8px #fff4;cursor:pointer;transition:background .25s,box-shadow .25s}
+.life-mic{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin:8px auto 0;width:76px;height:76px;border-radius:50%;border:1px solid #ffffff90;color:#fff;background:linear-gradient(145deg,#ed681f,#bf3516);box-shadow:0 5px 0 #8a2a16,0 10px 25px #b33c2633,inset 0 3px 8px #fff4;cursor:pointer;transition:background .25s,box-shadow .25s}
 .life-mic>span:last-child{font-size:11px;letter-spacing:.1em;font-weight:950}
-.life-mic[data-speaking=true]{background:linear-gradient(145deg,#39f6c2,#038eb5);box-shadow:0 6px 0 #006b7a,0 0 0 9px #a4fff82b,0 0 45px #00f5d480,inset 0 3px 8px #fff6;animation:life-mic-pulse 1s ease-in-out infinite}
+.life-mic[data-speaking=true]{background:linear-gradient(145deg,#f47a28,#c63b18);box-shadow:0 5px 0 #8a2a16,0 0 0 5px #ff9e432b,0 0 25px #ff6b3280,inset 0 3px 8px #fff6;animation:life-mic-pulse 1s ease-in-out infinite}
 .life-mic:disabled{opacity:.6;cursor:wait}
 .life-mic-bars{display:flex;gap:4px;align-items:center;height:29px}
 .life-mic-bars i{display:block;width:4px;border-radius:6px;background:white;transition:height .1s}
 .life-connecting{max-width:600px;margin:40px auto;text-align:center}
 .life-notice{display:flex;flex-direction:column;align-items:center;gap:20px;max-width:500px;text-align:center;margin:80px auto;line-height:1.8;color:var(--life-ink)}
 .life-notice button{background:#ffffff30;border:1px solid #ffffff60;padding:10px 22px;border-radius:12px;color:inherit;font-weight:850;cursor:pointer}
-.life-results{text-align:center;max-width:660px;margin:32px auto 0}
+.life-results{position:relative;text-align:center;max-width:660px;margin:32px auto 0}
 .life-results h1{font-size:clamp(28px,4vw,43px);font-weight:950;margin:12px 0;text-wrap:balance}
 .life-results .life-scene{max-width:310px;margin:0 auto -10px}
 .life-result-note{max-width:430px;margin:12px auto 22px;color:var(--life-muted);font-size:15px;line-height:1.6}
@@ -84,8 +84,8 @@
 @keyframes life-world-float{0%{transform:translateY(35px) rotate(-10deg)}50%{transform:translateY(-40px) rotate(10deg)}100%{transform:translateY(35px) rotate(-10deg)}}
 @keyframes life-leaf-fall{to{transform:translate(70px,100vh) rotate(160deg)}}
 @keyframes life-speech-in{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes life-mic-pulse{50%{transform:translateY(-2px);box-shadow:0 8px 0 #006b7a,0 0 0 14px #a4fff816,0 0 55px #00f5d499}}
-@media(max-width:600px){.life-game{padding:0 16px 35px}.life-header{min-height:60px}.life-header>span{font-size:20px}.life-intro{padding:26px 0 22px}.life-rules{gap:7px}.life-rules>span{font-size:11px;padding:8px 10px}.life-rules svg{width:16px}.life-choices{gap:9px}.life-character-choice{border-radius:18px;padding:5px 3px 13px}.life-character-name{font-size:14px;justify-content:center;padding:0}.life-character-name svg{width:12px}.life-scene-compact .life-puppet{inset:0 0 4%}.life-options{gap:12px;margin:22px 0}.life-segment button{font-size:12px;padding:10px 5px}.life-hud{margin-top:14px}.life-topic{margin-top:14px}.life-stage{padding-top:72px;margin-top:12px}.life-speech{max-width:77%;font-size:12px;padding:11px 15px;max-height:100px}.life-mic{width:88px;height:88px;margin-top:5px}.life-results{margin-top:25px}.life-result-actions{flex-direction:column}.life-results .life-scene{max-width:250px}.life-result-details{padding:16px 6px;gap:4px}.life-result-details strong{font-size:24px}.life-equalizers>div{gap:3px}}
+@keyframes life-mic-pulse{50%{transform:translateY(-2px);box-shadow:0 6px 0 #8a2a16,0 0 0 8px #ff9e4316,0 0 30px #ff6b3299}}
+@media(max-width:600px){.life-game{padding:0 16px 35px}.life-header{min-height:60px}.life-header>span{font-size:20px}.life-intro{padding:26px 0 22px}.life-rules{gap:7px}.life-rules>span{font-size:11px;padding:8px 10px}.life-rules svg{width:16px}.life-choices{gap:9px}.life-character-choice{border-radius:18px;padding:5px 3px 13px}.life-character-name{font-size:14px;justify-content:center;padding:0}.life-character-name svg{width:12px}.life-scene-compact .life-puppet{inset:0 0 4%}.life-options{gap:12px;margin:22px 0}.life-segment button{font-size:12px;padding:10px 5px}.life-hud{margin-top:14px}.life-topic{margin-top:14px}.life-stage{padding-top:72px;margin-top:12px}.life-speech{max-width:77%;font-size:12px;padding:11px 15px;max-height:100px}.life-mic{width:72px;height:72px;margin-top:5px}.life-results{margin-top:25px}.life-result-actions{flex-direction:column}.life-results .life-scene{max-width:250px}.life-result-details{padding:16px 6px;gap:4px}.life-result-details strong{font-size:24px}.life-equalizers>div{gap:3px}}
 
 .life-scene{position:relative;isolation:isolate;width:min(100%,510px);aspect-ratio:1.22;margin:-10px auto -8px;pointer-events:none;--life-energy:1;--life-volume:0}
 .life-scene-compact{width:100%;aspect-ratio:1;min-height:0;margin:0;--life-energy:.7}
@@ -135,3 +135,10 @@
 @keyframes life-pixel-fall{to{transform:translateY(140px) rotate(110deg);opacity:0}}
 
 @media(prefers-reduced-motion:reduce){.life-game *,.life-game *::before,.life-game *::after{animation:none!important;transition:none!important}.life-scene[data-character=pero][data-emotion=frozen] .life-puppet{opacity:1}.life-pixels{display:none}}
+
+.life-victory{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;margin:0 auto 12px;border:1px solid #9ff4c7;border-radius:20px;background:#e5fff0;color:#086b3e;box-shadow:0 8px 30px #07934a30;font-size:clamp(20px,4vw,28px);font-weight:950;font-variant-numeric:tabular-nums}
+.life-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
+.life-confetti i{position:absolute;top:-20px;width:7px;height:13px;border-radius:2px;animation:life-confetti 3s ease-out both;animation-delay:calc(var(--i)*.045s)}
+.life-feedback{margin:15px auto 24px;padding:18px 22px;border:1px solid #ffffffa0;border-radius:22px;background:#ffffffdd;color:#234457;text-align:left;line-height:1.65;max-width:540px;overflow-wrap:anywhere}
+@keyframes life-confetti{to{transform:translateY(650px) rotate(500deg);opacity:0}}
+@media(prefers-reduced-motion:reduce){.life-confetti{display:none}}

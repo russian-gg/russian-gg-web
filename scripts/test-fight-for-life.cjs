@@ -21,7 +21,7 @@ let browser
 before(async () => { browser = await chromium.launch({ channel: 'chrome', headless: true }) })
 after(async () => { await browser?.close(); console.log(`Screenshots: ${SHOTS}`) })
 
-test('silence boundary, recovery, fractional speech, and two-minute cap', () => {
+test('silence boundary and two minutes of learner speech exclude pauses', () => {
   const meter = new LifeMeter(0)
   assert.equal(meter.advance(9999, false, false), null)
   assert.equal(meter.advance(10000, false, false), 'silence')
@@ -31,9 +31,11 @@ test('silence boundary, recovery, fractional speech, and two-minute cap', () => 
   recovered.advance(9500, true, false)
   assert.equal(recovered.silenceMs, 0)
   assert.equal(recovered.speechMs, 500)
-  assert.equal(recovered.advance(130000, true, false), 'won')
-  assert.equal(recovered.elapsedMs, 120000)
+  assert.equal(recovered.advance(120000, true, false), null)
   assert.equal(recovered.speechMs, 111000)
+  assert.equal(recovered.advance(128999, true, false), null)
+  assert.equal(recovered.advance(129000, true, false), 'won')
+  assert.equal(recovered.speechMs, 120000)
 })
 
 test('tutor playback never scores and protects at most eight consecutive seconds', () => {
@@ -59,14 +61,22 @@ export async function requestMicrophone() {
 }
 export function releaseMicrophone() { window.lifeMock.releases++ }
 export class LiveVoiceSession {
-  constructor(ticket, callbacks, options) { this.callbacks = callbacks; this.playback = options.playbackContext; window.lifeMock.callbacks = callbacks }
+  constructor(ticket, callbacks, options) { this.callbacks = callbacks; this.playback = options.playbackContext; window.lifeMock.callbacks = callbacks; window.lifeMock.options = options }
   async start() {
     this.callbacks.onConnected();
     this.callbacks.onStatus('listening');
     this.interval = setInterval(() => this.callbacks.onInputLevel(window.lifeMock.speaking ? .08 : 0, window.lifeMock.speaking, 50), 50);
   }
+  pauseInput() { clearInterval(this.interval) }
   requestTutorResponse(text) { window.lifeMock.reminders.push(text); return true }
-  async close() { clearInterval(this.interval); window.lifeMock.closed++; this.callbacks.onPlayback(false); await this.playback.close() }
+  async finishWithFeedback(text) {
+    this.pauseInput(); window.lifeMock.feedbackRequests.push(text);
+    this.callbacks.onPlayback(true);
+    this.callbacks.onOutputTranscript(text.includes('outcome=won') ? 'Победа! Отличная речь. Ты говоришь ясно. Добавь пример.' : 'Время вышло. Продолжай мысль. Попробуй начать с простого слова.');
+    this.callbacks.onPlayback(false);
+    await this.close();
+  }
+  async close() { if (this.closed) return; this.closed = true; clearInterval(this.interval); window.lifeMock.closed++; this.callbacks.onPlayback(false); await this.playback.close() }
 }
 export const isPromptAudioPlaying = () => false;
 export const prefetchPromptAudio = async () => {};
@@ -77,10 +87,36 @@ export const pausePromptAudio = () => {};
 export const resumePromptAudio = async () => {};
 `
 const topics = [
-  { id: '01', title: 'Опоздание на встречу — это нормально?', level: 'A1-A2', mode: 'debate' },
-  { id: '02', title: 'Мой идеальный распорядок дня.', level: 'A1-A2', mode: 'monologue' },
-  { id: '16', title: 'Ради карьеры можно пожертвовать семьей?', level: 'B1', mode: 'debate' },
-  { id: '17', title: 'Какую цель ты ставишь на следующий год?', level: 'B1', mode: 'monologue' },
+  { id: 'v2-01', title: 'Любовь — это чувство или выбор?', level: 'A1', mode: 'both' },
+  { id: 'v2-02', title: 'Вкусная еда или полезная еда?', level: 'A1', mode: 'both' },
+  { id: 'v2-03', title: 'Утро или вечер?', level: 'A1', mode: 'both' },
+  { id: 'v2-04', title: 'Кошки или собаки?', level: 'A1', mode: 'both' },
+  { id: 'v2-05', title: 'Жить в городе или в деревне?', level: 'A1', mode: 'both' },
+  { id: 'v2-06', title: 'Чай или кофе?', level: 'A1', mode: 'both' },
+  { id: 'v2-07', title: 'Смотреть фильм дома или в кинотеатре?', level: 'A1', mode: 'both' },
+  { id: 'v2-08', title: 'Спорт — это весело или трудно?', level: 'A1', mode: 'both' },
+  { id: 'v2-09', title: 'Какая погода лучше: лето или зима?', level: 'A1', mode: 'both' },
+  { id: 'v2-10', title: 'Читать книгу или слушать аудиокнигу?', level: 'A1', mode: 'both' },
+  { id: 'v2-11', title: 'Красота спасёт мир?', level: 'A2', mode: 'both' },
+  { id: 'v2-12', title: 'Нужно ли всегда говорить правду?', level: 'A2', mode: 'both' },
+  { id: 'v2-13', title: 'Телефон — это друг или враг?', level: 'A2', mode: 'both' },
+  { id: 'v2-14', title: 'Деньги могут купить счастье?', level: 'A2', mode: 'both' },
+  { id: 'v2-15', title: 'Лучше работать одному или в команде?', level: 'A2', mode: 'both' },
+  { id: 'v2-16', title: 'Учиться в университете или учиться онлайн?', level: 'A2', mode: 'both' },
+  { id: 'v2-17', title: 'Можно ли прощать предательство?', level: 'A2', mode: 'both' },
+  { id: 'v2-18', title: 'Идеальная работа — это хобби?', level: 'A2', mode: 'both' },
+  { id: 'v2-19', title: 'Друзья важнее семьи?', level: 'A2', mode: 'both' },
+  { id: 'v2-20', title: 'Нужно ли путешествовать одному?', level: 'A2', mode: 'both' },
+  { id: 'v2-21', title: 'Опаздывать на встречу — это нормально?', level: 'B1', mode: 'both' },
+  { id: 'v2-22', title: 'Искусственный интеллект заменит людей?', level: 'B1', mode: 'both' },
+  { id: 'v2-23', title: 'Социальные сети делают нас одинокими?', level: 'B1', mode: 'both' },
+  { id: 'v2-24', title: 'Свобода — это делать что хочешь или не делать чего не хочешь?', level: 'B1', mode: 'both' },
+  { id: 'v2-25', title: 'Патриотизм — что это для тебя?', level: 'B1', mode: 'both' },
+  { id: 'v2-26', title: 'Можно ли оправдать ложь ради спасения?', level: 'B1', mode: 'both' },
+  { id: 'v2-27', title: 'Образование — это бизнес или служение?', level: 'B1', mode: 'both' },
+  { id: 'v2-28', title: 'Мода: самовыражение или глупость?', level: 'B1', mode: 'both' },
+  { id: 'v2-29', title: 'Карьера или семья? Что важнее?', level: 'B1', mode: 'both' },
+  { id: 'v2-30', title: 'Что важнее: талант или упорный труд?', level: 'B1', mode: 'both' },
 ]
 async function fixture(options = {}) {
   const context = await browser.newContext({ viewport: options.desktop ? { width: 1280, height: 960 } : { width: 390, height: 844 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
@@ -90,7 +126,7 @@ async function fixture(options = {}) {
     localStorage.setItem('rgg.locale', locale)
     localStorage.setItem('rgg.install.never', 'true')
     localStorage.setItem('rgg.audio-muted', 'true')
-    window.lifeMock = { denied, requests: 0, releases: 0, closed: 0, speaking: false, reminders: [] }
+    window.lifeMock = { denied, requests: 0, releases: 0, closed: 0, speaking: false, reminders: [], feedbackRequests: [] }
     window.lifeAudioContexts = []
     window.lifeAudioStarts = []
     const NativeAudioContext = window.AudioContext
@@ -128,7 +164,13 @@ async function fixture(options = {}) {
       const data = JSON.parse(message)
       state.voiceMessages.push(data)
       if (data.setup) socket.send(JSON.stringify({ setupComplete: {} }))
-      if (data.clientContent) reply('Можно ли опаздывать? Как ты думаешь?')
+      if (data.clientContent) {
+        const text = data.clientContent.turns[0].parts[0].text
+        if (text.startsWith('[game_result]')) {
+          socket.send(JSON.stringify({ serverContent: { interrupted: true, turnComplete: true } }))
+          if (options.feedbackResponse !== false) reply('Время вышло. Твой результат: 0 секунд. Я не слышу ответ. Начни с простого слова.')
+        } else reply('Можно ли опаздывать? Как ты думаешь?')
+      }
       if (data.realtimeInput?.text) reply('Ты живёшь в городе или деревне?')
     })
   })
@@ -153,7 +195,7 @@ async function fixture(options = {}) {
       state.calls.push({ endpoint, body })
       if (endpoint.endsWith('/catalog')) return route.fulfill({ json: { isEnabled: !options.disabled, isAccessible: !options.disabled, lockReason: null, topics } })
       if (endpoint === '/api/fight-for-life/sessions') {
-        state.session = { id: 'session-1', status: 'ready', ...body, topic: topics.find(t => t.id === body.topicId), score: 0, speechMilliseconds: 0, silenceMilliseconds: 0, transcript: '' }
+        state.session = { id: 'session-1', status: 'ready', ...body, topic: { ...topics.find(t => t.id === body.topicId), mode: body.mode }, score: 0, speechMilliseconds: 0, silenceMilliseconds: 0, transcript: '' }
       } else if (endpoint.endsWith('/voice')) {
         state.session.status = 'connecting'
         return route.fulfill({ json: { sessionId: state.session.id, token: 'test-only', connectUrl: 'wss://voice.example.test/BidiGenerateContent', model: 'test-voice', voiceName: { penguin: 'Fenrir', panda: 'Leda', pero: 'Puck' }[state.session.character], languageCode: 'ru-RU', systemInstruction: 'Test Russian conversation', openingCue: 'Introduce the topic and invite the learner to speak.' } })
@@ -190,8 +232,9 @@ async function fixture(options = {}) {
     assert.ok(width <= page.viewportSize().width, `overflow ${width}`)
     await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true, animations: 'disabled' })
   }
-  async function start(character = 'penguin') {
+  async function start(character = 'penguin', mode = 'debate') {
     await open()
+    if (mode === 'monologue') await page.locator('.life-options fieldset').nth(1).getByRole('button').nth(1).click()
     await page.locator(`.life-character-choice[data-character="${character}"]`).click()
     await page.locator('.life-start').click()
     await page.locator('.life-play').waitFor()
@@ -367,15 +410,15 @@ test('three costumes, responsive layout, topic mode/level, all locales and shelf
     assert.equal(await h.page.locator('.life-character-choice').count(), 3)
     await h.shot(`setup-${locale}`)
     await h.page.getByRole('button', { name: 'B1', exact: true }).click()
-    assert.equal(await h.page.locator('#life-topic').inputValue(), '16')
+    assert.equal(await h.page.locator('#life-topic').inputValue(), 'v2-21')
     await h.page.locator('.life-options fieldset').nth(1).getByRole('button').nth(1).click()
-    assert.equal(await h.page.locator('#life-topic').inputValue(), '17')
+    assert.equal(await h.page.locator('#life-topic').inputValue(), 'v2-21')
     await h.page.locator('.life-character-choice[data-character="panda"]').click()
     await h.page.locator('.life-start').click()
     await h.page.locator('.life-play').waitFor()
     assert.equal(h.state.session.character, 'panda')
     assert.equal(h.state.session.level, 'B1')
-    assert.equal(h.state.session.topicId, '17')
+    assert.equal(h.state.session.topicId, 'v2-21')
     await h.page.goto(`${BASE}/games`)
     await h.page.locator('a.life-card').waitFor()
     assert.equal(await h.page.locator('a.life-card').getAttribute('href'), '/games/fight-for-life')
@@ -436,7 +479,7 @@ test('each character reacts, fades during silence, freezes, and can replay', asy
     assert.equal(await h.page.locator('.life-play .life-scene').getAttribute('data-emotion'), 'speaking')
     await h.shot(`${character}-speaking`)
     await h.page.evaluate(() => { window.lifeMock.speaking = false })
-    await h.tick(8500)
+    await h.page.clock.runFor(8200)
     assert.equal(await h.page.locator('.life-play .life-scene').getAttribute('data-emotion'), 'cold')
     await h.shot(`${character}-cold`)
     await h.tick(2000)
@@ -469,6 +512,8 @@ test('full spoken round wins; tutor playback does not award crystals', async () 
   await h.page.locator('.life-results').waitFor()
   assert.equal(h.state.session.outcome, 'won')
   assert.equal(h.state.session.score, 120)
+  assert.match(await h.page.locator('.life-victory').innerText(), /2:00 — G‘alaba!/)
+  assert.equal(await h.page.locator('.life-confetti i').count(), 28)
   await h.shot('won')
   await h.close()
 })
@@ -538,4 +583,118 @@ test('BFCache return during microphone permission restores setup instead of hang
   assert.equal(h.state.calls.filter(c => c.endpoint.endsWith('/sessions')).length, 0)
   assert.ok(await h.page.evaluate(() => window.lifeAudioContexts.every(c => c.state === 'closed')))
   await h.close()
+})
+
+
+test('all thirty topics stay at their selected level in both modes', async () => {
+  const h = await fixture()
+  try {
+    await h.open()
+    for (const level of ['A1', 'A2', 'B1']) {
+      await h.page.getByRole('button', { name: level, exact: true }).click()
+      for (const mode of [0, 1]) {
+        await h.page.locator('.life-options fieldset').nth(1).getByRole('button').nth(mode).click()
+        const ids = await h.page.locator('#life-topic option').evaluateAll(nodes => nodes.map(node => node.value))
+        assert.deepEqual(ids, topics.filter(topic => topic.level === level).map(topic => topic.id))
+        assert.equal(ids.length, 10)
+      }
+    }
+    await h.page.locator('.life-start').click()
+    await h.page.locator('.life-play').waitFor()
+    assert.equal(h.state.session.mode, 'monologue')
+    assert.equal(h.state.session.level, 'B1')
+    const stop = await h.page.locator('.life-mic').evaluate(node => ({ width: node.getBoundingClientRect().width, background: getComputedStyle(node).backgroundImage }))
+    assert.ok(stop.width >= 44 && stop.width <= 76)
+    assert.match(stop.background, /237, 104, 31/)
+    await h.shot('compact-stop')
+  } finally { await h.close() }
+})
+
+test('monologue stays silent after opening and plays final feedback before closing audio', async () => {
+  const h = await fixture({ realVoice: true })
+  try {
+    await h.open()
+    await h.page.locator('.life-options fieldset').nth(1).getByRole('button').nth(1).click()
+    await h.page.locator('.life-start').click()
+    await h.page.locator('.life-connecting .life-speech').waitFor()
+    h.turnComplete()
+    await h.tick(300)
+    await h.page.locator('.life-play').waitFor()
+    assert.equal(await h.page.evaluate(() => window.lifeAudioStarts.length), 1)
+    h.reply('Эта реплика не должна прозвучать.')
+    h.turnComplete()
+    await h.tick(4500)
+    assert.equal(await h.page.evaluate(() => window.lifeAudioStarts.length), 1)
+    assert.equal(await h.page.getByText('Эта реплика не должна прозвучать.').count(), 0)
+    assert.equal(h.state.voiceMessages.filter(m => m.realtimeInput?.text).length, 0)
+    await h.tick(6000)
+    await h.page.locator('.life-results').waitFor()
+    await h.page.locator('.life-feedback').waitFor()
+    assert.match(await h.page.locator('.life-feedback').innerText(), /Твой результат: 0 секунд/)
+    assert.equal(await h.page.evaluate(() => window.lifeAudioStarts.length), 2)
+    assert.equal(await h.page.locator('.life-victory').count(), 0)
+    const signal = h.state.voiceMessages.find(m => m.clientContent?.turns[0].parts[0].text.startsWith('[game_result]'))
+    assert.match(signal.clientContent.turns[0].parts[0].text, /outcome=silence; speechSeconds=0/)
+    h.turnComplete()
+    await h.tick(500)
+    assert.ok(await h.page.evaluate(() => window.lifeAudioContexts.every(context => context.state === 'closed')))
+    await h.shot('monologue-feedback')
+  } finally { await h.close() }
+})
+
+test('monologue victory announces measured speech and can replay without stale feedback', async () => {
+  const h = await fixture()
+  try {
+    await h.start('panda', 'monologue')
+    assert.equal(await h.page.evaluate(() => window.lifeMock.options.listenOnlyAfterOpening), true)
+    await h.page.evaluate(() => { window.lifeMock.speaking = true })
+    await h.tick(120500)
+    await h.page.locator('.life-results').waitFor()
+    assert.equal(h.state.session.speechMilliseconds, 120000)
+    assert.match(await h.page.locator('.life-victory').innerText(), /2:00/)
+    assert.match(await h.page.locator('.life-feedback').innerText(), /Победа! Отличная речь/)
+    assert.deepEqual(await h.page.evaluate(() => window.lifeMock.reminders), [])
+    const signals = await h.page.evaluate(() => window.lifeMock.feedbackRequests)
+    assert.equal(signals.length, 1)
+    assert.match(signals[0], /outcome=won; speechSeconds=120/)
+    await h.page.locator('.life-results .life-start').click()
+    assert.equal(await h.page.locator('.life-feedback').count(), 0)
+    await h.page.locator('.life-start').click()
+    await h.page.locator('.life-play').waitFor()
+    await h.page.locator('.life-mic').click()
+    await h.page.locator('.life-results').waitFor()
+    assert.equal(await h.page.locator('.life-feedback').count(), 0)
+    assert.equal(await h.page.locator('.life-victory').count(), 0)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.feedbackRequests.length), 1)
+  } finally { await h.close() }
+})
+
+
+test('missing final voice cannot erase the saved result or keep the microphone open', async () => {
+  for (const action of ['timeout', 'disconnect', 'replay']) {
+    const h = await fixture({ realVoice: true, feedbackResponse: false })
+    try {
+      await h.open()
+      await h.page.locator('.life-options fieldset').nth(1).getByRole('button').nth(1).click()
+      await h.page.locator('.life-start').click()
+      await h.page.locator('.life-connecting .life-speech').waitFor()
+      h.turnComplete()
+      await h.tick(300)
+      await h.page.locator('.life-play').waitFor()
+      await h.tick(10500)
+      await h.page.locator('.life-results').waitFor()
+      assert.ok(h.state.voiceMessages.some(m => m.clientContent?.turns[0].parts[0].text.startsWith('[game_result]')))
+      if (action === 'timeout') await h.page.clock.runFor(20001)
+      else if (action === 'disconnect') h.state.socket.close({ code: 1011, reason: 'test failure' })
+      else await h.page.locator('.life-results .life-start').click()
+      await h.page.waitForFunction(() => window.lifeAudioContexts.every(context => context.state === 'closed'))
+      assert.equal(await h.page.getByRole('alert').count(), 0)
+      assert.equal(await h.page.locator('.life-victory').count(), 0)
+      if (action === 'replay') await h.page.locator('.life-choices').waitFor()
+      else {
+        assert.equal(h.state.session.outcome, 'silence')
+        assert.equal(await h.page.locator('.life-results').count(), 1)
+      }
+    } finally { await h.close() }
+  }
 })

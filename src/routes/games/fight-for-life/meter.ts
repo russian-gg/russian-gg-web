@@ -9,18 +9,18 @@ export class LifeMeter {
   constructor(now: number) { this.lastAt = now }
 
   advance(now: number, speaking: boolean, tutor: boolean) {
-    const delta = Math.max(0, Math.min(now - this.lastAt, 120_000 - this.elapsedMs))
+    const delta = Math.max(0, now - this.lastAt)
     this.lastAt = now
     this.elapsedMs += delta
     const protectedMs = tutor ? Math.min(delta, Math.max(0, 8_000 - this.tutorMs)) : 0
     this.tutorMs = tutor ? this.tutorMs + delta : 0
     if (speaking && !tutor) {
-      this.speechMs += delta
+      this.speechMs = Math.min(120_000, this.speechMs + delta)
       this.silenceMs = 0
     } else {
       this.silenceMs += delta - protectedMs
     }
-    return this.silenceMs >= 10_000 ? 'silence' : this.elapsedMs >= 120_000 ? 'won' : null
+    return this.silenceMs >= 10_000 ? 'silence' : this.speechMs >= 120_000 ? 'won' : null
   }
 
   emotion(speaking: boolean): LifeEmotion {
