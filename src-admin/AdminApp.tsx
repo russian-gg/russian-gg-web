@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, LogOut, Moon, Sun } from 'lucide-react'
 import { adminApiPath, adminSectionKey, session, useSession } from './lib/api'
 import type { PortalRole } from './lib/types'
 import { Button, Card, ErrorNote } from './components/ui'
+import { SmsBalanceWidget, SmsHealthBanner, useSmsHealth } from './components/SmsHealthBanner'
 import { cx } from '../src/lib/cx'
 import { useTheme } from '../src/lib/theme'
 import {
@@ -120,6 +121,10 @@ export function AdminApp() {
   const [visit, setVisit] = useState(0)
   // Remembered, because a sidebar that reopens on every reload is one nobody bothers closing.
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true')
+
+  // Called before the sign-in check below, as a hook must be; it stays off until there is an
+  // admin session to ask with.
+  const sms = useSmsHealth(Boolean(token) && role === 'Admin')
 
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, String(collapsed))
@@ -269,6 +274,7 @@ export function AdminApp() {
         </nav>
 
         <div className="mt-auto hidden flex-col gap-2 pt-4 lg:flex">
+          <SmsBalanceWidget health={sms.health} collapsed={collapsed} onReload={sms.reload} />
           <div className={cx('text-sm text-ink-muted', collapsed && 'lg:hidden')}>{name}</div>
           <ThemeToggle collapsed={collapsed} />
           <Button variant="secondary" size="sm" onClick={() => session.signOut()} title="Chiqish">
@@ -283,6 +289,7 @@ export function AdminApp() {
       </aside>
 
       <main key={visit} className="min-w-0 p-4 sm:p-6 lg:p-8">
+        <SmsHealthBanner health={sms.health} />
         {active === 'dashboard' && <Dashboard />}
         {active === 'users' && <Users />}
         {active === 'clicks' && <Clicks />}
