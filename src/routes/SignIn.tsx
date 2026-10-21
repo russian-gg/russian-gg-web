@@ -168,8 +168,8 @@ function SignUpMethodTabs({
 }) {
   const t = useT()
   const tabs: { id: SignUpMethod; label: string }[] = [
-    { id: 'phone', label: t.auth.phone.label },
     { id: 'email', label: t.auth.email },
+    { id: 'phone', label: t.auth.phone.label },
   ]
 
   return (
@@ -214,7 +214,7 @@ export function SignUp() {
   } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [method, setMethod] = useState<SignUpMethod>('phone')
+  const [method, setMethod] = useState<SignUpMethod>('email')
   const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const didClearPendingRef = useRef(false)
