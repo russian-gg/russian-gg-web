@@ -11,7 +11,7 @@ export function LifeScene({ character, emotion = 'idle', energy = 1, volume = 0,
   return <div className={`life-scene${compact ? ' life-scene-compact' : ''}`} data-character={character} data-emotion={emotion}
     style={{ '--life-energy': energy, '--life-volume': volume } as CSSProperties} aria-hidden="true">
     <div className="life-aura"><i /><i /><i /></div>
-    {!compact && <div className="life-equalizers">{[0, 1].map(side => <div key={side}>{Array.from({ length: 9 }, (_, i) =>
+    {!compact && emotion === 'speaking' && <div className="life-equalizers">{[0, 1].map(side => <div key={side}>{Array.from({ length: 9 }, (_, i) =>
       <i key={i} style={{ '--bar': (i * 7 % 9 + 2) / 10, '--i': i } as CSSProperties} />)}</div>)}</div>}
     <div className="life-ground" />
     <div className="life-puppet">

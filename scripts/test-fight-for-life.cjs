@@ -106,11 +106,11 @@ async function fixture(options = {}) {
     if (endpoint === '/api/lesson-feedback') return route.fulfill({ json: { isDue: false } })
     if (endpoint === '/api/tests') return route.fulfill({ json: [] })
     if (endpoint.startsWith('/api/analytics/')) return route.fulfill({ status: 204 })
-    if (endpoint === '/api/games') return route.fulfill({ json: options.disabled ? [] : [{ slug: 'fight-for-life', nameRu: 'Борьба за жизнь', descriptionRu: '', bodyUz: '', isBuilt: true, isEnabled: true }] })
+    if (endpoint === '/api/games') return route.fulfill({ json: options.disabled ? [] : [{ slug: 'fight-for-life', titleUz: 'Помоги!', bodyUz: '', isBuilt: true, isEnabled: true, isAccessible: true, requiresPro: false }] })
     try {
       assert.equal(request.headers().authorization, 'Bearer local-life-game-test')
       state.calls.push({ endpoint, body })
-      if (endpoint.endsWith('/catalog')) return route.fulfill({ json: { isEnabled: !options.disabled, topics } })
+      if (endpoint.endsWith('/catalog')) return route.fulfill({ json: { isEnabled: !options.disabled, isAccessible: !options.disabled, lockReason: null, topics } })
       if (endpoint === '/api/fight-for-life/sessions') {
         state.session = { id: 'session-1', status: 'ready', ...body, topic: topics.find(t => t.id === body.topicId), score: 0, speechMilliseconds: 0, silenceMilliseconds: 0, transcript: '' }
       } else if (endpoint.endsWith('/voice')) {
