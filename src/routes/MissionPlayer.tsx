@@ -1209,11 +1209,15 @@ export function MissionPlayer() {
         bottom of the screen — the two things a learner needs at every moment of a lesson.
         The thread scrolls inside itself instead.
 
-        The height is what the shell actually leaves: 2rem above and the tab bar below on a
-        phone, 3rem either side from md up. Guessing high here would push the controls back
-        off the bottom; guessing low would waste the room the conversation needs.
+        The height is what the shell actually leaves. On a phone: the sticky header (py-2 around
+        the 50px account button, plus its 1px border — 67px) and main's pt-4 (16px) above, the
+        tab bar (py-2.5, a 24px glyph, 6px gap, an 11px label, 1px border — 62px) below: 145px,
+        so 9.25rem with a little air. It was 7.5rem, which counted 2rem above and forgot the
+        header, so the column's bottom ~25px sat under the tab bar.
+        3rem either side from md up. Guessing high here would push the controls back off the
+        bottom; guessing low would waste the room the conversation needs.
       */}
-      <div className="relative flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:h-[calc(100dvh-6rem)]">
+      <div className="relative flex h-[calc(100dvh-9.25rem-env(safe-area-inset-bottom))] flex-col md:h-[calc(100dvh-6rem)]">
         <header className="flex shrink-0 items-start justify-between gap-4">
           <button
             type="button"
