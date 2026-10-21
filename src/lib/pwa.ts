@@ -204,3 +204,43 @@ export function registerServiceWorker() {
     })
   })
 }
+
+/** When the last stale-chunk reload happened, so a chunk that is really gone cannot loop. */
+const STALE_RELOAD_KEY = 'rgg.staleChunkReloadAt'
+
+/** A second failure this soon after reloading is not a deploy; it is something reload cannot fix. */
+const STALE_RELOAD_WINDOW_MS = 30_000
+
+/**
+ * Picks up a new deploy when a screen's code is no longer on the server.
+ *
+ * Every deploy replaces the whole `/assets/` folder, so a tab opened before it — or the
+ * installed app left open on a phone — still runs the old entry and asks for chunk names that
+ * now answer 404. The learner tapped a lesson and got an error page. Vite reports every such
+ * failure as `vite:preloadError`; the page reloads once, which fetches the new shell (it is never
+ * cached) and with it the chunk names that exist.
+ *
+ * Once only: if the reload did not help, the error goes on to the error boundary as before
+ * rather than turning into a page that reloads itself forever.
+ */
+export function recoverFromStaleChunks() {
+  window.addEventListener('vite:preloadError', (event) => {
+    let last = 0
+    try {
+      last = Number(sessionStorage.getItem(STALE_RELOAD_KEY)) || 0
+    } catch {
+      // Storage blocked: still reload, the window check below is the only guard lost.
+    }
+
+    if (Date.now() - last < STALE_RELOAD_WINDOW_MS) return
+
+    try {
+      sessionStorage.setItem(STALE_RELOAD_KEY, String(Date.now()))
+    } catch {
+      // As above.
+    }
+
+    event.preventDefault()
+    window.location.reload()
+  })
+}
