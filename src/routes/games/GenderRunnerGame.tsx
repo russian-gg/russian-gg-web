@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Bird,
   Coins,
   Trophy,
   RotateCcw,
@@ -13,14 +12,12 @@ import {
   Pause,
   Play,
   Star,
-  Volume2,
-  VolumeX,
 } from 'lucide-react'
 import { fill, useT } from '../../lib/i18n'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui'
-import { readAudioPreferences, storeAudioPreferences } from '../../lib/audio-preferences'
+import { readAudioPreferences } from '../../lib/audio-preferences'
 import { playUiSound } from '../../lib/ui-sounds'
 import { cx } from '../../lib/cx'
 import './runner.css'
@@ -190,7 +187,6 @@ export function GenderRunnerGame() {
   const [highScore, setHighScore] = useState(() => {
     return readRunnerHighScore()
   })
-  const [muted, setMuted] = useState(mutedRef.current)
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [activeLane, setActiveLane] = useState(1)
   const [newRecord, setNewRecord] = useState(false)
@@ -272,19 +268,6 @@ export function GenderRunnerGame() {
     if (world.jumpUntil > now) return
     world.jumpUntil = now + 700
     playGameSound('jump', mutedRef.current)
-  }, [])
-
-  const toggleMuted = useCallback(() => {
-    const next = !mutedRef.current
-    mutedRef.current = next
-    setMuted(next)
-    const preferences = readAudioPreferences()
-    storeAudioPreferences({ ...preferences, muted: next })
-    if (next) window.speechSynthesis?.cancel()
-    else {
-      playUiSound('select')
-      speakRussianWord(worldRef.current.word.text, false)
-    }
   }, [])
 
   const toggleFullscreen = useCallback(() => {
@@ -467,7 +450,7 @@ export function GenderRunnerGame() {
 
   return (
     <main ref={gameRootRef} className="runner-game" data-phase={phase}>
-      <div className="mx-auto flex min-h-[100dvh] max-w-6xl flex-col">
+      <div className="runner-frame mx-auto flex max-w-6xl flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" onClick={() => navigate('/games')} className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black text-white/75 hover:text-white" aria-label={t.exit}>
@@ -478,34 +461,29 @@ export function GenderRunnerGame() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] font-black sm:gap-3 sm:text-sm">
-            <span aria-label={t.score} className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1">
-              <Star aria-hidden="true" className="size-3.5 fill-amber-300 text-amber-300" strokeWidth={0} />
-              {status.score}
+            <span className="runner-score rounded-lg px-2 py-1">
+              <span aria-label={t.score} className="inline-flex items-center gap-1">
+                <Star aria-hidden="true" className="size-3.5 fill-amber-500 text-amber-500" strokeWidth={0} />
+                <span key={status.score} className="runner-counter-value">{status.score}</span>
+              </span>
+              {status.message && status.messageKind === 'correct' && <span key={`point-${status.score}`} className="runner-point-flight" aria-hidden="true"><Coins size={14} />+1</span>}
             </span>
             <span aria-label={t.coins} className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1">
-              <Coins aria-hidden="true" className="size-3.5 text-amber-200" strokeWidth={2} />
-              {status.coins}
-            </span>
-            <span className="hidden items-center gap-0.5 sm:inline-flex" aria-label={fill(t.lives, { count: status.lives })}>
-              <Lives lives={lives} />
+              <Coins aria-hidden="true" className="size-3.5 text-amber-600" strokeWidth={2} />
+              <span key={status.coins} className="runner-counter-value">{status.coins}</span>
             </span>
             <span className="hidden rounded-lg border border-cyan-300/30 bg-cyan-400/10 px-2 py-1 text-cyan-100 md:inline">{t.difficulty[difficulty].label}</span>
-            <button type="button" onClick={toggleMuted} data-ui-sound="none" className="grid size-9 place-items-center rounded-xl bg-white/10" aria-label={muted ? t.soundOn : t.soundOff}>
-              {muted
-                ? <VolumeX aria-hidden="true" className="size-4" strokeWidth={2} />
-                : <Volume2 aria-hidden="true" className="size-4" strokeWidth={2} />}
-            </button>
             <button type="button" onClick={toggleFullscreen} className="hidden size-9 place-items-center rounded-xl bg-white/10 sm:grid" aria-label={t.fullscreen}>
               <Maximize aria-hidden="true" className="size-4" strokeWidth={2} />
             </button>
           </div>
         </header>
 
-        <div className="runner-mobile-hud flex items-center justify-between px-4 py-1.5 text-[11px] font-black sm:hidden">
+        <div className="runner-hud flex items-center justify-between px-4 py-1.5 text-xs font-black sm:px-6">
           <span className="inline-flex items-center gap-0.5" aria-label={fill(t.lives, { count: status.lives })}>
             <Lives lives={lives} />
           </span>
-          <span>{shelf.record}: {highScore}</span>
+          <span aria-label={shelf.record} className="inline-flex items-center gap-1.5"><Trophy size={14} aria-hidden="true" />{shelf.record}: {highScore}</span>
         </div>
 
         <section
@@ -523,19 +501,16 @@ export function GenderRunnerGame() {
 
           <div className="runner-signs" lang="ru">{RUNNER_LANES.map((gender, lane) => <span key={gender} data-active={activeLane === lane} style={{ '--lane-color': GENDERS[gender].color } as CSSProperties}>{GENDERS[gender].short}</span>)}</div>
           <div className="runner-feedback">
-            <button type="button" className="runner-listen" data-ui-sound="none" onClick={() => speakRussianWord(status.word.text, mutedRef.current)} aria-label={`${t.listen}: ${status.word.text}`}><Volume2 aria-hidden="true" size={17} /><span className="sr-only" lang="ru">{status.word.text}</span></button>
-            {status.message && (
-              <p className={cx(
-                'mt-2 rounded-xl px-3 py-2 text-xs font-black shadow-lg sm:text-sm',
-                status.messageKind === 'correct' ? 'bg-emerald-500 text-white' : 'bg-rose-600 text-white',
-              )}>
+            <span className="sr-only" lang="ru">{status.word.text}</span>
+            {status.message && status.messageKind === 'wrong' && (
+              <p className="runner-error">
                 {status.message}
               </p>
             )}
           </div>
 
           {phase === 'ready' && (
-            <GameOverlay title={shelf.runnerTitle} icon={<Bird className="size-10 text-cyan-300" strokeWidth={1.6} />}>
+            <GameOverlay title={shelf.runnerTitle}>
               <div className="runner-rules"><h2>{t.rulesTitle}</h2><p>{t.introBody}</p></div>
               <DifficultyPicker value={difficulty} onChange={chooseDifficulty} />
               <button className="runner-replay" onClick={start}><Play size={20} fill="currentColor" />{t.start}</button>
@@ -562,7 +537,7 @@ export function GenderRunnerGame() {
               <div className="runner-reward-panel">
                 <h1>{newRecord ? t.newRecord : t.over}</h1>
                 <div className="runner-reward-body">
-                  <img className="runner-reward-penguin" src={newRecord ? '/games/characters/penguin.webp' : '/games/rod-runner/penguin-result-sad.webp'} alt="" />
+                  <span className="runner-reward-penguin" data-pose={newRecord ? 'happy' : 'sad'} aria-hidden="true" />
                   <div className="runner-reward-stats">
                     <Result label={t.score} value={status.score} icon={<Star />} />
                     <Result label={t.coins} value={status.coins} icon={<Coins />} />
@@ -575,21 +550,8 @@ export function GenderRunnerGame() {
             </div>
           )}
 
-          {phase === 'playing' && (
-            <button
-              type="button"
-              onClick={() => changePhase('paused')}
-              className="runner-pause"
-              aria-label={t.paused}
-            >
-              <Pause aria-hidden="true" className="size-5 fill-current" strokeWidth={0} />
-            </button>
-          )}
         </section>
 
-        <p className="runner-controls-hint hidden px-4 py-3 text-center text-xs font-bold [@media(pointer:coarse)]:block">
-          {t.controlsHint}
-        </p>
         <div className="runner-controls grid grid-cols-3 gap-2 p-3 sm:mx-auto sm:w-full sm:max-w-xl sm:rounded-t-2xl [@media(pointer:coarse)]:hidden">
           <ControlButton onClick={() => move(-1)} disabled={phase !== 'playing'} label={t.left} icon={<ArrowLeft aria-hidden="true" className="size-5" strokeWidth={2.4} />} />
           <ControlButton onClick={jump} disabled={phase !== 'playing'} label={t.jump} icon={<ArrowUp aria-hidden="true" className="size-5" strokeWidth={2.4} />} accent />
@@ -621,11 +583,11 @@ function Lives({ lives }: { lives: boolean[] }) {
   )
 }
 
-function GameOverlay({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function GameOverlay({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
     <div className="runner-overlay">
       <div className="runner-overlay-panel">
-        <span aria-hidden className="text-signal-ink">{icon}</span>
+        {icon && <span aria-hidden className="text-signal-ink">{icon}</span>}
         <h1 className="text-2xl font-black sm:text-3xl">{title}</h1>
         {children}
       </div>
@@ -770,17 +732,6 @@ function drawWorld(context: CanvasRenderingContext2D, width: number, height: num
     context.bezierCurveTo(center - half * .3, y - depth * 10, center + half * .2, y + depth * 6, center + half, y)
     context.stroke()
   }
-  for (let index = 0; index < 16; index++) {
-    const z = 1 - ((index / 16 + world.distance * .14) % 1)
-    const point = project(index % 2 ? -2.15 : 2.15, z, width, height)
-    drawIceberg(context, point.x, point.y, point.scale * 1.7, index)
-  }
-  for (let index = 0; index < 10; index++) {
-    const z = 1 - ((index / 10 + world.distance * .48) % 1)
-    const point = project(index % 2 ? -1.82 : 1.82, z, width, height)
-    drawIceberg(context, point.x, point.y, point.scale * 1.3, index + 7)
-  }
-
   for (const coin of world.coins) {
     if (coin.z > 1.04) continue
     const point = project(coin.lane - 1, coin.z, width, height)
@@ -857,7 +808,7 @@ function project(lane: number, z: number, width: number, height: number) {
 function drawApproachingWord(context: CanvasRenderingContext2D, width: number, height: number, world: World) {
   const depth = Math.max(0, Math.min(1, 1 - world.gateZ))
   const scale = .64 + depth * .58
-  const y = height * (.22 + depth ** 1.8 * .7)
+  const y = Math.max(104, height * .18) + depth * Math.min(18, height * .025)
   context.save()
   context.translate(width / 2, y)
   context.scale(scale, scale)
@@ -891,76 +842,72 @@ function getRunnerCanyon() {
   return runnerCanyon
 }
 
-function drawIceberg(context: CanvasRenderingContext2D, x: number, y: number, scale: number, variant: number) {
-  const size = (34 + variant % 4 * 7) * scale
-  const ice = context.createLinearGradient(x - size, y - size, x + size, y)
-  ice.addColorStop(0, '#f0fdff')
-  ice.addColorStop(0.55, '#a5e8f5')
-  ice.addColorStop(1, '#3da8cd')
-  context.fillStyle = ice
-  context.strokeStyle = 'rgba(255,255,255,.7)'
-  context.lineWidth = Math.max(1, 2 * scale)
-  context.beginPath()
-  context.moveTo(x - size, y)
-  context.lineTo(x - size * 0.55, y - size * 0.75)
-  context.lineTo(x - size * 0.12, y - size * 0.48)
-  context.lineTo(x + size * 0.28, y - size)
-  context.lineTo(x + size * 0.7, y - size * 0.34)
-  context.lineTo(x + size, y)
-  context.closePath()
-  context.fill()
-  context.stroke()
-  context.fillStyle = '#ffffffaa'
-  context.beginPath()
-  context.moveTo(x + size * .28, y - size)
-  context.lineTo(x + size * .1, y)
-  context.lineTo(x + size * .7, y - size * .34)
-  context.closePath()
-  context.fill()
-  context.fillStyle = '#299dc944'
-  context.beginPath()
-  context.moveTo(x - size * .55, y - size * .75)
-  context.lineTo(x - size * .25, y)
-  context.lineTo(x - size, y)
-  context.fill()
-  const snow = context.createRadialGradient(x, y, 1, x, y, size)
-  snow.addColorStop(0, '#ffffff')
-  snow.addColorStop(1, '#c7e8f8')
-  context.fillStyle = snow
-  context.beginPath()
-  context.ellipse(x, y + size * .02, size * 1.1, size * .2, -.08, 0, Math.PI * 2)
-  context.fill()
-  for (let i = 0; i < 8; i++) {
-    context.fillStyle = i % 2 ? '#fff' : '#97cce266'
-    context.fillRect(x - size * .8 + ((i * 17 + variant * 3) % 27) / 27 * size * 1.6, y - size * .06 + (i % 3) * size * .03, Math.max(1, scale), Math.max(1, scale))
-  }
-  context.strokeStyle = '#fff'
-  context.lineWidth = Math.max(1, scale)
-  context.beginPath()
-  context.moveTo(x + size * .28 - 4 * scale, y - size * .7)
-  context.lineTo(x + size * .28 + 4 * scale, y - size * .7)
-  context.moveTo(x + size * .28, y - size * .7 - 4 * scale)
-  context.lineTo(x + size * .28, y - size * .7 + 4 * scale)
-  context.stroke()
-}
-
 function drawCoin(context: CanvasRenderingContext2D, x: number, y: number, scale: number, now: number) {
-  const width = Math.max(3, Math.abs(Math.cos(now / 180)) * 13 * scale)
-  context.fillStyle = '#f59e0b'
+  const width = Math.max(2.2, Math.abs(Math.cos(now / 240)) * 13)
+  context.save()
+  context.translate(x, y)
+  context.scale(scale, scale)
+  const edge = context.createLinearGradient(-width, -15, width, 15)
+  edge.addColorStop(0, '#fff6b5')
+  edge.addColorStop(.4, '#f7b42b')
+  edge.addColorStop(.7, '#9e540b')
+  edge.addColorStop(1, '#ffdc69')
+  context.fillStyle = edge
+  context.shadowColor = '#ffdd6480'
+  context.shadowBlur = 8
   context.beginPath()
-  context.ellipse(x, y, width, 15 * scale, 0, 0, Math.PI * 2)
+  context.ellipse(1.8, 1, width + 1, 15, 0, 0, Math.PI * 2)
   context.fill()
-  context.fillStyle = '#fde047'
+  context.shadowBlur = 0
+  const gold = context.createLinearGradient(-width, -14, width, 14)
+  gold.addColorStop(0, '#fffde0')
+  gold.addColorStop(.25, '#ffe789')
+  gold.addColorStop(.5, '#ffbc26')
+  gold.addColorStop(.75, '#fff1a0')
+  gold.addColorStop(1, '#e9940f')
+  context.fillStyle = gold
+  context.strokeStyle = '#ffed9c'
+  context.lineWidth = 1.2
   context.beginPath()
-  context.ellipse(x, y, width * 0.68, 11 * scale, 0, 0, Math.PI * 2)
+  context.ellipse(0, 0, width, 14.5, 0, 0, Math.PI * 2)
   context.fill()
-  if (scale > 0.35) {
-    context.fillStyle = '#a16207'
-    context.font = `900 ${Math.max(7, 10 * scale)}px sans-serif`
-    context.textAlign = 'center'
-    context.textBaseline = 'middle'
-    context.fillText('★', x, y)
+  context.stroke()
+  context.strokeStyle = '#b86c2590'
+  context.lineWidth = .9
+  context.beginPath()
+  context.ellipse(0, 0, width * .76, 11.5, 0, 0, Math.PI * 2)
+  context.stroke()
+  if (width > 4) {
+    context.save()
+    context.scale(width / 13, 1)
+    context.fillStyle = '#ba730c'
+    context.beginPath()
+    for (let i = 0; i < 10; i++) {
+      const angle = i * Math.PI / 5 - Math.PI / 2
+      const radius = i % 2 ? 3 : 6.5
+      context.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+    }
+    context.closePath()
+    context.fill()
+    context.restore()
   }
+  const glint = .45 + Math.sin(now / 180 + x) * .35
+  context.strokeStyle = `rgba(255,255,240,${glint})`
+  context.lineWidth = 1.8
+  context.beginPath()
+  context.ellipse(0, 0, width * .87, 13, 0, Math.PI * 1.08, Math.PI * 1.68)
+  context.stroke()
+  if (scale > .45 && width > 8) {
+    context.strokeStyle = `rgba(255,255,255,${glint})`
+    context.lineWidth = 1.3
+    context.beginPath()
+    context.moveTo(-width * .65 - 3, -10)
+    context.lineTo(-width * .65 + 3, -10)
+    context.moveTo(-width * .65, -14)
+    context.lineTo(-width * .65, -6)
+    context.stroke()
+  }
+  context.restore()
 }
 
 function drawIceBlock(context: CanvasRenderingContext2D, x: number, y: number, scale: number) {
