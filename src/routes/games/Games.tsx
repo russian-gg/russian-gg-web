@@ -9,14 +9,12 @@ import {
   Play,
   Swords,
   Target,
-  Trophy,
   Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { useOpenGames } from '../../lib/games'
 import { Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
-import { mascotImage } from '../../lib/mascot-images'
 import { useLocale, useT } from '../../lib/i18n'
 import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
 import { GameMark } from './speaking/visuals'
@@ -97,7 +95,7 @@ export function Games() {
           const art = ART[game.slug]
           const destination = game.isAccessible ? art?.to ?? `/games/${game.slug}` : '/paywall'
 
-          if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} body={game.bodyUz} />
+          if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} />
           if (game.slug === 'tez-gapir') return <TezGapirCard key={game.slug} to={destination} requiresPro={game.requiresPro} />
           if (game.slug === 'error-hunt') return <ErrorHuntCard key={game.slug} to={destination} requiresPro={game.requiresPro} />
           if (game.slug === 'fight-for-life') return <LifeCard key={game.slug} to={destination} requiresPro={game.requiresPro} />
@@ -145,15 +143,8 @@ export function Games() {
   )
 }
 
-function RunnerCard({ body }: { body: string }) {
+function RunnerCard() {
   const t = useT().arcade
-  let highScore = 0
-  try {
-    const saved = Number(localStorage.getItem('rgg_gender_runner_highscore'))
-    highScore = Number.isFinite(saved) ? saved : 0
-  } catch {
-    // The card still works when private browsing blocks local storage.
-  }
 
   return (
     /*
@@ -164,44 +155,32 @@ function RunnerCard({ body }: { body: string }) {
     <MotionLink
       variants={rise}
       to="/games/rod-runner"
-      className="group relative overflow-hidden rounded-[32px] border border-cyan-300/25 bg-gradient-to-br from-[#071c4a] via-[#0c4a6e] to-[#082f49] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:p-7 lg:col-span-2"
+      className="group relative overflow-hidden rounded-[32px] border border-cyan-100/80 bg-gradient-to-br from-[#007eac] via-[#209fc0] to-[#49bdbf] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:p-7 lg:col-span-2"
     >
       <span className="pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-amber-500/10 blur-3xl transition group-hover:bg-amber-500/20" />
       <span className="pointer-events-none absolute -bottom-20 -left-20 size-64 rounded-full bg-blue-500/10 blur-3xl" />
 
-      <span className="relative flex flex-wrap items-center justify-between gap-2">
-        <span className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-rose-500/30 bg-rose-500/20 px-3 py-1 text-[11px] font-black tracking-wider text-rose-300 uppercase">
-          <span className="size-2 animate-pulse rounded-full bg-rose-500" /> {t.newGame}
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
-          <Trophy aria-hidden="true" className="size-3.5 fill-amber-400/40" strokeWidth={2} />
-          {t.record}: {highScore}
-        </span>
-      </span>
-
-      <span className="relative mt-4 grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">
-        <span className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/20 bg-gradient-to-b from-blue-950 via-sky-700 to-cyan-100">
+      <span className="relative grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">
+        <span className="relative flex h-56 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/70 bg-[url('/games/rod-runner/sunny-canyon.webp')] bg-cover bg-center">
           <span className="absolute inset-x-[18%] bottom-0 h-32 origin-bottom bg-gradient-to-t from-cyan-100 to-sky-300/60 [clip-path:polygon(43%_0,57%_0,100%_100%,0_100%)]" />
           <span className="relative z-10 flex flex-col items-center gap-3 transition duration-300 group-hover:scale-105">
             <span className="rounded-xl border-2 border-amber-600 bg-amber-100 px-4 py-1.5 text-sm font-black text-amber-950 shadow-xl">«ПЕРСИК»</span>
             <span className="flex gap-1.5 text-[9px] font-black uppercase min-[370px]:text-[10px]">
-              <span className="rounded border border-blue-400 bg-blue-600/90 px-2 py-1">Мужской</span>
-              <span className="rounded border border-rose-400 bg-rose-600/90 px-2 py-1">Женский</span>
-              <span className="rounded border border-amber-300 bg-amber-500/90 px-2 py-1 text-amber-950">Средний</span>
+              <span className="rounded border border-rose-400 bg-rose-600/90 px-2 py-1">ЖЕНСКИЙ</span>
+              <span className="rounded border border-blue-400 bg-blue-600/90 px-2 py-1">МУЖСКОЙ</span>
+              <span className="rounded border border-amber-300 bg-amber-500/90 px-2 py-1 text-amber-950">СРЕДНИЙ</span>
             </span>
-            <img src={mascotImage('penguin')} alt="" loading="lazy" decoding="async" className="h-14 w-14 object-contain drop-shadow-xl" />
+            <span aria-hidden="true" className="block size-20 bg-[url('/games/rod-runner/runner-penguin-sprites.png')] bg-[length:400%_200%] bg-left-top bg-no-repeat drop-shadow-xl" />
           </span>
         </span>
 
         <span>
           <strong className="block text-2xl font-black sm:text-3xl">{t.runnerTitle}</strong>
-          <span className="mt-2 block text-sm leading-relaxed text-slate-300">{body}</span>
           <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">{t.runnerBlurb}</span>
           <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 text-sm font-black shadow-lg shadow-rose-500/20 transition group-hover:scale-105">
             <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} />
             {t.play}
           </span>
-          <span className="ml-3 text-xs font-bold text-cyan-100/60">{t.runnerTagline}</span>
         </span>
       </span>
     </MotionLink>

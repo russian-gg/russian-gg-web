@@ -1,4 +1,4 @@
-# Борьба за жизнь
+# Помоги!
 
 Route: `/games/fight-for-life`. The game uses the existing signed-in learner shell, game catalogue, and Gemini Live audio client. The server must contain the matching `FightForLife` module before an administrator enables the catalogue entry.
 

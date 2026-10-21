@@ -59,12 +59,14 @@ export async function requestMicrophone() {
 }
 export function releaseMicrophone() { window.lifeMock.releases++ }
 export class LiveVoiceSession {
-  constructor(ticket, callbacks) { this.callbacks = callbacks; window.lifeMock.callbacks = callbacks }
+  constructor(ticket, callbacks, options) { this.callbacks = callbacks; this.playback = options.playbackContext; window.lifeMock.callbacks = callbacks }
   async start() {
     this.callbacks.onConnected();
+    this.callbacks.onStatus('listening');
     this.interval = setInterval(() => this.callbacks.onInputLevel(window.lifeMock.speaking ? .08 : 0, window.lifeMock.speaking, 50), 50);
   }
-  async close() { clearInterval(this.interval); window.lifeMock.closed++; this.callbacks.onPlayback(false) }
+  requestTutorResponse(text) { window.lifeMock.reminders.push(text); return true }
+  async close() { clearInterval(this.interval); window.lifeMock.closed++; this.callbacks.onPlayback(false); await this.playback.close() }
 }
 export const isPromptAudioPlaying = () => false;
 export const prefetchPromptAudio = async () => {};
@@ -82,20 +84,59 @@ const topics = [
 ]
 async function fixture(options = {}) {
   const context = await browser.newContext({ viewport: options.desktop ? { width: 1280, height: 960 } : { width: 390, height: 844 }, reducedMotion: 'reduce', serviceWorkers: 'block' })
-  const state = { calls: [], errors: [], session: null, hold: null, release: null }
-  await context.addInitScript(({ denied, locale }) => {
+  const state = { calls: [], errors: [], session: null, hold: null, release: null, voiceMessages: [], socket: null }
+  await context.addInitScript(({ denied, locale, realVoice }) => {
     localStorage.setItem('rgg.access', 'local-life-game-test')
     localStorage.setItem('rgg.locale', locale)
     localStorage.setItem('rgg.install.never', 'true')
     localStorage.setItem('rgg.audio-muted', 'true')
-    window.lifeMock = { denied, requests: 0, releases: 0, closed: 0, speaking: false }
-  }, { denied: options.denied ?? false, locale: options.locale ?? 'uz' })
-  await context.routeWebSocket('**/*', socket => socket.close())
+    window.lifeMock = { denied, requests: 0, releases: 0, closed: 0, speaking: false, reminders: [] }
+    window.lifeAudioContexts = []
+    window.lifeAudioStarts = []
+    const NativeAudioContext = window.AudioContext
+    window.AudioContext = class extends NativeAudioContext {
+      constructor(...args) {
+        super(...args)
+        window.lifeAudioContexts.push(this)
+        this.createdInGesture = navigator.userActivation.isActive
+      }
+      resume() { this.resumedInGesture = navigator.userActivation.isActive; return super.resume() }
+    }
+    if (realVoice) {
+      const start = AudioBufferSourceNode.prototype.start
+      AudioBufferSourceNode.prototype.start = function (...args) {
+        window.lifeAudioStarts.push({ state: this.context.state, rate: this.buffer?.sampleRate, peak: Math.max(...this.buffer.getChannelData(0)) })
+        return start.apply(this, args)
+      }
+      navigator.mediaDevices.getUserMedia = async () => {
+        const output = window.lifeAudioContexts[0].createMediaStreamDestination()
+        window.lifeMicrophone = output.stream
+        return output.stream
+      }
+    }
+  }, { denied: options.denied ?? false, locale: options.locale ?? 'uz', realVoice: options.realVoice ?? false })
+  const pcm = Buffer.alloc(4800)
+  for (let i = 0; i < 2400; i++) pcm.writeInt16LE(Math.round(Math.sin(i * Math.PI / 30) * 8000), i * 2)
+  const reply = (text) => state.socket.send(JSON.stringify({ serverContent: {
+    outputTranscription: { text }, modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: pcm.toString('base64') } }] },
+  } }))
+  const turnComplete = () => state.socket.send(JSON.stringify({ serverContent: { turnComplete: true } }))
+  await context.routeWebSocket('**/*', socket => {
+    if (!options.realVoice) return socket.close()
+    state.socket = socket
+    socket.onMessage(message => {
+      const data = JSON.parse(message)
+      state.voiceMessages.push(data)
+      if (data.setup) socket.send(JSON.stringify({ setupComplete: {} }))
+      if (data.clientContent) reply('Можно ли опаздывать? Как ты думаешь?')
+      if (data.realtimeInput?.text) reply('Ты живёшь в городе или деревне?')
+    })
+  })
   await context.route('**/*', async route => {
     const request = route.request()
     const url = new URL(request.url())
     if (url.origin !== BASE) return route.fulfill({ status: 204, body: '' })
-    if (url.pathname === '/src/lib/liveVoice.ts') return route.fulfill({ contentType: 'text/javascript', body: voiceMock })
+    if (url.pathname === '/src/lib/liveVoice.ts' && !options.realVoice) return route.fulfill({ contentType: 'text/javascript', body: voiceMock })
     if (!url.pathname.startsWith('/api/')) return route.continue()
     const endpoint = url.pathname
     const body = request.postData() ? request.postDataJSON() : null
@@ -106,22 +147,22 @@ async function fixture(options = {}) {
     if (endpoint === '/api/lesson-feedback') return route.fulfill({ json: { isDue: false } })
     if (endpoint === '/api/tests') return route.fulfill({ json: [] })
     if (endpoint.startsWith('/api/analytics/')) return route.fulfill({ status: 204 })
-    if (endpoint === '/api/games') return route.fulfill({ json: options.disabled ? [] : [{ slug: 'fight-for-life', nameRu: 'Борьба за жизнь', descriptionRu: '', bodyUz: '', isBuilt: true, isEnabled: true }] })
+    if (endpoint === '/api/games') return route.fulfill({ json: options.disabled ? [] : [{ slug: 'fight-for-life', titleUz: 'Помоги!', bodyUz: '', isBuilt: true, isEnabled: true, isAccessible: true, requiresPro: false }] })
     try {
       assert.equal(request.headers().authorization, 'Bearer local-life-game-test')
       state.calls.push({ endpoint, body })
-      if (endpoint.endsWith('/catalog')) return route.fulfill({ json: { isEnabled: !options.disabled, topics } })
+      if (endpoint.endsWith('/catalog')) return route.fulfill({ json: { isEnabled: !options.disabled, isAccessible: !options.disabled, lockReason: null, topics } })
       if (endpoint === '/api/fight-for-life/sessions') {
         state.session = { id: 'session-1', status: 'ready', ...body, topic: topics.find(t => t.id === body.topicId), score: 0, speechMilliseconds: 0, silenceMilliseconds: 0, transcript: '' }
       } else if (endpoint.endsWith('/voice')) {
         state.session.status = 'connecting'
-        return route.fulfill({ json: { sessionId: state.session.id, token: 'test-only' } })
+        return route.fulfill({ json: { sessionId: state.session.id, token: 'test-only', connectUrl: 'wss://voice.example.test/BidiGenerateContent', model: 'test-voice', voiceName: { penguin: 'Fenrir', panda: 'Leda', pero: 'Puck' }[state.session.character], languageCode: 'ru-RU', systemInstruction: 'Test Russian conversation', openingCue: 'Introduce the topic and invite the learner to speak.' } })
       } else if (endpoint.endsWith('/begin')) {
         state.session.status = 'playing'
       } else if (endpoint.endsWith('/activity')) {
         if (state.hold && !body.finish) { state.release?.(); await state.hold; state.hold = null }
         Object.assign(state.session, { speechMilliseconds: body.speechMilliseconds, silenceMilliseconds: body.silenceMilliseconds, transcript: body.transcript, score: Math.floor(body.speechMilliseconds / 1000) })
-        const outcome = body.finish ? 'stopped' : body.silenceMilliseconds >= 10000 ? 'silence' : body.speechMilliseconds >= 120000 ? 'won' : null
+        const outcome = body.finish ? options.finishOutcome ?? 'stopped' : body.silenceMilliseconds >= 10000 ? 'silence' : body.speechMilliseconds >= 120000 ? 'won' : null
         if (outcome) Object.assign(state.session, { status: 'completed', outcome })
       } else assert.equal(endpoint, '/api/fight-for-life/sessions/session-1')
       return route.fulfill({ json: state.session })
@@ -159,8 +200,156 @@ async function fixture(options = {}) {
     assert.deepEqual(state.errors, [])
     await context.close()
   }
-  return { context, page, state, open, start, tick, shot, close }
+  return { context, page, state, open, start, tick, shot, close, reply, turnComplete }
 }
+
+test('real voice transport plays the opening and consecutive replies with saved mute enabled', async () => {
+  for (const character of ['penguin', 'panda', 'pero']) {
+    const h = await fixture({ realVoice: true })
+    try {
+      await h.open()
+      await h.page.locator(`.life-character-choice[data-character="${character}"]`).click()
+      await h.page.locator('.life-start').click()
+      await h.page.locator('.life-connecting .life-speech').waitFor()
+      assert.equal(await h.page.locator('.life-speech').innerText(), 'Можно ли опаздывать? Как ты думаешь?')
+      assert.equal(h.state.calls.some(c => c.endpoint.endsWith('/begin')), false)
+      const unlocked = await h.page.evaluate(() => ({ created: window.lifeAudioContexts[0].createdInGesture, resumed: window.lifeAudioContexts[0].resumedInGesture }))
+      assert.deepEqual(unlocked, { created: true, resumed: true })
+      h.turnComplete()
+      await h.page.locator('.life-play').waitFor()
+      for (const [answer, response] of [
+        ['Я думаю, нужно приходить вовремя.', 'Согласен! А если автобус опоздал?'],
+        ['Можно предупредить друга.', 'Хорошая мысль! Как ты его предупредишь?'],
+      ]) {
+        h.state.socket.send(JSON.stringify({ serverContent: { inputTranscription: { text: answer } } }))
+        h.reply(response)
+        await h.page.getByText(response, { exact: true }).waitFor()
+        assert.equal(await h.page.locator('.life-speech').getAttribute('lang'), 'ru')
+        h.turnComplete()
+        await h.tick(1100)
+        assert.ok(h.state.session.transcript.includes(answer))
+      }
+      const output = await h.page.evaluate(() => ({ starts: window.lifeAudioStarts, muted: localStorage.getItem('rgg.audio-muted') }))
+      assert.equal(output.muted, 'true', 'the game must not overwrite the saved preference')
+      assert.equal(output.starts.length, 3)
+      for (const chunk of output.starts) {
+        assert.equal(chunk.state, 'running')
+        assert.equal(chunk.rate, 24000)
+        assert.ok(chunk.peak > .2, 'non-silent PCM must reach the audio destination')
+      }
+      assert.equal(h.state.voiceMessages[0].setup.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, { penguin: 'Fenrir', panda: 'Leda', pero: 'Puck' }[character])
+      assert.ok(h.state.voiceMessages.some(m => m.clientContent?.turnComplete && m.clientContent.turns[0].parts[0].text.includes('Introduce')))
+      await new Promise(resolve => setTimeout(resolve, 400))
+      assert.ok(h.state.voiceMessages.some(m => m.realtimeInput?.audio?.data), 'microphone frames must keep reaching the conversation')
+      await h.page.locator('.life-mic').click()
+      await h.page.locator('.life-results').waitFor()
+      assert.ok(await h.page.evaluate(() => window.lifeAudioContexts.every(c => c.state === 'closed')))
+      assert.ok(await h.page.evaluate(() => window.lifeMicrophone.getTracks().every(t => t.readyState === 'ended')))
+    } finally { await h.close() }
+  }
+})
+
+test('other live voice sessions still respect the saved mute preference by default', async () => {
+  const h = await fixture({ realVoice: true })
+  try {
+    await h.open()
+    await h.page.evaluate(async () => {
+      const { LiveVoiceSession } = await import('/src/lib/liveVoice.ts')
+      const button = document.createElement('button')
+      button.textContent = 'Test default voice session'
+      button.onclick = () => {
+        const noop = () => {}
+        window.defaultVoice = new LiveVoiceSession({ connectUrl: 'wss://voice.example.test/BidiGenerateContent', token: 'test-only', model: 'test-voice', voiceName: 'Puck', languageCode: 'ru-RU', systemInstruction: 'Test conversation', openingCue: 'Introduce the topic.' }, {
+          onStatus: noop, onConnected: noop, onInputTranscript: noop, onOutputTranscript: noop,
+          onError: code => { throw new Error(code) }, onDropped: noop, onTurnComplete: noop, onSilenceTimeout: noop, onNoSpeech: noop,
+        }, { continuous: true })
+        void window.defaultVoice.start().then(() => { window.defaultVoiceStarted = true })
+      }
+      document.body.append(button)
+    })
+    await h.page.getByRole('button', { name: 'Test default voice session' }).click()
+    await h.page.waitForFunction(() => window.lifeAudioContexts.length === 2)
+    h.turnComplete()
+    await h.page.waitForFunction(() => window.defaultVoiceStarted)
+    h.reply('Продолжай, я слушаю.')
+    h.turnComplete()
+    await new Promise(resolve => setTimeout(resolve, 100))
+    assert.equal(await h.page.evaluate(() => window.lifeAudioStarts.length), 0)
+    await h.page.evaluate(() => window.defaultVoice.close())
+    assert.ok(await h.page.evaluate(() => window.lifeAudioContexts.every(c => c.state === 'closed')))
+  } finally { await h.close() }
+})
+
+test('streamed Russian words stay intact and silence requests a spoken follow-up', async () => {
+  const h = await fixture({ realVoice: true })
+  try {
+    await h.open()
+    await h.page.locator('.life-start').click()
+    await h.page.locator('.life-connecting .life-speech').waitFor()
+    h.turnComplete()
+    await h.page.locator('.life-play').waitFor()
+    for (const fragments of [
+      ['При', 'вет', '! ', 'Как', ' кош', 'ка', '? ', 'Всё', ' хо', 'ро', 'шо', '?'],
+      ['Ма', 'ма', ' мыла', ' раму. ', 'Да', ', да', '!'],
+    ]) {
+      for (const text of fragments) h.state.socket.send(JSON.stringify({ serverContent: { outputTranscription: { text } } }))
+      await h.page.getByText(fragments.join(''), { exact: true }).waitFor()
+      assert.equal(await h.page.locator('.life-speech').innerText(), fragments.join(''))
+      h.turnComplete()
+    }
+    await new Promise(resolve => setTimeout(resolve, 200))
+    await h.tick(4100)
+    await h.page.getByText('Ты живёшь в городе или деревне?', { exact: true }).waitFor()
+    const reminders = () => h.state.voiceMessages.filter(message => message.realtimeInput?.text)
+    assert.equal(reminders().length, 1)
+    assert.match(reminders()[0].realtimeInput.text, /\[learner_silent\]/)
+    assert.equal(await h.page.evaluate(() => window.lifeAudioStarts.length), 2)
+    h.turnComplete()
+    await h.tick(2000)
+    assert.equal(reminders().length, 1)
+    assert.equal(h.state.session.transcript, '')
+    assert.equal(h.state.session.score, 0)
+    await h.page.locator('.life-mic').click()
+    await h.page.locator('.life-results').waitFor()
+    await h.tick(5000)
+    assert.equal(reminders().length, 1)
+  } finally { await h.close() }
+})
+
+test('silence reminders wait for speech and tutor turns, send once, and reset after learner speech', async () => {
+  const h = await fixture()
+  try {
+    await h.start()
+    await h.page.evaluate(() => { window.lifeMock.speaking = true })
+    await h.tick(4500)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 0)
+    await h.page.evaluate(() => {
+      window.lifeMock.speaking = false
+      window.lifeMock.callbacks.onOutputTranscript('Где ты живёшь?')
+      window.lifeMock.callbacks.onPlayback(true)
+    })
+    await h.tick(4500)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 0)
+    await h.page.evaluate(() => {
+      window.lifeMock.callbacks.onPlayback(false)
+      window.lifeMock.callbacks.onTurnComplete()
+    })
+    await h.tick(3000)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 0)
+    await h.tick(1200)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 1)
+    await h.page.evaluate(() => window.lifeMock.callbacks.onTurnComplete())
+    await h.tick(1000)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 1)
+    await h.page.evaluate(() => { window.lifeMock.speaking = true })
+    await h.tick(500)
+    await h.page.evaluate(() => { window.lifeMock.speaking = false })
+    await h.tick(4100)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 2)
+    await h.page.locator('.life-mic').click()
+    await h.page.locator('.life-results').waitFor()
+  } finally { await h.close() }
+})
 
 test('default-disabled route offers no way to start or request a microphone', async () => {
   const h = await fixture({ disabled: true })
@@ -190,7 +379,51 @@ test('three costumes, responsive layout, topic mode/level, all locales and shelf
     await h.page.goto(`${BASE}/games`)
     await h.page.locator('a.life-card').waitFor()
     assert.equal(await h.page.locator('a.life-card').getAttribute('href'), '/games/fight-for-life')
+    const images = h.page.locator('a.life-card img')
+    assert.deepEqual(await images.evaluateAll(nodes => nodes.map(image => image.getAttribute('src'))), ['panda', 'penguin', 'pero'].map(name => `/games/fight-for-life/characters/${name}.webp`))
+    await images.first().scrollIntoViewIfNeeded()
+    await h.page.waitForFunction(() => [...document.querySelectorAll('a.life-card img')].every(image => image.complete && image.naturalWidth > 0))
+    const boxes = await images.evaluateAll(nodes => nodes.map(image => { const { x, y, width, height } = image.getBoundingClientRect(); return { x, y, width, height } }))
+    assert.ok(boxes.every(box => box.width > 0 && box.height > 0))
+    assert.ok(boxes[0].x + boxes[0].width <= boxes[1].x && boxes[1].x + boxes[1].width <= boxes[2].x)
+    await h.shot(`shelf-${locale}`)
     await h.close()
+  }
+})
+
+test('character decorations stay beside the mascot during speech and on results', async () => {
+  for (const desktop of [false, true]) {
+    for (const character of ['penguin', 'panda', 'pero']) {
+      const h = await fixture({ desktop, finishOutcome: 'won' })
+      try {
+        await h.start(character)
+        await h.page.evaluate(() => { window.lifeMock.speaking = true })
+        await h.tick(300)
+        for (const screen of ['play', 'results']) {
+          if (screen === 'results') {
+            await h.page.locator('.life-mic').click()
+            await h.page.locator('.life-results').waitFor()
+          }
+          const scene = h.page.locator(`.life-${screen} .life-scene`)
+          assert.equal(await scene.getAttribute('data-emotion'), screen === 'play' ? 'speaking' : 'won')
+          const decorations = await scene.evaluate(node => {
+            const puppet = node.querySelector('.life-puppet').getBoundingClientRect()
+            const particles = node.querySelector('.life-particles')
+            return {
+              visible: getComputedStyle(particles).opacity === '1',
+              positions: [...particles.querySelectorAll('svg')].map(icon => {
+                const box = icon.getBoundingClientRect()
+                return { width: box.width, beside: box.right <= puppet.left || box.left >= puppet.right }
+              }),
+            }
+          })
+          assert.ok(decorations.visible)
+          assert.ok(decorations.positions.length > 0)
+          assert.ok(decorations.positions.every(icon => icon.width > 0 && icon.beside), `${character} decorations overlap on ${screen}`)
+          await h.shot(`decorations-${character}-${desktop ? 'desktop' : 'mobile'}-${screen}`)
+        }
+      } finally { await h.close() }
+    }
   }
 })
 
@@ -247,6 +480,7 @@ test('microphone denial makes no paid session and can return to setup', async ()
   await h.page.getByRole('alert').waitFor()
   assert.match(await h.page.getByRole('alert').innerText(), /Mikrofonga ruxsat/)
   assert.equal(h.state.calls.filter(c => c.endpoint.endsWith('/sessions')).length, 0)
+  assert.ok(await h.page.evaluate(() => window.lifeAudioContexts.every(c => c.state === 'closed')))
   await h.page.getByRole('alert').getByRole('button').last().click()
   await h.page.locator('.life-choices').waitFor()
   await h.close()
@@ -302,5 +536,6 @@ test('BFCache return during microphone permission restores setup instead of hang
   })
   await h.page.locator('.life-choices').waitFor()
   assert.equal(h.state.calls.filter(c => c.endpoint.endsWith('/sessions')).length, 0)
+  assert.ok(await h.page.evaluate(() => window.lifeAudioContexts.every(c => c.state === 'closed')))
   await h.close()
 })

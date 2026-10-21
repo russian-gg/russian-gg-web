@@ -11,7 +11,7 @@ export function LifeScene({ character, emotion = 'idle', energy = 1, volume = 0,
   return <div className={`life-scene${compact ? ' life-scene-compact' : ''}`} data-character={character} data-emotion={emotion}
     style={{ '--life-energy': energy, '--life-volume': volume } as CSSProperties} aria-hidden="true">
     <div className="life-aura"><i /><i /><i /></div>
-    {!compact && <div className="life-equalizers">{[0, 1].map(side => <div key={side}>{Array.from({ length: 9 }, (_, i) =>
+    {!compact && emotion === 'speaking' && <div className="life-equalizers">{[0, 1].map(side => <div key={side}>{Array.from({ length: 9 }, (_, i) =>
       <i key={i} style={{ '--bar': (i * 7 % 9 + 2) / 10, '--i': i } as CSSProperties} />)}</div>)}</div>}
     <div className="life-ground" />
     <div className="life-puppet">
@@ -21,7 +21,7 @@ export function LifeScene({ character, emotion = 'idle', energy = 1, volume = 0,
       }} />)}
     </div>
     {character === 'panda' && <div className="life-steam"><i /><i /><i /></div>}
-    <div className="life-particles">{Array.from({ length: 7 }, (_, i) => <Particle key={i} style={{ '--i': i, left: `${7 + i * 27 % 85}%`, top: `${10 + i * 23 % 70}%` } as CSSProperties} />)}</div>
+    <div className="life-particles">{Array.from({ length: 7 }, (_, i) => <Particle key={i} style={{ '--i': i, [i % 2 === 0 ? 'left' : 'right']: 0, top: `${18 + Math.floor(i / 2) * 21}%` } as CSSProperties} />)}</div>
     <div className="life-frost" />
     {emotion === 'frozen' && character === 'pero' && <div className="life-pixels">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ '--i': i, left: `${i * 17 % 100}%`, top: `${i * 23 % 100}%` } as CSSProperties} />)}</div>}
   </div>
