@@ -162,7 +162,7 @@ async function fixture(options = {}) {
       } else if (endpoint.endsWith('/activity')) {
         if (state.hold && !body.finish) { state.release?.(); await state.hold; state.hold = null }
         Object.assign(state.session, { speechMilliseconds: body.speechMilliseconds, silenceMilliseconds: body.silenceMilliseconds, transcript: body.transcript, score: Math.floor(body.speechMilliseconds / 1000) })
-        const outcome = body.finish ? 'stopped' : body.silenceMilliseconds >= 10000 ? 'silence' : body.speechMilliseconds >= 120000 ? 'won' : null
+        const outcome = body.finish ? options.finishOutcome ?? 'stopped' : body.silenceMilliseconds >= 10000 ? 'silence' : body.speechMilliseconds >= 120000 ? 'won' : null
         if (outcome) Object.assign(state.session, { status: 'completed', outcome })
       } else assert.equal(endpoint, '/api/fight-for-life/sessions/session-1')
       return route.fulfill({ json: state.session })
@@ -388,6 +388,42 @@ test('three costumes, responsive layout, topic mode/level, all locales and shelf
     assert.ok(boxes[0].x + boxes[0].width <= boxes[1].x && boxes[1].x + boxes[1].width <= boxes[2].x)
     await h.shot(`shelf-${locale}`)
     await h.close()
+  }
+})
+
+test('character decorations stay beside the mascot during speech and on results', async () => {
+  for (const desktop of [false, true]) {
+    for (const character of ['penguin', 'panda', 'pero']) {
+      const h = await fixture({ desktop, finishOutcome: 'won' })
+      try {
+        await h.start(character)
+        await h.page.evaluate(() => { window.lifeMock.speaking = true })
+        await h.tick(300)
+        for (const screen of ['play', 'results']) {
+          if (screen === 'results') {
+            await h.page.locator('.life-mic').click()
+            await h.page.locator('.life-results').waitFor()
+          }
+          const scene = h.page.locator(`.life-${screen} .life-scene`)
+          assert.equal(await scene.getAttribute('data-emotion'), screen === 'play' ? 'speaking' : 'won')
+          const decorations = await scene.evaluate(node => {
+            const puppet = node.querySelector('.life-puppet').getBoundingClientRect()
+            const particles = node.querySelector('.life-particles')
+            return {
+              visible: getComputedStyle(particles).opacity === '1',
+              positions: [...particles.querySelectorAll('svg')].map(icon => {
+                const box = icon.getBoundingClientRect()
+                return { width: box.width, beside: box.right <= puppet.left || box.left >= puppet.right }
+              }),
+            }
+          })
+          assert.ok(decorations.visible)
+          assert.ok(decorations.positions.length > 0)
+          assert.ok(decorations.positions.every(icon => icon.width > 0 && icon.beside), `${character} decorations overlap on ${screen}`)
+          await h.shot(`decorations-${character}-${desktop ? 'desktop' : 'mobile'}-${screen}`)
+        }
+      } finally { await h.close() }
+    }
   }
 })
 

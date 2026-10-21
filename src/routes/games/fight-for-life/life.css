@@ -109,7 +109,7 @@
 .life-equalizers{position:absolute;inset:27% 3% 28%;display:flex;justify-content:space-between}
 .life-equalizers>div{display:flex;gap:5px;align-items:center;width:20%;justify-content:space-around}
 .life-equalizers i{width:4px;height:calc(9px + var(--life-volume)*var(--bar)*150px);border-radius:5px;background:var(--life-accent);opacity:calc(.18 + var(--life-volume)*.8);box-shadow:0 0 14px rgba(var(--life-rgb),.7);transition:height .12s,opacity .12s}
-.life-particles{position:absolute;inset:12%;opacity:0;transition:opacity .6s}
+.life-particles{position:absolute;inset:12% 2%;z-index:-1;opacity:0;transition:opacity .6s}
 .life-particles svg{position:absolute;width:18px;height:18px;color:var(--life-accent);filter:drop-shadow(0 0 8px var(--life-accent));animation:life-particle 2.7s ease-in-out infinite;animation-delay:calc(var(--i)*-.4s)}
 .life-scene[data-emotion=speaking] .life-particles,.life-scene[data-emotion=won] .life-particles{opacity:1}
 .life-steam{position:absolute;left:44%;top:42%;width:15%;height:15%;transition:opacity .7s}
