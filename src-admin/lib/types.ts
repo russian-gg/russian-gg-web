@@ -556,3 +556,14 @@ export type AdminTestDetail = Omit<AdminTest, 'questionCount' | 'activeQuestionC
 
 /** What a delete did: gone, or switched off because learners had already been given it. */
 export type AdminDeleteResult = { deleted: boolean; deactivated: boolean }
+
+/** Whether phone sign-up codes are going out, and what Eskiz said when they did not. */
+export type SmsHealth = {
+  status: 'ok' | 'low_balance' | 'failing' | 'disabled'
+  balance: number | null
+  lowBalanceThreshold: number
+  lastSuccessAt: string | null
+  lastFailureAt: string | null
+  lastFailureReason: string | null
+  consecutiveFailures: number
+}
