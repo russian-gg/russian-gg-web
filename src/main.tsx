@@ -7,7 +7,7 @@ import { AuthProvider } from './lib/auth'
 import { LocaleProvider } from './lib/locale-provider'
 import { MotionProvider } from './components/motion'
 import { RequestError } from './lib/api'
-import { registerServiceWorker } from './lib/pwa'
+import { recoverFromStaleChunks, registerServiceWorker } from './lib/pwa'
 import './styles.css'
 
 const queryClient = new QueryClient({
@@ -29,6 +29,10 @@ const queryClient = new QueryClient({
 // Makes the app installable and lets an opened app survive a dropped connection. Registered
 // after the first paint; see the note in lib/pwa.ts.
 registerServiceWorker()
+
+// A tab left open across a deploy asks for chunks that no longer exist; it reloads onto the new
+// build instead of showing an error. See the note in lib/pwa.ts.
+recoverFromStaleChunks()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
