@@ -14,6 +14,7 @@ export function useLifeGame() {
   const alive = useRef(true)
   const epoch = useRef(0)
   const voice = useRef<LiveVoiceSession | null>(null)
+  const pendingPlayback = useRef<AudioContext | null>(null)
   const interval = useRef<ReturnType<typeof setInterval> | null>(null)
   const current = useRef<LifeView | null>(null)
   const activity = useRef<LifeActivity>({ sequence: 0, speechMilliseconds: 0, speaking: false, tutorSpeaking: false, transcript: '', finish: false })
@@ -25,6 +26,8 @@ export function useLifeGame() {
     const live = voice.current
     voice.current = null
     void live?.close()
+    void pendingPlayback.current?.close().catch(() => {})
+    pendingPlayback.current = null
     releaseMicrophone()
   }
 
@@ -55,7 +58,7 @@ export function useLifeGame() {
   }, [])
 
   async function start(character: LifeCharacter, level: string, topicId: string) {
-    if (voice.current || interval.current) return
+    if (voice.current || interval.current || pendingPlayback.current) return
     const run = ++epoch.current
     const valid = () => alive.current && epoch.current === run
     setError(null)
@@ -86,8 +89,13 @@ export function useLifeGame() {
     }
     const transcript = () => [...turns, currentText].filter(Boolean).join('\n').slice(0, 12_000)
     try {
+      const playback = new AudioContext()
+      pendingPlayback.current = playback
+      const playbackReady = playback.resume().then(() => true, () => false)
       await requestMicrophone()
       if (!valid()) { releaseMicrophone(); return }
+      if (!await playbackReady) throw new Error('connect_failed')
+      if (!valid()) return
       const created = await lifeApi.start(character, level, topicId)
       if (!valid()) { lifeApi.leave(created.id, { ...activity.current, sequence: 1 }); return }
       current.current = created
@@ -102,7 +110,10 @@ export function useLifeGame() {
           speaking = active
           latestFrame = performance.now()
         },
-        onPlayback: (playing) => { tutor = playing },
+        onPlayback: (playing) => {
+          tutor = playing
+          if (valid()) setVisual(old => ({ ...old, tutor: playing }))
+        },
         onInputTranscript: (text) => { currentText = text },
         onOutputTranscript: (text) => { if (valid()) setTutorLine(text) },
         onTurnComplete: () => {
@@ -113,8 +124,9 @@ export function useLifeGame() {
         onDropped: () => fail('connection_closed'),
         onSilenceTimeout: () => {},
         onNoSpeech: () => {},
-      }, { continuous: true })
+      }, { continuous: true, playbackContext: playback, respectAudioMute: false })
       voice.current = live
+      pendingPlayback.current = null
       await live.start()
       if (!valid() || failed) { await live.close(); return }
       const begun = await lifeApi.begin(created.id)

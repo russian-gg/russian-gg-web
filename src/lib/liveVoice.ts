@@ -91,6 +91,8 @@ export interface LiveFunctionDeclaration {
 }
 
 export interface LiveVoiceOptions {
+  playbackContext?: AudioContext
+  respectAudioMute?: boolean
   /**
    * Stream the microphone for the whole session and let the provider decide when the learner
    * has finished speaking, instead of opening the microphone one turn at a time.
@@ -111,6 +113,7 @@ export interface LiveVoiceOptions {
 export class LiveVoiceSession {
   private readonly callbacks: LiveVoiceCallbacks
   private readonly continuous: boolean
+  private readonly respectAudioMute: boolean
   private readonly tools: LiveFunctionDeclaration[]
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
@@ -170,6 +173,8 @@ export class LiveVoiceSession {
     this.openingCue = ticket.openingCue
     this.callbacks = callbacks
     this.continuous = options?.continuous ?? false
+    this.playbackContext = options?.playbackContext ?? null
+    this.respectAudioMute = options?.respectAudioMute ?? true
     this.tools = options?.tools ?? []
   }
 
@@ -210,7 +215,7 @@ export class LiveVoiceSession {
   async start() {
     this.callbacks.onStatus('connecting')
     document.addEventListener('visibilitychange', this.resumeAudio)
-    this.playbackContext = new AudioContext()
+    this.playbackContext ??= new AudioContext()
     if (this.playbackContext.state === 'suspended') {
       await this.playbackContext.resume()
     }
@@ -664,7 +669,7 @@ export class LiveVoiceSession {
     if (!this.playbackContext) return
 
     const preferences = readAudioPreferences()
-    if (preferences.muted) return
+    if (this.respectAudioMute && preferences.muted) return
 
     const bytes = base64ToBytes(base64Pcm)
     const samples = new Int16Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))

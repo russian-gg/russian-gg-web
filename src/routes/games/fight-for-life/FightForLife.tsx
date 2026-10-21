@@ -49,8 +49,6 @@ export function FightForLife() {
   const code = game.error instanceof RequestError || game.error instanceof VoiceError ? game.error.code : String(game.error)
   const errorText = code.startsWith('mic_') ? copy.mic : code === 'voice_daily_limit' ? copy.limit : code.startsWith('provider_') ? copy.unavailable : code === 'game_disabled' ? copy.disabled : copy.error
   const emotion = game.visual.emotion
-  const name = shownCharacter === 'penguin' ? 'Penguin' : shownCharacter === 'panda' ? 'Panda' : 'Pero'
-  const phrase = copy[`${emotion === 'speaking' ? 'speaking' : emotion === 'cold' || emotion === 'frozen' ? 'cold' : 'waiting'}${name}`]
   async function share() {
     const text = `Помоги! · ${game.view?.score ?? 0} ${copy.crystals}`
     try {
@@ -85,14 +83,14 @@ export function FightForLife() {
                 <select id="life-topic" value={selected?.id ?? ''} onChange={event => setTopicId(event.target.value)} lang="ru">{topics.map(topic => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select>
                 <button className="life-start" disabled={!selected} onClick={() => selected && void game.start(character, level, selected.id)}><Mic size={22} />{copy.start}<ArrowRight size={20} /></button>
               </section>
-            </> : game.phase === 'connecting' ? <section className="life-connecting" role="status"><LifeScene character={shownCharacter} /><span className="life-eyebrow">{copy.connecting}</span></section>
+            </> : game.phase === 'connecting' ? <section className="life-connecting" role="status"><div className="life-stage"><LifeScene character={shownCharacter} /><LifeSpeech key={`${game.visual.tutor}-${game.tutorLine}`} text={game.tutorLine} tutor={game.visual.tutor} /></div>{!game.tutorLine && <span className="life-eyebrow">{copy.connecting}</span>}</section>
               : game.phase === 'error' ? <section className="life-notice" role="alert"><p>{errorText}</p><button onClick={() => void game.recover()}>{copy.retry}</button><button onClick={game.reset}>{copy.again}</button></section>
                 : playing ? <section className="life-play">
                   <div className="life-hud"><div aria-label={copy.crystals}><Gem size={21} /><strong key={game.visual.score}>{game.visual.score}</strong></div></div>
                   <div className="life-topic"><h1 lang="ru">{game.view?.topic.title}</h1><span>{copy[game.view?.topic.mode ?? 'debate']} · {game.view?.level}</span></div>
                   <div className="life-stage">
                     <LifeScene character={shownCharacter} emotion={emotion} energy={game.visual.energy} volume={game.visual.volume} />
-                    <LifeSpeech key={`${game.visual.tutor}-${game.visual.tutor ? game.tutorLine : phrase}`} text={game.visual.tutor ? game.tutorLine : phrase} tutor={game.visual.tutor} />
+                    <LifeSpeech key={`${game.visual.tutor}-${game.tutorLine}`} text={game.tutorLine} tutor={game.visual.tutor} />
                   </div>
                   <button className="life-mic" data-speaking={game.visual.speaking} aria-label={copy.stop} disabled={game.phase === 'saving'} onClick={() => void game.stop()}>
                     {game.visual.speaking ? <span className="life-mic-bars">{[0, 1, 2, 3, 4].map(i => <i key={i} style={{ height: `${12 + game.visual.volume * (i % 2 ? 30 : 18)}px` }} />)}</span> : <Square size={23} fill="currentColor" />}<span>{game.phase === 'saving' ? copy.loading : copy.stop}</span>
@@ -120,7 +118,7 @@ function LifeSpeech({ text, tutor }: { text: string; tutor: boolean }) {
     const timer = window.setTimeout(() => setVisible(false), 3600)
     return () => window.clearTimeout(timer)
   }, [tutor])
-  return visible && text ? <div className="life-speech" role="status" lang={tutor ? 'ru' : undefined}>{text}</div> : null
+  return visible && text ? <div className="life-speech" role="status" lang="ru">{text}</div> : null
 }
 
 function LifeEnvironment({ character }: { character: LifeCharacter }) {
