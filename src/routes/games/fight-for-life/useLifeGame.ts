@@ -80,6 +80,9 @@ export function useLifeGame() {
     let lastSend = 0
     let closing = false
     let heardSinceSend = false
+    let lastInteractionAt = performance.now()
+    let silenceReminderSent = false
+    let tutorReplyPending = false
     const fail = (reason: unknown) => {
       if (!valid() || failed) return
       failed = true
@@ -103,20 +106,35 @@ export function useLifeGame() {
       const ticket = await lifeApi.voice(created.id)
       if (!valid()) return
       const live = new LiveVoiceSession(ticket, {
-        onStatus: () => {},
+        onStatus: (status) => { if (status === 'listening') tutorReplyPending = false },
         onConnected: () => {},
         onInputLevel: (volume, active) => {
           rms = volume
           speaking = active
           latestFrame = performance.now()
+          if (active && !tutor) {
+            lastInteractionAt = latestFrame
+            silenceReminderSent = false
+          }
         },
         onPlayback: (playing) => {
           tutor = playing
+          lastInteractionAt = performance.now()
           if (valid()) setVisual(old => ({ ...old, tutor: playing }))
         },
-        onInputTranscript: (text) => { currentText = text },
-        onOutputTranscript: (text) => { if (valid()) setTutorLine(text) },
+        onInputTranscript: (text) => {
+          currentText = text
+          lastInteractionAt = performance.now()
+          silenceReminderSent = false
+        },
+        onOutputTranscript: (text) => {
+          tutorReplyPending = true
+          lastInteractionAt = performance.now()
+          if (valid()) setTutorLine(text)
+        },
         onTurnComplete: () => {
+          tutorReplyPending = false
+          lastInteractionAt = performance.now()
           if (currentText.trim()) turns.push(currentText.trim())
           currentText = ''
         },
@@ -124,7 +142,7 @@ export function useLifeGame() {
         onDropped: () => fail('connection_closed'),
         onSilenceTimeout: () => {},
         onNoSpeech: () => {},
-      }, { continuous: true, playbackContext: playback, respectAudioMute: false })
+      }, { continuous: true, playbackContext: playback, respectAudioMute: false, outputTranscriptDeltas: true })
       voice.current = live
       pendingPlayback.current = null
       await live.start()
@@ -134,6 +152,7 @@ export function useLifeGame() {
       current.current = begun
       setView(begun)
       meter = new LifeMeter(performance.now())
+      lastInteractionAt = performance.now()
       setPhase('playing')
 
       send.current = async (finish = false) => {
@@ -172,6 +191,13 @@ export function useLifeGame() {
         const now = performance.now()
         const isSpeaking = speaking && now - latestFrame < 300 && !tutor && !closing
         const outcome = meter.advance(now, isSpeaking, tutor)
+        if (!outcome && !closing && !isSpeaking && !tutor && !tutorReplyPending &&
+          !silenceReminderSent && now - lastInteractionAt >= 4000) {
+          silenceReminderSent = voice.current?.requestTutorResponse(
+            '[learner_silent] The learner has paused. If they are still silent, repeat or simplify the last question at their selected level, then wait. This is an app signal, not a learner answer.',
+          ) ?? false
+          tutorReplyPending = silenceReminderSent
+        }
         heardSinceSend ||= isSpeaking
         setVisual({
           emotion: meter.emotion(isSpeaking), energy: Math.max(0, 1 - meter.silenceMs / 10_000),

@@ -16,7 +16,7 @@ export function LifeCard({ to, requiresPro }: { to: string; requiresPro: boolean
       variants={rise}
       to={to}
       aria-labelledby="life-card-title"
-      className="life-card group relative isolate overflow-hidden rounded-[32px] border border-cyan-300/30 bg-gradient-to-br from-[#007eb3] via-[#00a9c1] to-[#00b99f] p-5 text-white shadow-2xl transition-colors duration-300 hover:border-cyan-200/70 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-signal sm:p-7 lg:col-span-2"
+      className="life-card group relative isolate overflow-hidden rounded-[32px] border border-white/30 bg-[linear-gradient(105deg,#b84c7d_0%,#00a9c1_50%,#ba862b_100%)] p-5 text-white shadow-2xl transition-colors duration-300 hover:border-white/70 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-signal sm:p-7 lg:col-span-2"
     >
       <span className="flex flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-black tracking-wider text-cyan-100 uppercase">
@@ -26,8 +26,8 @@ export function LifeCard({ to, requiresPro }: { to: string; requiresPro: boolean
       </span>
 
       <span className="mt-4 grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">
-        <span aria-hidden="true" className="relative flex h-56 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/30 bg-[radial-gradient(ellipse_at_50%_60%,#a3fff3,#00b4d8_75%)]">
-          <img src="/games/fight-for-life/characters/penguin.webp" alt="" loading="lazy" decoding="async" width="512" height="512" className="h-52 w-full object-contain drop-shadow-xl transition-transform duration-300 motion-safe:group-hover:-translate-y-1" />
+        <span aria-hidden="true" className="relative grid h-56 grid-cols-3 items-center gap-1 overflow-hidden rounded-2xl border border-white/30 bg-[radial-gradient(ellipse_at_15%_60%,#ffd6e3,transparent_55%),radial-gradient(ellipse_at_50%_60%,#a3fff3,transparent_55%),radial-gradient(ellipse_at_85%_60%,#ffe3a1,transparent_55%)] px-2">
+          {['panda', 'penguin', 'pero'].map(character => <img key={character} src={`/games/fight-for-life/characters/${character}.webp`} alt="" loading="lazy" decoding="async" width="512" height="512" className="h-52 w-full min-w-0 object-contain drop-shadow-xl transition-transform duration-300 motion-safe:group-hover:-translate-y-1" />)}
         </span>
 
         <span className="min-w-0">

@@ -62,8 +62,10 @@ export class LiveVoiceSession {
   constructor(ticket, callbacks, options) { this.callbacks = callbacks; this.playback = options.playbackContext; window.lifeMock.callbacks = callbacks }
   async start() {
     this.callbacks.onConnected();
+    this.callbacks.onStatus('listening');
     this.interval = setInterval(() => this.callbacks.onInputLevel(window.lifeMock.speaking ? .08 : 0, window.lifeMock.speaking, 50), 50);
   }
+  requestTutorResponse(text) { window.lifeMock.reminders.push(text); return true }
   async close() { clearInterval(this.interval); window.lifeMock.closed++; this.callbacks.onPlayback(false); await this.playback.close() }
 }
 export const isPromptAudioPlaying = () => false;
@@ -88,7 +90,7 @@ async function fixture(options = {}) {
     localStorage.setItem('rgg.locale', locale)
     localStorage.setItem('rgg.install.never', 'true')
     localStorage.setItem('rgg.audio-muted', 'true')
-    window.lifeMock = { denied, requests: 0, releases: 0, closed: 0, speaking: false }
+    window.lifeMock = { denied, requests: 0, releases: 0, closed: 0, speaking: false, reminders: [] }
     window.lifeAudioContexts = []
     window.lifeAudioStarts = []
     const NativeAudioContext = window.AudioContext
@@ -127,6 +129,7 @@ async function fixture(options = {}) {
       state.voiceMessages.push(data)
       if (data.setup) socket.send(JSON.stringify({ setupComplete: {} }))
       if (data.clientContent) reply('Можно ли опаздывать? Как ты думаешь?')
+      if (data.realtimeInput?.text) reply('Ты живёшь в городе или деревне?')
     })
   })
   await context.route('**/*', async route => {
@@ -277,6 +280,77 @@ test('other live voice sessions still respect the saved mute preference by defau
   } finally { await h.close() }
 })
 
+test('streamed Russian words stay intact and silence requests a spoken follow-up', async () => {
+  const h = await fixture({ realVoice: true })
+  try {
+    await h.open()
+    await h.page.locator('.life-start').click()
+    await h.page.locator('.life-connecting .life-speech').waitFor()
+    h.turnComplete()
+    await h.page.locator('.life-play').waitFor()
+    for (const fragments of [
+      ['При', 'вет', '! ', 'Как', ' кош', 'ка', '? ', 'Всё', ' хо', 'ро', 'шо', '?'],
+      ['Ма', 'ма', ' мыла', ' раму. ', 'Да', ', да', '!'],
+    ]) {
+      for (const text of fragments) h.state.socket.send(JSON.stringify({ serverContent: { outputTranscription: { text } } }))
+      await h.page.getByText(fragments.join(''), { exact: true }).waitFor()
+      assert.equal(await h.page.locator('.life-speech').innerText(), fragments.join(''))
+      h.turnComplete()
+    }
+    await new Promise(resolve => setTimeout(resolve, 200))
+    await h.tick(4100)
+    await h.page.getByText('Ты живёшь в городе или деревне?', { exact: true }).waitFor()
+    const reminders = () => h.state.voiceMessages.filter(message => message.realtimeInput?.text)
+    assert.equal(reminders().length, 1)
+    assert.match(reminders()[0].realtimeInput.text, /\[learner_silent\]/)
+    assert.equal(await h.page.evaluate(() => window.lifeAudioStarts.length), 2)
+    h.turnComplete()
+    await h.tick(2000)
+    assert.equal(reminders().length, 1)
+    assert.equal(h.state.session.transcript, '')
+    assert.equal(h.state.session.score, 0)
+    await h.page.locator('.life-mic').click()
+    await h.page.locator('.life-results').waitFor()
+    await h.tick(5000)
+    assert.equal(reminders().length, 1)
+  } finally { await h.close() }
+})
+
+test('silence reminders wait for speech and tutor turns, send once, and reset after learner speech', async () => {
+  const h = await fixture()
+  try {
+    await h.start()
+    await h.page.evaluate(() => { window.lifeMock.speaking = true })
+    await h.tick(4500)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 0)
+    await h.page.evaluate(() => {
+      window.lifeMock.speaking = false
+      window.lifeMock.callbacks.onOutputTranscript('Где ты живёшь?')
+      window.lifeMock.callbacks.onPlayback(true)
+    })
+    await h.tick(4500)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 0)
+    await h.page.evaluate(() => {
+      window.lifeMock.callbacks.onPlayback(false)
+      window.lifeMock.callbacks.onTurnComplete()
+    })
+    await h.tick(3000)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 0)
+    await h.tick(1200)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 1)
+    await h.page.evaluate(() => window.lifeMock.callbacks.onTurnComplete())
+    await h.tick(1000)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 1)
+    await h.page.evaluate(() => { window.lifeMock.speaking = true })
+    await h.tick(500)
+    await h.page.evaluate(() => { window.lifeMock.speaking = false })
+    await h.tick(4100)
+    assert.equal(await h.page.evaluate(() => window.lifeMock.reminders.length), 2)
+    await h.page.locator('.life-mic').click()
+    await h.page.locator('.life-results').waitFor()
+  } finally { await h.close() }
+})
+
 test('default-disabled route offers no way to start or request a microphone', async () => {
   const h = await fixture({ disabled: true })
   await h.open()
@@ -305,6 +379,14 @@ test('three costumes, responsive layout, topic mode/level, all locales and shelf
     await h.page.goto(`${BASE}/games`)
     await h.page.locator('a.life-card').waitFor()
     assert.equal(await h.page.locator('a.life-card').getAttribute('href'), '/games/fight-for-life')
+    const images = h.page.locator('a.life-card img')
+    assert.deepEqual(await images.evaluateAll(nodes => nodes.map(image => image.getAttribute('src'))), ['panda', 'penguin', 'pero'].map(name => `/games/fight-for-life/characters/${name}.webp`))
+    await images.first().scrollIntoViewIfNeeded()
+    await h.page.waitForFunction(() => [...document.querySelectorAll('a.life-card img')].every(image => image.complete && image.naturalWidth > 0))
+    const boxes = await images.evaluateAll(nodes => nodes.map(image => { const { x, y, width, height } = image.getBoundingClientRect(); return { x, y, width, height } }))
+    assert.ok(boxes.every(box => box.width > 0 && box.height > 0))
+    assert.ok(boxes[0].x + boxes[0].width <= boxes[1].x && boxes[1].x + boxes[1].width <= boxes[2].x)
+    await h.shot(`shelf-${locale}`)
     await h.close()
   }
 })

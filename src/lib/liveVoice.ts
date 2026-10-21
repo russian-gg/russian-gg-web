@@ -93,6 +93,7 @@ export interface LiveFunctionDeclaration {
 export interface LiveVoiceOptions {
   playbackContext?: AudioContext
   respectAudioMute?: boolean
+  outputTranscriptDeltas?: boolean
   /**
    * Stream the microphone for the whole session and let the provider decide when the learner
    * has finished speaking, instead of opening the microphone one turn at a time.
@@ -114,6 +115,7 @@ export class LiveVoiceSession {
   private readonly callbacks: LiveVoiceCallbacks
   private readonly continuous: boolean
   private readonly respectAudioMute: boolean
+  private readonly outputTranscriptDeltas: boolean
   private readonly tools: LiveFunctionDeclaration[]
   private readonly ticket: VoiceSessionTicket
   private readonly systemInstruction: string
@@ -175,6 +177,7 @@ export class LiveVoiceSession {
     this.continuous = options?.continuous ?? false
     this.playbackContext = options?.playbackContext ?? null
     this.respectAudioMute = options?.respectAudioMute ?? true
+    this.outputTranscriptDeltas = options?.outputTranscriptDeltas ?? false
     this.tools = options?.tools ?? []
   }
 
@@ -325,6 +328,15 @@ export class LiveVoiceSession {
     }
   }
 
+  requestTutorResponse(text: string) {
+    if (this.closed || !this.connected || !this.continuous || this.inputPaused ||
+      this.playbackSources.length > 0 || !this.ws || this.ws.readyState !== WebSocket.OPEN || !text.trim()) return false
+
+    this.ensureTurnPromise()
+    this.ws.send(JSON.stringify({ realtimeInput: { text } }))
+    return true
+  }
+
   /** Writes off the turn in flight so nothing arriving late can close it. */
   private abandonTurn() {
     this.turnSettled = true
@@ -455,12 +467,14 @@ export class LiveVoiceSession {
 
             if (serverContent.outputTranscription?.text) {
               this.ensureTurnPromise()
-              this.outputTranscript = mergeTranscript(
-                this.outputTranscript,
-                serverContent.outputTranscription.text,
-                'output',
-              )
-              this.callbacks.onOutputTranscript(this.outputTranscript)
+              this.outputTranscript = this.outputTranscriptDeltas
+                ? this.outputTranscript + serverContent.outputTranscription.text
+                : mergeTranscript(
+                  this.outputTranscript,
+                  serverContent.outputTranscription.text,
+                  'output',
+                )
+              this.callbacks.onOutputTranscript(sanitizeTranscript(this.outputTranscript))
             }
 
             for (const part of serverContent.modelTurn?.parts ?? []) {
