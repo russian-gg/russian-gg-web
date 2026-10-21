@@ -384,7 +384,8 @@ export function FoundationLesson() {
       </section>
 
       <div className="border-t border-hairline pt-4">
-        <div className="flex items-center gap-2">
+        {/* Wraps rather than overflowing: on a 320px phone the last step's two labels fill the row. */}
+        <div className="flex flex-wrap items-center gap-2">
           {state.sectionIndex > 0 && <Button variant="ghost" onClick={goBack}>{t.back}</Button>}
           <Button className="ml-auto" disabled={!canContinue} onClick={() => void finishCurrent()}>
             {active.id === 'complete' ? t.finishLesson : t.next}
@@ -1873,6 +1874,13 @@ function BlankFillTemplate({ segments, answer, onAnswerChange }: {
  * stale-data reset), and every keystroke after that is read out via onInput without writing back
  * into the DOM. Feeding `value` back in as the rendered content on every keystroke is the standard
  * contentEditable-in-React trap — the cursor jumps to the start on each render.
+ *
+ * While empty it is an inline-block instead. An empty *inline* editable has no text for the caret
+ * to sit in, so when the sentence wraps right after it — which only happens on a narrow screen —
+ * a tap focuses the blank but the browser drops the caret into the neighbouring plain text:
+ * nothing typed lands, and a phone keyboard may not even open. An inline-block is a box of its
+ * own and always takes the caret. With no text to wrap, being a box costs nothing; the first
+ * letter makes it inline again.
  */
 function BlankInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const ref = useRef<HTMLSpanElement>(null)
@@ -1892,6 +1900,9 @@ function BlankInput({ value, onChange }: { value: string; onChange: (value: stri
       suppressContentEditableWarning
       onInput={(event) => {
         const text = event.currentTarget.textContent ?? ''
+        // Erasing everything can leave a stray <br> behind, which keeps :empty from matching and
+        // would put the blank back into the inline state that can't take a caret.
+        if (!text && event.currentTarget.firstChild) event.currentTarget.replaceChildren()
         lastSynced.current = text
         onChange(text)
       }}
@@ -1900,7 +1911,7 @@ function BlankInput({ value, onChange }: { value: string; onChange: (value: stri
         if (event.key === 'Enter') event.preventDefault()
       }}
       lang="ru"
-      className="mx-0.5 break-words border-b-2 border-ink-faint bg-ground-sunken px-1 font-black text-ink outline-none empty:px-4 focus:border-signal focus:bg-signal-soft"
+      className="mx-0.5 break-words border-b-2 border-ink-faint bg-ground-sunken px-1 font-black text-ink outline-none empty:inline-block empty:min-h-[1.4em] empty:min-w-10 empty:px-0 empty:align-bottom focus:border-signal focus:bg-signal-soft"
     />
   )
 }
