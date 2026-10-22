@@ -27,12 +27,26 @@
 .life-rules>span:last-child svg{color:#ba760b}
 .life-eyebrow{font-size:13px;font-weight:850;letter-spacing:.03em}
 .life-setup{max-width:760px;margin:auto}
-.life-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.life-character-choice{--life-accent:#00b4ed;--life-rgb:0,180,237;position:relative;min-width:0;cursor:pointer;border:1px solid #fff9;background:linear-gradient(155deg,#ffffffa8,#ffffff30);backdrop-filter:blur(12px);border-radius:24px;padding:8px 10px 18px;color:inherit;text-align:left;transition:background .25s,border-color .25s,transform .25s,box-shadow .25s}
-.life-character-choice:hover{transform:translateY(-4px);border-color:var(--life-accent)}
-.life-character-choice[aria-pressed=true]{border-color:var(--life-accent);background:linear-gradient(150deg,#ffffffb0,rgba(var(--life-rgb),.18));box-shadow:0 0 0 2px rgba(var(--life-rgb),.35),0 8px 35px rgba(var(--life-rgb),.35),inset 0 1px 0 #fff}
-.life-character-name{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:17px;font-weight:900;padding:0 7px}
-.life-character-name svg{color:#25708c}
+.life-character-picker{position:relative;margin:0 -12px}
+.life-choices{position:relative;isolation:isolate;height:465px;overflow:hidden}
+.life-character-choice{--life-accent:#00d9ff;--life-rgb:0,217,255;position:absolute;left:50%;top:18px;display:flex;flex-direction:column;width:46%;max-width:340px;height:410px;min-width:0;cursor:pointer;border:1px solid #ffffff55;background:linear-gradient(150deg,#219fe5,#008bd0);border-radius:28px;padding:23px 23px 5px;color:#fff;text-align:left;box-shadow:0 14px 26px #173b5b24,inset 0 1px #ffffff40;transform:translateX(calc(-50% + var(--card-offset)*66%)) translateY(24px) scale(.88);transform-origin:50% 50%;z-index:1;transition:transform .35s,box-shadow .35s}
+.life-character-choice[data-character=panda]{background:linear-gradient(150deg,#ff9d87,#f6666b)}
+.life-character-choice[data-character=pero]{background:linear-gradient(150deg,#da62db,#c139c5)}
+.life-character-choice:hover{box-shadow:0 18px 32px #173b5b35,inset 0 1px #ffffff60}
+.life-character-choice[aria-pressed=true]{transform:translateX(-50%);z-index:2;box-shadow:0 22px 32px #173b5b38,inset 0 1px #ffffff80}
+.life-character-name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:28px;font-weight:950;letter-spacing:-.035em;line-height:1.15}
+.life-character-name svg{flex-shrink:0;color:#fff}
+.life-character-role{display:block;margin:9px 0 15px;font-size:13px;font-weight:750;line-height:1.5;color:#ffffffe8}
+.life-character-quote{display:block;min-height:63px;border-radius:15px;padding:12px 14px;background:#fffffff0;color:#294557;box-shadow:0 4px 12px #253c6610;font-size:13px;line-height:1.5}
+.life-character-choice .life-scene-compact{flex:none;align-self:center;width:min(100%,205px);height:205px;aspect-ratio:1;min-height:0;margin:5px 0 0}
+.life-character-choice .life-puppet{inset:0 3% 2%}
+.life-picker-arrow{position:absolute;top:45%;z-index:3;display:grid;place-items:center;width:44px;height:44px;border:1px solid #ffffffb0;border-radius:50%;background:#fffffff2;color:#24465c;box-shadow:0 4px 10px #1d466020;cursor:pointer;transition:transform .2s}
+.life-picker-arrow:hover{transform:scale(1.08)}
+.life-picker-previous{left:0}.life-picker-next{right:0}
+.life-picker-dots{display:flex;justify-content:center;gap:4px;margin-top:-6px}
+.life-picker-dots button{position:relative;width:28px;height:32px;cursor:pointer}
+.life-picker-dots button::after{content:"";position:absolute;top:12px;left:10px;width:8px;height:8px;border-radius:8px;background:#62829355;transition:width .25s,left .25s,background .25s}
+.life-picker-dots button[aria-pressed=true]::after{left:3px;width:22px;background:#1688b0}
 .life-options{display:grid;grid-template-columns:1fr 1.3fr;gap:22px;margin:25px 0}
 .life-options fieldset{min-width:0}
 .life-options legend,.life-topic-label{font-weight:850;font-size:13px;color:var(--life-muted);display:block;margin-bottom:10px}
@@ -86,6 +100,8 @@
 @keyframes life-speech-in{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes life-mic-pulse{50%{transform:translateY(-2px);box-shadow:0 6px 0 #8a2a16,0 0 0 8px #ff9e4316,0 0 30px #ff6b3299}}
 @media(max-width:600px){.life-game{padding:0 16px 35px}.life-header{min-height:60px}.life-header>span{font-size:20px}.life-intro{padding:26px 0 22px}.life-rules{gap:7px}.life-rules>span{font-size:11px;padding:8px 10px}.life-rules svg{width:16px}.life-choices{gap:9px}.life-character-choice{border-radius:18px;padding:5px 3px 13px}.life-character-name{font-size:14px;justify-content:center;padding:0}.life-character-name svg{width:12px}.life-scene-compact .life-puppet{inset:0 0 4%}.life-options{gap:12px;margin:22px 0}.life-segment button{font-size:12px;padding:10px 5px}.life-hud{margin-top:14px}.life-topic{margin-top:14px}.life-stage{padding-top:72px;margin-top:12px}.life-speech{max-width:77%;font-size:12px;padding:11px 15px;max-height:100px}.life-mic{width:72px;height:72px;margin-top:5px}.life-results{margin-top:25px}.life-result-actions{flex-direction:column}.life-results .life-scene{max-width:250px}.life-result-details{padding:16px 6px;gap:4px}.life-result-details strong{font-size:24px}.life-equalizers>div{gap:3px}}
+
+@media(max-width:600px){.life-choices{height:445px}.life-character-choice{width:78%;height:390px;border-radius:24px;padding:20px 18px 5px;transform:translateX(calc(-50% + var(--card-offset)*52%)) translateY(22px) scale(.88)}.life-character-choice[aria-pressed=true]{transform:translateX(-50%)}.life-character-name{font-size:26px;justify-content:space-between}.life-character-name svg{width:20px}.life-character-role{font-size:12px;min-height:36px;margin:8px 0 12px}.life-character-quote{font-size:12px;min-height:76px;padding:11px 13px}.life-character-choice .life-scene-compact{width:185px;height:185px}.life-character-choice .life-puppet{inset:0 1% 2%}.life-picker-arrow{top:auto;bottom:-4px}.life-picker-previous{left:calc(50% - 102px)}.life-picker-next{right:calc(50% - 102px)}}
 
 .life-scene{position:relative;isolation:isolate;width:min(100%,510px);aspect-ratio:1.22;margin:-10px auto -8px;pointer-events:none;--life-energy:1;--life-volume:0}
 .life-scene-compact{width:100%;aspect-ratio:1;min-height:0;margin:0;--life-energy:.7}

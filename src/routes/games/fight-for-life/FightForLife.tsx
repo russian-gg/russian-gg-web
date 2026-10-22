@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, Coffee, Flower2, Gem, Leaf, LockKeyhole, MessageCircle, Mic, Music2, RotateCcw, Share2, Sparkles, Square, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Coffee, Flower2, Gem, Leaf, LockKeyhole, MessageCircle, Mic, Music2, RotateCcw, Share2, Sparkles, Square, Trophy } from 'lucide-react'
 import { useLocale } from '../../../lib/i18n'
 import { RequestError } from '../../../lib/api'
 import { VoiceError } from '../../../lib/liveVoice'
@@ -51,10 +51,12 @@ export function FightForLife() {
   const errorText = code.startsWith('mic_') ? copy.mic : code === 'voice_daily_limit' ? copy.limit : code.startsWith('provider_') ? copy.unavailable : code === 'game_disabled' ? copy.disabled : copy.error
   const emotion = game.visual.emotion
   async function share() {
-    const text = `Помоги! · ${game.view?.score ?? 0} ${copy.crystals}`
+    if (!game.view) return
+    const url = 'https://russian.gg/games/fight-for-life'
+    const text = `Помоги!\n💎 ${copy.crystals}: ${game.view.score}\n⏱ ${copy.speech}: ${Math.floor(game.view.speechMilliseconds / 1000)} ${copy.seconds}\n💬 ${copy.words}: ${game.view.transcript.match(/[\p{L}]+/gu)?.length ?? 0}`
     try {
-      if (navigator.share) await navigator.share({ title: 'Помоги!', text })
-      else { await navigator.clipboard.writeText(text); setShared(true) }
+      if (navigator.share) await navigator.share({ title: 'Помоги!', text, url })
+      else { await navigator.clipboard.writeText(`${text}\n${url}`); setShared(true) }
     } catch { setShared(false) }
   }
   return <main className="life-game" data-character={shownCharacter} data-phase={game.phase} data-emotion={emotion}
@@ -72,10 +74,21 @@ export function FightForLife() {
             : game.phase === 'setup' ? <>
               <section className="life-intro"><h1>{copy.character}</h1><div className="life-rules"><span><Mic aria-hidden="true" />{copy.silenceRule}</span><span><Trophy aria-hidden="true" />{copy.victoryRule}</span></div></section>
               <section className="life-setup">
-                <div className="life-choices">{characters.map(id => <button key={id} className="life-character-choice" data-character={id} aria-pressed={character === id} onClick={() => setCharacter(id)}>
-                  <LifeScene character={id} compact />
-                  <span className="life-character-name">{copy[id]}{character === id && <Check size={16} />}</span>
-                </button>)}</div>
+                <div className="life-character-picker" role="group" aria-label={copy.character}>
+                  <div className="life-choices">{characters.map((id, index) => {
+                    const offset = (index - characters.indexOf(character) + 4) % 3 - 1
+                    return <button key={id} className="life-character-choice" data-character={id} aria-label={copy[id]} aria-pressed={character === id} onClick={() => setCharacter(id)}
+                      style={{ '--card-offset': offset } as CSSProperties}>
+                      <span className="life-character-name">{copy[id]}{character === id && <Check size={20} />}</span>
+                      <span className="life-character-role">{copy[`${id}Role`]}</span>
+                      <span className="life-character-quote">{copy[`${id}Quote`]}</span>
+                      <LifeScene character={id} compact />
+                    </button>
+                  })}</div>
+                  <button className="life-picker-arrow life-picker-previous" aria-label={copy.previousHero} onClick={() => setCharacter(characters[(characters.indexOf(character) + 2) % 3])}><ChevronLeft aria-hidden="true" /></button>
+                  <button className="life-picker-arrow life-picker-next" aria-label={copy.nextHero} onClick={() => setCharacter(characters[(characters.indexOf(character) + 1) % 3])}><ChevronRight aria-hidden="true" /></button>
+                  <div className="life-picker-dots">{characters.map(id => <button key={id} aria-label={`${copy.character}: ${copy[id]}`} aria-pressed={character === id} onClick={() => setCharacter(id)} />)}</div>
+                </div>
                 <div className="life-options">
                   <fieldset><legend>{copy.level}</legend><div className="life-segment">{['A1', 'A2', 'B1'].map(item => <button key={item} aria-pressed={level === item} onClick={() => setLevel(item)}>{item}</button>)}</div></fieldset>
                   <fieldset><legend>{copy.mode}</legend><div className="life-segment">{(['debate', 'monologue'] as const).map(item => <button key={item} aria-pressed={mode === item} onClick={() => setMode(item)}>{copy[item]}</button>)}</div></fieldset>
