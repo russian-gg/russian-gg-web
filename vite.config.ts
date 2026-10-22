@@ -13,7 +13,8 @@ export default defineConfig({
     proxy: {
       // Same-origin API in development, so the browser never deals with CORS or
       // cross-site cookie rules while iterating.
-      '/api': { target: 'http://localhost:5081', changeOrigin: true },
+      // ws: the live voice relay (/api/voice/live) is a WebSocket.
+      '/api': { target: 'http://localhost:5081', changeOrigin: true, ws: true },
       '/media': { target: 'http://localhost:5081', changeOrigin: true },
     },
   },
