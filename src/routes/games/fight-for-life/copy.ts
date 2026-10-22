@@ -3,7 +3,7 @@ const uz = {
   rules: 'Ruscha gapiring. 10 soniya jim qolsangiz o‘yin tugaydi. 2 daqiqa davom etsangiz — g‘alaba. Qahramon gapirayotganda uni tinglang.',
   silenceRule: '10 soniya jimlik — o‘yin tugaydi', victoryRule: '2 daqiqa nutq — g‘alaba', victory: "G‘alaba!",
   character: 'Qahramonni tanlang', penguin: 'Pingvin', panda: 'Panda', pero: 'Pero',
-  penguinRole: 'Жиддий', pandaRole: 'Меҳрибон', peroRole: 'Саркастик',
+  penguinRole: 'Jiddiy', pandaRole: 'Mehribon', peroRole: 'Sarkastik',
   penguinQuote: 'Aniq gapir. Fikringni birga kuchaytiramiz!', pandaQuote: 'Shoshilma, men seni eshityapman. Birga uddalaymiz!', peroQuote: 'Qiziq fikr! Yana bir tomondan qarab ko‘ramizmi?',
   previousHero: 'Oldingi qahramon', nextHero: 'Keyingi qahramon',
   level: 'Daraja', mode: 'Suhbat turi', debate: 'Debat', monologue: 'Monolog', topic: 'Mavzu',

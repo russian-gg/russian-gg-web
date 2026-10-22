@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Coffee, Flower2, Gem, Leaf, LockKeyhole, MessageCircle, Mic, Music2, RotateCcw, Share2, Sparkles, Square, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Coffee, Flower2, Gem, Leaf, LockKeyhole, MessageCircle, Mic, Music2, RotateCcw, Sparkles, Square, Trophy } from 'lucide-react'
 import { useLocale } from '../../../lib/i18n'
 import { RequestError } from '../../../lib/api'
 import { VoiceError } from '../../../lib/liveVoice'
@@ -8,6 +8,7 @@ import { lifeApi, type LifeCatalog, type LifeCharacter, type LifeMode } from './
 import { lifeCopies } from './copy'
 import { LifeScene } from './LifeScene'
 import { useLifeGame } from './useLifeGame'
+import { GameShareButton } from '../GameShareButton'
 import './life.css'
 
 const characters: LifeCharacter[] = ['penguin', 'panda', 'pero']
@@ -24,7 +25,6 @@ export function FightForLife() {
   const [level, setLevel] = useState('A1')
   const [mode, setMode] = useState<LifeMode>('debate')
   const [topicId, setTopicId] = useState('01')
-  const [shared, setShared] = useState(false)
   useEffect(() => {
     let active = true
     setCatalogError(false)
@@ -50,15 +50,6 @@ export function FightForLife() {
   const code = game.error instanceof RequestError || game.error instanceof VoiceError ? game.error.code : String(game.error)
   const errorText = code.startsWith('mic_') ? copy.mic : code === 'voice_daily_limit' ? copy.limit : code.startsWith('provider_') ? copy.unavailable : code === 'game_disabled' ? copy.disabled : copy.error
   const emotion = game.visual.emotion
-  async function share() {
-    if (!game.view) return
-    const url = 'https://russian.gg/games/fight-for-life'
-    const text = `Помоги!\n💎 ${copy.crystals}: ${game.view.score}\n⏱ ${copy.speech}: ${Math.floor(game.view.speechMilliseconds / 1000)} ${copy.seconds}\n💬 ${copy.words}: ${game.view.transcript.match(/[\p{L}]+/gu)?.length ?? 0}`
-    try {
-      if (navigator.share) await navigator.share({ title: 'Помоги!', text, url })
-      else { await navigator.clipboard.writeText(`${text}\n${url}`); setShared(true) }
-    } catch { setShared(false) }
-  }
   return <main className="life-game" data-character={shownCharacter} data-phase={game.phase} data-emotion={emotion}
     style={{ '--world-energy': playing ? game.visual.energy : 1 } as CSSProperties}>
     <LifeEnvironment character={shownCharacter} />
@@ -123,7 +114,13 @@ export function FightForLife() {
                     <div><Gem aria-hidden="true" /><span>{copy.crystals}</span><strong>{game.view.score}</strong></div>
                     <div><MessageCircle aria-hidden="true" /><span>{copy.words}</span><strong>{game.view.transcript.match(/[\p{L}]+/gu)?.length ?? 0}</strong></div>
                   </div>
-                  <div className="life-result-actions"><button className="life-start" onClick={() => { setShared(false); game.reset() }}><RotateCcw size={20} />{copy.again}</button><button className="life-share" onClick={() => void share()}><Share2 size={19} />{shared ? copy.copied : copy.share}</button></div>
+                  <div className="life-result-actions"><button className="life-start" onClick={game.reset}><RotateCcw size={20} />{copy.again}</button>
+                    <GameShareButton slug="fight-for-life" title="Помоги!" className="life-share" result={[
+                      `💎 ${copy.crystals}: ${game.view.score}`,
+                      `⏱ ${copy.speech}: ${Math.floor(game.view.speechMilliseconds / 1000)} ${copy.seconds}`,
+                      `💬 ${copy.words}: ${game.view.transcript.match(/[\p{L}]+/gu)?.length ?? 0}`,
+                    ]} />
+                  </div>
                   {game.view.transcript && <details className="life-transcript"><summary>{copy.transcript}</summary><p lang="ru">{game.view.transcript}</p></details>}
                 </section>}
     </div>

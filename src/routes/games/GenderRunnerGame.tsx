@@ -17,6 +17,7 @@ import { fill, useT } from '../../lib/i18n'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui'
+import { GameShareButton } from './GameShareButton'
 import { readAudioPreferences } from '../../lib/audio-preferences'
 import { playUiSound } from '../../lib/ui-sounds'
 import { cx } from '../../lib/cx'
@@ -545,6 +546,9 @@ export function GenderRunnerGame() {
                   </div>
                 </div>
                 <button className="runner-replay" onClick={start}><RotateCcw size={22} />{t.again}</button>
+                <GameShareButton slug="rod-runner" title={shelf.runnerTitle}
+                  result={[`${t.score}: ${status.score}`, `${t.coins}: ${status.coins}`, `${shelf.record}: ${highScore}`]}
+                  className="mt-4 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/70 bg-white/15 px-5 py-3 text-sm font-black text-white transition hover:bg-white/25" />
                 <button type="button" onClick={() => navigate('/games')} className="runner-reward-back">{t.backToGames}</button>
               </div>
             </div>

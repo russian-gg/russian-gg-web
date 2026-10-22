@@ -4,6 +4,7 @@ import { fill, useT } from '../../lib/i18n'
 import { useNavigate } from 'react-router-dom'
 import { useSpeechRecognition } from '../../lib/speech'
 import { Button, ErrorNote } from '../../components/ui'
+import { GameShareButton } from './GameShareButton'
 import { cx } from '../../lib/cx'
 
 /**
@@ -333,6 +334,8 @@ export function SawGame() {
             <Button block onClick={start}>
               {t.retry}
             </Button>
+            <GameShareButton slug="arra" title="Arra" result={[t.lostTitle, `${t.score}: ${score}`]}
+              className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-hairline bg-ground-raised px-5 py-3 text-sm font-black text-ink transition hover:bg-ground-sunken" />
           </div>
         )}
 
@@ -349,6 +352,8 @@ export function SawGame() {
             >
               {t.next}
             </Button>
+            <GameShareButton slug="arra" title="Arra" result={[t.wonTitle, `${t.score}: ${score}`]}
+              className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-hairline bg-ground-raised px-5 py-3 text-sm font-black text-ink transition hover:bg-ground-sunken" />
           </div>
         )}
       </div>
