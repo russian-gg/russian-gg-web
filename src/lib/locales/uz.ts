@@ -992,6 +992,7 @@ export const uz = {
     lockedProgressBody:
       "Avval oldingi kunlarni yakunlang — shundan keyin {day}-kun o'zi ochiladi.",
     buyPro: 'Pro sotib olish',
+    goToToday: "Bugungi darsga o'tish",
     filterAll: 'Barchasi',
     filterActive: 'Jarayonda',
     filterDone: 'Bajarilgan',
@@ -1008,8 +1009,8 @@ export const uz = {
     time: 'Vaqt',
     phrases: 'Iboralar',
     phrasesValue: '{count} ta ibora',
-    passMark: 'Urinishlar',
-    passValue: 'Xato qilsang ham, qayta urinish mumkin!',
+    passMark: "O'tish bali",
+    passValue: 'Kamida {score}%',
     conversationBody:
       "Sherigingiz gapiradi — siz ovoz bilan javob berasiz. Maqsadga yetganingizda yoki vaqt " +
       'tugaganda suhbat yakunlanadi.',
@@ -1024,7 +1025,7 @@ export const uz = {
     emptyBody: "90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda.",
     start: "Sinab ko'rish",
     bestScore: 'Eng yaxshi natija: {score}%',
-    passMark: 'Xato qilsang ham, qayta urinish mumkin!',
+    passMark: "O'tish bali: {score}%",
     notTried: 'Hali urinilmagan',
     statTotal: 'Jami topshiriqlar',
     statDone: 'Bajarilgan',
@@ -1189,6 +1190,11 @@ export const uz = {
     finish: "Yakunlash",
     finishing: "Yakunlanmoqda…",
     leave: "Chiqish",
+    leaveTitle: 'Suhbatdan chiqasizmi?',
+    leaveBody:
+      "Hozir chiqsangiz, suhbat shu holatda baholanadi va bitta urinish hisoblanadi.",
+    leaveStay: 'Suhbatni davom ettirish',
+    leaveConfirm: 'Chiqish va baholash',
     orbLabel: "{character} bilan ovozli suhbat",
     unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
     startFailed: "Suhbatni boshlab bo'lmadi. Qayta urinib ko'ring.",
