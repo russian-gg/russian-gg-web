@@ -129,7 +129,7 @@ function TopBar() {
           <LinkButton to="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
             {t.nav.signIn}
           </LinkButton>
-          <LinkButton to="/signin" size="md" className="max-sm:px-4">
+          <LinkButton to="/signup" size="md" className="max-sm:px-4">
             {t.nav.getStarted}
           </LinkButton>
         </div>
@@ -179,11 +179,11 @@ function Hero() {
           </Reveal>
 
           <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <LinkButton to="/signin" className="w-full sm:w-auto">
+            <LinkButton to="/signup" className="w-full sm:w-auto">
               {t.hero.primaryCta}
             </LinkButton>
-            <LinkButton to="/onboarding" variant="secondary" className="w-full max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
-              {t.hero.secondaryCta}
+            <LinkButton to="/signin" variant="secondary" className="w-full max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
+              {t.final.signIn}
             </LinkButton>
           </Reveal>
 
@@ -283,7 +283,7 @@ function Characters() {
             <h3 className="text-lg font-extrabold text-ink sm:text-xl">{t.ctaTitle}</h3>
             <p className="mt-1 text-sm text-ink-muted">{t.ctaBody}</p>
           </div>
-          <LinkButton to="/signin" className="w-full shrink-0 max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
+          <LinkButton to="/signup" className="w-full shrink-0 max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
             {t.ctaButton}
           </LinkButton>
         </m.div>
@@ -679,7 +679,7 @@ function Pricing() {
             unit={t.pricing.freeUnit}
             body={t.pricing.freeBody}
             features={t.pricing.freeFeatures}
-            cta={<LinkButton to="/signin" variant="secondary" block>{t.pricing.freeCta}</LinkButton>}
+            cta={<LinkButton to="/signup" variant="secondary" block>{t.pricing.freeCta}</LinkButton>}
           />
           </Reveal>
           <Reveal variants={rise}>
@@ -692,7 +692,7 @@ function Pricing() {
             body={t.pricing.proBody}
             features={t.pricing.proFeatures}
             note={t.pricing.proAlt}
-            cta={<LinkButton to="/signin" block>{t.pricing.proCta}</LinkButton>}
+            cta={<LinkButton to="/signup" block>{t.pricing.proCta}</LinkButton>}
           />
           </Reveal>
         </SequenceInView>
@@ -790,7 +790,7 @@ function FinalCta() {
             <p className="mt-3 max-w-md text-base text-white/90">{t.final.body}</p>
             <div className="mt-7 flex flex-col items-start gap-3">
               <Link
-                to="/signin"
+                to="/signup"
                 className="raised inline-flex h-14 items-center justify-center rounded-[var(--radius-control)] bg-white px-6 text-base font-extrabold whitespace-nowrap sm:px-9 text-[#1c8fe0] [--depth:rgb(19_120_205/0.28)] [--edge:5px] [--glow:rgb(19_120_205/0.2)]"
               >
                 {t.final.cta}

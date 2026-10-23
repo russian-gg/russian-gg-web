@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import * as m from 'motion/react-m'
 import { ChevronLeft, Clock } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -12,6 +14,8 @@ import type { LiveFunctionDeclaration, LiveVoiceStatus } from '../lib/liveVoice'
 import type { MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
 import { CharacterOrb, type OrbState } from '../components/CharacterOrb'
 import { Button, ErrorNote, QueryError, Spinner } from '../components/ui'
+import { useFocusTrap } from '../lib/focus-trap'
+import { backdrop, sheet } from '../lib/motion'
 
 type Phase = 'ready' | 'connecting' | 'live' | 'finishing' | 'unavailable'
 
@@ -74,6 +78,8 @@ export function MissionLive() {
   })
 
   const [phase, setPhase] = useState<Phase>('ready')
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const leaveRef = useFocusTrap<HTMLDivElement>(confirmLeave)
   const [status, setStatus] = useState<LiveVoiceStatus>('idle')
   const [beatIndex, setBeatIndex] = useState(0)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
@@ -424,9 +430,20 @@ export function MissionLive() {
       }}
     >
       <header className="flex items-center justify-between gap-3">
+        {/*
+          Leaving a conversation that has started is not a back button: it ends the call, grades
+          what was said and uses one of the attempts before a cooldown. So it asks first, with
+          staying as the main choice. Before the call starts there is nothing to lose.
+        */}
         <button
           type="button"
-          onClick={() => void finish()}
+          onClick={() =>
+            phase === 'live' || phase === 'connecting'
+              ? setConfirmLeave(true)
+              : phase === 'finishing'
+                ? undefined
+                : navigate(`/missions/${missionId}`, { replace: true })
+          }
           className="-ml-1 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-2 text-sm font-semibold text-ink-muted transition-colors hover:text-ink"
         >
           <BackGlyph />
@@ -584,6 +601,53 @@ export function MissionLive() {
           </Button>
         )}
       </footer>
+
+      <AnimatePresence>
+        {confirmLeave && (
+          <m.div
+            key="leave"
+            ref={leaveRef}
+            tabIndex={-1}
+            variants={backdrop}
+            initial="hidden"
+            animate="shown"
+            exit="exit"
+            className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mission-leave-title"
+            onClick={() => setConfirmLeave(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setConfirmLeave(false)
+            }}
+          >
+            <m.div
+              variants={sheet}
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl"
+            >
+              <h2 id="mission-leave-title" className="text-lg font-extrabold text-ink">
+                {copy.leaveTitle}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted">{copy.leaveBody}</p>
+              <Button block className="mt-5" onClick={() => setConfirmLeave(false)}>
+                {copy.leaveStay}
+              </Button>
+              <Button
+                variant="secondary"
+                block
+                className="mt-2"
+                onClick={() => {
+                  setConfirmLeave(false)
+                  void finish()
+                }}
+              >
+                {copy.leaveConfirm}
+              </Button>
+            </m.div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

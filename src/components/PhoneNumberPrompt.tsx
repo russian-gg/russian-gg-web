@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, X } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useLocation } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { isBusyPath } from '../lib/busy-path'
 import { useT } from '../lib/i18n'
+import type { WelcomeGiftStatus } from '../lib/types'
 import { Button, Card, ErrorNote } from './ui'
 import { Overlay } from './motion'
 
@@ -26,7 +29,18 @@ export function PhoneNumberPrompt() {
     would be arming itself around a dialog nobody can see, and Tab would be held captive by
     an invisible panel on every screen in the app.
   */
-  const visible = open && !!user && !user.phoneNumber
+  /*
+    Read from the welcome gift's cache, never fetched here: while the gift is waiting to be
+    opened it has the screen, and two dialogs at once is how the first session used to end.
+  */
+  const { data: gift } = useQuery({
+    queryKey: ['welcome-gift', user?.id],
+    queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
+    enabled: false,
+  })
+  const giftWaiting = Boolean(gift?.isAvailable && !gift.isClaimed)
+
+  const visible = open && !!user && !user.phoneNumber && !giftWaiting && !isBusyPath(pathname)
   const dialogRef = useFocusTrap<HTMLDivElement>(visible)
 
   useEffect(() => {

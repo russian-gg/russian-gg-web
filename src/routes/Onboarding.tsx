@@ -182,6 +182,17 @@ export function Onboarding() {
 
     setConnected(false)
 
+    // Silence is not a level. Sending it placed the learner at zero for good — the server
+    // keeps the first answer — and hid why: a refused microphone, or a socket that never
+    // opened. Back to the start instead, with the reason and the typed fallback beside it.
+    if (!spoken) {
+      setFailure((reason) => reason || copy.current.mic.nothingHeard)
+      setStage('intro')
+      finishing.current = false
+
+      return
+    }
+
     // The session's own clock, and zero when it never opened. Not the full forty: a length
     // nobody spoke would put an invented pace on a screen whose whole point is that its
     // numbers are measured.

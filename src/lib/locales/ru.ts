@@ -165,6 +165,7 @@ export const ru: Dictionary = {
       insecure: 'Откройте страницу по https — иначе микрофон не работает.',
       failed: 'Не удалось подключить звук. Попробуйте чуть позже.',
       scoreFailed: 'Не удалось посчитать результат. Попробуйте ещё раз.',
+      nothingHeard: 'Мы вас не услышали. Разрешите доступ к микрофону или напишите ответ.',
     },
   },
 
@@ -724,7 +725,8 @@ export const ru: Dictionary = {
     googleSignUpSubtitle: "Зарегистрируйтесь через аккаунт Google.",
     googleWorking: 'Входим через Google…',
     googleUnavailable:
-      'Вход через Google сейчас не работает. Продолжите ниже с email и паролем.',
+      'Вход через Google не работает в этом браузере. Зарегистрируйтесь по номеру телефона.',
+    usePhoneInstead: 'Продолжить по номеру телефона',
     signInFailed: 'Ошибка входа. Попробуйте ещё раз.',
     signUpFailed: 'Ошибка регистрации. Попробуйте ещё раз.',
     invalidCredentials: 'Неверный номер телефона/email или пароль.',
@@ -972,6 +974,7 @@ export const ru: Dictionary = {
     lockedProgressTitle: 'Этот день ещё закрыт',
     lockedProgressBody: 'Сначала завершите предыдущие дни — после этого день {day} откроется сам.',
     buyPro: 'Купить Pro',
+    goToToday: "Перейти к сегодняшнему уроку",
     filterAll: 'Все',
     filterActive: 'В процессе',
     filterDone: 'Завершённые',
@@ -1007,19 +1010,30 @@ export const ru: Dictionary = {
     bestScore: 'Лучший результат: {score}%',
     passMark: 'Проходной балл: {score}%',
     notTried: 'Ещё не пробовали',
-    statTotal: 'Всего заданий',
     statDone: 'Выполнено',
     statInProgress: 'В процессе',
     statNotStarted: 'Ещё не начато',
-    search: 'Поиск по названию задания…',
-    filterAll: 'Все',
-    sortLabel: 'Сортировка',
-    sortDefault: 'По порядку',
-    sortScore: 'По результату',
-    sortShort: 'Сначала короткие',
     continue: 'Продолжить',
     repeat: 'Пройти ещё раз',
-    noResults: 'Подходящих заданий не найдено.',
+    mapLabel: 'Путь заданий',
+    progress: 'Выполнено {done} из {total}',
+    missionNumber: 'Задание {number}',
+    nodeLabel: '{number}. {title}: {status}',
+    current: 'Следующее',
+    bestLabel: 'Лучший результат',
+    lockedProBody: 'Это задание открывается в тарифе Pro.',
+    illustrationAlt: 'Иллюстрация к заданию «{title}»',
+    levelLabel: 'Уровень',
+    scenarioLabel: 'Ситуация',
+    learnHeading: 'Чему вы научитесь',
+    zones: {
+      neighborhood: 'Район',
+      shopping: 'Торговая улица',
+      dining: 'Кафе и рестораны',
+      transport: 'Дорога и транспорт',
+      health: 'Здоровье',
+      city: 'Городские службы',
+    },
   },
 
   tests: {
@@ -1059,7 +1073,8 @@ export const ru: Dictionary = {
     sortNewest: 'Сначала новые',
     sortOldest: 'Сначала старые',
     sortScore: 'По результату',
-    noResults: 'Подходящих тестов не найдено.',
+    noResults: 'Подходящих тестов не найдено.',
+
     factQuestions: 'Вопросы',
     factLevel: 'Уровень',
     factTime: 'На каждый вопрос',
@@ -1168,6 +1183,11 @@ export const ru: Dictionary = {
     finish: 'Завершить',
     finishing: 'Завершаем…',
     leave: 'Выйти',
+    leaveTitle: 'Выйти из разговора?',
+    leaveBody:
+      'Если выйти сейчас, разговор будет оценён как есть и засчитается как одна попытка.',
+    leaveStay: 'Продолжить разговор',
+    leaveConfirm: 'Выйти и оценить',
     orbLabel: 'Голосовой разговор с {character}',
     unavailable: 'Голосовой разговор сейчас недоступен. Попробуйте позже.',
     startFailed: 'Не удалось начать разговор. Попробуйте ещё раз.',
@@ -1349,6 +1369,21 @@ export const ru: Dictionary = {
       'Это может занять несколько минут. После подтверждения Pro откроется автоматически, ' +
       'даже если вы закроете эту страницу.',
     returnError: 'Платёжная система вернула код ошибки.',
+    returnFailedBadge: 'Оплата не прошла',
+    returnFailed: 'Pro не открылся',
+    returnFailedBody:
+      'Платёж не прошёл. Попробуйте другую карту или другой способ. Если деньги списались ' +
+      'с карты, напишите нам.',
+    returnExpired: 'Оплата не завершена',
+    returnExpiredBody:
+      'Окно оплаты закрылось, Pro не открылся. Попробуйте ещё раз — выбранный тариф сохранится.',
+    returnStalled: 'Платёж ещё не подтверждён',
+    returnStalledBody:
+      'Если деньги списались с карты, Pro откроется сам в течение нескольких минут. Если нет — ' +
+      'попробуйте ещё раз.',
+    payAgain: 'Оплатить снова',
+    payOtherMethod: 'Оплатить через {provider}',
+    askForHelp: 'Написать в поддержку',
     promoTitle: 'Есть промокод?',
     promoPlaceholder: 'Введите промокод',
     promoApply: 'Применить',
@@ -1503,7 +1538,7 @@ export const ru: Dictionary = {
   },
 
   welcomeGift: {
-    eyebrow: 'Подарок для вас',
+    eyebrow: 'Подарок за первое упражнение',
     title: 'Выберите одну из трёх коробок',
     body: 'Внутри особый приз для вашего 90-дневного пути. Открыть можно только одну.',
     chooseLabel: 'Подарочные коробки',

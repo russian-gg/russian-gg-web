@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Gift } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -9,6 +9,7 @@ import type {
   BillingPeriod,
   CheckoutResponse,
   EntitlementView,
+  InvoiceStatusView,
   PaymentProvider,
   PlanOption,
   PlansView,
@@ -24,6 +25,35 @@ import { PromoCode } from './paywall/PromoCode'
 import { PaymentMethodSelector } from './paywall/PaymentMethodSelector'
 import { PaymentButton } from './paywall/PaymentButton'
 import { FeatureComparison } from './paywall/FeatureComparison'
+import { SUPPORT_TELEGRAM_URL } from '../lib/support'
+
+/**
+ * The checkout the learner just left for. The provider sends them back to a bare return URL,
+ * so the invoice id is kept here to ask the server how that payment ended — "not Pro yet"
+ * alone cannot tell a payment in flight from one that was declined.
+ */
+const LAST_CHECKOUT_KEY = 'rgg.lastCheckout'
+
+type LastCheckout = { invoiceId: string; period: BillingPeriod; provider: PaymentProvider }
+
+function rememberCheckout(checkout: LastCheckout) {
+  try {
+    localStorage.setItem(LAST_CHECKOUT_KEY, JSON.stringify(checkout))
+  } catch {
+    // Private mode: the return page falls back to the entitlement.
+  }
+}
+
+function lastCheckout(): LastCheckout | null {
+  try {
+    const raw = localStorage.getItem(LAST_CHECKOUT_KEY)
+    return raw ? (JSON.parse(raw) as LastCheckout) : null
+  } catch {
+    return null
+  }
+}
+
+const providerNames: Record<PaymentProvider, string> = { click: 'Click', payme: 'Payme' }
 
 const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
   id: index,
@@ -58,8 +88,14 @@ const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
 export function Paywall() {
   const t = useT()
   const { locale } = useLocale()
-  const [period, setPeriod] = useState<BillingPeriod>('NinetyDay')
-  const [provider, setProvider] = useState<PaymentProvider>('click')
+  const [params] = useSearchParams()
+  // A retry from the return page arrives with the plan and rail already chosen.
+  const [period, setPeriod] = useState<BillingPeriod>(() =>
+    params.get('period') === 'Monthly' ? 'Monthly' : 'NinetyDay',
+  )
+  const [provider, setProvider] = useState<PaymentProvider>(() =>
+    params.get('provider') === 'payme' ? 'payme' : 'click',
+  )
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [promoCode, setPromoCode] = useState('')
@@ -117,6 +153,7 @@ export function Paywall() {
         promoCode: giftApplies ? undefined : promoPreview?.isValid ? promoPreview.code : undefined,
       })
       track('checkout_started', { period, provider })
+      rememberCheckout({ invoiceId: result.invoiceId, period, provider })
       window.location.href = result.checkoutUrl
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.billing.checkoutFailed)
@@ -433,21 +470,82 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
   )
 }
 
+/** Fast polling for this long; after it the page says the payment is unusually slow. */
+const STALL_AFTER_MS = 120_000
+
+/**
+ * Where the provider sends the learner back. It reads the invoice they just paid, so each
+ * ending gets its own screen: confirmed, still confirming, taking unusually long, or declined
+ * and abandoned — the last two with a way to pay again rather than a promise that Pro is on
+ * its way.
+ */
 export function BillingReturn() {
   const t = useT()
+  const { locale } = useLocale()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [params] = useSearchParams()
+  const [checkout] = useState(lastCheckout)
+  const invoiceId = params.get('invoice') ?? checkout?.invoiceId ?? null
+  const [stalled, setStalled] = useState(false)
+  const confirmed = useRef(false)
 
-  const { data, isLoading } = useQuery({
+  useEffect(() => {
+    const timer = window.setTimeout(() => setStalled(true), STALL_AFTER_MS)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  const interval = stalled ? 15_000 : 2_500
+
+  const entitlementQuery = useQuery({
     queryKey: ['entitlement', 'return'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
-    refetchInterval: (query) => (query.state.data?.hasProAccess ? false : 2500),
+    refetchInterval: (query) => (query.state.data?.hasProAccess ? false : interval),
   })
 
-  if (isLoading) return <Spinner label={t.billing.returnChecking} />
+  const invoiceQuery = useQuery({
+    queryKey: ['invoice', invoiceId],
+    queryFn: () => api.get<InvoiceStatusView>(`/billing/invoices/${invoiceId}`),
+    enabled: Boolean(invoiceId),
+    retry: false,
+    refetchInterval: (query) =>
+      query.state.data && query.state.data.state !== 'Pending' ? false : interval,
+  })
 
-  if (data?.hasProAccess) {
+  const invoice = invoiceQuery.data
+  const providerError = Boolean(params.get('error'))
+
+  // The invoice is the authority when there is one: a learner who already had Pro must not
+  // read "Pro is open" over a payment that was declined.
+  const settled = invoice
+    ? ({ Paid: 'paid', Failed: 'failed', Expired: 'expired', Pending: null } as const)[invoice.state]
+    : entitlementQuery.data?.hasProAccess
+      ? ('paid' as const)
+      : null
+  const outcome = settled ?? (providerError ? 'failed' : stalled ? 'stalled' : 'pending')
+
+  useEffect(() => {
+    if (outcome !== 'paid' || confirmed.current) return
+    confirmed.current = true
     track('payment_confirmed')
+    void queryClient.invalidateQueries({ queryKey: ['entitlement'] })
+  }, [outcome, queryClient])
+
+  if (entitlementQuery.isLoading || (invoiceId && invoiceQuery.isLoading)) {
+    return <Spinner label={t.billing.returnChecking} />
+  }
+
+  const period = invoice?.period ?? checkout?.period
+  const provider = invoice?.provider ?? checkout?.provider ?? 'click'
+  const otherProvider: PaymentProvider = provider === 'click' ? 'payme' : 'click'
+
+  function payAgain(via: PaymentProvider) {
+    const query = new URLSearchParams({ provider: via })
+    if (period) query.set('period', period)
+    navigate(`/paywall?${query.toString()}`)
+  }
+
+  if (outcome === 'paid') {
     return (
       <Card className="text-center">
         <Badge tone="milestone">{t.billing.returnConfirmed}</Badge>
@@ -460,17 +558,52 @@ export function BillingReturn() {
     )
   }
 
+  if (outcome === 'pending') {
+    return (
+      <Card className="text-center">
+        <Badge tone="caution">{t.billing.returnChecking}</Badge>
+        <h1 className="mt-4 text-xl font-extrabold text-ink">{t.billing.returnPending}</h1>
+        <p className="text-support mt-2">{t.billing.returnPendingBody}</p>
+        <Button variant="secondary" className="mt-6" onClick={() => navigate('/home')}>
+          {t.result.backHome}
+        </Button>
+      </Card>
+    )
+  }
+
+  const copy = {
+    stalled: [t.billing.returnStalled, t.billing.returnStalledBody],
+    expired: [t.billing.returnExpired, t.billing.returnExpiredBody],
+    failed: [t.billing.returnFailed, t.billing.returnFailedBody],
+  }[outcome]
+
   return (
     <Card className="text-center">
-      <Badge tone="caution">{t.billing.returnChecking}</Badge>
-      <h1 className="mt-4 text-xl font-extrabold text-ink">{t.billing.returnPending}</h1>
-      <p className="text-support mt-2">
-        {t.billing.returnPendingBody}
-      </p>
-      {params.get('error') && <p className="text-support mt-3">{t.billing.returnError}</p>}
-      <Button variant="secondary" className="mt-6" onClick={() => navigate('/home')}>
-        {t.result.backHome}
-      </Button>
+      {outcome === 'stalled' ? (
+        <Badge tone="caution">{t.billing.returnChecking}</Badge>
+      ) : (
+        <Badge tone="danger">{t.billing.returnFailedBadge}</Badge>
+      )}
+      <h1 className="mt-4 text-xl font-extrabold text-ink">{copy[0]}</h1>
+      <p className="text-support mt-2">{copy[1]}</p>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <Button onClick={() => payAgain(provider)}>
+          {invoice
+            ? `${t.billing.payAgain} · ${formatPrice(invoice.amountTiyin, 'UZS', locale)}`
+            : t.billing.payAgain}
+        </Button>
+        <Button variant="secondary" onClick={() => payAgain(otherProvider)}>
+          {fill(t.billing.payOtherMethod, { provider: providerNames[otherProvider] })}
+        </Button>
+      </div>
+      <a
+        href={SUPPORT_TELEGRAM_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-5 inline-block text-sm font-bold text-signal-ink underline"
+      >
+        {t.billing.askForHelp}
+      </a>
     </Card>
   )
 }

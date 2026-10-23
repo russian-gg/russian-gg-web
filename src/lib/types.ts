@@ -493,6 +493,17 @@ export interface CheckoutResponse {
   amountTiyin: number
 }
 
+export type InvoiceState = 'Pending' | 'Paid' | 'Failed' | 'Expired'
+
+/** `/billing/invoices/{id}`: one checkout, as the provider has left it. */
+export interface InvoiceStatusView {
+  invoiceId: string
+  state: InvoiceState
+  period: BillingPeriod
+  amountTiyin: number
+  provider: PaymentProvider
+}
+
 export interface WelcomeGiftStatus {
   isAvailable: boolean
   isClaimed: boolean

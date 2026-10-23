@@ -182,11 +182,10 @@ export function CoursePath() {
       completedMissionCount,
       isUnlocked: isComplete || (day.isUnlocked && isSequentiallyUnlocked),
     }
-    const lockKind: LockedDay['kind'] = !isSequentiallyUnlocked
-      ? 'progress'
-      : day.day > maxUnlockedDay
-        ? 'pro'
-        : 'progress'
+    // Past the plan is a Pro lock even while earlier days are unfinished. Checking the order
+    // first told a free learner that day 2 "opens by itself" once day 1 was done — which it
+    // never does without Pro.
+    const lockKind: LockedDay['kind'] = day.day > maxUnlockedDay ? 'pro' : 'progress'
 
     previousDaysComplete = previousDaysComplete && isComplete
     return { day: displayedDay, lockKind }
@@ -195,6 +194,8 @@ export function CoursePath() {
     ({ day }) => day.completedMissionCount >= day.requiredMissionCount,
   ).length
   const isDayDone = (day: CourseDayView) => day.completedMissionCount >= day.requiredMissionCount
+  /** The open day the learner is on: where a progress lock sends them. */
+  const todayEntry = displayedDays.find(({ day }) => day.isUnlocked && !isDayDone(day))
   const activeDays = displayedDays.filter(({ day }) => day.isUnlocked && !isDayDone(day)).length
   const counts = {
     all: displayedDays.length,
@@ -375,7 +376,21 @@ export function CoursePath() {
         exit animation has nothing left to animate.
       */}
       <AnimatePresence>
-        {locked && <LockedDayDialog key="locked" locked={locked} onDismiss={() => setLocked(null)} />}
+        {locked && (
+          <LockedDayDialog
+            key="locked"
+            locked={locked}
+            onDismiss={() => setLocked(null)}
+            onGoToToday={
+              todayEntry
+                ? () => {
+                    setLocked(null)
+                    handleDay(todayEntry.day, todayEntry.lockKind)
+                  }
+                : undefined
+            }
+          />
+        )}
       </AnimatePresence>
       {/*
         The day preview keeps its content after being dismissed, and closes by flipping `open`.
@@ -469,7 +484,16 @@ function DayPreviewDialog({
  * is the actual next step — an "understood" button was a dead end at the exact moment the
  * learner reached for more of the course.
  */
-function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: () => void }) {
+function LockedDayDialog({
+  locked,
+  onDismiss,
+  onGoToToday,
+}: {
+  locked: LockedDay
+  onDismiss: () => void
+  /** Opens the day that is actually next. Absent when there is no open day to send them to. */
+  onGoToToday?: () => void
+}) {
   const lockedRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
 
@@ -512,6 +536,15 @@ function LockedDayDialog({ locked, onDismiss }: { locked: LockedDay; onDismiss: 
             </LinkButton>
             <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
               {t.common.later}
+            </Button>
+          </>
+        ) : onGoToToday ? (
+          <>
+            <Button block className="mt-5" onClick={onGoToToday}>
+              {t.path.goToToday}
+            </Button>
+            <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
+              {t.common.understood}
             </Button>
           </>
         ) : (

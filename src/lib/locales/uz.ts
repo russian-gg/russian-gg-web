@@ -185,6 +185,7 @@ export const uz = {
       insecure: 'Sahifani https orqali oching — mikrofon aks holda ishlamaydi.',
       failed: "Ovoz ulanmadi. Birozdan keyin urinib ko'ring.",
       scoreFailed: "Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.",
+      nothingHeard: 'Sizni eshitmadik. Mikrofonga ruxsat bering yoki javobni yozib yuboring.',
     },
   },
 
@@ -743,7 +744,8 @@ export const uz = {
     googleSignUpSubtitle: "Google hisobingiz orqali ro'yxatdan o'ting.",
     googleWorking: 'Google bilan kirilmoqda…',
     googleUnavailable:
-      'Google orqali kirish hozir ishlamayapti. Quyida email va parol bilan davom eting.',
+      "Google orqali kirish bu brauzerda ishlamayapti. Telefon raqami orqali ro'yxatdan o'ting.",
+    usePhoneInstead: 'Telefon raqami bilan davom etish',
     signInFailed: "Kirishda xatolik. Qayta urinib ko'ring.",
     signUpFailed: "Ro'yxatdan o'tishda xatolik. Qayta urinib ko'ring.",
     invalidCredentials: "Telefon raqami/email yoki parol noto'g'ri.",
@@ -990,6 +992,7 @@ export const uz = {
     lockedProgressBody:
       "Avval oldingi kunlarni yakunlang — shundan keyin {day}-kun o'zi ochiladi.",
     buyPro: 'Pro sotib olish',
+    goToToday: "Bugungi darsga o'tish",
     filterAll: 'Barchasi',
     filterActive: 'Jarayonda',
     filterDone: 'Bajarilgan',
@@ -1006,8 +1009,8 @@ export const uz = {
     time: 'Vaqt',
     phrases: 'Iboralar',
     phrasesValue: '{count} ta ibora',
-    passMark: 'Urinishlar',
-    passValue: 'Xato qilsang ham, qayta urinish mumkin!',
+    passMark: "O'tish bali",
+    passValue: 'Kamida {score}%',
     conversationBody:
       "Sherigingiz gapiradi — siz ovoz bilan javob berasiz. Maqsadga yetganingizda yoki vaqt " +
       'tugaganda suhbat yakunlanadi.',
@@ -1022,21 +1025,32 @@ export const uz = {
     emptyBody: "90 kunlik yo'ldan davom eting — mashqlar tayyorlanmoqda.",
     start: "Sinab ko'rish",
     bestScore: 'Eng yaxshi natija: {score}%',
-    passMark: 'Xato qilsang ham, qayta urinish mumkin!',
+    passMark: "O'tish bali: {score}%",
     notTried: 'Hali urinilmagan',
-    statTotal: 'Jami topshiriqlar',
     statDone: 'Bajarilgan',
     statInProgress: 'Jarayonda',
     statNotStarted: 'Hali boshlanmagan',
-    search: "Topshiriq nomi bo'yicha qidirish…",
-    filterAll: 'Barchasi',
-    sortLabel: 'Saralash',
-    sortDefault: "Tartib bo'yicha",
-    sortScore: "Natija bo'yicha",
-    sortShort: 'Avval qisqalari',
     continue: 'Davom ettirish',
     repeat: 'Qayta bajarish',
-    noResults: 'Mos keladigan topshiriq topilmadi.',
+    mapLabel: "Topshiriqlar yo'li",
+    progress: '{done} / {total} bajarilgan',
+    missionNumber: '{number}-topshiriq',
+    nodeLabel: '{number}. {title}: {status}',
+    current: 'Navbatdagi',
+    bestLabel: 'Eng yaxshi natija',
+    lockedProBody: 'Bu topshiriq Pro tarifida ochiladi.',
+    illustrationAlt: '«{title}» vaziyati tasviri',
+    levelLabel: 'Daraja',
+    scenarioLabel: 'Vaziyat',
+    learnHeading: "Nimalarni aytishni o'rganasiz",
+    zones: {
+      neighborhood: 'Mahalla',
+      shopping: "Do'konlar ko'chasi",
+      dining: 'Kafe va restoranlar',
+      transport: "Yo'l va transport",
+      health: 'Salomatlik',
+      city: 'Shahar xizmatlari',
+    },
   },
 
   tests: {
@@ -1076,7 +1090,8 @@ export const uz = {
     sortNewest: 'Yangidan eskiga',
     sortOldest: 'Eskidan yangiga',
     sortScore: "Natija bo'yicha",
-    noResults: 'Mos keladigan test topilmadi.',
+    noResults: 'Mos keladigan test topilmadi.',
+
     factQuestions: 'Savollar',
     factLevel: 'Daraja',
     factTime: 'Har bir savolga',
@@ -1187,6 +1202,11 @@ export const uz = {
     finish: "Yakunlash",
     finishing: "Yakunlanmoqda…",
     leave: "Chiqish",
+    leaveTitle: 'Suhbatdan chiqasizmi?',
+    leaveBody:
+      "Hozir chiqsangiz, suhbat shu holatda baholanadi va bitta urinish hisoblanadi.",
+    leaveStay: 'Suhbatni davom ettirish',
+    leaveConfirm: 'Chiqish va baholash',
     orbLabel: "{character} bilan ovozli suhbat",
     unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
     startFailed: "Suhbatni boshlab bo'lmadi. Qayta urinib ko'ring.",
@@ -1366,6 +1386,21 @@ export const uz = {
       "Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi, bu sahifani " +
       'yopsangiz ham.',
     returnError: "To'lov tizimidan xatolik kodi qaytdi.",
+    returnFailedBadge: "To'lov amalga oshmadi",
+    returnFailed: 'Pro ochilmadi',
+    returnFailedBody:
+      "To'lov o'tmadi. Boshqa karta yoki boshqa usul bilan qayta urinib ko'ring. Kartangizdan " +
+      "pul yechilgan bo'lsa, bizga yozing.",
+    returnExpired: "To'lov yakunlanmadi",
+    returnExpiredBody:
+      "To'lov oynasi yopildi va Pro ochilmadi. Qayta urinib ko'ring — tanlagan rejangiz saqlanib qoladi.",
+    returnStalled: "To'lov hali tasdiqlanmadi",
+    returnStalledBody:
+      "Kartangizdan pul yechilgan bo'lsa, Pro bir necha daqiqada o'zi ochiladi. Yechilmagan " +
+      "bo'lsa, qayta urinib ko'ring.",
+    payAgain: "Qayta to'lash",
+    payOtherMethod: "{provider} orqali to'lash",
+    askForHelp: "Yordam so'rash",
     promoTitle: 'Promo code bormi?',
     promoPlaceholder: 'Promo code kiriting',
     promoApply: "Qo'llash",
@@ -1527,7 +1562,7 @@ export const uz = {
   },
 
   welcomeGift: {
-    eyebrow: "Siz uchun sovg'a",
+    eyebrow: "Birinchi mashq uchun sovg'a",
     title: "Uch qutidan birini tanlang",
     body: "Ichida 90 kunlik yo'lingiz uchun maxsus sovrin bor. Faqat bittasini ochish mumkin.",
     chooseLabel: "Sovg'a qutilari",

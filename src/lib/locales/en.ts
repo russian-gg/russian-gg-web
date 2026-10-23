@@ -161,6 +161,7 @@ export const en: Dictionary = {
       insecure: 'Open the page over https — the microphone will not work otherwise.',
       failed: 'The audio did not connect. Try again shortly.',
       scoreFailed: "We couldn't work out the result. Please try again.",
+      nothingHeard: "We didn't hear you. Allow the microphone or type your answer instead.",
     },
   },
 
@@ -718,7 +719,8 @@ export const en: Dictionary = {
     googleSignUpSubtitle: "Sign up with your Google account.",
     googleWorking: 'Signing in with Google…',
     googleUnavailable:
-      'Google sign-in is not working right now. Continue below with email and password.',
+      "Google sign-in doesn't work in this browser. Sign up with your phone number instead.",
+    usePhoneInstead: 'Continue with phone number',
     signInFailed: 'Sign-in failed. Please try again.',
     signUpFailed: 'Sign-up failed. Please try again.',
     invalidCredentials: 'The phone number/email or password is incorrect.',
@@ -965,6 +967,7 @@ export const en: Dictionary = {
     lockedProgressTitle: 'This day is still closed',
     lockedProgressBody: 'Finish the earlier days first — day {day} then opens on its own.',
     buyPro: 'Get Pro',
+    goToToday: "Go to today's lesson",
     filterAll: 'All',
     filterActive: 'In progress',
     filterDone: 'Completed',
@@ -1000,19 +1003,30 @@ export const en: Dictionary = {
     bestScore: 'Best score: {score}%',
     passMark: 'Pass mark: {score}%',
     notTried: 'Not tried yet',
-    statTotal: 'All missions',
     statDone: 'Completed',
     statInProgress: 'In progress',
     statNotStarted: 'Not started yet',
-    search: 'Search by mission name…',
-    filterAll: 'All',
-    sortLabel: 'Sort',
-    sortDefault: 'In order',
-    sortScore: 'By result',
-    sortShort: 'Shortest first',
     continue: 'Continue',
     repeat: 'Do it again',
-    noResults: 'No matching missions.',
+    mapLabel: 'Mission path',
+    progress: '{done} of {total} completed',
+    missionNumber: 'Mission {number}',
+    nodeLabel: '{number}. {title}: {status}',
+    current: 'Up next',
+    bestLabel: 'Best score',
+    lockedProBody: 'This mission opens with Pro.',
+    illustrationAlt: 'Illustration for “{title}”',
+    levelLabel: 'Level',
+    scenarioLabel: 'Situation',
+    learnHeading: "What you'll learn to say",
+    zones: {
+      neighborhood: 'Neighbourhood',
+      shopping: 'Shopping street',
+      dining: 'Cafés and restaurants',
+      transport: 'Roads and transport',
+      health: 'Health',
+      city: 'City services',
+    },
   },
 
   tests: {
@@ -1052,7 +1066,8 @@ export const en: Dictionary = {
     sortNewest: 'Newest first',
     sortOldest: 'Oldest first',
     sortScore: 'By result',
-    noResults: 'No matching tests.',
+    noResults: 'No matching tests.',
+
     factQuestions: 'Questions',
     factLevel: 'Level',
     factTime: 'Per question',
@@ -1161,6 +1176,11 @@ export const en: Dictionary = {
     finish: 'Finish',
     finishing: 'Finishing…',
     leave: 'Leave',
+    leaveTitle: 'Leave the conversation?',
+    leaveBody:
+      'If you leave now, the conversation is graded as it stands and counts as one attempt.',
+    leaveStay: 'Keep talking',
+    leaveConfirm: 'Leave and grade',
     orbLabel: 'Voice conversation with {character}',
     unavailable: 'Voice conversation is unavailable right now. Please try later.',
     startFailed: 'We could not start the conversation. Please try again.',
@@ -1338,6 +1358,21 @@ export const en: Dictionary = {
       'This can take a few minutes. Pro opens automatically once confirmed, even if you ' +
       'close this page.',
     returnError: 'The payment provider returned an error code.',
+    returnFailedBadge: 'Payment failed',
+    returnFailed: 'Pro did not open',
+    returnFailedBody:
+      'The payment did not go through. Try again with another card or method. If money was ' +
+      'taken from your card, message us.',
+    returnExpired: 'Payment not completed',
+    returnExpiredBody:
+      'The payment window closed and Pro did not open. Try again — your chosen plan is kept.',
+    returnStalled: 'Payment not confirmed yet',
+    returnStalledBody:
+      'If money was taken from your card, Pro opens by itself within a few minutes. If not, ' +
+      'try again.',
+    payAgain: 'Pay again',
+    payOtherMethod: 'Pay with {provider}',
+    askForHelp: 'Get help',
     promoTitle: 'Have a promo code?',
     promoPlaceholder: 'Enter your promo code',
     promoApply: 'Apply',
@@ -1493,7 +1528,7 @@ export const en: Dictionary = {
   },
 
   welcomeGift: {
-    eyebrow: 'A gift for you',
+    eyebrow: 'A gift for your first exercise',
     title: 'Choose one of three boxes',
     body: 'There is a special prize inside for your 90-day journey. You may open only one.',
     chooseLabel: 'Gift boxes',

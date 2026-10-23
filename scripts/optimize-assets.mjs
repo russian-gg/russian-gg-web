@@ -70,6 +70,8 @@ const RULES = [
   { match: /^reels\//, max: 360, quality: 75 },
   { match: /^games\//, max: 848, quality: 78 },
   { match: /^lesson-scenes\//, max: 640, quality: 78 },
+  // The selected mission's picture on the Missions tab: at most ~460px wide, 4:3.
+  { match: /^images\/missions\//, max: 960, quality: 80 },
 ]
 
 function ruleFor(relative) {
