@@ -961,7 +961,7 @@ export const en: Dictionary = {
     lockedFallback: 'This lesson is locked for now.',
     lockedProTitle: 'Day {day} is part of Pro',
     lockedProBody:
-      'The free plan opens the first 3 days. Pro opens the remaining 87 and the task library.',
+      'The free plan opens the first day. Pro opens the remaining 89 and the task library.',
     lockedProgressTitle: 'This day is still closed',
     lockedProgressBody: 'Finish the earlier days first — day {day} then opens on its own.',
     buyPro: 'Get Pro',
@@ -1289,10 +1289,10 @@ export const en: Dictionary = {
       'Full progress and level history',
       'The task library',
     ],
-    freeLimitItems: ['The level test', 'The first 3 days', 'A few sample tasks'],
+    freeLimitItems: ['The level test', 'The first day', 'A few sample tasks'],
     title: 'The full path with Pro',
     subtitle:
-      'The free plan opens the level test and the first 3 days. Pro is needed to carry on ' +
+      'The free plan opens the level test and the first day. Pro is needed to carry on ' +
       'from there.',
     processing: 'Payment is being checked',
     processingBody: 'Your payment was received and is being confirmed. Pro opens automatically once it is.',
@@ -1307,7 +1307,7 @@ export const en: Dictionary = {
     paymeHint: "Convenient payment with Payme",
     opening: 'Opening...',
     freeNote:
-      'The free plan opens the level test and the first 3 days of the path. The days after ' +
+      'The free plan opens the level test and the first day of the path. The days after ' +
       'that open with a Pro subscription through Click or Payme.',
     proUnlocks: 'What Pro opens',
     freeLimits: 'On the free plan',
