@@ -725,7 +725,8 @@ export const ru: Dictionary = {
     googleSignUpSubtitle: "Зарегистрируйтесь через аккаунт Google.",
     googleWorking: 'Входим через Google…',
     googleUnavailable:
-      'Вход через Google сейчас не работает. Продолжите ниже с email и паролем.',
+      'Вход через Google не работает в этом браузере. Зарегистрируйтесь по номеру телефона.',
+    usePhoneInstead: 'Продолжить по номеру телефона',
     signInFailed: 'Ошибка входа. Попробуйте ещё раз.',
     signUpFailed: 'Ошибка регистрации. Попробуйте ещё раз.',
     invalidCredentials: 'Неверный номер телефона/email или пароль.',

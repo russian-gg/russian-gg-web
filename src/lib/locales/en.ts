@@ -719,7 +719,8 @@ export const en: Dictionary = {
     googleSignUpSubtitle: "Sign up with your Google account.",
     googleWorking: 'Signing in with Google…',
     googleUnavailable:
-      'Google sign-in is not working right now. Continue below with email and password.',
+      "Google sign-in doesn't work in this browser. Sign up with your phone number instead.",
+    usePhoneInstead: 'Continue with phone number',
     signInFailed: 'Sign-in failed. Please try again.',
     signUpFailed: 'Sign-up failed. Please try again.',
     invalidCredentials: 'The phone number/email or password is incorrect.',

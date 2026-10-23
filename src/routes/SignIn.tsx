@@ -216,6 +216,7 @@ export function SignUp() {
   const location = useLocation()
   const [method, setMethod] = useState<SignUpMethod>('email')
   const [googleBusy, setGoogleBusy] = useState(false)
+  const [googleUnavailable, setGoogleUnavailable] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const didClearPendingRef = useRef(false)
 
@@ -228,9 +229,20 @@ export function SignUp() {
     }
   }, [abandonPendingOnboarding, isPendingOnboarding, location.state, navigate])
 
+  /*
+    Google fails most often inside the Instagram and Telegram browsers, which is where much of
+    the traffic arrives. Whatever the cause, the way forward is the phone form — so the page
+    goes there itself, with the reason above it, rather than leaving an empty tab or an error
+    the learner has to find the other tab to get past.
+  */
+  function fallBackToPhone(reason: string) {
+    setMethod('phone')
+    setError(reason)
+  }
+
   async function handleGoogleCredential(response: GoogleCredentialResponse) {
     if (!response.credential) {
-      setError(t.auth.googleNoToken)
+      fallBackToPhone(t.auth.googleNoToken)
       return
     }
 
@@ -241,7 +253,7 @@ export function SignUp() {
       track('signup_completed')
       navigate(postAuthDestination(user), { replace: true })
     } catch (caught) {
-      setError(authErrorText(caught, t.auth.googleFailed, {}))
+      fallBackToPhone(authErrorText(caught, t.auth.googleFailed, {}))
     } finally {
       setGoogleBusy(false)
     }
@@ -290,11 +302,29 @@ export function SignUp() {
         />
       </div>
 
-      {method === 'email' && (
-        <div className="mt-5">
-          <GoogleContinueButton busy={googleBusy} text="signup_with" onCredential={handleGoogleCredential} />
-        </div>
-      )}
+      {/* Once Google has failed to load it is not tried again on this visit: the tab says why
+          and points back to the phone form instead of failing a second time. */}
+      {method === 'email' &&
+        (googleUnavailable ? (
+          <div className="mt-5 space-y-3">
+            <ErrorNote>{t.auth.googleUnavailable}</ErrorNote>
+            <Button block size="lg" onClick={() => setMethod('phone')}>
+              {t.auth.usePhoneInstead}
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-5">
+            <GoogleContinueButton
+              busy={googleBusy}
+              text="signup_with"
+              onCredential={handleGoogleCredential}
+              onUnavailable={() => {
+                setGoogleUnavailable(true)
+                fallBackToPhone(t.auth.googleUnavailable)
+              }}
+            />
+          </div>
+        ))}
     </AuthLayout>
   )
 }
@@ -614,13 +644,17 @@ function GoogleContinueButton({
   busy,
   text,
   onCredential,
+  onUnavailable,
 }: {
   busy: boolean
   text: 'continue_with' | 'signup_with'
   onCredential: (response: GoogleCredentialResponse) => void | Promise<void>
+  /** Google's script did not load or its button did not render — usually an in-app browser. */
+  onUnavailable?: () => void
 }) {
   const buttonRef = useRef<HTMLDivElement | null>(null)
   const onCredentialEvent = useEffectEvent(onCredential)
+  const onUnavailableEvent = useEffectEvent(() => onUnavailable?.())
   const initializedRef = useRef(false)
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const t = useT()
@@ -655,19 +689,21 @@ function GoogleContinueButton({
             )
           }
           setStatus(rendered ? 'ready' : 'unavailable')
+          if (!rendered) onUnavailableEvent()
         }, 1500)
       })
       .catch((caught: unknown) => {
         if (cancelled) return
         console.error('[auth] Google Identity Services failed to load.', caught)
         setStatus('unavailable')
+        onUnavailableEvent()
       })
 
     return () => {
       cancelled = true
       if (probe) clearTimeout(probe)
     }
-  }, [clientId, onCredentialEvent, text])
+  }, [clientId, onCredentialEvent, onUnavailableEvent, text])
 
   if (!clientId || status === 'unavailable') return null
 

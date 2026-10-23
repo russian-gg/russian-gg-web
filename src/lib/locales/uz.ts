@@ -744,7 +744,8 @@ export const uz = {
     googleSignUpSubtitle: "Google hisobingiz orqali ro'yxatdan o'ting.",
     googleWorking: 'Google bilan kirilmoqda…',
     googleUnavailable:
-      'Google orqali kirish hozir ishlamayapti. Quyida email va parol bilan davom eting.',
+      "Google orqali kirish bu brauzerda ishlamayapti. Telefon raqami orqali ro'yxatdan o'ting.",
+    usePhoneInstead: 'Telefon raqami bilan davom etish',
     signInFailed: "Kirishda xatolik. Qayta urinib ko'ring.",
     signUpFailed: "Ro'yxatdan o'tishda xatolik. Qayta urinib ko'ring.",
     invalidCredentials: "Telefon raqami/email yoki parol noto'g'ri.",
