@@ -492,7 +492,7 @@ export function Badge({
   size = 'md',
 }: {
   children: ReactNode
-  tone?: 'neutral' | 'signal' | 'primary' | 'milestone' | 'caution'
+  tone?: 'neutral' | 'signal' | 'primary' | 'milestone' | 'caution' | 'danger'
   outline?: boolean
   /** `sm` is the counter chip that rides inside a nav row; `md` is the standalone badge. */
   size?: 'sm' | 'md'
@@ -505,6 +505,7 @@ export function Badge({
     primary: 'bg-signal text-on-signal',
     milestone: 'bg-milestone-soft text-milestone',
     caution: 'bg-caution-soft text-caution',
+    danger: 'bg-danger-soft text-danger',
   } as const
 
   const outlined = {
@@ -513,6 +514,7 @@ export function Badge({
     primary: 'border-2 border-signal bg-signal text-on-signal',
     milestone: 'border-2 border-milestone text-milestone',
     caution: 'border-2 border-caution text-caution',
+    danger: 'border-2 border-danger text-danger',
   } as const
 
   const sizing = {

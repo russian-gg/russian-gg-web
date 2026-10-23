@@ -185,6 +185,7 @@ export const uz = {
       insecure: 'Sahifani https orqali oching — mikrofon aks holda ishlamaydi.',
       failed: "Ovoz ulanmadi. Birozdan keyin urinib ko'ring.",
       scoreFailed: "Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.",
+      nothingHeard: 'Sizni eshitmadik. Mikrofonga ruxsat bering yoki javobni yozib yuboring.',
     },
   },
 
@@ -1366,6 +1367,21 @@ export const uz = {
       "Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi, bu sahifani " +
       'yopsangiz ham.',
     returnError: "To'lov tizimidan xatolik kodi qaytdi.",
+    returnFailedBadge: "To'lov amalga oshmadi",
+    returnFailed: 'Pro ochilmadi',
+    returnFailedBody:
+      "To'lov o'tmadi. Boshqa karta yoki boshqa usul bilan qayta urinib ko'ring. Kartangizdan " +
+      "pul yechilgan bo'lsa, bizga yozing.",
+    returnExpired: "To'lov yakunlanmadi",
+    returnExpiredBody:
+      "To'lov oynasi yopildi va Pro ochilmadi. Qayta urinib ko'ring — tanlagan rejangiz saqlanib qoladi.",
+    returnStalled: "To'lov hali tasdiqlanmadi",
+    returnStalledBody:
+      "Kartangizdan pul yechilgan bo'lsa, Pro bir necha daqiqada o'zi ochiladi. Yechilmagan " +
+      "bo'lsa, qayta urinib ko'ring.",
+    payAgain: "Qayta to'lash",
+    payOtherMethod: "{provider} orqali to'lash",
+    askForHelp: "Yordam so'rash",
     promoTitle: 'Promo code bormi?',
     promoPlaceholder: 'Promo code kiriting',
     promoApply: "Qo'llash",

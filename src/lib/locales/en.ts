@@ -161,6 +161,7 @@ export const en: Dictionary = {
       insecure: 'Open the page over https — the microphone will not work otherwise.',
       failed: 'The audio did not connect. Try again shortly.',
       scoreFailed: "We couldn't work out the result. Please try again.",
+      nothingHeard: "We didn't hear you. Allow the microphone or type your answer instead.",
     },
   },
 
@@ -1338,6 +1339,21 @@ export const en: Dictionary = {
       'This can take a few minutes. Pro opens automatically once confirmed, even if you ' +
       'close this page.',
     returnError: 'The payment provider returned an error code.',
+    returnFailedBadge: 'Payment failed',
+    returnFailed: 'Pro did not open',
+    returnFailedBody:
+      'The payment did not go through. Try again with another card or method. If money was ' +
+      'taken from your card, message us.',
+    returnExpired: 'Payment not completed',
+    returnExpiredBody:
+      'The payment window closed and Pro did not open. Try again — your chosen plan is kept.',
+    returnStalled: 'Payment not confirmed yet',
+    returnStalledBody:
+      'If money was taken from your card, Pro opens by itself within a few minutes. If not, ' +
+      'try again.',
+    payAgain: 'Pay again',
+    payOtherMethod: 'Pay with {provider}',
+    askForHelp: 'Get help',
     promoTitle: 'Have a promo code?',
     promoPlaceholder: 'Enter your promo code',
     promoApply: 'Apply',
