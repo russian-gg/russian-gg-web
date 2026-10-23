@@ -38,29 +38,39 @@
   --color-ground-sunken: #f2f4f7;
 
   --color-ink: #16181d;
-  --color-ink-muted: #747d8a;
-  --color-ink-faint: #a7adb8;
+  /*
+    Both secondary inks carry text — hints, captions, uppercase labels — so both clear 4.5:1
+    on white: muted 6.1:1, faint 5.2:1 (4.7:1 on a sunken card). Faint used to be #a7adb8
+    (2.3:1) and muted #747d8a (4.2:1); the labels that named a section or explained a
+    disabled button were the ones nobody could read in daylight.
+  */
+  --color-ink-muted: #5b6270;
+  --color-ink-faint: #666d7b;
   --color-hairline: #e7e9ed;
 
   /*
-    The approved brand blue. Used as a *fill*: buttons, progress, active states, the
-    voice badge, the wordmark accent.
+    The brand blue. Used as a *fill*: buttons, progress, active states, the voice badge,
+    the wordmark accent — and nearly every fill carries a white label.
 
-    Note for anyone tuning this: white text on this blue is ~2.8:1, below the 4.5:1 in
-    WCAG AA. It is the approved brand colour and the call was made deliberately. If the
-    bar has to be met later, deepen this one value toward #2563eb — nothing else needs
-    to change, because the label colour is its own token.
+    Deepened from #5b9bf5 for exactly that label: white on the old blue was 2.8:1, under
+    WCAG AA even for large bold text, on every primary action in the product. White on this
+    one is 4.2:1 and the hover shade below 3.9:1: past the 3:1 large-text bar, short of
+    the 4.5:1 for small text. Chosen lighter on purpose; #276fd8 (4.8:1) is the step that
+    clears 4.5:1, and anything lighter than this needs a dark label instead. The
+    light sky blue lives on in `signal-soft` tints and in the dark theme, where it is the
+    face and the label is dark.
   */
-  --color-signal: #5b9bf5;
-  --color-signal-strong: #4a8cee;
+  --color-signal: #347adf;
+  --color-signal-strong: #2b6ccf;
   --color-signal-soft: #eaf2fe;
 
   /*
     Hover lightens. `signal-strong` is the pressed/engaged shade and is darker here but
     lighter in the dark theme, so using it for hover made the same gesture brighten in one
     theme and dim in the other — and dimming reads as "disabled", not as "reachable".
+    It lightens only a step, so a white label stays readable on it (3.9:1).
   */
-  --color-signal-hover: #7ab0f8;
+  --color-signal-hover: #3a80e3;
 
   /** Label on a signal fill. One knob, so the whole product changes together. */
   --color-on-signal: #ffffff;
@@ -70,7 +80,7 @@
     has to read as the same surface in shade rather than as a second colour — deep
     enough to be an edge at 4px, never a stripe.
   */
-  --color-signal-depth: #2d76dd;
+  --color-signal-depth: #2160c0;
   --color-control-depth: #d5dae1;
   --color-danger-depth: #edb2ab;
 
@@ -158,15 +168,20 @@
 
   --color-ink: #f2f4f7;
   --color-ink-muted: #99a1af;
-  --color-ink-faint: #6b7280;
+  /* 6:1 on the ground, 5.7:1 on a card. The old #6b7280 was 3.9:1 and carried text. */
+  --color-ink-faint: #8a93a1;
   --color-hairline: #282d35;
 
-  /* The brand blue carries over unchanged; it already reads on a dark ground. */
+  /*
+    The light brand blue stays the face here — it reads on a dark ground, where a deep
+    blue would sink into it. What changes is the label: white on it was 2.8:1, this
+    near-black is 6.6:1.
+  */
   --color-signal: #5b9bf5;
   --color-signal-strong: #74aef8;
   --color-signal-soft: #16233a;
   --color-signal-hover: #7ab0f8;
-  --color-on-signal: #ffffff;
+  --color-on-signal: #0b1220;
 
   /* Depth is darker than the face in both themes — a lit edge would float, not sink. */
   --color-signal-depth: #2b63ac;

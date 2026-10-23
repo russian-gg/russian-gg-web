@@ -1690,7 +1690,7 @@ function DialogueLine({ line }: { line: string }) {
 
 function MicButton({ listening, processing, onClick }: { listening: boolean; processing: boolean; onClick: () => void }) {
   const t = useT().lesson.missions
-  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl text-white disabled:opacity-60', listening ? 'animate-pulse bg-danger raised-danger' : 'bg-signal raised-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
+  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger raised-danger' : 'bg-signal text-on-signal raised-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
       ? <Square aria-hidden="true" strokeWidth={0} className="size-5 fill-current" />
       : <Mic aria-hidden="true" strokeWidth={1.9} className="size-6" />}</button>
 }
@@ -1774,7 +1774,7 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
             </div>
           </div>
         </div>
-        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('coin')} className="raised raised-signal rounded-xl bg-signal py-3 text-xs font-black text-white">выучил</button><button type="button" onClick={() => rate('wrong')} className="raised raised-danger-soft rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={() => rate('select')} className="raised rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
+        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('coin')} className="raised raised-signal rounded-xl bg-signal py-3 text-xs font-black text-on-signal">выучил</button><button type="button" onClick={() => rate('wrong')} className="raised raised-danger-soft rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={() => rate('select')} className="raised rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
       </div>
     </div>, document.body,
   )
