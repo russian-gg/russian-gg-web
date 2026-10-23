@@ -40,7 +40,7 @@ export type UserRole = 'Learner' | 'ContentEditor' | 'Support' | 'Administrator'
 export type PlanTier = 'Free' | 'Pro'
 export type BillingPeriod = 'Monthly' | 'NinetyDay'
 export type WelcomeGiftPrize =
-  | 'BonusSevenDays'
+  | 'BonusFourDays'
   | 'Discount5'
   | 'Discount10'
   | 'Discount15'
