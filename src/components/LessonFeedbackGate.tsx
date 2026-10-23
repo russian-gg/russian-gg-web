@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { isBusyPath } from '../lib/busy-path'
 import { fill, useT } from '../lib/i18n'
 import type { LessonFeedbackStatus, SubmitLessonFeedbackRequest } from '../lib/types'
 import { Button, ErrorNote } from './ui'
@@ -24,12 +25,6 @@ const STEPS: Step[] = ['satisfaction', 'recommendation', 'rating', 'note']
 const NOTE_MAX_LENGTH = 2000
 /** Long enough to see the choice land before the next question slides in. */
 const AUTO_ADVANCE_MS = 320
-
-/** Screens where the learner is mid-lesson or mid-game. The survey waits until they come out. */
-function isBusyPath(pathname: string) {
-  if (pathname.startsWith('/missions/')) return !pathname.endsWith('/result')
-  return ['/lessons/', '/games/', '/onboarding'].some((prefix) => pathname.startsWith(prefix))
-}
 
 /**
  * The check-in after every third completed course day. The server decides when one is due; the

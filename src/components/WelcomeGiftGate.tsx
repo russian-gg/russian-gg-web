@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { isBusyPath } from '../lib/busy-path'
 import { fill, useT } from '../lib/i18n'
 import type { WelcomeGiftStatus } from '../lib/types'
 
@@ -156,15 +157,27 @@ export function WelcomeGiftGate() {
   const shakeTimerRef = useRef<number | undefined>(undefined)
   const [touchOnly, setTouchOnly] = useState(() => window.matchMedia(TOUCH_QUERY).matches)
 
-  const isProtectedPage = !['/', '/signin', '/signup', '/onboarding'].includes(location.pathname)
-  const enabled = Boolean(user?.hasCompletedDiagnostic && isProtectedPage)
-  const { data } = useQuery({
+  /*
+    The gift is the reward for the first finished mission or lesson — the server only offers it
+    once one exists — so it never stands between a new learner and the conversation they were
+    just sent to start. It waits out every activity screen and opens on the result after it.
+  */
+  const isPublicPage = ['/', '/signin', '/signup'].includes(location.pathname)
+  const enabled = Boolean(user?.hasCompletedDiagnostic && !isPublicPage && !isBusyPath(location.pathname))
+  const { data, refetch } = useQuery({
     queryKey: ['welcome-gift', user?.id],
     queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
     enabled,
     staleTime: 15_000,
     refetchOnWindowFocus: false,
   })
+
+  // Not offered yet is the state before the first finish. Coming out of an activity is when
+  // that can change, so ask again then rather than waiting out the stale time.
+  const waiting = Boolean(data && !data.isAvailable && !data.isClaimed)
+  useEffect(() => {
+    if (enabled && waiting) void refetch()
+  }, [enabled, waiting, refetch, location.pathname])
 
   const visible = Boolean(enabled && data?.isAvailable && !data.isClaimed && !hidden)
 
@@ -272,6 +285,7 @@ export function WelcomeGiftGate() {
       })
       setReward(result)
       queryClient.setQueryData<WelcomeGiftStatus>(['welcome-gift'], result)
+      queryClient.setQueryData<WelcomeGiftStatus>(['welcome-gift', user?.id], result)
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['entitlement'] }),
         queryClient.invalidateQueries({ queryKey: ['course-map'] }),

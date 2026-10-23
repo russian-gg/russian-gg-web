@@ -1509,7 +1509,7 @@ export const en: Dictionary = {
   },
 
   welcomeGift: {
-    eyebrow: 'A gift for you',
+    eyebrow: 'A gift for your first exercise',
     title: 'Choose one of three boxes',
     body: 'There is a special prize inside for your 90-day journey. You may open only one.',
     chooseLabel: 'Gift boxes',

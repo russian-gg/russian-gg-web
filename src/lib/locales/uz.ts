@@ -1543,7 +1543,7 @@ export const uz = {
   },
 
   welcomeGift: {
-    eyebrow: "Siz uchun sovg'a",
+    eyebrow: "Birinchi mashq uchun sovg'a",
     title: "Uch qutidan birini tanlang",
     body: "Ichida 90 kunlik yo'lingiz uchun maxsus sovrin bor. Faqat bittasini ochish mumkin.",
     chooseLabel: "Sovg'a qutilari",
