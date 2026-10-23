@@ -5,6 +5,7 @@ import { api, tokenStore } from './api'
 import { AuthContext, type AuthState } from './auth-context'
 import { disableGoogleAutoSelect } from './google-auth'
 import { useLocale } from './i18n'
+import { claimTelegramChat } from './telegram-claim'
 import type {
   AuthResponse,
   PhoneCodeChallenge,
@@ -46,6 +47,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadUser()
   }, [loadUser])
+
+  /*
+    Whoever is signed in inherits the Telegram chat they came from, if they came from one. As
+    soon as there is an account — a sign-up still in onboarding is already an account, and the
+    one most likely to have just come from the bot.
+  */
+  useEffect(() => {
+    if (user && tokenStore.access()) void claimTelegramChat()
+  }, [user])
 
   /**
    * Every cached query belongs to whoever was signed in when it was fetched. Identity is

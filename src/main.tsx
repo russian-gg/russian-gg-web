@@ -8,6 +8,7 @@ import { LocaleProvider } from './lib/locale-provider'
 import { MotionProvider } from './components/motion'
 import { RequestError } from './lib/api'
 import { recoverFromStaleChunks, registerServiceWorker } from './lib/pwa'
+import { captureTelegramClaim } from './lib/telegram-claim'
 import './styles.css'
 
 const queryClient = new QueryClient({
@@ -33,6 +34,10 @@ registerServiceWorker()
 // A tab left open across a deploy asks for chunks that no longer exist; it reloads onto the new
 // build instead of showing an error. See the note in lib/pwa.ts.
 recoverFromStaleChunks()
+
+// A link from the sales bot says which Telegram chat it was sent to. Read before the router
+// and analytics see the address, and kept until there is an account to hand it to.
+captureTelegramClaim()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

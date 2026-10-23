@@ -25,7 +25,7 @@ export const SUPPORT_TELEGRAM_URL = 'https://t.me/russian_gg_bot'
 export async function linkedTelegramUrl(): Promise<string> {
   try {
     const link = await api.post<TelegramLink>('/integrations/telegram/link')
-    return link.url || SUPPORT_TELEGRAM_URL
+    return link.deepLink || SUPPORT_TELEGRAM_URL
   } catch {
     return SUPPORT_TELEGRAM_URL
   }
