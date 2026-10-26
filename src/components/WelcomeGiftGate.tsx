@@ -162,7 +162,7 @@ export function WelcomeGiftGate() {
     once one exists — so it never stands between a new learner and the conversation they were
     just sent to start. It waits out every activity screen and opens on the result after it.
   */
-  const isPublicPage = ['/', '/signin', '/signup'].includes(location.pathname)
+  const isPublicPage = ['/', '/signin', '/signup', '/reset-password'].includes(location.pathname)
   const enabled = Boolean(user?.hasCompletedDiagnostic && !isPublicPage && !isBusyPath(location.pathname))
   const { data, refetch } = useQuery({
     queryKey: ['welcome-gift', user?.id],

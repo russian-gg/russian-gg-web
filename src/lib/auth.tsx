@@ -141,6 +141,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPendingOnboarding(false)
         return auth.user
       },
+      requestPasswordReset(phoneNumber) {
+        return api.post<PhoneCodeChallenge>('/auth/password/reset/request', { phoneNumber })
+      },
+      confirmPasswordReset(phoneNumber, code) {
+        return api.post<PhoneVerificationChallenge>('/auth/password/reset/confirm', { phoneNumber, code })
+      },
+      async completePasswordReset(phoneNumber, verificationToken, password) {
+        const auth = await api.post<AuthResponse>('/auth/password/reset/complete', {
+          phoneNumber,
+          verificationToken,
+          password,
+        })
+        tokenStore.set(auth)
+        resetCache()
+        adoptAccountLocale(auth.user.uiLanguage)
+        setUser(auth.user)
+        setPendingOnboarding(false)
+        return auth.user
+      },
       async signOut() {
         const refreshToken = tokenStore.refresh()
         if (refreshToken) {

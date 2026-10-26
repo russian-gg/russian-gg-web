@@ -23,6 +23,8 @@ export const uz = {
     minutes: '{count} daqiqa',
     loadFailed: "Ma'lumotni yuklab bo'lmadi",
     loadFailedBody: 'Internetni tekshirib, sahifani yangilang.',
+    offline: "Internet aloqasi yo'q. Ulanishni tekshirib, qayta urinib ko'ring.",
+    serverError: "Serverda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.",
   },
 
   /**
@@ -379,6 +381,7 @@ export const uz = {
       aiChat: 'Endi AI bilan suhbatga o‘ting.',
       vocabulary: 'Davom etish uchun kamida {count} ta kartani ko‘rib chiqing.',
       picture: 'Davom etish uchun mashq javobini yozing.',
+      aiAnswers: "Davom etish uchun kamida {count} ta savolga ovoz bilan javob bering.",
     },
 
     rule: {
@@ -392,8 +395,7 @@ export const uz = {
     },
 
     phrases: {
-      intro:
-        'Iborani tanlang. U karta shaklida ochiladi: vaziyat, talaffuz, namuna gap va eslab qolish holati bir joyda.',
+      intro: "Iborani tanlang. U karta shaklida ochiladi: vaziyat, talaffuz va namuna gap. Davom etish uchun har bir iboraga baho bering: bilaman, bilmayman yoki takrorlayman.",
       open: 'Kartani oching',
       close: 'Yopish',
       example: 'Namuna gap',
@@ -429,8 +431,7 @@ export const uz = {
     missions: {
       practiseDialogue: 'Dialogni mashq qiling',
       aiChat: 'AI bilan suhbat',
-      intro:
-        'Har bir qatorni tinglang va ovoz chiqarib takrorlang. Butun dialogni mashq qilib bo‘lgach, AI bilan suhbatga o‘tasiz.',
+      intro: "Har bir qatorni tinglang. So'ng mikrofonni bosib, butun dialogni ovoz chiqarib o'qing — u bir butun holda tekshiriladi. Keyin AI savollariga javob berasiz.",
       goToAi: 'AI bilan suhbatga o‘tish →',
       nextLine: 'Keyingi qator',
       backToDialogue: '← Dialogga qaytish',
@@ -438,6 +439,20 @@ export const uz = {
       mic: 'Mikrofon',
       stopRecording: 'Yozishni to‘xtatish',
       twoNeighbours: 'Ikki qo‘shni suhbati',
+      emptyRecording: "Ovoz yozilmadi. Mikrofonni bosing, gapiring, tugagach yana bosing.",
+      youSaid: "Siz aytdingiz: {text}",
+      checkFailed: "Ovozni tekshirib bo'lmadi. Internetni tekshirib, yana urinib ko'ring.",
+      micDialogue: "Bosing va butun dialogni o'qing, tugagach yana bosing.",
+      micStopDialogue: "Yozilmoqda… O'qib bo'lgach, to'xtatish uchun bosing.",
+      micAnswer: "Bosing, javob bering, tugagach yana bosing.",
+      micStopAnswer: "Yozilmoqda… Javob bergach, to'xtatish uchun bosing.",
+      micPermissionAhead: "Birinchi marta brauzer mikrofonga ruxsat so'raydi — «Ruxsat berish» (Allow) ni bosing.",
+      answeredOf: "Javob berildi: {done} / {total}",
+      allAnswered: "Barcha savollarga javob berdingiz! Endi «Davom etish»ni bosing.",
+      sampleAnswer: "Namuna javob",
+      showAnswer: "Javobni ko'rsatish",
+      nextQuestion: "Keyingi savol",
+      continueWithoutMic: "Mikrofon ishlamayaptimi? Mikrofonsiz davom etish",
     },
 
     vocabulary: {
@@ -447,9 +462,9 @@ export const uz = {
       resume: 'Davom ettirish',
       listenAndRepeat: 'Tinglang va takrorlang',
       tapForFront: 'Old tomon uchun kartani bosing',
-      known: 'выучил',
-      unknown: 'не знаю',
-      again: 'повторю',
+      known: "Bilaman · выучил",
+      unknown: "Bilmayman · не знаю",
+      again: "Takrorlayman · повторю",
     },
 
     exercise: {
@@ -465,6 +480,12 @@ export const uz = {
       title: 'Ajoyib!',
       body:
         'Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.',
+      saveFailed: "Dars natijasi saqlanmadi. Internetni tekshirib, qayta urinib ko'ring.",
+      saveRetry: "Qayta saqlash",
+      nextOpened: "{day}-kun ochildi",
+      nextOpenedBody: "Yo'lga qaytib, keyingi darsni boshlashingiz mumkin.",
+      nextNeedsPro: "{day}-kun Pro tarkibida",
+      nextNeedsProBody: "Bepul reja shu yerda tugaydi. Yo'lni davom ettirish uchun Pro'ni oching.",
     },
 
     audio: {
@@ -645,14 +666,14 @@ export const uz = {
       proPrice: '119 000',
       proUnit: "so'm / oy",
       proBadge: 'Ommabop',
-      proBody: "To'liq 90 kunlik kurs",
+      proBody: "Oyiga yo'lning 30 kuni",
       proFeatures: [
-        'Barcha 90 kun missiyalari',
-        'Cheksiz ovozli mashq',
+        "Har oy 30 kunlik missiyalar",
+        "Har kuni ovozli mashq",
         "Barcha o'yinlar",
         'Progress va tuzatishlar tahlili',
       ],
-      proAlt: 'yoki 90 kun — 299 000 so‘m',
+      proAlt: "yoki butun 90 kun — 299 000 so‘m",
       proCta: "Pro'ni tanlash",
       payNote: "Uzcard va Humo — Click yoki Payme orqali xavfsiz to'lov.",
     },
@@ -716,6 +737,16 @@ export const uz = {
   },
 
   auth: {
+    reset: {
+      forgot: "Parolni unutdingizmi?",
+      title: "Parolni tiklash",
+      subtitle: "Telefon raqamingizni kiriting — SMS orqali kod yuboramiz va yangi parol o'rnatasiz.",
+      setupTitle: "Yangi parol",
+      setupSubtitle: "Raqamingiz tasdiqlandi. Keyingi kirishlar uchun yangi parol o'rnating.",
+      newPassword: "Yangi parol",
+      submit: "Parolni saqlash va kirish",
+      backToSignIn: "Kirish sahifasiga qaytish",
+    },
     signInTitle: 'Kirish',
     signUpTitle: "Ro'yxatdan o'tish",
     signInSubtitle: "Hisobingizga kiring va davom eting.",
@@ -800,6 +831,7 @@ export const uz = {
         default: "Xatolik yuz berdi. Qayta urinib ko‘ring.",
         google_email_not_verified: 'Bu Google hisobining tasdiqlangan pochtasi yo‘q.',
         email_taken: 'Bu pochta manzili boshqa profilga biriktirilgan.',
+        phone_not_registered: "Bu raqam bilan hisob topilmadi. Ro'yxatdan o'ting yoki Google bilan kiring.",
       },
     },
   },
@@ -1186,6 +1218,7 @@ export const uz = {
     cooldownBody:
       "Bu suhbatni {time} dan so'ng qayta boshlashingiz mumkin. Shu vaqt ichida keyingi missiyaga o'tsangiz bo'ladi.",
     cooldownOk: "Tushunarli",
+    cooldownNext: "Boshqa topshiriqni tanlash",
     failedBody: "Sizning balingiz {score}%. O'tish uchun kamida {pass}% kerak.",
   },
 
@@ -1211,6 +1244,16 @@ export const uz = {
     unavailable: "Ovozli suhbat hozir ishlamayapti. Keyinroq urinib ko'ring.",
     startFailed: "Suhbatni boshlab bo'lmadi. Qayta urinib ko'ring.",
     phrases: "Shu darsning iboralari",
+    phrasesTab: "Iboralar · {count}",
+    repeat: "Qaytaring",
+    help: "Yordam",
+    showLine: "Nima dedi?",
+    hideLine: "Matnni yashirish",
+    dropped: "Aloqa uzildi",
+    droppedBody: "Suhbat shu joyda to'xtadi. Qayta ulanib davom eting yoki hozirgacha aytganlaringiz bo'yicha natijani oling.",
+    reconnect: "Qayta ulanish",
+    finishAndSee: "Yakunlash va natijani ko'rish",
+    backToMission: "Topshiriqqa qaytish",
     characters: { Penguin: "Pingvin", Panda: "Panda", Pero: "Pero", None: "AI ustoz" },
   },
 
@@ -1330,19 +1373,23 @@ export const uz = {
   },
 
   billing: {
+    periodUnlocks: {
+      Monthly: "Yo'lning 30 kuni ochiladi",
+      NinetyDay: "Butun 90 kunlik yo'l ochiladi",
+    },
     periodLabel: {
       Monthly: 'Oylik',
       NinetyDay: '90 kunlik',
     },
     proBenefits: [
-      "To'liq 90 kunlik yo'l",
+      "Yo'lning keyingi kunlari: oylikda 30 kun, 90 kunlikda hammasi",
       'Har kuni ovozli mashqlar',
       'Shaxsiy tuzatish darslari',
       "To'liq progress va daraja tarixi",
       "\"Bugun mashq\" kutubxonasi",
     ],
     freeLimitItems: ['Daraja testi', 'Birinchi kun', 'Cheklangan namuna mashqlari'],
-    title: "Pro bilan to'liq yo'l",
+    title: "Pro bilan yo'lni davom ettiring",
     subtitle:
       "Bepul rejada daraja testi va birinchi kun ochiq. Keyingi kunlarni davom ettirish uchun " +
       "Pro obuna kerak bo'ladi.",
@@ -1370,9 +1417,7 @@ export const uz = {
     proPlanTitle: "Pro reja nimalarni beradi?",
     upsellTitle: "Ko‘proq imkoniyatlar uchun obuna bo‘ling",
     upsellBody: "Pro reja bilan rus tilini yanada samarali o‘rganing.",
-    cancelNote:
-      "Obunani istalgan vaqtda Sozlamalar bo'limidan bekor qilishingiz mumkin. Bekor qilganingizda " +
-      "to'langan muddat oxirigacha Pro ochiq qoladi.",
+    cancelNote: "To'lov bir martalik: kartangizdan avtomatik pul yechilmaydi. Muddat tugagach Pro yopiladi — davom etish uchun shu sahifada uzaytiring.",
     trialActive: 'Sinov muddati',
     proActive: 'Pro faol',
     trialUntil: 'Sinov {date} gacha.',
@@ -1384,7 +1429,7 @@ export const uz = {
     returnChecking: "To'lov tekshirilmoqda",
     returnConfirmed: "To'lov tasdiqlandi",
     returnProOpen: 'Pro ochildi',
-    returnProBody: "90 kunlik to'liq yo'l endi sizga ochiq.",
+    returnProBody: "Yo'lning keyingi kunlari endi sizga ochiq.",
     returnPending: "To'lov tasdiqlanmoqda",
     returnPendingBody:
       "Bu bir necha daqiqa olishi mumkin. Tasdiqlangach Pro avtomatik ochiladi, bu sahifani " +
@@ -1413,6 +1458,15 @@ export const uz = {
     promoFinal: "To'lov: {amount}",
     promoPercent: '{percent}% chegirma',
     promoCelebrationBody: '{amount} chegirma ishladi.',
+    extendTitle: "Pro'ni uzaytirish",
+    extendBody: "Yangi muddat hozirgisi tugagan kundan boshlanadi — to'langan kunlar yo'qolmaydi.",
+    receiptPlan: "Reja",
+    receiptAmount: "Summa",
+    receiptMethod: "To'lov usuli",
+    receiptUntil: "Pro amal qiladi",
+    receiptNote: "To'lov cheki {provider} ilovangizda saqlanadi.",
+    startDay: "{day}-kunni boshlash",
+    cancelFailed: "Obunani bekor qilib bo'lmadi. Qayta urinib ko'ring.",
   },
 
   profile: {
@@ -1433,7 +1487,7 @@ export const uz = {
     currentPlan: 'Hozirgi reja',
     subscription: 'Obuna',
     unlockedDays: 'Ochilgan kunlar',
-    nextPayment: "Keyingi to'lov",
+    nextPayment: "Pro tugaydi",
     validUntil: 'Amal qiladi',
     paymentChecking: "To'lov tekshirilmoqda",
     subscriptionUnavailable: "Obuna ma'lumotini hozir yuklab bo'lmadi.",

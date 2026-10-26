@@ -65,6 +65,7 @@ const Progress = route(() => import('./routes/Progress'), 'Progress')
 const Settings = route(() => import('./routes/Settings'), 'Settings')
 const SignIn = route(() => import('./routes/SignIn'), 'SignIn')
 const SignUp = route(() => import('./routes/SignIn'), 'SignUp')
+const ResetPassword = route(() => import('./routes/SignIn'), 'ResetPassword')
 
 export function App() {
   useVisitBeacon()
@@ -86,6 +87,7 @@ export function App() {
             <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
             <Route path="/signin" element={<PublicOnly><SignIn /></PublicOnly>} />
             <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
+            <Route path="/reset-password" element={<PublicOnly><ResetPassword /></PublicOnly>} />
 
             {/*
               Outside the shell, because nothing should compete with the forty seconds, and public,

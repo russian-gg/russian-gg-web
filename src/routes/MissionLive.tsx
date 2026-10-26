@@ -4,20 +4,45 @@ import * as m from 'motion/react-m'
 import { ChevronLeft, Clock } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { api, RequestError } from '../lib/api'
+import { api } from '../lib/api'
 import { characterColors, characterName, characterPalette } from '../lib/character'
 import { cx } from '../lib/cx'
 import { foundationLessons } from '../lib/foundation-lessons'
 import { fill, useT } from '../lib/i18n'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { LiveFunctionDeclaration, LiveVoiceStatus } from '../lib/liveVoice'
-import type { MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
+import type { EntitlementView, MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
 import { CharacterOrb, type OrbState } from '../components/CharacterOrb'
 import { Button, ErrorNote, QueryError, Spinner } from '../components/ui'
+import { DailyLimitDialog, MicrophonePermissionDialog } from '../components/VoiceDialogs'
+import {
+  describeVoiceFailure,
+  isMicrophonePermissionCode,
+  microphonePermissionFailureCode,
+  type MicrophonePermissionCode,
+} from '../lib/voice-failure'
 import { useFocusTrap } from '../lib/focus-trap'
 import { backdrop, sheet } from '../lib/motion'
 
-type Phase = 'ready' | 'connecting' | 'live' | 'finishing' | 'unavailable'
+/**
+ * `reconnecting` and `dropped` are a call that has started and lost its connection: the clock
+ * stops in both, and `dropped` is the one where reconnecting has stopped trying by itself.
+ */
+type Phase = 'ready' | 'connecting' | 'live' | 'reconnecting' | 'dropped' | 'finishing' | 'unavailable'
+
+/**
+ * Automatic reconnects before the learner is asked. The server continues the same voice
+ * session, so a reconnect does not spend a second slice of the daily allowance.
+ */
+const MAX_RECONNECTS = 2
+
+/*
+ * What the help buttons say to the character. Sent as the learner's text, so it never reaches
+ * the transcript that is graded — only the character's answer to it is heard.
+ */
+const ASK_REPEAT = 'Повтори, пожалуйста, последнюю фразу медленнее и проще.'
+const ASK_HINT =
+  'Я не знаю, что ответить. Коротко подскажи по-узбекски, что от меня нужно, и дай пример фразы по-русски.'
 
 /** What the sphere shows for each state of the connection. */
 const ORB_STATE: Record<LiveVoiceStatus, OrbState> = {
@@ -86,8 +111,26 @@ export function MissionLive() {
   const [muted, setMuted] = useState(false)
   const [goalReached, setGoalReached] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** A note that is not a failure: nothing heard yet, or a reconnect under way. */
+  const [hint, setHint] = useState<string | null>(null)
+  /** The character's audio is playing. The connection's own status says "listening" throughout. */
+  const [speaking, setSpeaking] = useState(false)
+  const [inputLevel, setInputLevel] = useState(0)
+  /** The character's latest line, shown only when the learner asks for it. */
+  const [lastLine, setLastLine] = useState('')
+  const [showLine, setShowLine] = useState(false)
+  const [dailyLimit, setDailyLimit] = useState(false)
+  const [micPermission, setMicPermission] = useState<MicrophonePermissionCode | null>(null)
   const [phrasesOpen, setPhrasesOpen] = useState(false)
   const phrasesPanelId = useId()
+  const reconnectsRef = useRef(0)
+  const phaseRef = useRef<Phase>('ready')
+  phaseRef.current = phase
+
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
+  })
 
   const sessionRef = useRef<LiveVoiceSession | null>(null)
   const sessionIdRef = useRef<string | null>(null)
@@ -100,6 +143,11 @@ export function MissionLive() {
   /** The character's line the learner is answering — what their answer is graded against. */
   const questionRef = useRef('')
   const finishRequestedRef = useRef(false)
+  /**
+   * The learner asked for a repeat or a hint. The character's answer to that is help, not the
+   * line being answered, so it must not become what the next answer is graded against.
+   */
+  const askedRef = useRef(false)
   const finishingRef = useRef(false)
   /** Every exchange as it happened, handed to the server when the conversation ends. */
   const turnsRef = useRef<{ stepIndex: number; learnerTranscript: string; tutorTranscript: string | null }[]>([])
@@ -228,7 +276,8 @@ export function MissionLive() {
     // The character spoke but the learner has not answered yet — that is the tutor's own turn,
     // not an exchange, and it is the line the learner will be answering next.
     if (!attemptRef.current || spoken.length === 0) {
-      if (reply) questionRef.current = reply
+      if (reply && !askedRef.current) questionRef.current = reply
+      askedRef.current = false
       void listenAgain()
       return
     }
@@ -289,15 +338,20 @@ export function MissionLive() {
   async function connect() {
     if (!missionId) return
     setError(null)
+    setHint(null)
     setPhase('connecting')
 
     try {
       // Kept inside the learner's tap: Android grants the microphone to a gesture, and a
       // billed session should never be opened before the browser has said yes.
       await requestMicrophone()
-    } catch {
+    } catch (caught) {
       setPhase('ready')
-      setError(copy.startFailed)
+      // A refused microphone gets the dialog that says how to allow it on this device; other
+      // failures say what they are, rather than "couldn't start".
+      const permission = microphonePermissionFailureCode(caught)
+      if (permission) setMicPermission(permission)
+      else setError(describeVoiceFailure(caught, t, copy.startFailed))
       return
     }
 
@@ -307,64 +361,9 @@ export function MissionLive() {
         attempt = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts?restart=true`)
       }
       attemptRef.current = attempt
+      reconnectsRef.current = 0
 
-      const outcome = await api.post<VoiceSessionOutcome>('/missions/voice/sessions', {
-        attemptId: attempt.attemptId,
-        stepIndex: 0,
-      })
-
-      if (!outcome.isAvailable || !outcome.ticket) {
-        setPhase('unavailable')
-        setError(outcome.unavailable?.messageUz ?? copy.unavailable)
-        releaseMicrophone()
-        return
-      }
-
-      const ticket = outcome.ticket
-      sessionIdRef.current = ticket.sessionId
-      setSecondsLeft(ticket.maxDurationSeconds)
-
-      const session = new LiveVoiceSession(
-        ticket,
-        {
-          onStatus: (next) => {
-            setStatus(next)
-            // A new listening turn: whatever the character said since the last exchange — the
-            // opening, above all — is the line the learner is about to answer.
-            if (next === 'listening' && tutorRef.current.trim()) {
-              questionRef.current = tutorRef.current.trim()
-              tutorRef.current = ''
-            }
-          },
-          onConnected: () => {
-            setPhase('live')
-            void api
-              .post('/missions/voice/sessions/connected', { sessionId: ticket.sessionId, connectMilliseconds: 0 })
-              .catch(() => {})
-          },
-          // Both arrive as the whole turn so far, not as the latest piece. Appending them wrote
-          // every answer out several times over ("Меня Меня зовут Меня зовут Али"), and that
-          // is what was graded.
-          onInputTranscript: (text) => {
-            learnerRef.current = text
-          },
-          onOutputTranscript: (text) => {
-            tutorRef.current = text
-          },
-          onTurnComplete: () => recordTurn(),
-          onToolCall: handleToolCall,
-          onSilenceTimeout: () => {},
-          onNoSpeech: () => {},
-          onDropped: () => setError(copy.unavailable),
-          onError: () => setError(copy.startFailed),
-        },
-        // A conversation, not a form: the microphone stays open for the whole scene and the
-        // character can be interrupted mid-sentence.
-        { continuous: true, tools: MISSION_TOOLS },
-      )
-
-      sessionRef.current = session
-      await session.start()
+      await openSession(attempt)
     } catch (caught) {
       // A session that failed half-way still holds the microphone it opened. Closing it hands
       // that back; without this the recording indicator stayed lit until the tab was closed.
@@ -374,7 +373,146 @@ export function MissionLive() {
 
       releaseMicrophone()
       setPhase('ready')
-      setError(caught instanceof RequestError ? caught.message : copy.startFailed)
+      setError(describeVoiceFailure(caught, t, copy.startFailed))
+    }
+  }
+
+  /**
+   * Continues a call whose connection dropped. Twice on its own; after that the learner
+   * chooses between trying again and finishing with what they have said so far, instead of
+   * a clock and a sphere carrying on over a dead line.
+   */
+  async function reconnect() {
+    if (finishingRef.current || !attemptRef.current) return
+
+    const dropped = sessionRef.current
+    sessionRef.current = null
+    setSpeaking(false)
+    await dropped?.close().catch(() => {})
+
+    if (reconnectsRef.current >= MAX_RECONNECTS) {
+      setHint(null)
+      setPhase('dropped')
+      return
+    }
+
+    reconnectsRef.current += 1
+    setError(null)
+    setHint(t.player.reconnecting)
+    setPhase('reconnecting')
+
+    try {
+      await requestMicrophone()
+      await openSession(attemptRef.current)
+    } catch (caught) {
+      // Assigned inside openSession, which the narrowing above cannot see.
+      const started = sessionRef.current as LiveVoiceSession | null
+      sessionRef.current = null
+      await started?.close().catch(() => {})
+      setHint(null)
+      setError(describeVoiceFailure(caught, t, t.voiceErrors.connect_failed))
+      setPhase('dropped')
+    }
+  }
+
+  /** Asks the server for a voice ticket for the attempt and opens the conversation on it. */
+  async function openSession(attempt: StartAttemptResponse) {
+    const outcome = await api.post<VoiceSessionOutcome>('/missions/voice/sessions', {
+      attemptId: attempt.attemptId,
+      stepIndex: beatRef.current,
+    })
+
+    if (!outcome.isAvailable || !outcome.ticket) {
+      releaseMicrophone()
+      setHint(null)
+      const isDailyLimit = outcome.unavailable?.reason === 'daily_limit'
+      // Mid-call, what was said so far can still be graded; before it, there is nothing to.
+      const midCall = turnsRef.current.length > 0 || phaseRef.current === 'reconnecting'
+      if (isDailyLimit) {
+        // The dialog says what the limit is and, for a free learner, how to lift it.
+        setDailyLimit(true)
+        setError(null)
+      } else {
+        setError(outcome.unavailable?.messageUz ?? copy.unavailable)
+      }
+      setPhase(midCall ? 'dropped' : 'unavailable')
+      return
+    }
+
+    const ticket = outcome.ticket
+    sessionIdRef.current = ticket.sessionId
+    // A reconnect's ticket covers what is left of the call; the clock never runs backwards.
+    setSecondsLeft((left) => (left === null ? ticket.maxDurationSeconds : Math.min(left, ticket.maxDurationSeconds)))
+
+    const session = new LiveVoiceSession(
+      ticket,
+      {
+        // The character's voice, not the connection's status, says whose turn it is: the
+        // microphone stays open while the character talks, so the status read "listening"
+        // over every one of its lines and the screen told the learner to speak.
+        onPlayback: (playing) => setSpeaking(playing),
+        onInputLevel: (rms, isSpeech) => {
+          setInputLevel(isSpeech ? Math.round(Math.min(1, rms * 12) * 10) / 10 : 0)
+          if (isSpeech) setHint((current) => (current === t.player.noSpeechHint ? null : current))
+        },
+        onStatus: (next) => {
+          setStatus(next)
+          // A new listening turn: whatever the character said since the last exchange — the
+          // opening, above all — is the line the learner is about to answer.
+          if (next === 'listening' && tutorRef.current.trim() && !askedRef.current) {
+            questionRef.current = tutorRef.current.trim()
+            tutorRef.current = ''
+          }
+        },
+        onConnected: () => {
+          setPhase('live')
+          void api
+            .post('/missions/voice/sessions/connected', { sessionId: ticket.sessionId, connectMilliseconds: 0 })
+            .catch(() => {})
+        },
+        // Both arrive as the whole turn so far, not as the latest piece. Appending them wrote
+        // every answer out several times over ("Меня Меня зовут Меня зовут Али"), and that
+        // is what was graded.
+        onInputTranscript: (text) => {
+          learnerRef.current = text
+        },
+        onOutputTranscript: (text) => {
+          tutorRef.current = text
+          if (text.trim()) setLastLine(text.trim())
+        },
+        onTurnComplete: () => recordTurn(),
+        onToolCall: handleToolCall,
+        // The session ends turns on its own in a continuous call; this is for turn-gated use.
+        onSilenceTimeout: () => {},
+        // A hint, not an error: the call is fine and still listening, but nothing has been
+        // heard — most often a muted or wrong input device.
+        onNoSpeech: () => setHint(t.player.noSpeechHint),
+        onDropped: () => void reconnect(),
+        onError: (code) => {
+          if (isMicrophonePermissionCode(code)) setMicPermission(code)
+          else setError(t.voiceErrors[code])
+          // Before the call opened there is nothing to keep: back to the start button.
+          if (phaseRef.current === 'connecting') {
+            releaseMicrophone()
+            setPhase('ready')
+          }
+        },
+      },
+      // A conversation, not a form: the microphone stays open for the whole scene and the
+      // character can be interrupted mid-sentence.
+      { continuous: true, tools: MISSION_TOOLS },
+    )
+
+    sessionRef.current = session
+    await session.start()
+  }
+
+  /** Repeat or hint: asks the character, in the learner's place, for help with the scene. */
+  function askCharacter(text: string) {
+    const asked = sessionRef.current?.requestTutorResponse(text) ?? false
+    if (asked) {
+      askedRef.current = true
+      setHint(null)
     }
   }
 
@@ -401,8 +539,10 @@ export function MissionLive() {
   const orbState: OrbState = goalReached
     ? 'talking'
     : phase === 'live'
-      ? ORB_STATE[status]
-      : phase === 'connecting'
+      ? speaking
+        ? 'talking'
+        : ORB_STATE[status]
+      : phase === 'connecting' || phase === 'reconnecting'
         ? 'thinking'
         : 'idle'
 
@@ -410,15 +550,26 @@ export function MissionLive() {
     ? copy.goalReached
     : phase === 'connecting'
       ? copy.connecting
-      : phase === 'live'
-        ? status === 'thinking'
-          ? copy.thinking
-          : status === 'listening'
-            ? copy.listening
-            : copy.talking
-        : ''
+      : phase === 'reconnecting'
+        ? t.player.reconnecting
+        : phase === 'dropped'
+          ? copy.dropped
+          : phase === 'live'
+            ? speaking
+              ? copy.talking
+              : muted
+                ? t.player.microphonePaused
+                : status === 'thinking'
+                  ? copy.thinking
+                  : status === 'listening'
+                    ? copy.listening
+                    : copy.talking
+            : ''
 
-  const started = phase === 'live' || phase === 'connecting' || phase === 'finishing'
+  const started =
+    phase === 'live' || phase === 'connecting' || phase === 'reconnecting' || phase === 'dropped' || phase === 'finishing'
+  // Help is for a call that is running and waiting on the learner, not one mid-sentence.
+  const canAsk = phase === 'live' && !speaking && !muted && !goalReached
   const lowOnTime = secondsLeft !== null && secondsLeft <= 30
 
   return (
@@ -438,7 +589,7 @@ export function MissionLive() {
         <button
           type="button"
           onClick={() =>
-            phase === 'live' || phase === 'connecting'
+            phase === 'live' || phase === 'connecting' || phase === 'reconnecting' || phase === 'dropped'
               ? setConfirmLeave(true)
               : phase === 'finishing'
                 ? undefined
@@ -512,7 +663,7 @@ export function MissionLive() {
           >
             <ChevronGlyph open={phrasesOpen} />
             <span className="text-[11px] font-extrabold text-ink-muted [writing-mode:vertical-rl]">
-              {helpers.length}
+              {fill(copy.phrasesTab, { count: helpers.length })}
             </span>
           </button>
         </div>
@@ -523,7 +674,8 @@ export function MissionLive() {
           <CharacterOrb
             colors={colors}
             agentState={orbState}
-            manualInput={orbState === 'listening' ? 0.5 : 0.1}
+            // The learner's own voice moves the sphere, so they can see they are being heard.
+            manualInput={orbState === 'listening' ? Math.max(0.15, inputLevel) : 0.1}
             manualOutput={orbState === 'talking' ? 0.65 : 0.1}
             label={fill(copy.orbLabel, { character: name })}
           />
@@ -567,6 +719,65 @@ export function MissionLive() {
           </div>
         )}
 
+        {/* The character's last line in text, for a learner who did not catch it. */}
+        {showLine && lastLine && phase === 'live' && (
+          <div className="w-full max-w-sm rounded-2xl border border-hairline bg-ground-raised/90 px-4 py-3 text-left">
+            <p className="text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">{name}</p>
+            <p lang="ru" className="mt-1 text-base leading-snug text-ink">
+              {lastLine}
+            </p>
+          </div>
+        )}
+
+        {phase === 'live' && !goalReached && (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button variant="secondary" size="sm" disabled={!canAsk} onClick={() => askCharacter(ASK_REPEAT)}>
+              {copy.repeat}
+            </Button>
+            <Button variant="secondary" size="sm" disabled={!canAsk} onClick={() => askCharacter(ASK_HINT)}>
+              {copy.help}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!lastLine}
+              aria-pressed={showLine}
+              onClick={() => setShowLine((shown) => !shown)}
+            >
+              {showLine ? copy.hideLine : copy.showLine}
+            </Button>
+          </div>
+        )}
+
+        {hint && (
+          <p role="status" className="max-w-sm text-center text-sm leading-relaxed font-semibold text-caution">
+            {hint}
+          </p>
+        )}
+
+        {phase === 'dropped' && (
+          <div role="alert" className="w-full max-w-sm rounded-2xl border border-danger/30 bg-danger-soft px-4 py-4 text-center">
+            <p className="text-base font-extrabold text-ink">{copy.dropped}</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-muted">{copy.droppedBody}</p>
+            <div className="mt-4 flex flex-col gap-2">
+              {!dailyLimit && (
+                <Button
+                  block
+                  onClick={() => {
+                    reconnectsRef.current = 0
+                    void reconnect()
+                  }}
+                >
+                  {copy.reconnect}
+                </Button>
+              )}
+              <Button variant="secondary" block onClick={() => void finish()}>
+                {copy.finishAndSee}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="w-full max-w-sm">
             <ErrorNote>{error}</ErrorNote>
@@ -595,12 +806,40 @@ export function MissionLive() {
               )}
             </Button>
           </>
+        ) : phase === 'unavailable' ? (
+          // Starting again would fail the same way. Back to the mission, where the learner
+          // can choose something else.
+          <Button size="lg" block variant="secondary" className="max-w-sm" onClick={() => navigate(`/missions/${missionId}`, { replace: true })}>
+            {copy.backToMission}
+          </Button>
         ) : (
           <Button size="lg" block className="max-w-sm" onClick={() => void connect()}>
             {t.missionBrief.start}
           </Button>
         )}
       </footer>
+
+      {dailyLimit && (
+        <DailyLimitDialog
+          isPro={Boolean(entitlement?.hasProAccess)}
+          onDismiss={() => setDailyLimit(false)}
+          onBuy={() => {
+            setDailyLimit(false)
+            navigate('/paywall')
+          }}
+        />
+      )}
+
+      {micPermission && (
+        <MicrophonePermissionDialog
+          busy={false}
+          onRetry={() => {
+            setMicPermission(null)
+            void connect()
+          }}
+          onDismiss={() => setMicPermission(null)}
+        />
+      )}
 
       <AnimatePresence>
         {confirmLeave && (

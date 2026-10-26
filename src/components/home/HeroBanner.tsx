@@ -26,7 +26,8 @@ import heroBackdrop from '../../assets/images/landing_bg.webp'
  * physics come from `Button`, the radius from the card token, the type scale from the rest of
  * Home.
  */
-export function HeroBanner({ to }: { to: string }) {
+/** `label` replaces the usual "start" when the next lesson is locked and the door leads elsewhere. */
+export function HeroBanner({ to, label }: { to: string; label?: string }) {
   const t = useT()
   const { user } = useAuth()
   // First name only: "Salom, Ali!" rather than the whole display name.
@@ -137,7 +138,7 @@ export function HeroBanner({ to }: { to: string }) {
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/22">
               <PlayGlyph />
             </span>
-            <span className="truncate">{t.home.hero.cta}</span>
+            <span className="truncate">{label ?? t.home.hero.cta}</span>
             <ArrowGlyph />
           </Link>
         </div>

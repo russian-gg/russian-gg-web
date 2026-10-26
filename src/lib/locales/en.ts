@@ -19,6 +19,8 @@ export const en: Dictionary = {
     minutes: '{count} min',
     loadFailed: 'Could not load this',
     loadFailedBody: 'Check your connection and refresh the page.',
+    offline: "No internet connection. Check it and try again.",
+    serverError: "Something went wrong on our side. Try again in a moment.",
   },
 
   level: {
@@ -355,6 +357,7 @@ export const en: Dictionary = {
       aiChat: 'Now move on to the conversation with the AI.',
       vocabulary: 'Look through at least {count} cards to continue.',
       picture: 'Write your answer to the exercise to continue.',
+      aiAnswers: "Answer at least {count} questions aloud to continue.",
     },
 
     rule: {
@@ -368,8 +371,7 @@ export const en: Dictionary = {
     },
 
     phrases: {
-      intro:
-        'Pick a phrase. It opens as a card: the situation, the pronunciation, an example sentence and how well you knew it, all in one place.',
+      intro: "Pick a phrase. It opens as a card: the situation, how to say it and an example. To continue, rate every phrase: know it, don't know it, or review it.",
       open: 'Open the card',
       close: 'Close',
       example: 'Example sentence',
@@ -405,8 +407,7 @@ export const en: Dictionary = {
     missions: {
       practiseDialogue: 'Practise the dialogue',
       aiChat: 'Talk to the AI',
-      intro:
-        'Listen to each line and repeat it out loud. Once you have worked through the whole dialogue, you move on to the conversation with the AI.',
+      intro: "Listen to each line. Then tap the microphone and read the whole dialogue aloud — it is checked as a whole. After that you answer the AI's questions.",
       goToAi: 'Move on to the AI conversation →',
       nextLine: 'Next line',
       backToDialogue: '← Back to the dialogue',
@@ -414,6 +415,20 @@ export const en: Dictionary = {
       mic: 'Microphone',
       stopRecording: 'Stop recording',
       twoNeighbours: 'Two neighbours talking',
+      emptyRecording: "Nothing was recorded. Tap the microphone, speak, then tap again when you finish.",
+      youSaid: "You said: {text}",
+      checkFailed: "Your recording couldn't be checked. Check your internet connection and try again.",
+      micDialogue: "Tap, read the whole dialogue, then tap again when you finish.",
+      micStopDialogue: "Recording… Tap to stop when you have read it.",
+      micAnswer: "Tap, answer, then tap again when you finish.",
+      micStopAnswer: "Recording… Tap to stop when you have answered.",
+      micPermissionAhead: "The first time, your browser asks to use the microphone — tap Allow.",
+      answeredOf: "Answered: {done} / {total}",
+      allAnswered: "You answered every question! Now tap Continue.",
+      sampleAnswer: "Sample answer",
+      showAnswer: "Show the answer",
+      nextQuestion: "Next question",
+      continueWithoutMic: "Microphone not working? Continue without it",
     },
 
     vocabulary: {
@@ -423,9 +438,9 @@ export const en: Dictionary = {
       resume: 'Resume',
       listenAndRepeat: 'Listen and repeat',
       tapForFront: 'Tap the card for the front',
-      known: 'выучил',
-      unknown: 'не знаю',
-      again: 'повторю',
+      known: "Know it · выучил",
+      unknown: "Don't know · не знаю",
+      again: "Review · повторю",
     },
 
     exercise: {
@@ -441,6 +456,12 @@ export const en: Dictionary = {
       title: 'Excellent!',
       body:
         "Today's phrases, the rule, the game and the speaking drills are done. Use what is new in your next conversation.",
+      saveFailed: "Your lesson result wasn't saved. Check your internet connection and try again.",
+      saveRetry: "Save again",
+      nextOpened: "Day {day} is open",
+      nextOpenedBody: "Go back to the path to start the next lesson.",
+      nextNeedsPro: "Day {day} is part of Pro",
+      nextNeedsProBody: "The free plan ends here. Open Pro to carry on along the path.",
     },
 
     audio: {
@@ -620,14 +641,14 @@ export const en: Dictionary = {
       proPrice: '119,000',
       proUnit: 'so‘m / mo',
       proBadge: 'Popular',
-      proBody: 'The full 90-day course',
+      proBody: "30 days of the path a month",
       proFeatures: [
-        'All 90 days of missions',
-        'Unlimited voice practice',
+        "30 days of missions each month",
+        "Voice practice every day",
         'All games',
         'Progress and correction analytics',
       ],
-      proAlt: 'or 90 days — 299,000 so‘m',
+      proAlt: "or all 90 days — 299,000 so‘m",
       proCta: 'Choose Pro',
       payNote: 'Uzcard and Humo — secure payment via Click or Payme.',
     },
@@ -691,6 +712,16 @@ export const en: Dictionary = {
   },
 
   auth: {
+    reset: {
+      forgot: "Forgot your password?",
+      title: "Reset your password",
+      subtitle: "Enter your phone number — we'll text you a code and you'll set a new password.",
+      setupTitle: "New password",
+      setupSubtitle: "Your number is confirmed. Set a new password for future sign-ins.",
+      newPassword: "New password",
+      submit: "Save password and sign in",
+      backToSignIn: "Back to sign in",
+    },
     signInTitle: 'Sign in',
     signUpTitle: 'Create an account',
     signInSubtitle: "Sign in to your account and carry on.",
@@ -775,6 +806,7 @@ export const en: Dictionary = {
         default: 'Something went wrong. Please try again.',
         google_email_not_verified: 'This Google account has no verified email address.',
         email_taken: 'This email address is already used by another account.',
+        phone_not_registered: "No account uses this number. Sign up, or sign in with Google.",
       },
     },
   },
@@ -1160,6 +1192,7 @@ export const en: Dictionary = {
     cooldownBody:
       'You can try this conversation again in {time}. Until then you can move on to the next mission.',
     cooldownOk: 'Got it',
+    cooldownNext: "Choose another mission",
     failedBody: 'You scored {score}%. You need at least {pass}% to pass.',
   },
 
@@ -1185,6 +1218,16 @@ export const en: Dictionary = {
     unavailable: 'Voice conversation is unavailable right now. Please try later.',
     startFailed: 'We could not start the conversation. Please try again.',
     phrases: "This lesson's phrases",
+    phrasesTab: "Phrases · {count}",
+    repeat: "Repeat",
+    help: "Help",
+    showLine: "What did they say?",
+    hideLine: "Hide text",
+    dropped: "Connection lost",
+    droppedBody: "The conversation stopped here. Reconnect to carry on, or get your result for what you have said so far.",
+    reconnect: "Reconnect",
+    finishAndSee: "Finish and see result",
+    backToMission: "Back to the mission",
     characters: { Penguin: 'Penguin', Panda: 'Panda', Pero: 'Pero', None: 'AI tutor' },
   },
 
@@ -1302,19 +1345,23 @@ export const en: Dictionary = {
   },
 
   billing: {
+    periodUnlocks: {
+      Monthly: "Opens 30 days of the path",
+      NinetyDay: "Opens the whole 90-day path",
+    },
     periodLabel: {
       Monthly: 'Monthly',
       NinetyDay: '90 days',
     },
     proBenefits: [
-      'The full 90-day path',
+      "More of the path: 30 days a month, or all of it on the 90-day plan",
       'Voice practice every day',
       'Personal repair lessons',
       'Full progress and level history',
       'The task library',
     ],
     freeLimitItems: ['The level test', 'The first day', 'A few sample tasks'],
-    title: 'The full path with Pro',
+    title: "Carry on along the path with Pro",
     subtitle:
       'The free plan opens the level test and the first day. Pro is needed to carry on ' +
       'from there.',
@@ -1342,9 +1389,7 @@ export const en: Dictionary = {
     proPlanTitle: "What does Pro give you?",
     upsellTitle: "Subscribe to unlock more",
     upsellBody: "Pro takes your Russian further, faster.",
-    cancelNote:
-      'You can cancel any time in Settings. If you cancel, Pro stays open until the end of ' +
-      'the period you paid for.',
+    cancelNote: "Payment is one-off: nothing is charged automatically. When the period ends Pro closes — extend it on this page to keep going.",
     trialActive: 'Trial period',
     proActive: 'Pro active',
     trialUntil: 'Trial until {date}.',
@@ -1356,7 +1401,7 @@ export const en: Dictionary = {
     returnChecking: 'Checking the payment',
     returnConfirmed: 'Payment confirmed',
     returnProOpen: 'Pro is open',
-    returnProBody: 'The full 90-day path is now yours.',
+    returnProBody: "The next days of the path are open to you now.",
     returnPending: 'Confirming your payment',
     returnPendingBody:
       'This can take a few minutes. Pro opens automatically once confirmed, even if you ' +
@@ -1385,6 +1430,15 @@ export const en: Dictionary = {
     promoFinal: 'Payment: {amount}',
     promoPercent: '{percent}% off',
     promoCelebrationBody: '{amount} discount applied.',
+    extendTitle: "Extend Pro",
+    extendBody: "The new period starts when the current one ends — no paid days are lost.",
+    receiptPlan: "Plan",
+    receiptAmount: "Amount",
+    receiptMethod: "Paid with",
+    receiptUntil: "Pro until",
+    receiptNote: "Your receipt is in the {provider} app.",
+    startDay: "Start day {day}",
+    cancelFailed: "The subscription couldn't be cancelled. Try again.",
   },
 
   profile: {
@@ -1406,7 +1460,7 @@ export const en: Dictionary = {
     currentPlan: 'Current plan',
     subscription: 'Subscription',
     unlockedDays: 'Days unlocked',
-    nextPayment: 'Next payment',
+    nextPayment: "Pro ends",
     validUntil: 'Valid until',
     paymentChecking: 'Payment is being checked',
     subscriptionUnavailable: 'Could not load your subscription details.',

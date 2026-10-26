@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CalendarDays, CircleCheck, Crown, Lock, Play, RotateCcw, Timer } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
@@ -66,7 +66,21 @@ export function CoursePath() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [locked, setLocked] = useState<LockedDay | null>(null)
+  /*
+   * A locked lesson opened by its address comes back here with ?locked=<day>&kind=<pro|progress>,
+   * and the path opens that day's lock dialog, so the learner learns why instead of landing on
+   * the list with no word.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [locked, setLocked] = useState<LockedDay | null>(() => {
+    const day = Number(searchParams.get('locked'))
+    const kind = searchParams.get('kind')
+    return day > 0 && (kind === 'pro' || kind === 'progress') ? { kind, day } : null
+  })
+  const arrivedLocked = searchParams.has('locked')
+  useEffect(() => {
+    if (arrivedLocked) setSearchParams({}, { replace: true })
+  }, [arrivedLocked, setSearchParams])
   const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [openingDay, setOpeningDay] = useState<number | null>(null)
@@ -89,6 +103,19 @@ export function CoursePath() {
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
   })
+
+  /*
+   * ?open=<day>: back from paying for that day, it opens as if tapped. Only once the map says
+   * it is open — the first render can be the map from before the payment.
+   */
+  const openRequested = Number(searchParams.get('open')) || 0
+  const openTarget = openRequested > 0 ? days?.find((day) => day.day === openRequested && day.isUnlocked) : undefined
+  useEffect(() => {
+    if (!openTarget) return
+    setSelectedDay({ day: openTarget, lockKind: 'progress' })
+    setPreviewOpen(true)
+    setSearchParams({}, { replace: true })
+  }, [openTarget, setSearchParams])
 
   /*
    * Counted from the same field the ticks are, so the header and the rows cannot contradict
@@ -531,7 +558,7 @@ function LockedDayDialog({
 
         {isPro ? (
           <>
-            <LinkButton to="/paywall" block className="mt-5">
+            <LinkButton to={`/paywall?day=${locked.day}`} block className="mt-5">
               {t.path.buyPro}
             </LinkButton>
             <Button variant="ghost" block className="mt-2" onClick={onDismiss}>

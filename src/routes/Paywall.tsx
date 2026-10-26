@@ -34,7 +34,13 @@ import { SUPPORT_TELEGRAM_URL } from '../lib/support'
  */
 const LAST_CHECKOUT_KEY = 'rgg.lastCheckout'
 
-type LastCheckout = { invoiceId: string; period: BillingPeriod; provider: PaymentProvider }
+type LastCheckout = {
+  invoiceId: string
+  period: BillingPeriod
+  provider: PaymentProvider
+  /** The course day the learner was trying to open when they were sent here, if any. */
+  day?: number
+}
 
 function rememberCheckout(checkout: LastCheckout) {
   try {
@@ -89,6 +95,8 @@ export function Paywall() {
   const t = useT()
   const { locale } = useLocale()
   const [params] = useSearchParams()
+  // A locked day sends the learner here with ?day=N, so the return page can take them back to it.
+  const forDay = Number(params.get('day')) || undefined
   // A retry from the return page arrives with the plan and rail already chosen.
   const [period, setPeriod] = useState<BillingPeriod>(() =>
     params.get('period') === 'Monthly' ? 'Monthly' : 'NinetyDay',
@@ -153,7 +161,7 @@ export function Paywall() {
         promoCode: giftApplies ? undefined : promoPreview?.isValid ? promoPreview.code : undefined,
       })
       track('checkout_started', { period, provider })
-      rememberCheckout({ invoiceId: result.invoiceId, period, provider })
+      rememberCheckout({ invoiceId: result.invoiceId, period, provider, day: forDay })
       window.location.href = result.checkoutUrl
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.billing.checkoutFailed)
@@ -266,8 +274,6 @@ export function Paywall() {
         <p className="text-support mt-2 max-w-2xl leading-relaxed">{t.billing.subtitle}</p>
       </Reveal>
 
-      {error && <ErrorNote>{error}</ErrorNote>}
-
       {giftActive && (
         <Reveal>
           <Card className="border-coin-strong/30 bg-coin-faint/60">
@@ -290,62 +296,77 @@ export function Paywall() {
         </Reveal>
       )}
 
-      {entitlement?.hasProAccess ? (
+      {entitlement?.hasProAccess && (
         <Reveal>
           <ActiveSubscription entitlement={entitlement} />
         </Reveal>
-      ) : (
-        <>
-          <Reveal as="section">
-            <PlanSelector
-              options={plans.options}
-              period={period}
-              onSelect={setPeriod}
-              pricingFor={pricingFor}
-            />
-          </Reveal>
-
-          {/* A code cannot be stacked on the welcome gift, so while the gift is live the
-              field is not offered rather than offered and then refused. */}
-          {!giftActive && (
-            <Reveal as="section">
-              <PromoCode
-                code={promoCode}
-                onCodeChange={setPromoCode}
-                onApply={() => void applyPromoCode()}
-                busy={promoBusy}
-                feedback={promoFeedback}
-                preview={promoPreview}
-                percent={promoPercent}
-              />
-            </Reveal>
-          )}
-
-          <Reveal as="section">
-            <Card>
-              <h2 className="text-lg font-extrabold tracking-tight text-ink">
-                {t.billing.paymentMethod}
-              </h2>
-              <div className="mt-4">
-                <PaymentMethodSelector provider={provider} onSelect={setProvider} />
-              </div>
-            </Card>
-          </Reveal>
-
-          <Reveal as="section">
-            <FeatureComparison />
-          </Reveal>
-
-          <Reveal>
-            <PaymentButton
-              provider={provider}
-              amount={formatPrice(amountToPay, selected.currency, locale)}
-              busy={busy}
-              onPay={() => void checkout(provider)}
-            />
-          </Reveal>
-        </>
       )}
+
+      {/*
+        Payments are one-off, so a Pro learner extends rather than renews — and the plans stay
+        on this page for them. Hidden, a monthly learner had no way to carry on before their
+        thirty days ran out, or to move to the ninety.
+      */}
+      {entitlement?.hasProAccess && (
+        <Reveal as="section">
+          <h2 className="text-xl font-extrabold tracking-tight text-ink">{t.billing.extendTitle}</h2>
+          <p className="text-support mt-1">{t.billing.extendBody}</p>
+        </Reveal>
+      )}
+
+      <Reveal as="section">
+        <PlanSelector
+          options={plans.options}
+          period={period}
+          onSelect={setPeriod}
+          pricingFor={pricingFor}
+        />
+      </Reveal>
+
+      {/* A code cannot be stacked on the welcome gift, so while the gift is live the
+          field is not offered rather than offered and then refused. */}
+      {!giftActive && (
+        <Reveal as="section">
+          <PromoCode
+            code={promoCode}
+            onCodeChange={setPromoCode}
+            onApply={() => void applyPromoCode()}
+            busy={promoBusy}
+            feedback={promoFeedback}
+            preview={promoPreview}
+            percent={promoPercent}
+          />
+        </Reveal>
+      )}
+
+      <Reveal as="section">
+        <Card>
+          <h2 className="text-lg font-extrabold tracking-tight text-ink">
+            {t.billing.paymentMethod}
+          </h2>
+          <div className="mt-4">
+            <PaymentMethodSelector provider={provider} onSelect={setProvider} />
+          </div>
+        </Card>
+      </Reveal>
+
+      {!entitlement?.hasProAccess && (
+        <Reveal as="section">
+          <FeatureComparison />
+        </Reveal>
+      )}
+
+      {/* Next to the button it is about: at the top of the page it was off screen. */}
+      {error && <ErrorNote>{error}</ErrorNote>}
+
+      <Reveal>
+        <PaymentButton
+          provider={provider}
+          amount={formatPrice(amountToPay, selected.currency, locale)}
+          busy={busy}
+          onPay={() => void checkout(provider)}
+        />
+      </Reveal>
 
       <Reveal>
         <p className="text-support border-t border-hairline pt-5 text-sm leading-relaxed">
@@ -426,14 +447,19 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
 
   async function cancel() {
     if (!confirm(t.billing.cancelConfirm)) return
     setBusy(true)
+    setFailure(null)
     try {
       const result = await api.post<SubscriptionActionResponse>('/billing/cancel')
       setMessage(result.messageUz)
       await queryClient.invalidateQueries({ queryKey: ['entitlement'] })
+    } catch (caught) {
+      // A refused or failed cancel used to vanish: the button re-enabled and nothing was said.
+      setFailure(caught instanceof RequestError ? caught.message : t.billing.cancelFailed)
     } finally {
       setBusy(false)
     }
@@ -460,6 +486,7 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
       )}
 
       {message && <p className="text-support mt-3">{message}</p>}
+      {failure && <div className="mt-3"><ErrorNote>{failure}</ErrorNote></div>}
 
       {!entitlement.cancelAtPeriodEnd && (
         <Button variant="danger" className="mt-5" disabled={busy} onClick={() => void cancel()}>
@@ -529,6 +556,9 @@ export function BillingReturn() {
     confirmed.current = true
     track('payment_confirmed')
     void queryClient.invalidateQueries({ queryKey: ['entitlement'] })
+    // The days the payment opened, so the path is not drawn from before it.
+    void queryClient.invalidateQueries({ queryKey: ['course-map'] })
+    void queryClient.invalidateQueries({ queryKey: ['day-missions'] })
   }, [outcome, queryClient])
 
   if (entitlementQuery.isLoading || (invoiceId && invoiceQuery.isLoading)) {
@@ -546,13 +576,32 @@ export function BillingReturn() {
   }
 
   if (outcome === 'paid') {
+    const until = entitlementQuery.data?.currentPeriodEnd
+    const day = checkout?.day
+    // What was bought, for how much, with what and until when — the questions a person asks
+    // the moment money has left their card — and then back to the day they were opening.
+    const rows: Array<[string, string]> = [
+      ...(period ? [[t.billing.receiptPlan, t.billing.periodLabel[period]] as [string, string]] : []),
+      ...(invoice ? [[t.billing.receiptAmount, formatPrice(invoice.amountTiyin, 'UZS', locale)] as [string, string]] : []),
+      [t.billing.receiptMethod, providerNames[provider]],
+      ...(until ? [[t.billing.receiptUntil, formatDate(until, locale)] as [string, string]] : []),
+    ]
     return (
       <Card className="text-center">
         <Badge tone="milestone">{t.billing.returnConfirmed}</Badge>
         <h1 className="mt-4 text-xl font-extrabold text-ink">{t.billing.returnProOpen}</h1>
         <p className="text-support mt-2">{t.billing.returnProBody}</p>
-        <Button className="mt-6" onClick={() => navigate('/home')}>
-          {t.common.continue}
+        <dl className="mx-auto mt-5 max-w-sm divide-y divide-hairline rounded-2xl border border-hairline text-left">
+          {rows.map(([term, value]) => (
+            <div key={term} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
+              <dt className="text-sm text-ink-muted">{term}</dt>
+              <dd className="text-sm font-bold text-ink">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-support mt-3 text-sm">{fill(t.billing.receiptNote, { provider: providerNames[provider] })}</p>
+        <Button className="mt-6" onClick={() => navigate(day ? `/path?open=${day}` : '/home')}>
+          {day ? fill(t.billing.startDay, { day }) : t.common.continue}
         </Button>
       </Card>
     )

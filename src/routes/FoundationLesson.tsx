@@ -38,8 +38,8 @@ import { useFocusTrap } from '../lib/focus-trap'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { Button, Card, PauseGlyph, PlayGlyph, ProgressBar } from '../components/ui'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Button, Card, ErrorNote, LinkButton, PauseGlyph, PlayGlyph, ProgressBar, Spinner } from '../components/ui'
 import { ColorScopeProvider, RussianText } from '../components/RussianText'
 import { readAudioPreferences } from '../lib/audio-preferences'
 import { useAuth } from '../lib/auth-context'
@@ -49,11 +49,12 @@ import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
-import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio } from '../lib/liveVoice'
+import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio, VoiceError } from '../lib/liveVoice'
 import { playUiSound, type UiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
 import { Celebration } from '../components/Celebration'
-import type { StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
+import { missionLock } from '../lib/mission-lock'
+import type { EntitlementView, MissionSummary, StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
 
 /**
  * The nine steps, in order, each with the mark that stands for it. The names themselves are copy
@@ -100,10 +101,15 @@ function sectionBlockReason(
     case 'game':
       return isGameSolved(lesson, state.gameMatches) ? null : gate.game
     case 'missions':
-      // Two steps, in order: read the dialogue through, then take it to the AI conversation.
-      // Finishing the dialogue alone is not the end of the block — it hands over to the AI part.
+      // Two steps, in order: read the dialogue through, then answer the AI questions aloud.
+      // Opening the question screen used to be enough, so the speaking half could be skipped
+      // without the learner noticing. Now it counts answers — or an explicit "without the
+      // microphone", for a learner whose microphone is refused.
       if (!state.dialoguePractised) return gate.dialogue
-      return state.aiChatStarted ? null : gate.aiChat
+      if (!state.aiChatStarted) return gate.aiChat
+      return state.aiAnswered.length >= aiAnswerTarget(lesson.questions.length) || state.aiSkipped
+        ? null
+        : fill(gate.aiAnswers, { count: aiAnswerTarget(lesson.questions.length) })
     case 'vocabulary':
       return state.vocabularyReviewed >= vocabularyTarget(lesson.vocabulary.length)
         ? null
@@ -170,6 +176,10 @@ type StoredState = {
   dialoguePractised: boolean
   /** Dialogue block, step 2: the learner has moved on to the AI conversation. */
   aiChatStarted: boolean
+  /** The AI questions answered aloud, by index. */
+  aiAnswered: number[]
+  /** The learner chose to go on without the microphone. */
+  aiSkipped: boolean
   /** How far into the word deck the learner has got — also where reopening resumes. */
   vocabularyReviewed: number
 }
@@ -184,7 +194,16 @@ const emptyState: StoredState = {
   exerciseAnswer: '',
   dialoguePractised: false,
   aiChatStarted: false,
+  aiAnswered: [],
+  aiSkipped: false,
   vocabularyReviewed: 0,
+}
+
+/** Enough spoken answers to have practised, without making a learner answer every question. */
+const AI_ANSWER_TARGET = 3
+
+function aiAnswerTarget(questionCount: number) {
+  return Math.min(AI_ANSWER_TARGET, questionCount)
 }
 
 /** Enough cards to have actually studied, without forcing the whole deck in one sitting. */
@@ -230,32 +249,69 @@ export function FoundationLesson() {
   const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate) : null
   const canContinue = blockReason === null
 
+  /*
+   * The lessons ship with the app, so the route alone opened any of them — a free learner could
+   * type /lessons/5/x, or follow the Home banner past a "Pro kerak" card, and only meet the
+   * paywall as a server error at the speaking step. The day's missions say whether this one is
+   * open; a locked one goes to the path, where the lock explains itself.
+   */
+  const { data: dayMissions, isLoading: checkingAccess } = useQuery({
+    queryKey: ['day-missions', day],
+    queryFn: () => api.get<MissionSummary[]>(`/course/days/${day}/missions`),
+    enabled: Boolean(lesson),
+    staleTime: 60_000,
+  })
+  const thisMission = dayMissions?.find((mission) => mission.id === missionId) ?? dayMissions?.[0]
+  const lock = thisMission ? missionLock(thisMission) : null
+
+  /*
+   * The lesson is recorded when the closing card appears, not when its button is pressed: the
+   * card says "done", and a learner who closed the tab on it was left at eight of nine.
+   */
+  const [recording, setRecording] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const onCompleteCard = active.id === 'complete'
+  useEffect(() => {
+    if (!onCompleteCard || recording !== 'idle') return
+    void recordCompletion()
+    // recordCompletion reads only the mission and the query client, both fixed for this lesson.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onCompleteCard, recording])
+
   if (!lesson) return <Navigate to="/path" replace />
+  if (lock) return <Navigate to={`/path?locked=${day}&kind=${lock}`} replace />
+  if (checkingAccess) return <Spinner />
+
+  async function recordCompletion() {
+    // Already on the server — a finished lesson opened again — so nothing new to record.
+    if (!missionId || thisMission?.isCompleted) {
+      setRecording('saved')
+      return
+    }
+    setRecording('saving')
+    try {
+      await syncLessonOneCompletion(missionId)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['course-map'] }),
+        queryClient.invalidateQueries({ queryKey: ['progress'] }),
+        queryClient.invalidateQueries({ queryKey: ['home'] }),
+        queryClient.invalidateQueries({ queryKey: ['entitlement'] }),
+      ])
+      setRecording('saved')
+    } catch {
+      // Local progress is kept; the card says it was not saved and offers to try again.
+      setRecording('failed')
+    }
+  }
 
   async function finishCurrent() {
-    const completed = state.completed.includes(active.id)
-      ? state.completed
-      : [...state.completed, active.id]
+    // Reaching the closing card finishes it too: the card is the lesson's result, not a task.
+    const reached = active.id === 'picture' ? [active.id, 'complete' as const] : [active.id]
+    const completed = [...state.completed, ...reached.filter((id) => !state.completed.includes(id))]
     const nextIndex = Math.min(state.sectionIndex + 1, sections.length - 1)
     setState((current) => ({ ...current, completed, sectionIndex: nextIndex }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
-    if (active.id === 'complete' && missionId) {
-      try {
-        await syncLessonOneCompletion(missionId)
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['course-map'] }),
-          queryClient.invalidateQueries({ queryKey: ['progress'] }),
-          queryClient.invalidateQueries({ queryKey: ['home'] }),
-        ])
-      } catch {
-        // Local progress remains safe; CoursePath retries its day-one sync and the learner can retry.
-      } finally {
-        navigate('/path', { replace: true })
-      }
-    } else if (active.id === 'complete') {
-      navigate('/path', { replace: true })
-    }
+    if (active.id === 'complete') navigate('/path', { replace: true })
   }
 
   function goBack() {
@@ -358,8 +414,15 @@ export function FoundationLesson() {
             missionId={missionId}
             dialoguePractised={state.dialoguePractised}
             aiChatStarted={state.aiChatStarted}
+            aiAnswered={state.aiAnswered}
+            aiSkipped={state.aiSkipped}
             onDialoguePractised={() => setState((current) => ({ ...current, dialoguePractised: true }))}
             onAiChatStarted={() => setState((current) => ({ ...current, aiChatStarted: true }))}
+            onAiAnswered={(index) => setState((current) => ({
+              ...current,
+              aiAnswered: current.aiAnswered.includes(index) ? current.aiAnswered : [...current.aiAnswered, index],
+            }))}
+            onAiSkipped={() => setState((current) => ({ ...current, aiSkipped: true }))}
           />
         )}
         {active.id === 'vocabulary' && (
@@ -380,7 +443,9 @@ export function FoundationLesson() {
             onAnswerChange={(exerciseAnswer) => setState((current) => ({ ...current, exerciseAnswer }))}
           />
         )}
-        {active.id === 'complete' && <CompleteSection lesson={lesson} />}
+        {active.id === 'complete' && (
+          <CompleteSection lesson={lesson} recording={recording} onRetry={() => void recordCompletion()} />
+        )}
       </section>
 
       <div className="border-t border-hairline pt-4">
@@ -676,7 +741,8 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
           <SpeechButton text={phrase.ru} lang="ru-RU" className="raised raised-signal mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.repeat}</SpeechButton>
           <div className="mt-4 grid grid-cols-3 gap-2">
             <button type="button" onClick={() => { playUiSound('coin'); onRate('known') }} className="raised raised-signal rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">{rating.known}</button>
-            <button type="button" onClick={() => { playUiSound('wrong'); onRate('unknown') }} className="raised raised-danger-soft rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">{rating.unknown}</button>
+            {/* "Don't know" is an honest answer, not a wrong one: it gets the neutral sound. */}
+            <button type="button" onClick={() => { playUiSound('select'); onRate('unknown') }} className="raised raised-danger-soft rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">{rating.unknown}</button>
             <button type="button" onClick={() => { playUiSound('select'); onRate('repeat') }} className="raised rounded-xl border border-hairline px-2 py-2 text-xs font-black text-ink">{rating.again}</button>
           </div>
         </div>
@@ -1475,15 +1541,32 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
   )
 }
 
-function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onDialoguePractised, onAiChatStarted }: {
+function MissionModes({
+  lesson,
+  missionId,
+  dialoguePractised,
+  aiChatStarted,
+  aiAnswered,
+  aiSkipped,
+  onDialoguePractised,
+  onAiChatStarted,
+  onAiAnswered,
+  onAiSkipped,
+}: {
   lesson: LessonData
   missionId?: string
   dialoguePractised: boolean
   aiChatStarted: boolean
+  aiAnswered: number[]
+  aiSkipped: boolean
   onDialoguePractised: () => void
   onAiChatStarted: () => void
+  onAiAnswered: (index: number) => void
+  onAiSkipped: () => void
 }) {
-  const t = useT().lesson.missions
+  const dictionary = useT()
+  const t = dictionary.lesson.missions
+  const voiceErrors = dictionary.voiceErrors
   // The block runs in order: practise the dialogue line by line, then carry it into the AI
   // conversation. A learner coming back to a finished dialogue lands straight in the AI step.
   const [mode, setMode] = useState<'dialogue' | 'ai'>(aiChatStarted ? 'ai' : 'dialogue')
@@ -1502,9 +1585,36 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
     setMode('ai')
   }
 
-  const [questionIndex, setQuestionIndex] = useState(0)
-  const [feedback, setFeedback] = useState('')
+  const [questionIndex, setQuestionIndex] = useState(() => {
+    const next = lesson.questions.findIndex((_, index) => !aiAnswered.includes(index))
+    return next < 0 ? lesson.questions.length - 1 : next
+  })
+  const [showAnswer, setShowAnswer] = useState(false)
+  /*
+   * What the AI said back, or what went wrong. Kept apart because they look different: a
+   * refused microphone printed in success green read as praise.
+   */
+  const [feedback, setFeedback] = useState<{ kind: 'note' | 'error'; text: string } | null>(null)
+  /** The browser has not asked for the microphone yet in this block — so say it is coming. */
+  const [micAsked, setMicAsked] = useState(false)
   const [listening, setListening] = useState(false)
+  const allAnswered = lesson.questions.every((_, index) => aiAnswered.includes(index))
+  const answeredEnough = aiAnswered.length >= aiAnswerTarget(lesson.questions.length)
+
+  function goToQuestion(index: number) {
+    setQuestionIndex(index)
+    setShowAnswer(false)
+    setFeedback(null)
+  }
+
+  /** After an answer: the next question not yet answered, if any. */
+  function nextOpenQuestion(from: number, answered: number[]) {
+    for (let step = 1; step <= lesson.questions.length; step += 1) {
+      const index = (from + step) % lesson.questions.length
+      if (!answered.includes(index)) return index
+    }
+    return null
+  }
   const [processing, setProcessing] = useState(false)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -1522,7 +1632,7 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
   }, [])
 
   async function requireAttempt() {
-    if (!missionId) throw new Error('Missiya topilmadi.')
+    if (!missionId) throw new VoiceError('connect_failed')
     if (attemptRef.current && !attemptRef.current.requiresExplicitRestart) return attemptRef.current
     let attempt = await api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`)
     if (attempt.requiresExplicitRestart) {
@@ -1540,8 +1650,9 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
 
     try {
       if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-        throw new Error('Bu brauzer ovoz yozishni qo‘llamaydi.')
+        throw new VoiceError('mic_unsupported')
       }
+      setMicAsked(true)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
       // Keep the permission request inside the learner's tap; Android may reject it after a network await.
@@ -1550,7 +1661,7 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       recorderRef.current = recorder
       chunksRef.current = []
-      setFeedback('')
+      setFeedback(null)
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data)
@@ -1568,7 +1679,7 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
         setListening(false)
         stream.getTracks().forEach((track) => track.stop())
         streamRef.current = null
-        setFeedback('Ovoz yozishda xatolik yuz berdi. Mikrofon ruxsatini tekshirib, yana bosing.')
+        setFeedback({ kind: 'error', text: voiceErrors.mic_failed })
       }
       recorder.start()
       setListening(true)
@@ -1577,15 +1688,25 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
       streamRef.current = null
       setListening(false)
       const denied = error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
-      setFeedback(denied
-        ? 'Mikrofonga ruxsat berilmagan. Brauzer sozlamasidan mikrofonni yoqing va qayta bosing.'
-        : error instanceof RequestError ? error.message : error instanceof Error ? error.message : 'Mikrofonni ishga tushirib bo‘lmadi.')
+      const missing = error instanceof DOMException && error.name === 'NotFoundError'
+      setFeedback({
+        kind: 'error',
+        text: denied
+          ? voiceErrors.mic_denied
+          : missing
+            ? voiceErrors.mic_not_found
+            : error instanceof VoiceError
+              ? voiceErrors[error.code]
+              : error instanceof RequestError
+                ? error.message
+                : voiceErrors.mic_failed,
+      })
     }
   }
 
   async function submitRecording(audio: Blob, mimeType: string, attempt: StartAttemptResponse, onDone?: () => void) {
     if (audio.size === 0) {
-      setFeedback('Ovoz yozilmadi. Mikrofonni yana bosib, gapirib bo‘lgach to‘xtating.')
+      setFeedback({ kind: 'error', text: t.emptyRecording })
       return
     }
     setProcessing(true)
@@ -1605,17 +1726,17 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
       const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
       attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
       const message = [
-        result.transcript ? `Siz aytdingiz: ${result.transcript}` : '',
+        result.transcript ? fill(t.youSaid, { text: result.transcript }) : '',
         result.feedback.strengthNote,
         result.feedback.headlineCorrection,
         result.feedback.pronunciationNote,
       ].filter(Boolean).join('. ')
-      setFeedback(message)
+      setFeedback({ kind: 'note', text: message })
       const spokenFeedback = [result.feedback.strengthNote, result.feedback.headlineCorrection, result.feedback.pronunciationNote].filter(Boolean).join('. ')
       await speak(spokenFeedback, 'uz-UZ')
       onDone?.()
     } catch (error) {
-      setFeedback(error instanceof RequestError ? error.message : 'Ovozni tekshirib bo‘lmadi. Internetni tekshirib, yana urinib ko‘ring.')
+      setFeedback({ kind: 'error', text: error instanceof RequestError ? error.message : t.checkFailed })
     } finally {
       setProcessing(false)
     }
@@ -1645,7 +1766,13 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
               </div>
             ))}
           </div>
-          <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording()} />
+          <MicButton
+            listening={listening}
+            processing={processing}
+            caption={listening ? t.micStopDialogue : t.micDialogue}
+            onClick={() => void toggleRecording()}
+          />
+          {!micAsked && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
           <p className="mt-2 text-center text-xs font-black text-ink-faint">{Math.min(revealed, lesson.dialogue.length)} / {lesson.dialogue.length}</p>
           <div className="mt-3">
             {dialogueDone
@@ -1655,13 +1782,67 @@ function MissionModes({ lesson, missionId, dialoguePractised, aiChatStarted, onD
         </div>
       ) : (
         <div className="text-center">
-          <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">{questionIndex + 1} / {lesson.questions.length}</p>
-          <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="raised raised-signal-soft mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
-          <MicButton listening={listening} processing={processing} onClick={() => void toggleRecording(() => setTimeout(() => setQuestionIndex((current) => Math.min(current + 1, lesson.questions.length - 1)), 900))} />
-          <button type="button" onClick={() => setMode('dialogue')} className="mt-3 text-sm font-black text-ink-muted underline">{t.backToDialogue}</button>
+          <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">
+            {fill(t.answeredOf, { done: aiAnswered.length, total: lesson.questions.length })}
+          </p>
+          {allAnswered ? (
+            // A finished block says so and points at the button that moves on, instead of
+            // staying on the last question forever.
+            <p role="status" className="mt-3 rounded-2xl bg-milestone-soft p-5 text-base font-black text-milestone">
+              {t.allAnswered}
+            </p>
+          ) : (
+            <>
+              <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="raised raised-signal-soft mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
+              {showAnswer ? (
+                <div className="mt-2 rounded-xl bg-ground-sunken p-3 text-left">
+                  <p className="text-xs font-black tracking-[.12em] text-ink-faint uppercase">{t.sampleAnswer}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={lesson.questions[questionIndex].answer} /></p>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAnswer(true)} className="mt-2 text-sm font-black text-signal-ink underline">
+                  {t.showAnswer}
+                </button>
+              )}
+              <MicButton
+                listening={listening}
+                processing={processing}
+                caption={listening ? t.micStopAnswer : t.micAnswer}
+                onClick={() => void toggleRecording(() => {
+                  const answered = aiAnswered.includes(questionIndex) ? aiAnswered : [...aiAnswered, questionIndex]
+                  onAiAnswered(questionIndex)
+                  const next = nextOpenQuestion(questionIndex, answered)
+                  if (next !== null) setTimeout(() => goToQuestion(next), 900)
+                })}
+              />
+              {!micAsked && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                {lesson.questions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => goToQuestion(nextOpenQuestion(questionIndex, aiAnswered) ?? (questionIndex + 1) % lesson.questions.length)}
+                    className="text-sm font-black text-ink-muted underline"
+                  >
+                    {t.nextQuestion}
+                  </button>
+                )}
+                <button type="button" onClick={() => setMode('dialogue')} className="text-sm font-black text-ink-muted underline">{t.backToDialogue}</button>
+              </div>
+            </>
+          )}
+          {/* For a learner whose microphone will not work: an explicit way on, not a hidden one. */}
+          {!answeredEnough && !aiSkipped && (
+            <button type="button" onClick={onAiSkipped} className="mt-4 text-xs font-bold text-ink-faint underline">
+              {t.continueWithoutMic}
+            </button>
+          )}
         </div>
       )}
-      {feedback && <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={feedback} /></p>}
+      {feedback && (
+        feedback.kind === 'error'
+          ? <div className="mt-3"><ErrorNote>{feedback.text}</ErrorNote></div>
+          : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={feedback.text} /></p>
+      )}
     </Card>
   )
 }
@@ -1688,9 +1869,17 @@ function DialogueLine({ line }: { line: string }) {
   return <><span className="text-ink">{line.slice(0, separator + 1)}</span><RussianText text={line.slice(separator + 1)} /></>
 }
 
-function MicButton({ listening, processing, onClick }: { listening: boolean; processing: boolean; onClick: () => void }) {
+/** The microphone, with what to do written under it: a bare round button explained nothing. */
+function MicButton({ listening, processing, caption, onClick }: { listening: boolean; processing: boolean; caption: string; onClick: () => void }) {
   const t = useT().lesson.missions
-  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger raised-danger' : 'bg-signal text-on-signal raised-signal')} aria-label={listening ? t.stopRecording : t.mic}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
+  return <>
+    <MicRoundButton listening={listening} processing={processing} onClick={onClick} label={listening ? t.stopRecording : t.mic} />
+    <p className="mt-2 text-center text-sm font-bold text-ink-muted">{caption}</p>
+  </>
+}
+
+function MicRoundButton({ listening, processing, onClick, label }: { listening: boolean; processing: boolean; onClick: () => void; label: string }) {
+  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger raised-danger' : 'bg-signal text-on-signal raised-signal')} aria-label={label}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
       ? <Square aria-hidden="true" strokeWidth={0} className="size-5 fill-current" />
       : <Mic aria-hidden="true" strokeWidth={1.9} className="size-6" />}</button>
 }
@@ -1930,9 +2119,23 @@ function NeighborScene() {
   )
 }
 
-function CompleteSection({ lesson }: { lesson: LessonData }) {
-  const t = useT().lesson.complete
+function CompleteSection({ lesson, recording, onRetry }: {
+  lesson: LessonData
+  recording: 'idle' | 'saving' | 'saved' | 'failed'
+  onRetry: () => void
+}) {
+  const dictionary = useT()
+  const t = dictionary.lesson.complete
   useEffect(() => { celebrate([45, 45, 80], 'win') }, [])
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
+  })
+  const nextDay = lesson.day + 1
+  // What finishing opened. Past the plan it is Pro, and that is said here rather than met as a
+  // lock on the path.
+  const nextNeedsPro =
+    entitlement !== undefined && !entitlement.hasProAccess && nextDay > entitlement.maxUnlockedDay
   return (
     <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
       <Celebration pieces={180} balloons={34} />
@@ -1954,6 +2157,23 @@ function CompleteSection({ lesson }: { lesson: LessonData }) {
           </div>
         ))}
       </div>
+      {recording === 'failed' && (
+        <div className="mt-4 text-left">
+          <ErrorNote>{t.saveFailed}</ErrorNote>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={onRetry}>{t.saveRetry}</Button>
+        </div>
+      )}
+      {recording === 'saved' && nextDay <= 90 && entitlement && (
+        <div className="mt-5 rounded-2xl bg-ground-raised p-4 text-left">
+          <p className="font-black text-ink">
+            {fill(nextNeedsPro ? t.nextNeedsPro : t.nextOpened, { day: nextDay })}
+          </p>
+          <p className="mt-1 text-sm text-ink-muted">{nextNeedsPro ? t.nextNeedsProBody : t.nextOpenedBody}</p>
+          {nextNeedsPro && (
+            <LinkButton to="/paywall" size="md" className="mt-3">{dictionary.path.buyPro}</LinkButton>
+          )}
+        </div>
+      )}
       {lesson.reflection && <ReflectionQuestions reflection={lesson.reflection} />}
       {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="raised raised-signal mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal">{lesson.completionAction.label} <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="inline size-4" /></a>}
     </Card>
@@ -2274,6 +2494,9 @@ function readState(storageKey: string | null): StoredState {
       // Learners who cleared this block under the older single-flag version keep it cleared.
       dialoguePractised: parsed.dialoguePractised === true || parsed.missionModeOpened === true,
       aiChatStarted: parsed.aiChatStarted === true || parsed.missionModeOpened === true,
+      aiAnswered: Array.isArray(parsed.aiAnswered) ? parsed.aiAnswered.filter((index) => typeof index === 'number') : [],
+      // The old single flag cleared the whole block; those learners are not asked again.
+      aiSkipped: parsed.aiSkipped === true || parsed.missionModeOpened === true,
       vocabularyReviewed: typeof parsed.vocabularyReviewed === 'number' && parsed.vocabularyReviewed > 0
         ? parsed.vocabularyReviewed
         : 0,
