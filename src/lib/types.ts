@@ -200,6 +200,8 @@ export interface MissionSummary {
   workplaceUse: WorkplaceAppropriateness
   isLocked: boolean
   lockReason?: string | null
+  /** What opens it: Pro, or finishing the days before it. Read through `missionLock`. */
+  lockKind?: MissionLockKind
   isCompleted: boolean
   /** How many phrases this mission teaches; 2-5 by editorial rule. */
   targetPhraseCount: number
@@ -213,6 +215,8 @@ export interface MissionSummary {
   /** Score needed to finish the mission. Dialogue missions only. */
   passScore?: number | null
 }
+
+export type MissionLockKind = 'None' | 'Pro' | 'Progress'
 
 export interface TargetPhraseView {
   order: number

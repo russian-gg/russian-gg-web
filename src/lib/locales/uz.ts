@@ -984,7 +984,7 @@ export const uz = {
     tutorTitle: 'AI ustoz bilan suhbat',
     tutorBody: "Siz bilan rus tilida suhbatlashadi, talaffuz va iboralarni o'rgatadi.",
     startConversation: 'Suhbatni boshlash',
-    lockedFallback: 'Bu mashq hozir yopiq.',
+    lockedFallback: 'Bu topshiriq hozir yopiq.',
     lockedProTitle: '{day}-kun Pro tarkibida',
     lockedProBody:
       'Bepul rejada birinchi kun ochiq. Qolgan 89 kunni va mashq kutubxonasini Pro ochadi.',
@@ -1322,6 +1322,10 @@ export const uz = {
     grammar: 'Grammatika',
     backHome: 'Bugungi sahifaga qaytish',
     practiceMore: 'Yana mashq qilish',
+    proOfferTitle: "Yana {count} ta hayotiy suhbat Pro'da",
+    proOfferBody:
+      "Do'kon, kafe, transport, shifokor va shahar xizmatlari — har birida jonli suhbat.",
+    proOfferCta: "Pro'ni ko'rish",
     movedToDay: 'Siz {day}-kunga o‘tdingiz.',
   },
 

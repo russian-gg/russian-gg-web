@@ -11,6 +11,7 @@ import { LESSON_ONE_SECTIONS, readFoundationLessonProgress, type LessonOneProgre
 import { FOUNDATION_LESSON_DAYS } from '../lib/foundation-days'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
+import { missionLock } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
 import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
 import { MissionProgress } from '../components/MissionCard'
@@ -258,8 +259,7 @@ export function CoursePath() {
       }
 
       if (mission.isLocked) {
-        const isPro = mission.lockReason?.toLowerCase().includes('pro') ?? false
-        setLocked({ kind: isPro ? 'pro' : lockKind, day: day.day })
+        setLocked({ kind: missionLock(mission) === 'pro' ? 'pro' : lockKind, day: day.day })
         return
       }
 

@@ -1,6 +1,7 @@
 import { pickContent } from '../../lib/content'
 import { TOPIC_ORDER } from '../../lib/format'
 import type { Dictionary, Locale } from '../../lib/i18n'
+import { missionLock } from '../../lib/mission-lock'
 import type { MissionSummary, MissionTopic } from '../../lib/types'
 
 /**
@@ -41,7 +42,7 @@ export function buildMissionRows(missions: MissionSummary[], locale: Locale): Mi
       title: pickContent(locale, { uz: mission.titleUz, ru: mission.titleRu, en: mission.titleEn }),
       status: mission.isCompleted ? 'done' : mission.bestScore != null ? 'inProgress' : 'notStarted',
       locked: mission.isLocked,
-      isProLock: mission.isLocked && (mission.lockReason?.toLowerCase().includes('pro') ?? false),
+      isProLock: missionLock(mission) === 'pro',
     }))
 }
 

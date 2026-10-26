@@ -966,7 +966,7 @@ export const ru: Dictionary = {
     tutorTitle: 'Разговор с AI-репетитором',
     tutorBody: 'Поговорит с вами по-русски, поставит произношение и подскажет фразы.',
     startConversation: 'Начать разговор',
-    lockedFallback: 'Это занятие пока закрыто.',
+    lockedFallback: 'Это задание пока закрыто.',
     lockedProTitle: 'День {day} входит в Pro',
     lockedProBody:
       'На бесплатном плане открыт первый день. Остальные 89 дней и библиотеку заданий ' +
@@ -1305,6 +1305,10 @@ export const ru: Dictionary = {
     grammar: 'Грамматика',
     backHome: 'Вернуться на сегодня',
     practiceMore: 'Ещё позаниматься',
+    proOfferTitle: "Ещё {count} живых разговоров в Pro",
+    proOfferBody:
+      "Магазин, кафе, транспорт, врач и городские службы — в каждом живой разговор.",
+    proOfferCta: "Посмотреть Pro",
     movedToDay: 'Вы перешли на день {day}.',
   },
 

@@ -960,7 +960,7 @@ export const en: Dictionary = {
     tutorTitle: 'Conversation with the AI tutor',
     tutorBody: 'Talks with you in Russian, and coaches your pronunciation and phrasing.',
     startConversation: 'Start the conversation',
-    lockedFallback: 'This lesson is locked for now.',
+    lockedFallback: 'This mission is locked for now.',
     lockedProTitle: 'Day {day} is part of Pro',
     lockedProBody:
       'The free plan opens the first day. Pro opens the remaining 89 and the task library.',
@@ -1294,6 +1294,10 @@ export const en: Dictionary = {
     grammar: 'Grammar',
     backHome: 'Back to today',
     practiceMore: 'Practise more',
+    proOfferTitle: "{count} more real-life conversations in Pro",
+    proOfferBody:
+      "Shops, cafés, transport, the doctor and city services — each one a live conversation.",
+    proOfferCta: "See Pro",
     movedToDay: 'You have moved to day {day}.',
   },
 

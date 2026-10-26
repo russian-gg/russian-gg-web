@@ -7,6 +7,7 @@ import { pickContent } from '../../lib/content'
 import { cx } from '../../lib/cx'
 import { fill, useLocale, useT } from '../../lib/i18n'
 import { MISSION_IMAGE_SIZE, missionImage } from '../../lib/mission-images'
+import { missionLockText } from '../../lib/mission-lock'
 import { missionPath } from '../../lib/mission-path'
 import { duration, ease, fade, springSoft } from '../../lib/motion'
 import { Reveal } from '../motion'
@@ -203,7 +204,7 @@ function Details({ row, showFreeLabel }: { row: MissionRow; showFreeLabel: boole
           {locked ? (
             <>
               <p className="text-sm font-semibold text-ink-muted sm:mr-auto">
-                {isProLock ? copy.lockedProBody : t.path.lockedFallback}
+                {missionLockText(mission, isProLock ? 'pro' : 'progress', t)}
               </p>
               <LinkButton to={isProLock ? '/paywall' : '/path'} variant="secondary" size="md" className="w-full sm:w-auto">
                 <Lock aria-hidden="true" strokeWidth={2} className="size-4" />
