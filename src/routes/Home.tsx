@@ -66,8 +66,8 @@ export function Home() {
   // lesson the learner could not finish.
   const todayLock = data.todayMission ? missionLock(data.todayMission) : null
   /*
-    Two different numbers, kept apart. The day the learner is on is the server's: the level
-    test can place them past day 1, and today's lesson is that day's. Days done are counted
+    Two different numbers, kept apart. The day the learner is on is the server's today: the
+    first open day they have not finished, which is also today's lesson. Days done are counted
     from what was finished, the way the course map counts them.
   */
   const today = data.currentDay

@@ -304,7 +304,7 @@ export function CoursePath() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <CoursePathHero completedDays={completedDays} currentDay={progress?.currentDay} totalDays={90} />
+      <CoursePathHero completedDays={completedDays} currentDay={todayEntry?.day.day ?? progress?.currentDay} totalDays={90} />
 
       {/*
         The path counted, the way the missions and tests shelves open: how long it is, how much

@@ -14,7 +14,8 @@ export const COURSE_DAYS = 90
  * can place a learner at day 4 with days 1–3 open behind them. Counting "done" from it made the
  * side rail say "3/90" beside a course map showing one day finished. Every "days done" now
  * counts the way the course map does: the server's record of a day, or a lesson finished in this
- * browser that has not synced yet. The day the learner is on stays the server's.
+ * browser that has not synced yet. The day the learner is on is the first open day not finished,
+ * never past the server's course day — the same day Home offers as today's lesson.
  */
 export function useCourseDays() {
   const { user } = useAuth()
@@ -33,11 +34,14 @@ export function useCourseDays() {
   }
 
   const finished = courseMap ? courseMap.filter((day) => isDone(day.day)).length : null
+  const firstOpen = courseMap?.find((day) => !isDone(day.day))?.day
 
   return {
     ready: Boolean(courseMap),
     isDone,
     /** Days finished, or null until the course map is in. */
     finished,
+    /** The first day not finished, or null until the course map is in. */
+    firstUnfinished: courseMap ? Math.min(COURSE_DAYS, firstOpen ?? COURSE_DAYS) : null,
   }
 }

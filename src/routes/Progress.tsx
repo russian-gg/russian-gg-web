@@ -70,7 +70,7 @@ export function Progress() {
           */}
           <Sequence className="flex flex-wrap items-center gap-2" gap={stagger.wide}>
             <Reveal as="span" variants={pop}>
-              <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: COURSE_DAYS })}</Badge>
+              <Badge tone="signal">{fill(t.common.dayOfTotal, { day: Math.min(courseDays.firstUnfinished ?? data.currentDay, data.currentDay), total: COURSE_DAYS })}</Badge>
             </Reveal>
             <Reveal as="span" variants={pop}>
               <Badge>{t.labels.phase[data.phase]}</Badge>
