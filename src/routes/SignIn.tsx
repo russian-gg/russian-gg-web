@@ -150,8 +150,47 @@ export function SignIn() {
         </AnimatePresence>
       </form>
 
+      {/* A phone account's only way back in when the password is gone: an SMS code. */}
+      <p className="mt-3 text-center text-sm">
+        <Link to="/reset-password" className="font-semibold text-signal-ink">
+          {t.auth.reset.forgot}
+        </Link>
+      </p>
+
       <Divider />
       <GoogleContinueButton busy={googleBusy} text="continue_with" onCredential={handleGoogleCredential} />
+    </AuthLayout>
+  )
+}
+
+/** A forgotten password, recovered by the phone it belongs to. */
+export function ResetPassword() {
+  const t = useT()
+  const { requestPasswordReset, confirmPasswordReset, completePasswordReset } = useAuth()
+  const navigate = useNavigate()
+
+  return (
+    <AuthLayout
+      title={t.auth.reset.title}
+      subtitle={t.auth.reset.subtitle}
+      footer={
+        <Link to="/signin" className="font-semibold text-signal-ink">
+          {t.auth.reset.backToSignIn}
+        </Link>
+      }
+    >
+      <PhoneCredentialSetupFlow
+        requestCode={requestPasswordReset}
+        confirmCode={confirmPasswordReset}
+        askName={false}
+        setupTitle={t.auth.reset.setupTitle}
+        setupSubtitle={t.auth.reset.setupSubtitle}
+        completeSetup={async (verificationToken, _name, newPassword, phone) => {
+          const user = await completePasswordReset(phone, verificationToken, newPassword)
+          navigate(postAuthDestination(user), { replace: true })
+        }}
+        submitLabel={t.auth.reset.submit}
+      />
     </AuthLayout>
   )
 }
@@ -334,11 +373,18 @@ function PhoneCredentialSetupFlow({
   confirmCode,
   completeSetup,
   submitLabel,
+  askName = true,
+  setupTitle,
+  setupSubtitle,
 }: {
   requestCode: (phoneE164: string) => Promise<{ resendInSeconds: number }>
   confirmCode: (phoneE164: string, code: string) => Promise<{ verificationToken: string }>
-  completeSetup: (verificationToken: string, displayName: string, password: string) => Promise<void>
+  completeSetup: (verificationToken: string, displayName: string, password: string, phoneE164: string) => Promise<void>
   submitLabel: string
+  /** A password reset keeps the name the account has, so it asks for the password alone. */
+  askName?: boolean
+  setupTitle?: string
+  setupSubtitle?: string
 }) {
   const t = useT()
   const tp = t.auth.phone
@@ -354,7 +400,7 @@ function PhoneCredentialSetupFlow({
   const [resendIn, setResendIn] = useState(0)
   const e164 = '+998' + local
   const canRequest = local.length === 9
-  const canSubmit = code.length === 4 && displayName.trim().length >= 2 && validPassword(password)
+  const canSubmit = code.length === 4 && (!askName || displayName.trim().length >= 2) && validPassword(password)
 
   useEffect(() => {
     if (resendIn <= 0) return
@@ -403,7 +449,7 @@ function PhoneCredentialSetupFlow({
     setBusy(true)
     setError(null)
     try {
-      await completeSetup(verificationToken, displayName.trim(), password)
+      await completeSetup(verificationToken, displayName.trim(), password, e164)
     } catch (caught) {
       setError(errorText(caught, tp.errors.default, tp.errors))
       if (caught instanceof RequestError && caught.code === 'otp_verification_expired') {
@@ -463,8 +509,8 @@ function PhoneCredentialSetupFlow({
     return (
       <form onSubmit={submitCredentials} className="space-y-4">
         <div>
-          <h2 className="text-base font-extrabold text-ink">{tp.setupTitle}</h2>
-          <p className="text-support mt-1">{tp.setupSubtitle}</p>
+          <h2 className="text-base font-extrabold text-ink">{setupTitle ?? tp.setupTitle}</h2>
+          <p className="text-support mt-1">{setupSubtitle ?? tp.setupSubtitle}</p>
         </div>
         {error && <ErrorNote>{error}</ErrorNote>}
         <label className="block" htmlFor="verifiedPhone">
@@ -476,16 +522,18 @@ function PhoneCredentialSetupFlow({
             className="h-12 w-full cursor-not-allowed rounded-xl border-2 border-hairline bg-ground-sunken px-4 text-base text-ink-faint opacity-70"
           />
         </label>
-        <Field
-          label={t.auth.displayName}
-          name="phoneDisplayName"
-          autoComplete="name"
-          required
-          value={displayName}
-          onChange={(event) => setDisplayName(event.target.value)}
-        />
+        {askName && (
+          <Field
+            label={t.auth.displayName}
+            name="phoneDisplayName"
+            autoComplete="name"
+            required
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+          />
+        )}
         <PasswordField
-          label={t.auth.password}
+          label={askName ? t.auth.password : t.auth.reset.newPassword}
           name="phonePassword"
           type={showPassword ? 'text' : 'password'}
           autoComplete="new-password"

@@ -4,8 +4,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, track } from '../lib/api'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
-import type { MissionResult as MissionResultDto, MissionRetryState, SkillArea } from '../lib/types'
-import { Badge, Card, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
+import type {
+  EntitlementView,
+  MissionResult as MissionResultDto,
+  MissionRetryState,
+  MissionSummary,
+  SkillArea,
+} from '../lib/types'
+import { Badge, Card, LinkButton, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
+import { missionLock } from '../lib/mission-lock'
 import { AnimatePresence } from 'motion/react'
 import { CountUp, Reveal, Sequence } from '../components/motion'
 import { pop, rise, stagger } from '../lib/motion'
@@ -26,6 +33,18 @@ export function MissionResult() {
     // The enrichment job fills in detail shortly after completion; poll until it lands.
     refetchInterval: (query) => (query.state.data?.enrichmentPending ? 3000 : false),
   })
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
+  })
+  const isFree = entitlement?.hasProAccess === false
+  // Only asked for a free learner: the offer names how many conversations Pro would open.
+  const { data: library } = useQuery({
+    queryKey: ['practice'],
+    queryFn: () => api.get<MissionSummary[]>('/course/practice'),
+    enabled: isFree,
+  })
+  const proOnly = library?.filter((mission) => missionLock(mission) === 'pro').length ?? 0
 
   if (isLoading) return <Spinner label={t.result.preparing} />
   if (isError || !data) return <QueryError onRetry={() => void refetch()} />
@@ -84,6 +103,25 @@ export function MissionResult() {
       {failed && (
         <Reveal className="xl:col-span-2">
           <RetryPanel missionId={data.missionId} retry={data.retry ?? null} />
+        </Reveal>
+      )}
+
+      {/*
+        A free learner has just finished the conversation the plan gives them, which is the
+        moment they know what the rest would be like. A failed run keeps the retry as the one
+        thing on offer.
+      */}
+      {!failed && isFree && proOnly > 0 && (
+        <Reveal className="xl:col-span-2">
+          <Card className="flex flex-col gap-3 border-signal/25 bg-signal-soft/40 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-base font-extrabold text-ink">{fill(t.result.proOfferTitle, { count: proOnly })}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t.result.proOfferBody}</p>
+            </div>
+            <LinkButton to="/paywall" className="shrink-0">
+              {t.result.proOfferCta}
+            </LinkButton>
+          </Card>
         </Reveal>
       )}
 

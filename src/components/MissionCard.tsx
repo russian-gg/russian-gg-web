@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { fill, useLocale, useT } from '../lib/i18n'
+import { missionLock, missionLockDestination, missionLockText } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
 import { missionCardClass } from './mission-card-style'
@@ -42,8 +43,8 @@ export function MissionCard({
   const { locale } = useLocale()
   const navigate = useNavigate()
   const [previewOpen, setPreviewOpen] = useState(false)
-  const isProLock =
-    mission.isLocked && (mission.lockReason?.toLowerCase().includes('pro') ?? false)
+  const lock = missionLock(mission)
+  const isProLock = lock === 'pro'
 
   const needsRegisterLabel =
     mission.category === 'StreetRussian' ||
@@ -56,11 +57,7 @@ export function MissionCard({
     ru: mission.titleRu,
     en: mission.titleEn,
   })
-  const destination = mission.isLocked
-    ? isProLock
-      ? '/paywall'
-      : '/home'
-    : missionPath(mission)
+  const destination = lock ? missionLockDestination(lock) : missionPath(mission)
 
   const cardClassName = cx(
     missionCardClass(mission.isCompleted, mission.isLocked),
@@ -96,10 +93,13 @@ export function MissionCard({
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           {showFreeLabel && !mission.isLocked && <Badge>{t.account.plan.free}</Badge>}
           {mission.isLocked && (
-            <Badge tone="caution">{isProLock ? t.path.needsPro : t.common.later}</Badge>
+            <Badge tone="caution">{isProLock ? t.path.needsPro : t.path.locked}</Badge>
           )}
         </div>
       </div>
+
+      {/* A locked card says what opens it, before the tap rather than after. */}
+      {lock && <p className="mt-3 text-sm leading-snug text-ink-muted">{missionLockText(mission, lock, t)}</p>}
 
       <MissionScore mission={mission} label={title} />
 

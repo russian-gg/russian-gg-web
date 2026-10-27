@@ -16,6 +16,10 @@ export interface AuthState {
     displayName: string,
     password: string,
   ) => Promise<UserProfile>
+  /** Password recovery for a phone account: SMS code, then a new password, then signed in. */
+  requestPasswordReset: (phoneNumber: string) => Promise<PhoneCodeChallenge>
+  confirmPasswordReset: (phoneNumber: string, code: string) => Promise<PhoneVerificationChallenge>
+  completePasswordReset: (phoneNumber: string, verificationToken: string, password: string) => Promise<UserProfile>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   completePendingOnboarding: () => Promise<void>

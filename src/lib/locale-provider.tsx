@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, setRequestLanguage, tokenStore } from './api'
+import { api, setRequestLanguage, setRequestMessages, tokenStore } from './api'
 import {
   LocaleContext,
   isLocale,
@@ -78,6 +78,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale
     setRequestLanguage(locale)
   }, [locale])
+
+  // The words for a failed request that has no message of its own, in the language on screen.
+  useEffect(() => {
+    setRequestMessages({ offline: dictionary.common.offline, serverError: dictionary.common.serverError })
+  }, [dictionary])
 
   const setLocale = useCallback(
     (next: Locale) => {

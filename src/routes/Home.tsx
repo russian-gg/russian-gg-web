@@ -13,6 +13,7 @@ import {
   QuoteCard,
   RecentActivity,
 } from '../components/home/HomeSidePanels'
+import { missionLock, missionLockDestination } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
 import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
 import { Reveal, Sequence } from '../components/motion'
@@ -53,7 +54,15 @@ export function Home() {
     the point — there is a single next action on this screen, offered twice: once as the thing
     you came for, once as the thing you are about to do.
   */
-  const startPath = data.todayMission ? missionPath(data.todayMission) : '/path'
+  // A locked lesson is routed the way its card is: "start" over a "Pro kerak" card opened a
+  // lesson the learner could not finish.
+  const todayLock = data.todayMission ? missionLock(data.todayMission) : null
+  const startPath = todayLock
+    ? missionLockDestination(todayLock)
+    : data.todayMission
+      ? missionPath(data.todayMission)
+      : '/path'
+  const startLabel = todayLock === 'pro' ? t.path.buyPro : todayLock === 'progress' ? t.nav.path : undefined
 
   return (
     /*
@@ -77,7 +86,7 @@ export function Home() {
         {/* The column the learner came for. */}
         <Sequence className="min-w-0 space-y-6" gap={stagger.base}>
           <Reveal variants={rise}>
-            <HeroBanner to={startPath} />
+            <HeroBanner to={startPath} label={startLabel} />
           </Reveal>
 
           {/*

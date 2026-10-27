@@ -55,6 +55,38 @@ export function setRequestLanguage(language: string) {
   requestLanguage = language
 }
 
+/**
+ * What to say when there is no server answer to show: no connection at all, or a server
+ * failure whose own text is an English "Something went wrong. Reference: …". Set by the locale
+ * provider from the dictionary on screen; until then the server's words are passed through.
+ */
+let requestMessages: { offline: string; serverError: string } | null = null
+
+export function setRequestMessages(messages: { offline: string; serverError: string }) {
+  requestMessages = messages
+}
+
+/** The fetch itself failed: offline, DNS, a dropped connection. */
+function offlineError() {
+  return new RequestError(0, 'offline', requestMessages?.offline ?? 'No connection.')
+}
+
+/** A failed response, in the learner's language where the server's own text is not meant for them. */
+async function responseError(response: Response) {
+  const error = await response
+    .json()
+    .catch<ApiError | null>(() => null)
+
+  if (!error || error.code === 'server_error') {
+    // Keep the reference: it is what support looks the failure up by.
+    const reference = error?.message.match(/Reference:\s*(\S+)/)?.[1]
+    const text = requestMessages?.serverError ?? error?.message ?? 'Request failed.'
+    return new RequestError(response.status, error?.code ?? 'server_error', reference ? `${text} (${reference})` : text)
+  }
+
+  return new RequestError(response.status, error.code, error.message)
+}
+
 export class RequestError extends Error {
   constructor(
     readonly status: number,
@@ -121,11 +153,7 @@ async function send<T>(method: Method, path: string, body?: unknown, retry = tru
   }
 
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch<ApiError>(() => ({ code: 'network_error', message: 'Request failed.' }))
-
-    throw new RequestError(response.status, error.code, error.message)
+    throw await responseError(response)
   }
 
   if (response.status === 204 || response.headers.get('content-length') === '0') {
@@ -146,6 +174,8 @@ async function sendRaw(method: Method, path: string, body?: unknown, retry = tru
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
+  }).catch(() => {
+    throw offlineError()
   })
 
   if (response.status === 401 && retry && (await refreshAccessToken())) {
@@ -196,14 +226,12 @@ export const api = {
       method: 'POST',
       headers,
       body,
+    }).catch(() => {
+      throw offlineError()
     })
 
     if (!response.ok) {
-      const error = await response
-        .json()
-        .catch<ApiError>(() => ({ code: 'network_error', message: 'Request failed.' }))
-
-      throw new RequestError(response.status, error.code, error.message)
+      throw await responseError(response)
     }
 
     if (response.status === 204 || response.headers.get('content-length') === '0') {
@@ -217,11 +245,7 @@ export const api = {
     const response = await sendRaw('POST', path, body)
 
     if (!response.ok) {
-      const error = await response
-        .json()
-        .catch<ApiError>(() => ({ code: 'network_error', message: 'Request failed.' }))
-
-      throw new RequestError(response.status, error.code, error.message)
+      throw await responseError(response)
     }
 
     return response.blob()

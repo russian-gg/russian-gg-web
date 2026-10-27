@@ -134,7 +134,14 @@ function PlanCard({
       />
 
       <span className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
-        <span className="text-[15px] font-bold text-ink">{t.billing.periodLabel[option.period]}</span>
+        <span>
+          <span className="block text-[15px] font-bold text-ink">{t.billing.periodLabel[option.period]}</span>
+          {/* The month opens thirty days of the path, not all ninety: said on the card that
+              is being chosen, rather than discovered at day thirty-one. */}
+          <span className="mt-0.5 block text-sm font-semibold text-ink-muted">
+            {t.billing.periodUnlocks[option.period]}
+          </span>
+        </span>
 
         <span className="ml-auto flex shrink-0 items-center gap-2">
           {option.savingsPercent > 0 && (

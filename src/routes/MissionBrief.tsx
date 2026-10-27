@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { characterName, characterPalette } from '../lib/character'
@@ -56,6 +56,13 @@ export function MissionBrief({ mission }: MissionBriefProps) {
   const name = characterName(dialogue.character, t)
   const remaining = useCountdown(dialogue.retry.retryAvailableAt)
   const locked = !dialogue.retry.canStart
+  const queryClient = useQueryClient()
+
+  // When the wait runs out the server is asked again, so the button opens without a reload.
+  const waitOver = locked && remaining === '0:00'
+  useEffect(() => {
+    if (waitOver) void queryClient.invalidateQueries({ queryKey: ['mission-detail', mission.summary.id] })
+  }, [waitOver, queryClient, mission.summary.id])
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-12">
@@ -140,11 +147,16 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         action on this screen and should never be the thing a learner has to scroll for.
       */}
       <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 md:bottom-3 space-y-2 rounded-[var(--radius-card)] border border-hairline bg-ground-raised/95 p-3 shadow-[0_10px_30px_rgb(22_24_29/0.10)] backdrop-blur-sm">
+        {/*
+          Not `disabled`: a disabled button takes no taps at all, so the explanation below was
+          never reachable. It looks unavailable and says why when pressed.
+        */}
         <Button
           block
           size="lg"
-          disabled={locked}
+          variant={locked ? 'secondary' : 'primary'}
           aria-disabled={locked}
+          className={locked ? 'opacity-60' : undefined}
           onClick={() => (locked ? setShowCooldown(true) : navigate(`/missions/${mission.summary.id}/live`))}
         >
           {locked ? copy.retryLocked : copy.start}
@@ -177,8 +189,12 @@ export function MissionBrief({ mission }: MissionBriefProps) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="mission-cooldown-title"
+          onClick={() => setShowCooldown(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setShowCooldown(false)
+          }}
         >
-          <m.div variants={sheet} className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl">
+          <m.div variants={sheet} onClick={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-6 shadow-2xl">
             <div
               className="grid size-12 place-items-center rounded-full"
               style={{ background: `${palette.light}26`, color: palette.deep }}
@@ -191,7 +207,11 @@ export function MissionBrief({ mission }: MissionBriefProps) {
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               {fill(copy.cooldownBody, { time: remaining ?? '—' })}
             </p>
-            <Button block className="mt-5" onClick={() => setShowCooldown(false)}>
+            {/* The wait is for this conversation only; the rest of the library is open. */}
+            <Button block className="mt-5" onClick={() => navigate('/practice')}>
+              {copy.cooldownNext}
+            </Button>
+            <Button variant="ghost" block className="mt-2" onClick={() => setShowCooldown(false)}>
               {copy.cooldownOk}
             </Button>
           </m.div>

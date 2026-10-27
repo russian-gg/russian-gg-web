@@ -8,6 +8,7 @@ import { cx } from '../../lib/cx'
 import { LESSON_ONE_SECTIONS, readFoundationLessonProgress } from '../../lib/demo-lesson-one'
 import { hasFoundationLesson } from '../../lib/foundation-days'
 import { fill, useLocale, useT } from '../../lib/i18n'
+import { missionLock, missionLockDestination } from '../../lib/mission-lock'
 import { missionPath } from '../../lib/mission-path'
 import { ease, rise } from '../../lib/motion'
 import type { MissionSummary } from '../../lib/types'
@@ -43,8 +44,9 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
   const objective = pickContent(locale, { uz: mission.objectiveUz, ru: mission.objectiveRu, en: mission.objectiveEn })
   // A day with an authored lesson opens the lesson; anything else is a speaking practice.
   const isLesson = !mission.isDialogue && hasFoundationLesson(mission.courseDay)
-  const isProLock = mission.isLocked && (mission.lockReason?.toLowerCase().includes('pro') ?? false)
-  const destination = mission.isLocked ? (isProLock ? '/paywall' : '/path') : missionPath(mission)
+  const lock = missionLock(mission)
+  const isProLock = lock === 'pro'
+  const destination = lock ? missionLockDestination(lock) : missionPath(mission)
   const best = mission.bestScore ?? null
 
   // How far into the lesson the learner is. Read when the card appears; the home screen is
