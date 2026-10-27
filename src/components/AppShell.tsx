@@ -51,6 +51,7 @@ import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/ty
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { HeaderProPill, RailProCard } from './ProEntry'
 import { useProOffer } from '../lib/pro-offer'
+import { useCourseDays } from '../lib/course-days'
 import { Badge, Spinner, Switch } from './ui'
 import { duration, ease } from '../lib/motion'
 
@@ -92,7 +93,9 @@ export function AppShell() {
     retry: false,
   })
 
-  const completedDays = Math.max(0, (progress?.currentDay ?? 1) - 1)
+  const { finished } = useCourseDays()
+  // Finished days, the course map's count; the server's course day only until the map is in.
+  const completedDays = finished ?? Math.max(0, (progress?.currentDay ?? 1) - 1)
 
   return (
     <div className="app-shell min-h-dvh overflow-x-clip bg-ground-sunken md:flex">

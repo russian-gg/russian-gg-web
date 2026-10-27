@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
-import { formatDate } from '../../lib/format'
+import { formatDate, planLabel } from '../../lib/format'
+import { freePlanItems } from '../../lib/pro-offer'
 import { fill, useLocale, useT, type Dictionary } from '../../lib/i18n'
 import type { EntitlementView, SubscriptionStatus } from '../../lib/types'
 import { Badge, Button, Card, QueryError, Spinner } from '../../components/ui'
@@ -67,7 +68,7 @@ export function SubscriptionSettings() {
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <FeatureCard
           title={hasPro ? t.billing.proPlanTitle : t.billing.freePlanTitle}
-          items={hasPro ? t.billing.proBenefits : t.billing.freeLimitItems}
+          items={hasPro ? t.billing.proBenefits : freePlanItems(t, entitlement.maxUnlockedDay)}
         />
         {/* Only worth putting to somebody who is not already on it. */}
         {!hasPro && <UpsellCard t={t} />}
@@ -179,7 +180,7 @@ function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t
             className="text-[2.5rem] leading-none font-extrabold tracking-tight sm:text-5xl"
             style={{ color: 'var(--plan-ink)' }}
           >
-            {entitlement.tier}
+            {planLabel(entitlement, t)}
           </span>
           <PlanPill>{statusLabel(entitlement.status, t)}</PlanPill>
           {entitlement.paymentProcessing && <Badge tone="caution">{t.profile.paymentChecking}</Badge>}
@@ -194,8 +195,9 @@ function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t
 
         {/* Full width on a phone, hugging its label from `sm` — what this product already says
             a primary action does on a phone; see `block` on `Button`. */}
+        {/* "Manage subscription" only for somebody who has one; a free learner is offered Pro. */}
         <Button block className="mt-6 sm:w-auto sm:px-7" onClick={() => navigate('/paywall')}>
-          {t.profile.manage}
+          {entitlement.hasProAccess ? t.profile.manage : t.pro.upgrade}
         </Button>
       </div>
     </section>
@@ -366,18 +368,14 @@ function FeatureCard({
  * a phone screen pushes the button it is arguing for off the bottom.
  */
 function UpsellCard({ t }: { t: Dictionary }) {
-  const navigate = useNavigate()
-
+  // No button of its own: the banner above already leads to the plans, and two buttons to
+  // one page read as two different things.
   return (
     <Card className="relative overflow-hidden border-signal-soft bg-signal-soft/70">
       <div className="relative flex items-center gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-extrabold tracking-tight text-ink">{t.billing.upsellTitle}</h2>
           <p className="text-support mt-1.5 text-sm leading-relaxed">{t.billing.upsellBody}</p>
-
-          <Button block className="mt-5 sm:w-auto sm:px-6" onClick={() => navigate('/paywall')}>
-            {t.billing.viewPlans}
-          </Button>
         </div>
 
         {/* Negative margins let it run to the card's own edge rather than sitting inside the

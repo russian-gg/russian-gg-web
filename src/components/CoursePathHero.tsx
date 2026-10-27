@@ -32,9 +32,12 @@ import heroBackdrop from '../assets/images/90_days_lesson_bg.webp'
  */
 export function CoursePathHero({
   completedDays,
+  currentDay,
   totalDays,
 }: {
   completedDays: number
+  /** The day the learner is on, from the server; the level test can place them past day 1. */
+  currentDay?: number
   totalDays: number
 }) {
   const t = useT()
@@ -91,7 +94,7 @@ export function CoursePathHero({
                 className="mt-1.5 max-w-md text-[13px] leading-relaxed sm:text-[15px]"
                 style={{ color: 'var(--hero-ink-muted)' }}
               >
-                {fill(copy.subtitle, { day: Math.min(completedDays + 1, totalDays) })}
+                {fill(copy.subtitle, { day: Math.min(currentDay ?? completedDays + 1, totalDays) })}
               </p>
             </Reveal>
           </Sequence>

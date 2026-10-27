@@ -1,13 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
-import { useAuth } from './auth-context'
-import { readFoundationLessonProgress } from './demo-lesson-one'
-import { hasFoundationLesson } from './foundation-days'
+import { COURSE_DAYS, useCourseDays } from './course-days'
 import { formatPrice } from './format'
-import { useLocale } from './i18n'
-import type { CourseDayView, EntitlementView, PlansView, ProgressView, WelcomeGiftStatus } from './types'
+import { fill, useLocale, type Dictionary } from './i18n'
+import type { EntitlementView, PlansView, ProgressView, WelcomeGiftStatus } from './types'
 
-export const COURSE_DAYS = 90
+export { COURSE_DAYS }
+
+/**
+ * What the free plan includes, with the free days as this learner has them: "the first day"
+ * was written down once and stayed true for nobody with gift days.
+ */
+export function freePlanItems(t: Dictionary, freeDays: number) {
+  return t.billing.freeLimitItems.map((item) =>
+    item === '{freeDays}' ? (freeDays > 1 ? fill(t.billing.freeDaysRange, { last: freeDays }) : t.billing.freeDayOne) : item,
+  )
+}
 
 /** The cheapest day of Pro across the plans on sale, in tiyin. */
 export function cheapestDay(plans: PlansView | undefined) {
@@ -26,7 +34,6 @@ export function cheapestDay(plans: PlansView | undefined) {
  */
 export function useProOffer() {
   const { locale } = useLocale()
-  const { user } = useAuth()
   const { data: entitlement } = useQuery({
     queryKey: ['entitlement'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
@@ -55,27 +62,12 @@ export function useProOffer() {
     refetchOnWindowFocus: false,
   })
 
-  const { data: courseMap } = useQuery({
-    queryKey: ['course-map'],
-    queryFn: () => api.get<CourseDayView[]>('/course/map'),
-    staleTime: 60_000,
-    retry: false,
-  })
+  const courseDays = useCourseDays()
 
   const freeDays = Math.min(COURSE_DAYS, entitlement?.maxUnlockedDay ?? 1)
   const currentDay = progress?.currentDay ?? 1
-  /*
-    Which free days are actually finished, counted the way the course map counts them: the
-    server's record, or a lesson finished in this browser that has not synced yet. The course
-    day is not used — it can run ahead of what was finished, and the card then claimed three
-    days done beside a map that showed one.
-  */
-  const freeDayDone = Array.from({ length: freeDays }, (_, index) => {
-    const day = courseMap?.find((entry) => entry.day === index + 1)
-    if (!day) return false
-    if (day.completedMissionCount >= day.requiredMissionCount) return true
-    return day.isUnlocked && hasFoundationLesson(day.day) && readFoundationLessonProgress(user?.id, day.day).isComplete
-  })
+  // Finished days as the course map counts them; see `useCourseDays` for why not the course day.
+  const freeDayDone = Array.from({ length: freeDays }, (_, index) => courseDays.isDone(index + 1))
   const freeDaysDone = freeDayDone.filter(Boolean).length
   const cheapest = cheapestDay(plans)
   const discountActive = Boolean(
@@ -88,7 +80,7 @@ export function useProOffer() {
      * Both the plan and the learner's day are in. Until then the free-day counts would be
      * guesses (day 1 of 1), so the surfaces wait rather than flash wrong numbers.
      */
-    ready: Boolean(entitlement && progress && courseMap),
+    ready: Boolean(entitlement && progress && courseDays.ready),
     /** One entry per free day: finished or not. */
     freeDayDone,
     /** Known to be on the free plan — false while the entitlement is still loading. */

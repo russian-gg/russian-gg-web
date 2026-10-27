@@ -19,7 +19,7 @@ import { pop, rise, stagger } from '../lib/motion'
 
 /** Detailed scoring appears only after the mission, never during it (PRD §6). */
 export function MissionResult() {
-  const geminiReply = useT().dayPreview.geminiReply
+  const partnerReply = useT().dayPreview.partnerReply
   const t = useT()
   const { locale } = useLocale()
   const { attemptId = '' } = useParams()
@@ -103,6 +103,13 @@ export function MissionResult() {
                 : data.strengthNoteUz}
             </UzHint>
           </Reveal>
+          {failed && data.strengthNoteUz && (
+            <Reveal>
+              <p className="text-support mt-2">
+                <span className="font-bold text-milestone">{t.result.wentWell}</span> {data.strengthNoteUz}
+              </p>
+            </Reveal>
+          )}
         </Sequence>
       </Reveal>
 
@@ -153,7 +160,8 @@ export function MissionResult() {
         <SectionHeading>{t.result.mainCorrection}</SectionHeading>
         <Card>
           <p className="text-base text-ink">{pickContent(locale, { uz: data.headlineFeedbackUz, ru: data.headlineFeedbackRu })}</p>
-          <p className="text-support mt-2">{data.headlineFeedbackRu}</p>
+          {/* The Russian line under the learner's own, unless their own already is Russian. */}
+          {locale !== 'ru' && <p className="text-support mt-2">{data.headlineFeedbackRu}</p>}
         </Card>
         <p className="text-support mt-2">
           {t.result.aiDisclaimer}
@@ -171,7 +179,10 @@ export function MissionResult() {
                   className="flex items-center justify-between border-b border-hairline py-2.5 last:border-b-0"
                 >
                   <span className="text-sm font-medium text-ink">{t.labels.skill[skill]}</span>
-                  <span className="text-sm tabular-nums text-ink-muted">{score}</span>
+                  <span className="text-sm tabular-nums text-ink-muted">
+                    {score}
+                    <span className="text-ink-faint"> / 100</span>
+                  </span>
                 </Reveal>
               ))}
             </Sequence>
@@ -229,7 +240,7 @@ export function MissionResult() {
                 {turn.tutorTranscript ? (
                   <div className="mt-3 rounded-lg bg-ground-sunken px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
-                      {geminiReply}
+                      {partnerReply}
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-ink">{turn.tutorTranscript}</p>
                   </div>
@@ -289,7 +300,9 @@ type RetryPanelProps = {
 function RetryPanel({ missionId, retry }: RetryPanelProps) {
   const t = useT()
   const remaining = useCountdown(retry?.retryAvailableAt)
-  const canRetry = retry?.canStart !== false
+  // The server's answer is from when the page loaded; the wait it named can be over since.
+  const waitOver = Boolean(retry?.retryAvailableAt) && remaining === '0:00'
+  const canRetry = retry?.canStart !== false || waitOver
 
   return (
     <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

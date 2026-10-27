@@ -115,7 +115,10 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
           <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-ink-muted">
             <span className="inline-flex items-center gap-1.5">
               <Clock aria-hidden="true" strokeWidth={1.9} className="size-4" />
-              {fill(t.common.minutes, { count: mission.estimatedMinutes })}
+              {/* A lesson is nine sections, not a fixed number of minutes; a conversation has a real time. */}
+              {isLesson
+                ? fill(t.home.sectionsCount, { count: LESSON_ONE_SECTIONS.length })
+                : fill(t.common.minutes, { count: mission.estimatedMinutes })}
             </span>
             {mission.targetPhraseCount > 0 && (
               <span className="inline-flex items-center gap-1.5">

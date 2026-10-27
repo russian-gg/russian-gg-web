@@ -6,6 +6,7 @@ import type { HomeView } from '../lib/types'
 import { TodayLessonCard } from '../components/home/TodayLessonCard'
 import { WelcomeStartDialog, type WelcomeStart } from '../components/home/WelcomeStartDialog'
 import { HomeProCard } from '../components/ProEntry'
+import { useCourseDays } from '../lib/course-days'
 import { HeroBanner } from '../components/home/HeroBanner'
 import { DashboardSearch } from '../components/home/DashboardSearch'
 import { FeatureTiles, RecommendedLessons } from '../components/home/HomeSections'
@@ -36,6 +37,7 @@ export function Home() {
   const navigate = useNavigate()
   // Set by the level test's result screen only, so a reload or a later visit does not ask again.
   const welcome = (location.state as { welcome?: WelcomeStart } | null)?.welcome
+  const courseDays = useCourseDays()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeView>('/course/home'),
@@ -63,6 +65,13 @@ export function Home() {
   // A locked lesson is routed the way its card is: "start" over a "Pro kerak" card opened a
   // lesson the learner could not finish.
   const todayLock = data.todayMission ? missionLock(data.todayMission) : null
+  /*
+    Two different numbers, kept apart. The day the learner is on is the server's: the level
+    test can place them past day 1, and today's lesson is that day's. Days done are counted
+    from what was finished, the way the course map counts them.
+  */
+  const today = data.currentDay
+  const finishedDays = courseDays.finished ?? Math.max(0, data.currentDay - 1)
   const startPath = todayLock
     ? missionLockDestination(todayLock)
     : data.todayMission
@@ -88,7 +97,7 @@ export function Home() {
         <WelcomeStartDialog
           start={welcome}
           lessonPath={startPath}
-          day={data.currentDay}
+          day={today}
           onDismiss={() => navigate(location.pathname, { replace: true, state: null })}
         />
       )}
@@ -110,7 +119,7 @@ export function Home() {
             a quiet line underneath one.
           */}
           <Reveal className="flex flex-wrap items-center gap-2">
-            <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: 90 })}</Badge>
+            <Badge tone="signal">{fill(t.common.dayOfTotal, { day: today, total: 90 })}</Badge>
             <Badge>{t.labels.phase[data.phase]}</Badge>
             {data.streakDays > 1 && <Badge tone="milestone">{fill(t.home.streak, { count: data.streakDays })}</Badge>}
             {data.tier === 'Free' && <Badge tone="caution">{t.account.plan.free}</Badge>}
@@ -176,7 +185,7 @@ export function Home() {
         <Sequence as="aside" className="min-w-0 space-y-6" gap={stagger.base} delay={0.2}>
           {data.tier === 'Free' && <Reveal><HomeProCard /></Reveal>}
           <Reveal><QuoteCard /></Reveal>
-          <Reveal><ProgressRing currentDay={data.currentDay} /></Reveal>
+          <Reveal><ProgressRing currentDay={finishedDays + 1} /></Reveal>
           <Reveal><AchievementsPanel /></Reveal>
           <Reveal><RecentActivity /></Reveal>
         </Sequence>

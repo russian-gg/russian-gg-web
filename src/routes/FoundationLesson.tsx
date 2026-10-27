@@ -33,7 +33,9 @@ import {
   roomObjectIcons,
   roomSlotIcons,
 } from '../lib/lesson-icons'
-import { fill, useT, type Dictionary } from '../lib/i18n'
+import { fill, useLocale, useT, type Dictionary, type Locale } from '../lib/i18n'
+
+const SPEECH_TAG: Record<Locale, string> = { uz: 'uz-UZ', ru: 'ru-RU', en: 'en-GB' }
 import { useFocusTrap } from '../lib/focus-trap'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -1565,6 +1567,7 @@ function MissionModes({
   onAiSkipped: () => void
 }) {
   const dictionary = useT()
+  const { locale } = useLocale()
   const t = dictionary.lesson.missions
   const voiceErrors = dictionary.voiceErrors
   // The block runs in order: practise the dialogue line by line, then carry it into the AI
@@ -1733,7 +1736,8 @@ function MissionModes({
       ].filter(Boolean).join('. ')
       setFeedback({ kind: 'note', text: message })
       const spokenFeedback = [result.feedback.strengthNote, result.feedback.headlineCorrection, result.feedback.pronunciationNote].filter(Boolean).join('. ')
-      await speak(spokenFeedback, 'uz-UZ')
+      // The server writes the feedback in the learner's language, so it is read in that voice.
+      await speak(spokenFeedback, SPEECH_TAG[locale])
       onDone?.()
     } catch (error) {
       setFeedback({ kind: 'error', text: error instanceof RequestError ? error.message : t.checkFailed })
@@ -1905,8 +1909,8 @@ function VocabularySection({ words, reviewed, onReviewed }: {
           <h3 className="mt-1 text-xl font-black text-ink">{t.deckTitle}</h3>
           <p className="mt-1 text-sm font-bold text-ink-muted">
             {reviewed === 0
-              ? `Kamida ${target} ta kartani ko‘ring`
-              : `Ko‘rildi: ${Math.min(reviewed, words.length)} / ${words.length}${reviewed >= target ? ' ✓' : ` (kamida ${target})`}`}
+              ? fill(t.deckMin, { count: target })
+              : `${fill(t.deckSeen, { seen: Math.min(reviewed, words.length), total: words.length })}${reviewed >= target ? ' ✓' : ` ${fill(t.deckAtLeast, { count: target })}`}`}
           </p>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>{reviewed > 0 && !finishedDeck ? t.resume : t.open}</Button>

@@ -6,7 +6,8 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { characterName, characterPalette } from '../lib/character'
 import { missionPath } from '../lib/mission-path'
-import { fill, useT, type Dictionary } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT, type Dictionary } from '../lib/i18n'
 import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import type { Mascot } from '../lib/foundation-lessons'
 import type { MissionDetail } from '../lib/types'
@@ -61,6 +62,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
   const [showCooldown, setShowCooldown] = useState(false)
   const dialogue = mission.dialogue!
   const copy = t.missionBrief
+  const { locale } = useLocale()
   const palette = characterPalette(dialogue.character)
   const mascot = MASCOT_BY_CHARACTER[dialogue.character]
   const name = characterName(dialogue.character, t)
@@ -104,13 +106,13 @@ export function MissionBrief({ mission }: MissionBriefProps) {
               {fill(copy.eyebrow, { character: name })}
             </span>
             <h1 className="mt-3 text-2xl leading-tight font-extrabold tracking-tight wrap-break-word text-ink sm:text-3xl">
-              {mission.summary.titleUz}
+              {pickContent(locale, { uz: mission.summary.titleUz, ru: mission.summary.titleRu, en: mission.summary.titleEn })}
             </h1>
           </div>
         </div>
 
         <p className="mt-5 text-sm leading-relaxed text-ink-muted sm:text-base">
-          {mission.summary.objectiveUz}
+          {pickContent(locale, { uz: mission.summary.objectiveUz, ru: mission.summary.objectiveRu, en: mission.summary.objectiveEn })}
         </p>
       </header>
 
@@ -120,7 +122,11 @@ export function MissionBrief({ mission }: MissionBriefProps) {
           {copy.goalTitle}
         </span>
         <p className="mt-2 text-base leading-relaxed font-bold text-ink">
-          {dialogue.goalUz ?? mission.summary.objectiveUz}
+          {pickContent(locale, {
+            uz: dialogue.goalUz ?? mission.summary.objectiveUz,
+            ru: dialogue.goalRu ?? mission.summary.objectiveRu,
+            en: mission.summary.objectiveEn,
+          })}
         </p>
       </Card>
 

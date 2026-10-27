@@ -93,6 +93,8 @@ export function Games() {
       <Sequence className="grid gap-4 lg:grid-cols-2" gap={stagger.base}>
         {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
           const art = ART[game.slug]
+          // The catalogue comes from the server in Uzbek; the names are the client's to translate.
+          const label = (t.games as Record<string, { title: string; body: string } | undefined>)[game.slug]
           const destination = game.isAccessible ? art?.to ?? `/games/${game.slug}` : '/paywall'
 
           if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} />
@@ -132,8 +134,8 @@ export function Games() {
               </span>
 
               <span className="min-w-0">
-                <span className="block truncate text-base font-black text-ink">{game.titleUz}</span>
-                <span className="mt-0.5 block text-sm leading-snug text-ink-muted">{game.bodyUz}</span>
+                <span className="block truncate text-base font-black text-ink">{label?.title ?? game.titleUz}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-ink-muted">{label?.body ?? game.bodyUz}</span>
               </span>
             </MotionLink>
           )

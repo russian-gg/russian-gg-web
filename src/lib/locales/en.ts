@@ -113,7 +113,9 @@ export const en: Dictionary = {
       wonTitle: 'You made it! 🎉',
       wonBody: 'A full minute without stopping. That point is yours.',
       next: 'Next question',
+      questions: ["What is your name and where do you work?", "What did you do this morning? Try to say it in Russian.", "You want to ask for bread in a shop. What do you say?", "Tell the taxi driver your address.", "Introduce yourself to a colleague at work.", "Explain to the doctor what hurts.", "Ask the price at the bazaar and bargain.", "Talk to your neighbour about the weather."],
     },
+    games: {"arra": {"title": "The Saw", "body": "Keep talking — fall silent and the saw moves closer."}, "rod-runner": {"title": "Лёд и род", "body": "Steer each Russian word into the lane of its gender."}, "tez-gapir": {"title": "Speak fast", "body": "Speak Russian on one topic for 30 seconds."}, "fight-for-life": {"title": "Помоги!", "body": "Speak Russian — your voice gives the hero strength."}, "error-hunt": {"title": "Error hunter", "body": "Find and fix the mistake in a Russian sentence."}, "first-reaction": {"title": "First reaction", "body": "Answer an unexpected situation in 5 seconds."}, "ice-mystery": {"title": "Mystery of the ice city", "body": "Ask questions, find clues and solve the mystery."}, "soz-ovi": {"title": "Word hunt", "body": "Find the Russian word for the picture."}, "tez-javob": {"title": "Quick answer", "body": "Answer in 10 seconds."}, "dialog": {"title": "Dialogue", "body": "Put the conversation in the right order."}, "eshitib-top": {"title": "Hear and find", "body": "Choose the sentence you heard."}, "xotira": {"title": "Memory", "body": "Find the pairs — a word and its translation."}},
   },
 
   placement: {
@@ -442,6 +444,9 @@ export const en: Dictionary = {
       known: "Know it · выучил",
       unknown: "Don't know · не знаю",
       again: "Review · повторю",
+      deckMin: "Look at at least {count} cards",
+      deckSeen: "Seen: {seen} / {total}",
+      deckAtLeast: "(at least {count})",
     },
 
     exercise: {
@@ -485,7 +490,7 @@ export const en: Dictionary = {
     perDay: '/day',
     telegram: 'Get in touch on Telegram',
     stopListening: 'Stop playback',
-    geminiReply: 'Gemini reply',
+    partnerReply: "Your partner's reply",
     attachmentNote:
       'For now only the file name is kept alongside your comment. We can wire up a full upload later if it is needed.',
   },
@@ -972,6 +977,7 @@ export const en: Dictionary = {
     welcomeMission: "Start your first conversation",
     welcomeMissionHint: "A live voice conversation with the AI",
     welcomeMissionHintNamed: "“{title}” — a live voice conversation with the AI",
+    sectionsCount: "{count} sections",
   },
 
   path: {
@@ -1333,7 +1339,7 @@ export const en: Dictionary = {
     notPassedBody: "This time you didn't reach the pass mark. Give it another go.",
     retryNow: 'Try again',
     retryIn: 'You can retry in {time}',
-    nextMission: 'Next mission',
+    nextMission: "Go to the 90-day path",
     preparing: 'Preparing your result',
     completed: 'Lesson complete',
     milestoneUnlocked: 'Day {day} milestone unlocked',
@@ -1358,6 +1364,7 @@ export const en: Dictionary = {
     proOfferCta: "See Pro",
     movedToDay: 'You have moved to day {day}.',
     retryPrompt: "Give it another go — the phrases are familiar now.",
+    wentWell: "What went well:",
   },
 
   billing: {
@@ -1376,7 +1383,7 @@ export const en: Dictionary = {
       'Full progress and level history',
       'The task library',
     ],
-    freeLimitItems: ['The level test', 'The first day', 'A few sample tasks'],
+    freeLimitItems: ['The level test', '{freeDays}', 'A few sample tasks'],
     title: "Carry on along the path with Pro",
     subtitle:
       'The free plan opens the level test and the first day. Pro is needed to carry on ' +
@@ -1400,7 +1407,7 @@ export const en: Dictionary = {
     freeLimits: 'On the free plan',
     viewPlans: "View plans",
     planTagline: "Start learning Russian today and open up what the course can do.",
-    yourProgress: "Your progress",
+    yourProgress: "Open days and billing",
     freePlanTitle: "What the free plan includes",
     proPlanTitle: "What does Pro give you?",
     upsellTitle: "Subscribe to unlock more",
@@ -1455,6 +1462,8 @@ export const en: Dictionary = {
     receiptNote: "Your receipt is in the {provider} app.",
     startDay: "Start day {day}",
     cancelFailed: "The subscription couldn't be cancelled. Try again.",
+    freeDayOne: "The first day",
+    freeDaysRange: "Days 1–{last}",
   },
 
   profile: {
