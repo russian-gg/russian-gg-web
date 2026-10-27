@@ -4,8 +4,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError } from '../../lib/api'
 import { useAuth } from '../../lib/auth-context'
-import { useT, type Dictionary } from '../../lib/i18n'
-import type { ProgressView } from '../../lib/types'
+import { fill, useT, type Dictionary } from '../../lib/i18n'
+import { formatDate } from '../../lib/format'
+import type { EntitlementView, ProgressView } from '../../lib/types'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useLocale, LOCALE_NAMES } from '../../lib/i18n'
 import { Button, Card, ErrorNote, Field, QueryError, Spinner } from '../../components/ui'
 import { InfoNote, LevelTile, SectionCard, StatTile } from './stats'
@@ -33,10 +35,18 @@ export function ProfileSettings() {
     retry: false,
   })
 
-  async function deleteAccount() {
-    const confirmation = prompt(t.settings.deletePrompt)
-    if (confirmation !== t.settings.deleteConfirmWord) return
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // A Pro learner is told what deleting costs them: the paid time left is not refunded.
+  const { data: entitlement } = useQuery({
+    queryKey: ['entitlement'],
+    queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
+    staleTime: 60_000,
+    retry: false,
+  })
+  const { locale } = useLocale()
+  const proUntil = entitlement?.hasProAccess ? (entitlement.currentPeriodEnd ?? entitlement.trialEndsAt) : null
 
+  async function deleteAccount() {
     setBusy(true)
     try {
       await api.post('/auth/delete-account')
@@ -45,6 +55,7 @@ export function ProfileSettings() {
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : t.settings.deleteFailed)
       setBusy(false)
+      setConfirmingDelete(false)
     }
   }
 
@@ -70,6 +81,27 @@ export function ProfileSettings() {
 
       <ProfileHeader progress={progress} />
 
+      <ConfirmDialog
+        open={confirmingDelete}
+        title={t.settings.deleteAccount}
+        body={
+          <>
+            <p>{t.settings.deletePrompt}</p>
+            {proUntil && (
+              <p className="font-bold text-danger">
+                {fill(t.settings.deleteProWarning, { date: formatDate(proUntil, locale) })}
+              </p>
+            )}
+          </>
+        }
+        confirmLabel={t.settings.deleteAccount}
+        confirmWord={t.settings.deleteConfirmWord}
+        danger
+        busy={busy}
+        onConfirm={() => void deleteAccount()}
+        onCancel={() => setConfirmingDelete(false)}
+      />
+
       <LanguageLevelCard progress={progress} t={t} />
       <CourseProgressCard progress={progress} t={t} />
 
@@ -77,7 +109,7 @@ export function ProfileSettings() {
         <AccountActions
           busy={busy}
           onSignOut={() => void signOut().then(() => navigate('/'))}
-          onDelete={() => void deleteAccount()}
+          onDelete={() => setConfirmingDelete(true)}
         />
       </Card>
     </div>

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { ChevronLeft, Clock } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { characterColors, characterName, characterPalette } from '../lib/character'
 import { cx } from '../lib/cx'
@@ -127,6 +127,14 @@ export function MissionLive() {
   const phrasesPanelId = useId()
   const reconnectsRef = useRef(0)
   const phaseRef = useRef<Phase>('ready')
+  /*
+    Arriving from the brief's "Suhbatni boshlash" (Start the conversation) starts the call: the
+    learner has just pressed start, and a second identical "start" screen was the fourth tap
+    before anyone spoke. Opened any other way, the ready screen and its button stay.
+  */
+  const location = useLocation()
+  const autostart = Boolean((location.state as { autostart?: boolean } | null)?.autostart)
+  const autostarted = useRef(false)
   phaseRef.current = phase
 
   const { data: entitlement } = useQuery({
@@ -336,6 +344,15 @@ export function MissionLive() {
       window.setTimeout(() => void finish(), CLOSING_LINE_MS)
     }
   }
+
+  const startOnArrival = useEffectEvent(() => void connect())
+  useEffect(() => {
+    if (!autostart || autostarted.current || !mission?.dialogue || phase !== 'ready') return
+    autostarted.current = true
+    // Spent once: going back and forward must not start a second call by itself.
+    navigate(location.pathname, { replace: true, state: null })
+    startOnArrival()
+  }, [autostart, mission, phase, navigate, location.pathname, startOnArrival])
 
   async function connect() {
     if (!missionId) return

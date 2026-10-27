@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { missionPath } from '../lib/mission-path'
 import { FileText } from 'lucide-react'
 import { api } from '../lib/api'
 import { useLocale, useT } from '../lib/i18n'
@@ -26,6 +28,7 @@ export function Practice() {
   const copy = t.practice
   const { locale } = useLocale()
   const reduced = useReducedMotion()
+  const navigate = useNavigate()
   // Kept after the panel closes, so its content stays put while it animates away.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -47,11 +50,20 @@ export function Practice() {
   const currentId = currentMissionId(rows)
   const selected = rows.find((row) => row.mission.id === selectedId)
 
-  const openMission = useCallback((id: string, node: HTMLElement) => {
-    chosenNode.current = node
-    setSelectedId(id)
-    setOpen(true)
-  }, [])
+  const openMission = useCallback(
+    (id: string, node: HTMLElement) => {
+      const row = rows.find((candidate) => candidate.mission.id === id)
+      // An open conversation's panel only repeated its brief (time, pass mark) one tap earlier.
+      if (row && row.mission.isDialogue && !row.locked) {
+        navigate(missionPath(row.mission))
+        return
+      }
+      chosenNode.current = node
+      setSelectedId(id)
+      setOpen(true)
+    },
+    [rows, navigate],
+  )
   const dismiss = useCallback(() => {
     setOpen(false)
     // The close button goes with the panel; focus goes back to the mission it was about.

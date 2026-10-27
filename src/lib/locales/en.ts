@@ -21,6 +21,7 @@ export const en: Dictionary = {
     loadFailedBody: 'Check your connection and refresh the page.',
     offline: "No internet connection. Check it and try again.",
     serverError: "Something went wrong on our side. Try again in a moment.",
+    secondsShort: "{seconds}s",
   },
 
   level: {
@@ -44,6 +45,8 @@ export const en: Dictionary = {
     dayShort: 'Day {day}',
     planNote:
       'The first point is what was measured just now. The rest is where the plan takes you at ten minutes of speaking a day.',
+    headlineFallback: "Your speaking level: {level}",
+    verdictFallback: "You said {words} Russian words; your longest run was {run} words in a row.",
   },
 
   arcade: {
@@ -116,6 +119,9 @@ export const en: Dictionary = {
       questions: ["What is your name and where do you work?", "What did you do this morning? Try to say it in Russian.", "You want to ask for bread in a shop. What do you say?", "Tell the taxi driver your address.", "Introduce yourself to a colleague at work.", "Explain to the doctor what hurts.", "Ask the price at the bazaar and bargain.", "Talk to your neighbour about the weather."],
     },
     games: {"arra": {"title": "The Saw", "body": "Keep talking — fall silent and the saw moves closer."}, "rod-runner": {"title": "Лёд и род", "body": "Steer each Russian word into the lane of its gender."}, "tez-gapir": {"title": "Speak fast", "body": "Speak Russian on one topic for 30 seconds."}, "fight-for-life": {"title": "Помоги!", "body": "Speak Russian — your voice gives the hero strength."}, "error-hunt": {"title": "Error hunter", "body": "Find and fix the mistake in a Russian sentence."}, "first-reaction": {"title": "First reaction", "body": "Answer an unexpected situation in 5 seconds."}, "ice-mystery": {"title": "Mystery of the ice city", "body": "Ask questions, find clues and solve the mystery."}, "soz-ovi": {"title": "Word hunt", "body": "Find the Russian word for the picture."}, "tez-javob": {"title": "Quick answer", "body": "Answer in 10 seconds."}, "dialog": {"title": "Dialogue", "body": "Put the conversation in the right order."}, "eshitib-top": {"title": "Hear and find", "body": "Choose the sentence you heard."}, "xotira": {"title": "Memory", "body": "Find the pairs — a word and its translation."}},
+    unlockWithPro: "Unlock with Pro",
+    emptyTitle: "No games yet",
+    emptyBody: "Games will appear here soon.",
   },
 
   placement: {
@@ -142,7 +148,7 @@ export const en: Dictionary = {
     finish: 'Finish',
     remaining: 'Time left',
 
-    step: 'Step 1',
+    step: "Level test",
     introTitle: 'Tell us about your level of Russian',
     introBody:
       'Press the microphone and talk for 40 seconds. Where is it hard — at work, out on the street? Mixing in Uzbek is fine. No questions, no test.',
@@ -168,6 +174,10 @@ export const en: Dictionary = {
       nothingHeard: "We didn't hear you. Allow the microphone or type your answer instead.",
     },
     continueToHome: "Continue",
+    connectFailed: "Couldn't connect. Please try again in a moment.",
+    micFailed: "The microphone didn't start. Check that access is allowed.",
+    saveAndStart: "Save the plan and start",
+    claimFailed: "Your result is saved but couldn't be linked to your account just now. Refresh the page in a moment — no need to speak again.",
   },
 
   lessonOne: {
@@ -320,7 +330,6 @@ export const en: Dictionary = {
   lesson: {
     eyebrow: 'Lesson {day} · A1',
     progress: 'Lesson progress',
-    sectionsOf: '{done} / {total} sections',
     back: '← Back',
     next: 'Continue →',
     finishLesson: 'Finish the lesson',
@@ -405,6 +414,9 @@ export const en: Dictionary = {
       pickSpotSuffix: '— tap the right spot in the room.',
       familyPhoto: 'Family photo',
       familyPhotoAlt: 'A family photo with Panda and Penguin',
+      ruleMasculine: "Ends in a consonant or «-й» — the blue house (masculine).",
+      ruleFeminine: "Ends in «-а» or «-я» — the red house (feminine).",
+      ruleNeuter: "Ends in «-о» or «-е» — the yellow house (neuter).",
     },
 
     missions: {
@@ -474,6 +486,10 @@ export const en: Dictionary = {
       play: 'Listen',
       pause: 'Pause',
     },
+    sectionPosition: "Section {current} of {total}",
+    sectionsDoneCount: "{done} of {total} sections done",
+    tryAgainLook: "Try again — look closely at the word in the question.",
+    rightAnswerIs: "The right answer:",
   },
 
   dayPreview: {
@@ -760,7 +776,7 @@ export const en: Dictionary = {
     usePhoneInstead: 'Continue with phone number',
     signInFailed: 'Sign-in failed. Please try again.',
     signUpFailed: 'Sign-up failed. Please try again.',
-    invalidCredentials: 'The phone number/email or password is incorrect.',
+    invalidCredentials: "Wrong number or password. No account? Sign up.",
     accountInactive: 'This account is inactive.',
     invalidEmail: 'Enter a valid email address.',
     emailTaken: 'An account with this email already exists.',
@@ -814,6 +830,8 @@ export const en: Dictionary = {
         email_taken: 'This email address is already used by another account.',
         phone_not_registered: "No account uses this number. Sign up, or sign in with Google.",
       },
+      noSms: "No SMS? Check the number or",
+      noSmsTelegram: "message us on Telegram",
     },
   },
 
@@ -1215,6 +1233,7 @@ export const en: Dictionary = {
     attemptsValue: "{count}, then a {hours}-hour break",
     attemptsAhead: "You have {count} attempts. If neither passes, you wait {hours} hours.",
     lastAttempt: "Last attempt — if it doesn't pass, a {hours}-hour break.",
+    micPrimer: "Your browser will ask for the microphone — tap Allow. {character} speaks first, then you answer.",
   },
 
   missionLive: {
@@ -1365,6 +1384,10 @@ export const en: Dictionary = {
     movedToDay: 'You have moved to day {day}.',
     retryPrompt: "Give it another go — the phrases are familiar now.",
     wentWell: "What went well:",
+    strengthTitle: "What went well",
+    retryTitle: "Let's try again",
+    currentStep: "Current step",
+    stepPending: "Not done yet",
   },
 
   billing: {
@@ -1464,6 +1487,7 @@ export const en: Dictionary = {
     cancelFailed: "The subscription couldn't be cancelled. Try again.",
     freeDayOne: "The first day",
     freeDaysRange: "Days 1–{last}",
+    cancelConfirmBody: "Pro keeps working until {date}, then your account moves to the free plan.",
   },
 
   profile: {
@@ -1577,6 +1601,7 @@ export const en: Dictionary = {
       productAnalyticsBody:
         'Anonymous usage data, so we can tell which lessons actually help.',
     },
+    deleteProWarning: "You have Pro until {date}. Deleting the account forfeits the remaining time.",
   },
 
   feedbackPage: {
@@ -1634,7 +1659,7 @@ export const en: Dictionary = {
   },
 
   lessonFeedback: {
-    eyebrow: '{days} days of lessons done',
+    eyebrow: "You finished {days} days of lessons! 🎉",
     title: 'We would love your feedback',
     body: 'Take a minute — your answers help us make the lessons even better.',
     satisfactionQuestion: 'How satisfied are you with the lessons you have completed?',
@@ -1743,7 +1768,7 @@ export const en: Dictionary = {
     neverShow: "Don't show this again",
     title: 'Install the app on your phone',
     body: 'One tap from the home screen — no browser, no typing an address.',
-    action: 'Download',
+    action: "Install",
     later: 'Not now',
     close: 'Close',
     howTitle: 'How to install',

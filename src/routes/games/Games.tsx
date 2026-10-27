@@ -13,7 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useOpenGames } from '../../lib/games'
-import { Spinner } from '../../components/ui'
+import { EmptyState, Spinner } from '../../components/ui'
 import { cx } from '../../lib/cx'
 import { useLocale, useT } from '../../lib/i18n'
 import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
@@ -90,24 +90,33 @@ export function Games() {
         they get the spring entrance and a press that answers a thumb - the arcade is the one
         place where a card behaving like an object is the entire point.
       */}
+      {/* An empty or failed list used to leave the heading over nothing. */}
+      {open.length === 0 && (
+        <Reveal>
+          <EmptyState title={t.emptyTitle} body={t.emptyBody} />
+        </Reveal>
+      )}
+
       <Sequence className="grid gap-4 lg:grid-cols-2" gap={stagger.base}>
         {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
           const art = ART[game.slug]
           // The catalogue comes from the server in Uzbek; the names are the client's to translate.
           const label = (t.games as Record<string, { title: string; body: string } | undefined>)[game.slug]
-          const destination = game.isAccessible ? art?.to ?? `/games/${game.slug}` : '/paywall'
+          // Locked for this learner, not merely a Pro game: a Pro learner used to see "Pro kerak".
+          const locked = !game.isAccessible
+          const destination = locked ? '/paywall' : art?.to ?? `/games/${game.slug}`
 
           if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} />
-          if (game.slug === 'tez-gapir') return <TezGapirCard key={game.slug} to={destination} requiresPro={game.requiresPro} />
-          if (game.slug === 'error-hunt') return <ErrorHuntCard key={game.slug} to={destination} requiresPro={game.requiresPro} />
-          if (game.slug === 'fight-for-life') return <LifeCard key={game.slug} to={destination} requiresPro={game.requiresPro} />
+          if (game.slug === 'tez-gapir') return <TezGapirCard key={game.slug} to={destination} requiresPro={locked} />
+          if (game.slug === 'error-hunt') return <ErrorHuntCard key={game.slug} to={destination} requiresPro={locked} />
+          if (game.slug === 'fight-for-life') return <LifeCard key={game.slug} to={destination} requiresPro={locked} />
 
           if (isSpeakingGame(game.slug)) {
             const label = gameLabels[game.slug][locale]
             return <MotionLink key={game.slug} variants={rise} {...tactile} to={destination} className="group relative flex min-h-44 items-center gap-4 rounded-3xl border-2 border-hairline bg-ground-raised p-4 sm:gap-5 sm:p-6 transition-colors hover:border-signal">
-              {game.requiresPro && <span className="absolute right-4 top-4 rounded-full bg-caution-soft px-2.5 py-1 text-[11px] font-black text-caution">{t.proRequired}</span>}
+              {locked && <span className="absolute right-4 top-4 rounded-full bg-caution-soft px-2.5 py-1 text-[11px] font-black text-caution">{t.proRequired}</span>}
               <GameMark game={game.slug} className="size-12 shrink-0 text-signal-ink sm:size-16" />
-              <span className="min-w-0"><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
+              <span className="min-w-0"><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{locked ? t.unlockWithPro : copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
             </MotionLink>
           }
 
@@ -119,7 +128,7 @@ export function Games() {
               to={destination}
               className="relative flex items-center gap-3.5 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-3.5 text-left transition-colors hover:border-signal"
             >
-              {game.requiresPro && <span className="absolute right-3 top-3 rounded-full bg-caution-soft px-2.5 py-1 text-[11px] font-black text-caution">{t.proRequired}</span>}
+              {locked && <span className="absolute right-3 top-3 rounded-full bg-caution-soft px-2.5 py-1 text-[11px] font-black text-caution">{t.proRequired}</span>}
               <span
                 className={cx(
                   'grid size-14 shrink-0 place-items-center rounded-[var(--radius-card)] bg-gradient-to-br',

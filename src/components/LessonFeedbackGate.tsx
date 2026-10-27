@@ -48,7 +48,10 @@ export function LessonFeedbackGate() {
     if (enabled) void refetch()
   }, [enabled, location.pathname, refetch])
 
-  const checkpoint = enabled && data?.isDue ? data.checkpointDay ?? null : null
+  // "Later" puts a check-in off for this browser session; it comes back next time.
+  const [postponed, setPostponed] = useState<number | null>(() => readPostponed())
+  const due = enabled && data?.isDue ? data.checkpointDay ?? null : null
+  const checkpoint = due !== null && due !== postponed ? due : null
 
   /*
     The gate no longer returns `null` when nothing is due: it returns an empty
@@ -58,17 +61,47 @@ export function LessonFeedbackGate() {
   */
   return (
     <AnimatePresence>
-      {checkpoint !== null && <LessonFeedbackDialog key={checkpoint} checkpoint={checkpoint} />}
+      {checkpoint !== null && (
+        <LessonFeedbackDialog
+          key={checkpoint}
+          checkpoint={checkpoint}
+          onLater={() => {
+            writePostponed(checkpoint)
+            setPostponed(checkpoint)
+          }}
+        />
+      )}
     </AnimatePresence>
   )
 }
 
 type LessonFeedbackDialogProps = {
   checkpoint: number
+  /** Puts the check-in off until the next session. It was required, with no way past it. */
+  onLater: () => void
+}
+
+const POSTPONED_KEY = 'rgg.lesson-feedback.postponed'
+
+function readPostponed(): number | null {
+  try {
+    const value = Number(sessionStorage.getItem(POSTPONED_KEY))
+    return Number.isFinite(value) && value > 0 ? value : null
+  } catch {
+    return null
+  }
+}
+
+function writePostponed(checkpoint: number) {
+  try {
+    sessionStorage.setItem(POSTPONED_KEY, String(checkpoint))
+  } catch {
+    // Storage refused: "Later" still closes it for as long as this page is open.
+  }
 }
 
 /** One question per step, in order. The last step — the note — is optional and sends the lot. */
-function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
+function LessonFeedbackDialog({ checkpoint, onLater }: LessonFeedbackDialogProps) {
   const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const copy = t.lessonFeedback
@@ -94,6 +127,14 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
   }, [])
 
   useEffect(() => () => window.clearTimeout(advanceTimer.current), [])
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onLater()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onLater])
 
   const step = STEPS[stepIndex]
   const isLastStep = stepIndex === STEPS.length - 1
@@ -178,8 +219,17 @@ function LessonFeedbackDialog({ checkpoint }: LessonFeedbackDialogProps) {
             <p className="text-xs font-extrabold tracking-[0.14em] text-signal-ink uppercase">
               {fill(copy.eyebrow, { days: checkpoint })}
             </p>
-            <span className="shrink-0 text-xs font-bold text-ink-muted">
-              {fill(copy.stepLabel, { current: stepIndex + 1, total: STEPS.length })}
+            <span className="flex shrink-0 items-center gap-3">
+              <span className="text-xs font-bold text-ink-muted">
+                {fill(copy.stepLabel, { current: stepIndex + 1, total: STEPS.length })}
+              </span>
+              <button
+                type="button"
+                onClick={onLater}
+                className="rounded-full px-2.5 py-1 text-xs font-bold text-ink-muted transition-colors hover:bg-ground-sunken hover:text-ink"
+              >
+                {t.common.later}
+              </button>
             </span>
           </div>
           <h2 id="lesson-feedback-title" className="mt-1 text-2xl font-extrabold tracking-tight text-ink">

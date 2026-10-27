@@ -20,6 +20,7 @@ import {
 } from '../lib/google-auth'
 import { fill, useT } from '../lib/i18n'
 import { onboardingDraft } from '../lib/onboardingDraft'
+import { SUPPORT_TELEGRAM_URL } from '../lib/support'
 import type { UserProfile } from '../lib/types'
 
 const DEFAULT_GOOGLE_CLIENT_ID =
@@ -62,6 +63,7 @@ export function SignIn() {
     } catch (caught) {
       setError(
         authErrorText(caught, t.auth.signInFailed, {
+          ...t.auth.phone.errors,
           invalid_credentials: t.auth.invalidCredentials,
           account_inactive: t.auth.accountInactive,
         }),
@@ -83,7 +85,7 @@ export function SignIn() {
       const user = await signInWithGoogle(response.credential)
       navigate(postAuthDestination(user, returnTo), { replace: true })
     } catch (caught) {
-      setError(authErrorText(caught, t.auth.googleFailed, {}))
+      setError(authErrorText(caught, t.auth.googleFailed, t.auth.phone.errors))
     } finally {
       setGoogleBusy(false)
     }
@@ -292,7 +294,7 @@ export function SignUp() {
       track('signup_completed')
       navigate(postAuthDestination(user), { replace: true })
     } catch (caught) {
-      fallBackToPhone(authErrorText(caught, t.auth.googleFailed, {}))
+      fallBackToPhone(authErrorText(caught, t.auth.googleFailed, t.auth.phone.errors))
     } finally {
       setGoogleBusy(false)
     }
@@ -399,6 +401,30 @@ function PhoneCredentialSetupFlow({
   const [busy, setBusy] = useState(false)
   const [resendIn, setResendIn] = useState(0)
   const e164 = '+998' + local
+  // Per screen: sign-up and password reset each keep their own pending code.
+  const draftKey = `rgg.otp-step.${window.location.pathname}`
+
+  /*
+    The code step survives a refresh. It lived only in memory, so a reload put the learner back
+    at the number, asking again returned "Kod hozirgina yuborildi" (A code was just sent), and
+    the box to type the code into could not be reached. The number and when a new code may be
+    asked for are kept for the tab; the code itself never is.
+  */
+  useEffect(() => {
+    const saved = readOtpDraft(draftKey)
+    if (!saved) return
+    setLocal(saved.local)
+    setStep('code')
+    setResendIn(Math.max(0, Math.ceil((saved.resendAt - Date.now()) / 1000)))
+  }, [draftKey])
+
+  function enterCodeStep(resendSeconds: number) {
+    setCode('')
+    setVerificationToken('')
+    setStep('code')
+    setResendIn(resendSeconds)
+    writeOtpDraft(draftKey, { local, resendAt: Date.now() + resendSeconds * 1000 })
+  }
   const canRequest = local.length === 9
   const canSubmit = code.length === 4 && (!askName || displayName.trim().length >= 2) && validPassword(password)
 
@@ -415,26 +441,30 @@ function PhoneCredentialSetupFlow({
     setError(null)
     try {
       const challenge = await requestCode(e164)
-      setCode('')
-      setVerificationToken('')
-      setStep('code')
-      setResendIn(challenge.resendInSeconds)
+      enterCodeStep(challenge.resendInSeconds)
     } catch (caught) {
-      setError(errorText(caught, tp.errors.default, tp.errors))
+      // A code already on its way: go to where it is typed rather than refusing to move.
+      if (caught instanceof RequestError && caught.code === 'otp_cooldown') {
+        enterCodeStep(RESEND_FALLBACK_SECONDS)
+        setError(tp.errors.otp_cooldown)
+      } else {
+        setError(errorText(caught, tp.errors.default, tp.errors))
+      }
     } finally {
       setBusy(false)
     }
   }
 
-  async function submitCode(event: FormEvent) {
-    event.preventDefault()
-    if (code.length !== 4 || busy) return
+  async function submitCode(event?: FormEvent, typed: string = code) {
+    event?.preventDefault()
+    if (typed.length !== 4 || busy) return
     setBusy(true)
     setError(null)
     try {
-      const confirmation = await confirmCode(e164, code)
+      const confirmation = await confirmCode(e164, typed)
       setVerificationToken(confirmation.verificationToken)
       setStep('credentials')
+      clearOtpDraft(draftKey)
     } catch (caught) {
       setError(errorText(caught, tp.errors.default, tp.errors))
       setCode('')
@@ -467,13 +497,17 @@ function PhoneCredentialSetupFlow({
       <form onSubmit={submitCode} className="space-y-5">
         <div>
           <h2 className="text-base font-extrabold text-ink">{tp.codeTitle}</h2>
-          <p className="text-support mt-1">{fill(tp.codeSentTo, { phone: e164 })}</p>
+          <p className="text-support mt-1">{fill(tp.codeSentTo, { phone: `+998 ${formatUzPhone(local)}` })}</p>
         </div>
         {error && <ErrorNote>{error}</ErrorNote>}
         <OtpInput
           value={code}
           onChange={setCode}
-          onComplete={setCode}
+          // The fourth digit sends it: there is nothing left to decide.
+          onComplete={(value) => {
+            setCode(value)
+            void submitCode(undefined, value)
+          }}
           disabled={busy}
           ariaLabel={tp.codeTitle}
         />
@@ -487,6 +521,7 @@ function PhoneCredentialSetupFlow({
               setStep('phone')
               setCode('')
               setError(null)
+              clearOtpDraft(draftKey)
             }}
             className="font-semibold text-ink-muted transition-colors hover:text-ink"
           >
@@ -501,6 +536,12 @@ function PhoneCredentialSetupFlow({
             {resendIn > 0 ? fill(tp.resendIn, { seconds: resendIn }) : tp.resend}
           </button>
         </div>
+        <p className="text-support text-center text-sm">
+          {tp.noSms}{' '}
+          <a href={SUPPORT_TELEGRAM_URL} target="_blank" rel="noreferrer" className="font-semibold text-signal-ink">
+            {tp.noSmsTelegram}
+          </a>
+        </p>
       </form>
     )
   }
@@ -886,12 +927,52 @@ function PhoneNumberInput({
   )
 }
 
+/*
+  Only the dictionary speaks to the learner. The server's own messages on these routes are
+  English developer text ("Phone number/email or password is incorrect."), so a code without
+  a translation falls back to the screen's own sentence instead of showing them.
+*/
+/** When the server says a code is already on its way but not when the next may be asked for. */
+const RESEND_FALLBACK_SECONDS = 60
+/** A pending code is not worth restoring after this long: it has expired anyway. */
+const OTP_DRAFT_MAX_AGE_MS = 10 * 60_000
+
+type OtpDraft = { local: string; resendAt: number; savedAt: number }
+
+function readOtpDraft(key: string): OtpDraft | null {
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return null
+    const draft = JSON.parse(raw) as OtpDraft
+    if (!/^\d{9}$/.test(draft.local) || Date.now() - draft.savedAt > OTP_DRAFT_MAX_AGE_MS) return null
+    return draft
+  } catch {
+    return null
+  }
+}
+
+function writeOtpDraft(key: string, draft: { local: string; resendAt: number }) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ ...draft, savedAt: Date.now() }))
+  } catch {
+    // Storage refused (a private window): the step simply does not survive a refresh.
+  }
+}
+
+function clearOtpDraft(key: string) {
+  try {
+    sessionStorage.removeItem(key)
+  } catch {
+    // Nothing to clear where storage is refused.
+  }
+}
+
 function authErrorText(caught: unknown, fallback: string, errors: Record<string, string>) {
-  if (caught instanceof RequestError) return errors[caught.code] ?? caught.message ?? fallback
+  if (caught instanceof RequestError) return errors[caught.code] ?? fallback
   return fallback
 }
 
 function errorText(caught: unknown, fallback: string, errors: Record<string, string>) {
-  if (caught instanceof RequestError) return errors[caught.code] ?? caught.message ?? fallback
+  if (caught instanceof RequestError) return errors[caught.code] ?? fallback
   return fallback
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { OnboardingAssessment, OnboardingMilestone } from '../lib/types'
 import { cx } from '../lib/cx'
-import { fill, useT } from '../lib/i18n'
+import { fill, useLocale, useT } from '../lib/i18n'
 
 /**
  * What forty seconds of speaking turned into.
@@ -21,7 +21,18 @@ export function LevelDashboard({
   continueLabel: string
 }) {
   const t = useT().level
+  const { locale } = useLocale()
   const { stats } = assessment
+  /*
+    The headline, the verdict and the gaps are written by the analyst in Uzbek. A learner
+    reading the app in Russian or English gets the same facts from the measured figures, in
+    their language, instead of a paragraph they may not read.
+  */
+  const uzbek = locale === 'uz'
+  const headline = uzbek ? assessment.headlineUz : fill(t.headlineFallback, { level: assessment.speaking })
+  const verdict = uzbek
+    ? assessment.verdictUz
+    : fill(t.verdictFallback, { words: stats.russianWords, run: stats.longestRussianRun })
   const hasLanguageBreakdown =
     typeof stats.uzbekWords === 'number' && typeof stats.otherWords === 'number'
 
@@ -29,7 +40,7 @@ export function LevelDashboard({
     <div className="space-y-5">
       <header className="space-y-3">
         <p className="text-xs font-black tracking-[0.16em] text-ink-faint uppercase">{t.eyebrow}</p>
-        <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{assessment.headlineUz}</h1>
+        <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{headline}</h1>
 
         <div className="flex flex-wrap gap-2">
           <LevelChip label={t.speaking} value={assessment.speaking} tone="warn" />
@@ -65,10 +76,10 @@ export function LevelDashboard({
           </dl>
         </div>
 
-        <p className="mt-4 text-[15px] leading-relaxed text-ink">{assessment.verdictUz}</p>
+        <p className="mt-4 text-[15px] leading-relaxed text-ink">{verdict}</p>
       </section>
 
-      {assessment.gapsUz.length > 0 && (
+      {uzbek && assessment.gapsUz.length > 0 && (
         <section>
           <h2 className="mb-2.5 text-sm font-black tracking-[0.14em] text-ink-faint uppercase">
             {t.gaps}

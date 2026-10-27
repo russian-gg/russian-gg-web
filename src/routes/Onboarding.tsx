@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Mic } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { BrandMark } from './auth/AuthArt'
 import { api } from '../lib/api'
 import { pickAudioSource } from '../lib/audio-source'
 import { useT, type Dictionary } from '../lib/i18n'
@@ -80,6 +81,7 @@ export function Onboarding() {
   const [connected, setConnected] = useState(false)
   const [speaking, setSpeaking] = useState(false)
   const [failure, setFailure] = useState('')
+  const [claimFailed, setClaimFailed] = useState(false)
 
   /*
    * Two buffers. The session hands over the whole of the current turn each time it updates,
@@ -114,7 +116,12 @@ export function Onboarding() {
     const load = pending
       ? api
           .post<OnboardingAssessment | null>('/onboarding/claim', { token: pending })
-          .finally(() => onboardingDraft.clear())
+          // Cleared only once it is attached: a failed claim used to throw the recording away
+          // and ask the learner to speak again. Kept, the next visit tries again by itself.
+          .then((claimed) => {
+            onboardingDraft.clear()
+            return claimed
+          })
       : api.get<OnboardingAssessment | null>('/onboarding/assessment')
 
     void load
@@ -125,7 +132,9 @@ export function Onboarding() {
         }
       })
       .catch(() => {
-        // Nothing placed yet is the ordinary case, and not an error worth showing.
+        // Nothing placed yet is the ordinary case, and not an error worth showing. A saved
+        // result that could not be attached is: it is still there, and says so.
+        if (!cancelled && pending) setClaimFailed(true)
       })
 
     return () => {
@@ -301,7 +310,7 @@ export function Onboarding() {
     try {
       outcome = await api.post<VoiceSessionOutcome>('/onboarding/voice', {})
     } catch {
-      setFailure("Ulanib bo'lmadi. Birozdan keyin urinib ko'ring.")
+      setFailure(t.connectFailed)
       setStage('intro')
 
       return
@@ -352,7 +361,7 @@ export function Onboarding() {
     try {
       await live.start()
     } catch {
-      setFailure("Mikrofon ochilmadi. Ruxsat berilganini tekshiring.")
+      setFailure(t.micFailed)
       void finish()
     }
   }
@@ -362,7 +371,7 @@ export function Onboarding() {
       <Layout wide>
         <LevelDashboard
           assessment={assessment}
-          continueLabel={user ? t.continueToHome : "Rejani saqlab, boshlash"}
+          continueLabel={user ? t.continueToHome : t.saveAndStart}
           onContinue={() =>
             !user
               ? navigate('/signup')
@@ -447,7 +456,7 @@ export function Onboarding() {
             className="w-full rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
           />
 
-          {failure && <ErrorNote>{failure}</ErrorNote>}
+          {(failure || claimFailed) && <ErrorNote>{failure || t.claimFailed}</ErrorNote>}
 
           {/*
             Sent with no length: a typed answer has no pace, and inventing one would put a
@@ -524,7 +533,7 @@ export function Onboarding() {
         <h1 className="text-2xl leading-tight font-black text-ink sm:text-3xl">{t.introTitle}</h1>
         <p className="text-[15px] leading-relaxed text-ink-muted">{t.introBody}</p>
 
-        {failure && <ErrorNote>{failure}</ErrorNote>}
+        {(failure || claimFailed) && <ErrorNote>{failure || t.claimFailed}</ErrorNote>}
 
         <button
           type="button"
@@ -612,9 +621,22 @@ function MicGlyph() {
 }
 
 function Layout({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+  const { user } = useAuth()
   return (
-    <main className="min-h-screen bg-ground-sunken px-4 py-8">
-      <div className={cx('mx-auto', wide ? 'max-w-xl' : 'max-w-md')}>{children}</div>
+    <main className="min-h-screen bg-ground-sunken px-4 py-6">
+      <div className={cx('mx-auto', wide ? 'max-w-xl' : 'max-w-md')}>
+        {/* The brand, and a way out: it leads home for an account and to the start otherwise. */}
+        <Link
+          to={user ? '/home' : '/'}
+          className="mb-6 inline-flex items-center gap-2.5 rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal"
+        >
+          <BrandMark className="size-8" />
+          <span className="text-lg font-semibold tracking-tight text-ink">
+            russian<span className="text-signal">.gg</span>
+          </span>
+        </Link>
+        {children}
+      </div>
     </main>
   )
 }

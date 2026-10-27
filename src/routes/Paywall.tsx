@@ -18,6 +18,7 @@ import type {
   WelcomeGiftStatus,
 } from '../lib/types'
 import { Badge, Button, Card, ErrorNote, QueryError, Spinner } from '../components/ui'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Reveal, Sequence } from '../components/motion'
 import { stagger } from '../lib/motion'
 import { PlanSelector, type PlanPricing } from './paywall/PlanSelector'
@@ -448,9 +449,9 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
 
   async function cancel() {
-    if (!confirm(t.billing.cancelConfirm)) return
     setBusy(true)
     setFailure(null)
     try {
@@ -462,6 +463,7 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
       setFailure(caught instanceof RequestError ? caught.message : t.billing.cancelFailed)
     } finally {
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -489,10 +491,21 @@ function ActiveSubscription({ entitlement }: { entitlement: EntitlementView }) {
       {failure && <div className="mt-3"><ErrorNote>{failure}</ErrorNote></div>}
 
       {!entitlement.cancelAtPeriodEnd && (
-        <Button variant="danger" className="mt-5" disabled={busy} onClick={() => void cancel()}>
+        <Button variant="danger" className="mt-5" disabled={busy} onClick={() => setConfirming(true)}>
           {t.billing.cancel}
         </Button>
       )}
+
+      <ConfirmDialog
+        open={confirming}
+        title={t.billing.cancelConfirm}
+        body={<p>{fill(t.billing.cancelConfirmBody, { date: formatDate(entitlement.currentPeriodEnd ?? entitlement.trialEndsAt, locale) })}</p>}
+        confirmLabel={t.billing.cancel}
+        danger
+        busy={busy}
+        onConfirm={() => void cancel()}
+        onCancel={() => setConfirming(false)}
+      />
     </Card>
   )
 }

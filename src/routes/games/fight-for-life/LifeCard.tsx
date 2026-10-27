@@ -10,7 +10,7 @@ const MotionLink = m.create(Link)
 export function LifeCard({ to, requiresPro }: { to: string; requiresPro: boolean }) {
   const { locale } = useLocale()
   const copy = lifeCopies[locale]
-  const { proRequired } = useT().arcade
+  const { proRequired, unlockWithPro } = useT().arcade
   return (
     <MotionLink
       variants={rise}
@@ -34,7 +34,7 @@ export function LifeCard({ to, requiresPro }: { to: string; requiresPro: boolean
           <strong id="life-card-title" lang="ru" className="block text-2xl font-black sm:text-3xl">Помоги!</strong>
           <span className="mt-2 block text-sm leading-relaxed text-slate-200/90">{copy.intro}</span>
           <span className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-400 to-orange-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition-colors group-hover:from-orange-300 group-hover:to-orange-500">
-            {copy.start}<ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+            {requiresPro ? unlockWithPro : copy.start}<ArrowRight aria-hidden="true" className="size-4 shrink-0" />
           </span>
         </span>
       </span>

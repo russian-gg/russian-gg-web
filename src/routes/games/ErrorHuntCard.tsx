@@ -16,7 +16,7 @@ export function ErrorHuntCard({ to, requiresPro }: { to: string; requiresPro: bo
   const { locale } = useLocale()
   const copy = copies[locale]
   const label = gameLabels['error-hunt'][locale]
-  const { play, proRequired } = useT().arcade
+  const { play, proRequired, unlockWithPro } = useT().arcade
 
   return (
     <MotionLink
@@ -61,7 +61,7 @@ export function ErrorHuntCard({ to, requiresPro }: { to: string; requiresPro: bo
           <span className="mt-2 block text-sm leading-relaxed text-violet-100/80">{label.description}</span>
           <span className="mt-5 flex flex-wrap items-center gap-3">
             <span className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#00E676] px-6 py-3 text-sm font-black text-[#062919] shadow-[0_0_24px_#00e67620] transition-colors group-hover:bg-[#69ffb6]">
-              <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} /> {play}
+              {requiresPro ? <LockKeyhole aria-hidden="true" className="size-4" /> : <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} />} {requiresPro ? unlockWithPro : play}
             </span>
             <span className="text-xs font-bold text-violet-100/80">{copy.rounds}: 5</span>
           </span>

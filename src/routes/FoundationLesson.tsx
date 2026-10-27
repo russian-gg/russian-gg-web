@@ -344,7 +344,7 @@ export function FoundationLesson() {
           </span>
           <div className="min-w-0">
             <p className="text-xs font-black tracking-[.1em] text-ink-faint uppercase">
-              {fill(t.sectionsOf, { done: state.sectionIndex + 1, total: sections.length })}
+              {fill(t.sectionPosition, { current: state.sectionIndex + 1, total: sections.length })}
             </p>
             <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-2xl">
               {t.sections[active.id]}
@@ -478,7 +478,7 @@ function LessonHero({ lesson, progress, compact }: { lesson: LessonData; progres
       <div className={cx('flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs font-bold sm:text-sm', !compact && 'mt-4')}>
         <span className="min-w-0 text-ink">{t.progress}</span>
         <span className="shrink-0 whitespace-nowrap text-ink-faint">
-          {fill(t.sectionsOf, { done: progress, total: sections.length })}
+          {fill(t.sectionsDoneCount, { done: progress, total: sections.length })}
         </span>
       </div>
       <div className="mt-2"><ProgressBar value={progress} max={sections.length} label={t.progress} /></div>
@@ -499,6 +499,13 @@ function TestsSection({ lesson, answers, onAnswer }: { lesson: LessonData; answe
 function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: number; answer: number | null; onAnswer: (answer: number) => void }) {
   const t = useT().lesson
   const correct = answer === quiz.correct
+  /*
+    "Try again" alone taught nothing: a learner could click through every option without
+    learning why one was right. After a second miss the right option is marked and the
+    explanation the quiz carries for a correct answer is shown, so the miss still teaches.
+  */
+  const [misses, setMisses] = useState(0)
+  const revealed = !correct && misses >= 2
   return (
     <Card className={cx('relative overflow-hidden p-4 sm:p-5', correct && 'border-milestone')}>
       {correct && <Celebration />}
@@ -515,13 +522,18 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
             onClick={() => {
               onAnswer(index)
               if (index === quiz.correct) celebrate()
-              else playUiSound('wrong')
+              else {
+                playUiSound('wrong')
+                setMisses((count) => count + 1)
+              }
             }}
             className={cx(
               'raised rounded-xl border-2 px-3 py-2.5 text-left text-sm font-bold',
               answer === index
                 ? index === quiz.correct ? 'border-milestone bg-milestone-soft raised-milestone-soft' : 'border-danger bg-danger-soft raised-danger-soft'
-                : 'border-hairline bg-ground-raised hover:border-signal',
+                : revealed && index === quiz.correct
+                  ? 'border-milestone border-dashed bg-ground-raised'
+                  : 'border-hairline bg-ground-raised hover:border-signal',
             )}
           >
             <RussianText text={option} />
@@ -531,7 +543,13 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
       {answer !== null && (
         <div className={cx('mt-3 flex items-start gap-2 rounded-xl p-3 text-sm', correct ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger')}>
           <MascotImage mascot={number === 1 ? 'pero' : 'penguin'} className="size-9 shrink-0" />
-          <p>{correct ? quiz.feedback : t.tryAgain}</p>
+          <p>
+            {correct ? quiz.feedback : revealed ? (
+              <>
+                <b>{t.rightAnswerIs}</b> <RussianText text={quiz.options[quiz.correct]} />. {quiz.feedback}
+              </>
+            ) : t.tryAgainLook}
+          </p>
         </div>
       )}
     </Card>
@@ -812,6 +830,13 @@ const genderHouses: Array<{
 
 type GenderHouse = (typeof genderHouses)[number]
 
+/** The rule that puts a word in each house, said when a word lands in the wrong one. */
+const GENDER_RULE_KEY: Record<string, 'ruleMasculine' | 'ruleFeminine' | 'ruleNeuter'> = {
+  'Мужской род': 'ruleMasculine',
+  'Женский род': 'ruleFeminine',
+  'Средний род': 'ruleNeuter',
+}
+
 function houseByName(name: string): GenderHouse | undefined {
   return genderHouses.find((house) => house.name === name)
 }
@@ -839,7 +864,9 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   const t = useT().lesson.game
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<WordDrag | null>(null)
-  const [error, setError] = useState<{ word: string; house: string } | null>(null)
+  const [error, setError] = useState<{ word: string; house: string; expected?: string } | null>(null)
+  const missesRef = useRef<Record<string, number>>({})
+  const [hintHouse, setHintHouse] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const pointerRef = useRef<{ pointerId: number; word: string; x: number; y: number } | null>(null)
   const draggingRef = useRef<WordDrag | null>(null)
@@ -854,8 +881,12 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
   }, [])
 
-  function showError(word: string, house: string) {
-    setError({ word, house })
+  function showError(word: string, house: string, expected?: string) {
+    setError({ word, house, expected })
+    const misses = (missesRef.current[word] ?? 0) + 1
+    missesRef.current[word] = misses
+    // Two misses on one word: the right house shows itself.
+    if (misses >= 2 && expected) setHintHouse(expected)
     playUiSound('wrong')
     navigator.vibrate?.([35, 35, 35])
     if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current)
@@ -874,12 +905,13 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     const expected = lesson.game.pairs.find((pair) => pair.left === word)?.right
     if (expected === house) {
       setError(null)
+      setHintHouse(null)
       onChange({ ...matches, [word]: house })
       celebrate([25, 35, 60], 'coin')
       if (lesson.game.feedback) showSuccess(house)
       return
     }
-    showError(word, house)
+    showError(word, house, expected)
   }
 
   function startPointer(event: React.PointerEvent<HTMLButtonElement>, word: string) {
@@ -982,7 +1014,14 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
         <HouseSpeech house={houseByName(error.house)} tone="error">
           {lesson.game.feedback
             ? lesson.game.feedback.incorrect
-            : <><RussianText text={error.word} />{t.wrongHouse}</>}
+            : (
+              <>
+                <RussianText text={error.word} />{t.wrongHouse}
+                {error.expected && GENDER_RULE_KEY[error.expected] && (
+                  <span className="mt-1 block font-semibold">{t[GENDER_RULE_KEY[error.expected]]}</span>
+                )}
+              </>
+            )}
         </HouseSpeech>
       )}
 
@@ -996,13 +1035,14 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
         {genderHouses.map((house) => {
           const placed = lesson.game.pairs.filter((pair) => matches[pair.left] === house.name)
           const isWrongTarget = error?.house === house.name
+          const isHint = hintHouse === house.name && !isWrongTarget
           return (
             <button
               key={house.name}
               type="button"
               data-gender-house={house.name}
               onClick={() => { if (selected) placeWord(selected, house.name) }}
-              className={cx('flex min-h-44 flex-col overflow-hidden rounded-2xl border-2 border-dashed p-2 text-left transition sm:min-h-52 sm:p-4', selected && 'ring-2 ring-signal/30', isWrongTarget && 'animate-pulse border-danger')}
+              className={cx('flex min-h-44 flex-col overflow-hidden rounded-2xl border-2 border-dashed p-2 text-left transition sm:min-h-52 sm:p-4', selected && 'ring-2 ring-signal/30', isWrongTarget && 'animate-pulse border-danger', isHint && 'animate-pulse border-solid ring-4 ring-milestone/40')}
               style={{ borderColor: isWrongTarget ? '#dc2626' : house.color, background: house.background }}
               aria-label={`${house.label}: ${house.name}`}
             >
