@@ -189,6 +189,7 @@ export const uz = {
       scoreFailed: "Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.",
       nothingHeard: 'Sizni eshitmadik. Mikrofonga ruxsat bering yoki javobni yozib yuboring.',
     },
+    continueToHome: "Davom etish",
   },
 
   lessonOne: {
@@ -988,6 +989,13 @@ export const uz = {
       loadFailed: "Faollik tarixini yuklab bo'lmadi.",
       weekdays: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'],
     },
+    welcomeTitle: "Xush kelibsiz!",
+    welcomeBody: "Darajangiz aniqlandi. Qayerdan boshlaymiz? Birinchi darsni yoki birinchi suhbatni tugatsangiz, sizni sovg'a kutadi.",
+    welcomeLesson: "{day}-darsni boshlash",
+    welcomeLessonHint: "Qoida, iboralar va gapirish mashqi",
+    welcomeMission: "Birinchi suhbatni boshlash",
+    welcomeMissionHint: "AI bilan jonli ovozli suhbat",
+    welcomeMissionHintNamed: "«{title}» — AI bilan jonli ovozli suhbat",
   },
 
   path: {
@@ -1018,8 +1026,7 @@ export const uz = {
     startConversation: 'Suhbatni boshlash',
     lockedFallback: 'Bu topshiriq hozir yopiq.',
     lockedProTitle: '{day}-kun Pro tarkibida',
-    lockedProBody:
-      'Bepul rejada birinchi kun ochiq. Qolgan 89 kunni va mashq kutubxonasini Pro ochadi.',
+    lockedProBody: "Bepul rejada 1-kun ochiq. Pro bilan hozir {ready} kun tayyor, qolganlari tez orada qo'shiladi.",
     lockedProgressTitle: 'Bu kun hali yopiq',
     lockedProgressBody:
       "Avval oldingi kunlarni yakunlang — shundan keyin {day}-kun o'zi ochiladi.",
@@ -1032,6 +1039,10 @@ export const uz = {
     noResults: 'Mos keladigan kun topilmadi.',
     comingSoon: 'Tez orada',
     statTotal: 'Jami kunlar',
+    lockedProBodyRange: "Bepul rejada 1–{last}-kunlar ochiq. Pro bilan hozir {ready} kun tayyor, qolganlari tez orada qo'shiladi.",
+    seePro: "Pro'ni ko'rish",
+    seeProPerDay: "Pro'ni ko'rish · kuniga {amount}",
+    finishDayFirst: "Avval {day}-kunni tugataman",
   },
 
   preview: {
@@ -1220,6 +1231,10 @@ export const uz = {
     cooldownOk: "Tushunarli",
     cooldownNext: "Boshqa topshiriqni tanlash",
     failedBody: "Sizning balingiz {score}%. O'tish uchun kamida {pass}% kerak.",
+    attemptsTitle: "Urinishlar",
+    attemptsValue: "{count} ta, so'ng {hours} soat tanaffus",
+    attemptsAhead: "{count} ta urinish bor. Hech biri o'tmasa, {hours} soat kutasiz.",
+    lastAttempt: "Oxirgi urinish — o'tmasa, {hours} soat tanaffus.",
   },
 
   missionLive: {
@@ -1343,8 +1358,8 @@ export const uz = {
   },
 
   result: {
-    notPassed: "Yakunlanmadi",
-    notPassedBody: "Suhbatni yakunlash uchun kamida 80% kerak. Yana bir bor urinib ko'ring.",
+    notPassed: "O'tmadi",
+    notPassedBody: "Bu safar o'tish baliga yetmadi. Yana bir bor urinib ko'ring.",
     retryNow: "Qayta urinish",
     retryIn: "Qayta urinish {time} dan so'ng",
     nextMission: "Keyingi missiya",
@@ -1370,6 +1385,7 @@ export const uz = {
       "Do'kon, kafe, transport, shifokor va shahar xizmatlari — har birida jonli suhbat.",
     proOfferCta: "Pro'ni ko'rish",
     movedToDay: 'Siz {day}-kunga o‘tdingiz.',
+    retryPrompt: "Yana bir bor urinib ko'ring — iboralar endi tanish.",
   },
 
   billing: {

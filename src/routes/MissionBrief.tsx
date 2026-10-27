@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { characterName, characterPalette } from '../lib/character'
-import { fill, useT } from '../lib/i18n'
+import { missionPath } from '../lib/mission-path'
+import { fill, useT, type Dictionary } from '../lib/i18n'
 import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import type { Mascot } from '../lib/foundation-lessons'
 import type { MissionDetail } from '../lib/types'
@@ -30,8 +31,17 @@ export function MissionEntry() {
 
   if (isLoading) return <Spinner />
   if (error || !data) return <MissionPlayer />
+  if (data.dialogue) return <MissionBrief mission={data} />
 
-  return data.dialogue ? <MissionBrief mission={data} /> : <MissionPlayer />
+  /*
+   * A course day with an authored lesson is played as that lesson. Links that only know the
+   * mission id — the level test's "first exercise", search, a repair suggestion — used to land
+   * here and open the old step player for day 1 instead.
+   */
+  const lessonPath = missionPath(data.summary)
+  if (lessonPath.startsWith('/lessons/')) return <Navigate to={lessonPath} replace />
+
+  return <MissionPlayer />
 }
 
 type MissionBriefProps = {
@@ -117,6 +127,13 @@ export function MissionBrief({ mission }: MissionBriefProps) {
       <div className="grid grid-cols-2 gap-3">
         <Stat label={copy.timeTitle} value={fill(copy.timeValue, { count: Math.round(dialogue.conversationSeconds / 60) })} />
         <Stat label={copy.passTitle} value={fill(copy.passValue, { score: dialogue.passScore })} />
+        {/* The real rule, before the first try: the old copy promised unlimited retries. */}
+        <div className="col-span-2">
+          <Stat
+            label={copy.attemptsTitle}
+            value={fill(copy.attemptsValue, { count: MISSION_ATTEMPTS, hours: RETRY_COOLDOWN_HOURS })}
+          />
+        </div>
       </div>
 
       {mission.targetPhrases.length > 0 && (
@@ -164,9 +181,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         <p className="text-center text-xs font-semibold text-ink-faint">
           {locked && remaining
             ? fill(copy.cooldownBody, { time: remaining })
-            : dialogue.retry.immediateRetriesLeft > 0
-              ? fill(copy.retriesLeft, { count: dialogue.retry.immediateRetriesLeft })
-              : ''}
+            : attemptsCaption(dialogue.retry, copy)}
         </p>
       </div>
 
@@ -225,6 +240,25 @@ export function MissionBrief({ mission }: MissionBriefProps) {
 type StatProps = {
   label: string
   value: string
+}
+
+/*
+ * The server's rule (MissionService: ImmediateAttempts, RetryCooldown): two counted runs, and
+ * two fails in a row buy a three-hour wait. The brief states it up front.
+ */
+const MISSION_ATTEMPTS = 2
+const RETRY_COOLDOWN_HOURS = 3
+
+/**
+ * The line under the start button. The server counts the retries left *after* the run about to
+ * start, so a new learner's "1" read as "1 attempt left" before trying at all; the attempt about
+ * to start is added back here, and the last one says it is the last.
+ */
+function attemptsCaption(retry: { failedAttempts: number; immediateRetriesLeft: number }, copy: Dictionary['missionBrief']) {
+  const left = retry.immediateRetriesLeft + 1
+  if (left <= 1) return fill(copy.lastAttempt, { hours: RETRY_COOLDOWN_HOURS })
+  if (retry.failedAttempts === 0) return fill(copy.attemptsAhead, { count: left, hours: RETRY_COOLDOWN_HOURS })
+  return fill(copy.retriesLeft, { count: left })
 }
 
 function Stat({ label, value }: StatProps) {

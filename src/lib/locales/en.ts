@@ -165,6 +165,7 @@ export const en: Dictionary = {
       scoreFailed: "We couldn't work out the result. Please try again.",
       nothingHeard: "We didn't hear you. Allow the microphone or type your answer instead.",
     },
+    continueToHome: "Continue",
   },
 
   lessonOne: {
@@ -964,6 +965,13 @@ export const en: Dictionary = {
       loadFailed: 'Could not load activity history.',
       weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
+    welcomeTitle: "Welcome!",
+    welcomeBody: "Your level is set. Where shall we start? Finish your first lesson or first conversation and a gift is waiting for you.",
+    welcomeLesson: "Start lesson {day}",
+    welcomeLessonHint: "A rule, phrases and speaking practice",
+    welcomeMission: "Start your first conversation",
+    welcomeMissionHint: "A live voice conversation with the AI",
+    welcomeMissionHintNamed: "“{title}” — a live voice conversation with the AI",
   },
 
   path: {
@@ -994,8 +1002,7 @@ export const en: Dictionary = {
     startConversation: 'Start the conversation',
     lockedFallback: 'This mission is locked for now.',
     lockedProTitle: 'Day {day} is part of Pro',
-    lockedProBody:
-      'The free plan opens the first day. Pro opens the remaining 89 and the task library.',
+    lockedProBody: "The free plan opens day 1. With Pro, {ready} days are ready now, and the rest are on the way.",
     lockedProgressTitle: 'This day is still closed',
     lockedProgressBody: 'Finish the earlier days first — day {day} then opens on its own.',
     buyPro: 'Get Pro',
@@ -1007,6 +1014,10 @@ export const en: Dictionary = {
     noResults: 'No matching days found.',
     comingSoon: 'Coming soon',
     statTotal: 'All days',
+    lockedProBodyRange: "The free plan opens days 1–{last}. With Pro, {ready} days are ready now, and the rest are on the way.",
+    seePro: "See Pro",
+    seeProPerDay: "See Pro · {amount} a day",
+    finishDayFirst: "Finish day {day} first",
   },
 
   preview: {
@@ -1194,6 +1205,10 @@ export const en: Dictionary = {
     cooldownOk: 'Got it',
     cooldownNext: "Choose another mission",
     failedBody: 'You scored {score}%. You need at least {pass}% to pass.',
+    attemptsTitle: "Attempts",
+    attemptsValue: "{count}, then a {hours}-hour break",
+    attemptsAhead: "You have {count} attempts. If neither passes, you wait {hours} hours.",
+    lastAttempt: "Last attempt — if it doesn't pass, a {hours}-hour break.",
   },
 
   missionLive: {
@@ -1314,8 +1329,8 @@ export const en: Dictionary = {
   },
 
   result: {
-    notPassed: 'Not passed',
-    notPassedBody: 'You need at least 80% to finish the conversation. Give it another go.',
+    notPassed: "Didn't pass",
+    notPassedBody: "This time you didn't reach the pass mark. Give it another go.",
     retryNow: 'Try again',
     retryIn: 'You can retry in {time}',
     nextMission: 'Next mission',
@@ -1342,6 +1357,7 @@ export const en: Dictionary = {
       "Shops, cafés, transport, the doctor and city services — each one a live conversation.",
     proOfferCta: "See Pro",
     movedToDay: 'You have moved to day {day}.',
+    retryPrompt: "Give it another go — the phrases are familiar now.",
   },
 
   billing: {

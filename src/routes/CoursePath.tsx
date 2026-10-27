@@ -13,7 +13,8 @@ import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionLock } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
-import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
+import { formatPrice } from '../lib/format'
+import type { CourseDayView, EntitlementView, MissionSummary, PlansView, ProgressView } from '../lib/types'
 import { MissionProgress } from '../components/MissionCard'
 import { FilterPills, SearchField, StatTile } from '../components/Catalog'
 import { CoursePathHero } from '../components/CoursePathHero'
@@ -407,6 +408,9 @@ export function CoursePath() {
           <LockedDayDialog
             key="locked"
             locked={locked}
+            freeDays={maxUnlockedDay}
+            readyDays={Math.min(LAST_AUTHORED_DAY, days.length)}
+            todayDay={todayEntry?.day.day}
             onDismiss={() => setLocked(null)}
             onGoToToday={
               todayEntry
@@ -513,16 +517,39 @@ function DayPreviewDialog({
  */
 function LockedDayDialog({
   locked,
+  freeDays,
+  readyDays,
+  todayDay,
   onDismiss,
   onGoToToday,
 }: {
   locked: LockedDay
+  /** The last day this learner has without Pro: day 1, or more with a won bonus. */
+  freeDays: number
+  /** Days with a written lesson. Pro is not sold on days that still say "coming soon". */
+  readyDays: number
+  /** The open day the learner is on, named on the button that leads back to it. */
+  todayDay?: number
   onDismiss: () => void
   /** Opens the day that is actually next. Absent when there is no open day to send them to. */
   onGoToToday?: () => void
 }) {
   const lockedRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
+  const { locale } = useLocale()
+  const isPro = locked.kind === 'pro'
+
+  // The cheapest day of Pro, on the button where the decision is made. The paywall's own
+  // query: a learner going on to it finds the prices already loaded.
+  const { data: plans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: () => api.get<PlansView>('/billing/plans'),
+    enabled: isPro,
+  })
+  const cheapestDay = plans?.options.reduce<{ tiyin: number; currency: string } | null>((best, option) => {
+    const tiyin = Math.max(1, Math.round(option.amountTiyin / (option.period === 'Monthly' ? 30 : 90)))
+    return !best || tiyin < best.tiyin ? { tiyin, currency: option.currency } : best
+  }, null)
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -532,8 +559,6 @@ function LockedDayDialog({
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onDismiss])
-
-  const isPro = locked.kind === 'pro'
 
   return (
     <Overlay open onDismiss={onDismiss} backdropClassName="bg-black/35">
@@ -552,18 +577,29 @@ function LockedDayDialog({
 
         <p className="text-support mt-2">
           {isPro
-            ? t.path.lockedProBody
+            ? fill(freeDays > 1 ? t.path.lockedProBodyRange : t.path.lockedProBody, {
+                last: freeDays,
+                ready: readyDays,
+              })
             : fill(t.path.lockedProgressBody, { day: locked.day })}
         </p>
 
         {isPro ? (
           <>
             <LinkButton to={`/paywall?day=${locked.day}`} block className="mt-5">
-              {t.path.buyPro}
+              {cheapestDay
+                ? fill(t.path.seeProPerDay, { amount: formatPrice(cheapestDay.tiyin, cheapestDay.currency, locale) })
+                : t.path.seePro}
             </LinkButton>
-            <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
-              {t.common.later}
-            </Button>
+            {onGoToToday && todayDay ? (
+              <Button variant="ghost" block className="mt-2" onClick={onGoToToday}>
+                {fill(t.path.finishDayFirst, { day: todayDay })}
+              </Button>
+            ) : (
+              <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
+                {t.common.later}
+              </Button>
+            )}
           </>
         ) : onGoToToday ? (
           <>

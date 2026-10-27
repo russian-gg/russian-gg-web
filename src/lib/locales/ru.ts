@@ -169,6 +169,7 @@ export const ru: Dictionary = {
       scoreFailed: 'Не удалось посчитать результат. Попробуйте ещё раз.',
       nothingHeard: 'Мы вас не услышали. Разрешите доступ к микрофону или напишите ответ.',
     },
+    continueToHome: "Продолжить",
   },
 
   lessonOne: {
@@ -970,6 +971,13 @@ export const ru: Dictionary = {
       loadFailed: 'Не удалось загрузить историю активности.',
       weekdays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
     },
+    welcomeTitle: "Добро пожаловать!",
+    welcomeBody: "Ваш уровень определён. С чего начнём? Закончите первый урок или первый разговор — вас ждёт подарок.",
+    welcomeLesson: "Начать урок {day}",
+    welcomeLessonHint: "Правило, фразы и разговорная практика",
+    welcomeMission: "Начать первый разговор",
+    welcomeMissionHint: "Живой голосовой разговор с ИИ",
+    welcomeMissionHintNamed: "«{title}» — живой голосовой разговор с ИИ",
   },
 
   path: {
@@ -1000,9 +1008,7 @@ export const ru: Dictionary = {
     startConversation: 'Начать разговор',
     lockedFallback: 'Это задание пока закрыто.',
     lockedProTitle: 'День {day} входит в Pro',
-    lockedProBody:
-      'На бесплатном плане открыт первый день. Остальные 89 дней и библиотеку заданий ' +
-      'открывает Pro.',
+    lockedProBody: "На бесплатном плане открыт день 1. С Pro сейчас готово {ready} дней, остальные скоро появятся.",
     lockedProgressTitle: 'Этот день ещё закрыт',
     lockedProgressBody: 'Сначала завершите предыдущие дни — после этого день {day} откроется сам.',
     buyPro: 'Купить Pro',
@@ -1014,6 +1020,10 @@ export const ru: Dictionary = {
     noResults: 'Подходящих дней не найдено.',
     comingSoon: 'Скоро',
     statTotal: 'Всего дней',
+    lockedProBodyRange: "На бесплатном плане открыты дни 1–{last}. С Pro сейчас готово {ready} дней, остальные скоро появятся.",
+    seePro: "Посмотреть Pro",
+    seeProPerDay: "Посмотреть Pro · {amount} в день",
+    finishDayFirst: "Сначала закончу день {day}",
   },
 
   preview: {
@@ -1201,6 +1211,10 @@ export const ru: Dictionary = {
     cooldownOk: 'Понятно',
     cooldownNext: "Выбрать другое задание",
     failedBody: 'Ваш результат {score}%. Для прохождения нужно минимум {pass}%.',
+    attemptsTitle: "Попытки",
+    attemptsValue: "{count}, затем перерыв {hours} ч",
+    attemptsAhead: "У вас {count} попытки. Если ни одна не пройдёт, ждать {hours} ч.",
+    lastAttempt: "Последняя попытка — если не пройдёт, перерыв {hours} ч.",
   },
 
   missionLive: {
@@ -1325,8 +1339,8 @@ export const ru: Dictionary = {
   },
 
   result: {
-    notPassed: 'Не пройдено',
-    notPassedBody: 'Чтобы засчитать разговор, нужно минимум 80%. Попробуйте ещё раз.',
+    notPassed: "Не пройдено",
+    notPassedBody: "В этот раз до проходного балла не хватило. Попробуйте ещё раз.",
     retryNow: 'Попробовать снова',
     retryIn: 'Повтор через {time}',
     nextMission: 'Следующая миссия',
@@ -1353,6 +1367,7 @@ export const ru: Dictionary = {
       "Магазин, кафе, транспорт, врач и городские службы — в каждом живой разговор.",
     proOfferCta: "Посмотреть Pro",
     movedToDay: 'Вы перешли на день {day}.',
+    retryPrompt: "Попробуйте ещё раз — фразы уже знакомы.",
   },
 
   billing: {

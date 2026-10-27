@@ -362,15 +362,16 @@ export function Onboarding() {
       <Layout wide>
         <LevelDashboard
           assessment={assessment}
-          continueLabel={user ? 'Birinchi mashqni boshlash' : "Rejani saqlab, boshlash"}
+          continueLabel={user ? t.continueToHome : "Rejani saqlab, boshlash"}
           onContinue={() =>
-            navigate(
-              !user
-                ? '/signup'
-                : assessment.firstMissionId
-                  ? `/missions/${assessment.firstMissionId}`
-                  : '/home',
-            )
+            !user
+              ? navigate('/signup')
+              : navigate('/home', {
+                  // Home asks where to begin: the day's lesson or this free conversation.
+                  state: assessment.firstMissionId
+                    ? { welcome: { missionId: assessment.firstMissionId, missionTitle: assessment.firstMissionTitle } }
+                    : null,
+                })
           }
         />
       </Layout>

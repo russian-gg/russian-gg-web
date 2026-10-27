@@ -322,6 +322,8 @@ export interface MissionResult {
   passed?: boolean
   /** Present on a run that did not pass: when the learner may try again. */
   retry?: MissionRetryState | null
+  /** The score a dialogue mission needs. */
+  passScore?: number | null
 }
 
 export interface RepairSuggestion {

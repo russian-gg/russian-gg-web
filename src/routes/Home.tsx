@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { fill, useT } from '../lib/i18n'
 import type { HomeView } from '../lib/types'
 import { TodayLessonCard } from '../components/home/TodayLessonCard'
+import { WelcomeStartDialog, type WelcomeStart } from '../components/home/WelcomeStartDialog'
 import { HeroBanner } from '../components/home/HeroBanner'
 import { DashboardSearch } from '../components/home/DashboardSearch'
 import { FeatureTiles, RecommendedLessons } from '../components/home/HomeSections'
@@ -30,6 +31,10 @@ import { rise, stagger } from '../lib/motion'
  */
 export function Home() {
   const t = useT()
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Set by the level test's result screen only, so a reload or a later visit does not ask again.
+  const welcome = (location.state as { welcome?: WelcomeStart } | null)?.welcome
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeView>('/course/home'),
@@ -78,6 +83,14 @@ export function Home() {
       children of this one, because it is a *column*, not the next item in this list.
     */
     <Sequence className="space-y-6" gap={stagger.base}>
+      {welcome && (
+        <WelcomeStartDialog
+          start={welcome}
+          lessonPath={startPath}
+          day={data.currentDay}
+          onDismiss={() => navigate(location.pathname, { replace: true, state: null })}
+        />
+      )}
       <Reveal className="max-w-2xl">
         <DashboardSearch />
       </Reveal>

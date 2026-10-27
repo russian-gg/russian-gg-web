@@ -95,7 +95,13 @@ export function MissionResult() {
             </h1>
           </Reveal>
           <Reveal>
-            <UzHint>{failed ? t.result.notPassedBody : data.strengthNoteUz}</UzHint>
+            <UzHint>
+              {failed
+                ? data.passScore
+                  ? fill(t.missionBrief.failedBody, { score: data.overallScore, pass: data.passScore })
+                  : t.result.notPassedBody
+                : data.strengthNoteUz}
+            </UzHint>
           </Reveal>
         </Sequence>
       </Reveal>
@@ -288,7 +294,7 @@ function RetryPanel({ missionId, retry }: RetryPanelProps) {
   return (
     <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm font-semibold text-ink">
-        {canRetry ? t.result.notPassedBody : fill(t.result.retryIn, { time: remaining ?? '—' })}
+        {canRetry ? t.result.retryPrompt : fill(t.result.retryIn, { time: remaining ?? '—' })}
       </p>
       <div className="flex gap-2">
         <Link
