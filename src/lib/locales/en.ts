@@ -113,7 +113,9 @@ export const en: Dictionary = {
       wonTitle: 'You made it! 🎉',
       wonBody: 'A full minute without stopping. That point is yours.',
       next: 'Next question',
+      questions: ["What is your name and where do you work?", "What did you do this morning? Try to say it in Russian.", "You want to ask for bread in a shop. What do you say?", "Tell the taxi driver your address.", "Introduce yourself to a colleague at work.", "Explain to the doctor what hurts.", "Ask the price at the bazaar and bargain.", "Talk to your neighbour about the weather."],
     },
+    games: {"arra": {"title": "The Saw", "body": "Keep talking — fall silent and the saw moves closer."}, "rod-runner": {"title": "Лёд и род", "body": "Steer each Russian word into the lane of its gender."}, "tez-gapir": {"title": "Speak fast", "body": "Speak Russian on one topic for 30 seconds."}, "fight-for-life": {"title": "Помоги!", "body": "Speak Russian — your voice gives the hero strength."}, "error-hunt": {"title": "Error hunter", "body": "Find and fix the mistake in a Russian sentence."}, "first-reaction": {"title": "First reaction", "body": "Answer an unexpected situation in 5 seconds."}, "ice-mystery": {"title": "Mystery of the ice city", "body": "Ask questions, find clues and solve the mystery."}, "soz-ovi": {"title": "Word hunt", "body": "Find the Russian word for the picture."}, "tez-javob": {"title": "Quick answer", "body": "Answer in 10 seconds."}, "dialog": {"title": "Dialogue", "body": "Put the conversation in the right order."}, "eshitib-top": {"title": "Hear and find", "body": "Choose the sentence you heard."}, "xotira": {"title": "Memory", "body": "Find the pairs — a word and its translation."}},
   },
 
   placement: {
@@ -165,6 +167,7 @@ export const en: Dictionary = {
       scoreFailed: "We couldn't work out the result. Please try again.",
       nothingHeard: "We didn't hear you. Allow the microphone or type your answer instead.",
     },
+    continueToHome: "Continue",
   },
 
   lessonOne: {
@@ -441,6 +444,9 @@ export const en: Dictionary = {
       known: "Know it · выучил",
       unknown: "Don't know · не знаю",
       again: "Review · повторю",
+      deckMin: "Look at at least {count} cards",
+      deckSeen: "Seen: {seen} / {total}",
+      deckAtLeast: "(at least {count})",
     },
 
     exercise: {
@@ -484,7 +490,7 @@ export const en: Dictionary = {
     perDay: '/day',
     telegram: 'Get in touch on Telegram',
     stopListening: 'Stop playback',
-    geminiReply: 'Gemini reply',
+    partnerReply: "Your partner's reply",
     attachmentNote:
       'For now only the file name is kept alongside your comment. We can wire up a full upload later if it is needed.',
   },
@@ -964,6 +970,14 @@ export const en: Dictionary = {
       loadFailed: 'Could not load activity history.',
       weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
+    welcomeTitle: "Welcome!",
+    welcomeBody: "Your level is set. Where shall we start? Finish your first lesson or first conversation and a gift is waiting for you.",
+    welcomeLesson: "Start lesson {day}",
+    welcomeLessonHint: "A rule, phrases and speaking practice",
+    welcomeMission: "Start your first conversation",
+    welcomeMissionHint: "A live voice conversation with the AI",
+    welcomeMissionHintNamed: "“{title}” — a live voice conversation with the AI",
+    sectionsCount: "{count} sections",
   },
 
   path: {
@@ -994,8 +1008,7 @@ export const en: Dictionary = {
     startConversation: 'Start the conversation',
     lockedFallback: 'This mission is locked for now.',
     lockedProTitle: 'Day {day} is part of Pro',
-    lockedProBody:
-      'The free plan opens the first day. Pro opens the remaining 89 and the task library.',
+    lockedProBody: "The free plan opens day 1. With Pro, {ready} days are ready now, and the rest are on the way.",
     lockedProgressTitle: 'This day is still closed',
     lockedProgressBody: 'Finish the earlier days first — day {day} then opens on its own.',
     buyPro: 'Get Pro',
@@ -1007,6 +1020,10 @@ export const en: Dictionary = {
     noResults: 'No matching days found.',
     comingSoon: 'Coming soon',
     statTotal: 'All days',
+    lockedProBodyRange: "The free plan opens days 1–{last}. With Pro, {ready} days are ready now, and the rest are on the way.",
+    seePro: "See Pro",
+    seeProPerDay: "See Pro · {amount} a day",
+    finishDayFirst: "Finish day {day} first",
   },
 
   preview: {
@@ -1194,6 +1211,10 @@ export const en: Dictionary = {
     cooldownOk: 'Got it',
     cooldownNext: "Choose another mission",
     failedBody: 'You scored {score}%. You need at least {pass}% to pass.',
+    attemptsTitle: "Attempts",
+    attemptsValue: "{count}, then a {hours}-hour break",
+    attemptsAhead: "You have {count} attempts. If neither passes, you wait {hours} hours.",
+    lastAttempt: "Last attempt — if it doesn't pass, a {hours}-hour break.",
   },
 
   missionLive: {
@@ -1314,11 +1335,11 @@ export const en: Dictionary = {
   },
 
   result: {
-    notPassed: 'Not passed',
-    notPassedBody: 'You need at least 80% to finish the conversation. Give it another go.',
+    notPassed: "Didn't pass",
+    notPassedBody: "This time you didn't reach the pass mark. Give it another go.",
     retryNow: 'Try again',
     retryIn: 'You can retry in {time}',
-    nextMission: 'Next mission',
+    nextMission: "Go to the 90-day path",
     preparing: 'Preparing your result',
     completed: 'Lesson complete',
     milestoneUnlocked: 'Day {day} milestone unlocked',
@@ -1342,6 +1363,8 @@ export const en: Dictionary = {
       "Shops, cafés, transport, the doctor and city services — each one a live conversation.",
     proOfferCta: "See Pro",
     movedToDay: 'You have moved to day {day}.',
+    retryPrompt: "Give it another go — the phrases are familiar now.",
+    wentWell: "What went well:",
   },
 
   billing: {
@@ -1360,7 +1383,7 @@ export const en: Dictionary = {
       'Full progress and level history',
       'The task library',
     ],
-    freeLimitItems: ['The level test', 'The first day', 'A few sample tasks'],
+    freeLimitItems: ['The level test', '{freeDays}', 'A few sample tasks'],
     title: "Carry on along the path with Pro",
     subtitle:
       'The free plan opens the level test and the first day. Pro is needed to carry on ' +
@@ -1384,7 +1407,7 @@ export const en: Dictionary = {
     freeLimits: 'On the free plan',
     viewPlans: "View plans",
     planTagline: "Start learning Russian today and open up what the course can do.",
-    yourProgress: "Your progress",
+    yourProgress: "Open days and billing",
     freePlanTitle: "What the free plan includes",
     proPlanTitle: "What does Pro give you?",
     upsellTitle: "Subscribe to unlock more",
@@ -1439,6 +1462,8 @@ export const en: Dictionary = {
     receiptNote: "Your receipt is in the {provider} app.",
     startDay: "Start day {day}",
     cancelFailed: "The subscription couldn't be cancelled. Try again.",
+    freeDayOne: "The first day",
+    freeDaysRange: "Days 1–{last}",
   },
 
   profile: {
@@ -1726,5 +1751,28 @@ export const en: Dictionary = {
     iosStep2: 'Choose "Add to Home Screen"',
     androidStep1: 'Open the browser menu — three dots or three lines',
     androidStep2: 'Choose "Install app" or "Add to Home screen"',
+  },
+  pro: {
+    upgrade: "Upgrade to Pro",
+    perDay: "from {amount} a day",
+    freeLeft: "Free days left: {count}",
+    freeUsed: "Your free days are used up",
+    until: "until {date}",
+    menuItem: "Subscription and Pro",
+    homeTitle: "Carry on from day {day} with Pro",
+    pathFree: "Day 1 is free.",
+    pathFreeRange: "Days 1–{last} are free.",
+    pathPro: "Days {from}–{total} open with Pro.",
+    progressTitle: "On to the next stage with Pro",
+    progressBody: "Lessons from day {from} to day {total}, voice practice and personal repair lessons open with Pro.",
+    nextDayPro: "Day {day} opens with Pro",
+    freeDone: "{done} of {total} free days done",
+    pathSubtitle: "Pro opens the whole path — a new lesson every day.",
+    benefitPathTitle: "The full 90-day path",
+    benefitPathBody: "Every lesson and task",
+    benefitVoiceTitle: "Voice practice every day",
+    benefitVoiceBody: "Live conversations with the AI",
+    benefitRepairTitle: "Personal repair lessons",
+    benefitRepairBody: "Built from your own mistakes",
   },
 }

@@ -19,6 +19,8 @@ import overallArt from '../assets/images/progress_icon_2.webp'
 import missionsArt from '../assets/images/progress_icon_3.webp'
 import levelArt from '../assets/images/progress_icon_4.webp'
 import { ConfidenceTrend, MilestoneTimeline, SkillRow } from '../components/Progress'
+import { ProgressProCard } from '../components/ProEntry'
+import { useCourseDays } from '../lib/course-days'
 import { Badge, Card, QueryError, Spinner, UzHint } from '../components/ui'
 import { CountUp, Meter, Reveal, Sequence, SequenceInView } from '../components/motion'
 import { fadeIn, pop, rise, spring, stagger } from '../lib/motion'
@@ -46,11 +48,13 @@ export function Progress() {
     queryKey: ['progress'],
     queryFn: () => api.get<ProgressView>('/course/progress'),
   })
+  const courseDays = useCourseDays()
 
   if (isLoading) return <Spinner />
   if (isError || !data) return <QueryError onRetry={() => void refetch()} />
 
-  const day = Math.min(data.currentDay, COURSE_DAYS)
+  // Days finished, the course map's count, so this screen agrees with the map and the rail.
+  const day = Math.min(courseDays.finished ?? Math.max(0, data.currentDay - 1), COURSE_DAYS)
   const percent = Math.round((day / COURSE_DAYS) * 100)
   const steady = data.streakDays > 1
 
@@ -66,7 +70,7 @@ export function Progress() {
           */}
           <Sequence className="flex flex-wrap items-center gap-2" gap={stagger.wide}>
             <Reveal as="span" variants={pop}>
-              <Badge tone="signal">{fill(t.common.dayOfTotal, { day: data.currentDay, total: COURSE_DAYS })}</Badge>
+              <Badge tone="signal">{fill(t.common.dayOfTotal, { day: Math.min(courseDays.firstUnfinished ?? data.currentDay, data.currentDay), total: COURSE_DAYS })}</Badge>
             </Reveal>
             <Reveal as="span" variants={pop}>
               <Badge>{t.labels.phase[data.phase]}</Badge>
@@ -172,6 +176,10 @@ export function Progress() {
               </Reveal>
               </Sequence>
             </Card>
+          </Reveal>
+
+          <Reveal>
+            <ProgressProCard />
           </Reveal>
 
           <Reveal as="section">

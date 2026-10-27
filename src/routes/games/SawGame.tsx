@@ -28,17 +28,6 @@ const ADVANCE_IDLE = 7
 const ADVANCE_STALLED = 12
 const RETREAT_MAX = 16
 
-const QUESTIONS = [
-  'Ismingiz nima va qayerda ishlaysiz?',
-  "Bugun ertalab nima qildingiz? Ruscha aytishga harakat qiling.",
-  'Do\'konda non so\'ramoqchisiz. Nima deysiz?',
-  'Taksi haydovchisiga manzilingizni ayting.',
-  'Ishdagi hamkasbingiz bilan tanishing.',
-  'Shifokorga nima og\'riyotganini tushuntiring.',
-  'Bozorda narxni so\'rang va savdolashing.',
-  'Qo\'shningiz bilan ob-havo haqida gaplashing.',
-]
-
 type Phase = 'ready' | 'playing' | 'cut' | 'won'
 
 export function SawGame() {
@@ -76,7 +65,7 @@ export function SawGame() {
     stream: null as MediaStream | null,
     ctx: null as AudioContext | null,
   })
-  const question = QUESTIONS[round % QUESTIONS.length]
+  const question = t.questions[round % t.questions.length]
 
   const listenForVoice = useCallback(async () => {
     if (level.current.ctx) return

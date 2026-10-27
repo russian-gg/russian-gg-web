@@ -207,6 +207,8 @@ export interface MissionSummary {
   targetPhraseCount: number
   /** What the learner will be able to say, taken from the target phrases themselves. */
   learningPointsUz: string[]
+  /** The same points as the Russian phrases, for a learner reading the app in Russian or English. */
+  learningPointsRu?: string[] | null
   hasVoiceStep: boolean
   /** True when this mission is one continuous conversation rather than a list of steps. */
   isDialogue?: boolean
@@ -322,6 +324,8 @@ export interface MissionResult {
   passed?: boolean
   /** Present on a run that did not pass: when the learner may try again. */
   retry?: MissionRetryState | null
+  /** The score a dialogue mission needs. */
+  passScore?: number | null
 }
 
 export interface RepairSuggestion {
@@ -672,4 +676,7 @@ export interface SearchResultView {
   titleRu: string
   subtitleUz?: string | null
   isLocked: boolean
+  titleEn?: string | null
+  subtitleRu?: string | null
+  subtitleEn?: string | null
 }

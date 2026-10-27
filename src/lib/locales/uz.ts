@@ -131,7 +131,9 @@ export const uz = {
       wonTitle: 'Omon qoldingiz! 🎉',
       wonBody: "Bir daqiqa to'xtamay gapirdingiz. Bitta ball sizniki.",
       next: 'Keyingi savol',
+      questions: ["Ismingiz nima va qayerda ishlaysiz?", "Bugun ertalab nima qildingiz? Ruscha aytishga harakat qiling.", "Do'konda non so'ramoqchisiz. Nima deysiz?", "Taksi haydovchisiga manzilingizni ayting.", "Ishdagi hamkasbingiz bilan tanishing.", "Shifokorga nima og'riyotganini tushuntiring.", "Bozorda narxni so'rang va savdolashing.", "Qo'shningiz bilan ob-havo haqida gaplashing."],
     },
+    games: {"arra": {"title": "Arra", "body": "To'xtamay gapiring — jim qolsangiz, arra yaqinlashadi."}, "rod-runner": {"title": "Лёд и род", "body": "Ruscha so'zni to'g'ri rod yo'lagiga olib boring."}, "tez-gapir": {"title": "Tez gapir", "body": "30 soniyada mavzu bo'yicha ruscha gapiring."}, "fight-for-life": {"title": "Помоги!", "body": "Ruscha gapiring — ovozingiz qahramonga kuch beradi."}, "error-hunt": {"title": "Xato ovchisi", "body": "Ruscha gapdagi xatoni toping va tuzating."}, "first-reaction": {"title": "Birinchi reaksiya", "body": "Kutilmagan vaziyatga 5 soniyada javob bering."}, "ice-mystery": {"title": "Muz shahri siri", "body": "Savollar bering, dalillarni toping va sirni oching."}, "soz-ovi": {"title": "So'z ovi", "body": "Rasm bo'yicha ruscha so'zni toping."}, "tez-javob": {"title": "Tez javob", "body": "10 soniyada javob bering."}, "dialog": {"title": "Dialog", "body": "Suhbatni to'g'ri tartibda tuzing."}, "eshitib-top": {"title": "Eshitib top", "body": "Eshitgan gapingizni tanlang."}, "xotira": {"title": "Xotira", "body": "Juftlarni toping — so'z va tarjimasi."}},
   },
 
   /**
@@ -189,6 +191,7 @@ export const uz = {
       scoreFailed: "Natijani hisoblab bo'lmadi. Qayta urinib ko'ring.",
       nothingHeard: 'Sizni eshitmadik. Mikrofonga ruxsat bering yoki javobni yozib yuboring.',
     },
+    continueToHome: "Davom etish",
   },
 
   lessonOne: {
@@ -465,6 +468,9 @@ export const uz = {
       known: "Bilaman · выучил",
       unknown: "Bilmayman · не знаю",
       again: "Takrorlayman · повторю",
+      deckMin: "Kamida {count} ta kartani ko‘ring",
+      deckSeen: "Ko‘rildi: {seen} / {total}",
+      deckAtLeast: "(kamida {count})",
     },
 
     exercise: {
@@ -508,7 +514,7 @@ export const uz = {
     perDay: '/kun',
     telegram: 'Telegram orqali bog‘lanish',
     stopListening: 'Eshitishni to‘xtatish',
-    geminiReply: 'Gemini javobi',
+    partnerReply: "Suhbatdosh javobi",
     attachmentNote:
       'Hozircha faylning nomi izoh bilan birga saqlanadi. Kerak bo‘lsa keyin to‘liq uploadni ham ulaymiz.',
   },
@@ -965,7 +971,7 @@ export const uz = {
     hero: {
       greeting: 'Salom, {name}!',
       greetingNoName: 'Salom!',
-      title: 'Bugungi 10 daqiqa – ertangi imkoniyatlar kaliti!',
+      title: "Bugungi dars — ertangi imkoniyatlar kaliti!",
       subtitle: 'Har kuni 1 ta dars. 90 kunda erkin gaplashing!',
       cta: 'Darsni boshlash',
     },
@@ -988,6 +994,14 @@ export const uz = {
       loadFailed: "Faollik tarixini yuklab bo'lmadi.",
       weekdays: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'],
     },
+    welcomeTitle: "Xush kelibsiz!",
+    welcomeBody: "Darajangiz aniqlandi. Qayerdan boshlaymiz? Birinchi darsni yoki birinchi suhbatni tugatsangiz, sizni sovg'a kutadi.",
+    welcomeLesson: "{day}-darsni boshlash",
+    welcomeLessonHint: "Qoida, iboralar va gapirish mashqi",
+    welcomeMission: "Birinchi suhbatni boshlash",
+    welcomeMissionHint: "AI bilan jonli ovozli suhbat",
+    welcomeMissionHintNamed: "«{title}» — AI bilan jonli ovozli suhbat",
+    sectionsCount: "{count} ta bo‘lim",
   },
 
   path: {
@@ -1018,8 +1032,7 @@ export const uz = {
     startConversation: 'Suhbatni boshlash',
     lockedFallback: 'Bu topshiriq hozir yopiq.',
     lockedProTitle: '{day}-kun Pro tarkibida',
-    lockedProBody:
-      'Bepul rejada birinchi kun ochiq. Qolgan 89 kunni va mashq kutubxonasini Pro ochadi.',
+    lockedProBody: "Bepul rejada 1-kun ochiq. Pro bilan hozir {ready} kun tayyor, qolganlari tez orada qo'shiladi.",
     lockedProgressTitle: 'Bu kun hali yopiq',
     lockedProgressBody:
       "Avval oldingi kunlarni yakunlang — shundan keyin {day}-kun o'zi ochiladi.",
@@ -1032,6 +1045,10 @@ export const uz = {
     noResults: 'Mos keladigan kun topilmadi.',
     comingSoon: 'Tez orada',
     statTotal: 'Jami kunlar',
+    lockedProBodyRange: "Bepul rejada 1–{last}-kunlar ochiq. Pro bilan hozir {ready} kun tayyor, qolganlari tez orada qo'shiladi.",
+    seePro: "Pro'ni ko'rish",
+    seeProPerDay: "Pro'ni ko'rish · kuniga {amount}",
+    finishDayFirst: "Avval {day}-kunni tugataman",
   },
 
   preview: {
@@ -1220,6 +1237,10 @@ export const uz = {
     cooldownOk: "Tushunarli",
     cooldownNext: "Boshqa topshiriqni tanlash",
     failedBody: "Sizning balingiz {score}%. O'tish uchun kamida {pass}% kerak.",
+    attemptsTitle: "Urinishlar",
+    attemptsValue: "{count} ta, so'ng {hours} soat tanaffus",
+    attemptsAhead: "{count} ta urinish bor. Hech biri o'tmasa, {hours} soat kutasiz.",
+    lastAttempt: "Oxirgi urinish — o'tmasa, {hours} soat tanaffus.",
   },
 
   missionLive: {
@@ -1343,11 +1364,11 @@ export const uz = {
   },
 
   result: {
-    notPassed: "Yakunlanmadi",
-    notPassedBody: "Suhbatni yakunlash uchun kamida 80% kerak. Yana bir bor urinib ko'ring.",
+    notPassed: "O'tmadi",
+    notPassedBody: "Bu safar o'tish baliga yetmadi. Yana bir bor urinib ko'ring.",
     retryNow: "Qayta urinish",
     retryIn: "Qayta urinish {time} dan so'ng",
-    nextMission: "Keyingi missiya",
+    nextMission: "90 kunlik yo'lga o'tish",
     preparing: 'Natija tayyorlanmoqda',
     completed: 'Mashq bajarildi',
     milestoneUnlocked: '{day}-kun bosqichi ochildi',
@@ -1370,6 +1391,8 @@ export const uz = {
       "Do'kon, kafe, transport, shifokor va shahar xizmatlari — har birida jonli suhbat.",
     proOfferCta: "Pro'ni ko'rish",
     movedToDay: 'Siz {day}-kunga o‘tdingiz.',
+    retryPrompt: "Yana bir bor urinib ko'ring — iboralar endi tanish.",
+    wentWell: "Yaxshi chiqqani:",
   },
 
   billing: {
@@ -1388,7 +1411,7 @@ export const uz = {
       "To'liq progress va daraja tarixi",
       "\"Bugun mashq\" kutubxonasi",
     ],
-    freeLimitItems: ['Daraja testi', 'Birinchi kun', 'Cheklangan namuna mashqlari'],
+    freeLimitItems: ['Daraja testi', '{freeDays}', 'Cheklangan namuna mashqlari'],
     title: "Pro bilan yo'lni davom ettiring",
     subtitle:
       "Bepul rejada daraja testi va birinchi kun ochiq. Keyingi kunlarni davom ettirish uchun " +
@@ -1412,8 +1435,8 @@ export const uz = {
     freeLimits: 'Bepul rejada',
     viewPlans: "Reja turlarini ko‘rish",
     planTagline: "Rus tilini o‘rganishga bugunoq boshlang va imkoniyatlaringizni kengaytiring.",
-    yourProgress: "Sizning progressingiz",
-    freePlanTitle: "Free reja imkoniyatlari",
+    yourProgress: "Ochilgan kunlar va to'lov",
+    freePlanTitle: "Bepul reja imkoniyatlari",
     proPlanTitle: "Pro reja nimalarni beradi?",
     upsellTitle: "Ko‘proq imkoniyatlar uchun obuna bo‘ling",
     upsellBody: "Pro reja bilan rus tilini yanada samarali o‘rganing.",
@@ -1467,6 +1490,8 @@ export const uz = {
     receiptNote: "To'lov cheki {provider} ilovangizda saqlanadi.",
     startDay: "{day}-kunni boshlash",
     cancelFailed: "Obunani bekor qilib bo'lmadi. Qayta urinib ko'ring.",
+    freeDayOne: "Birinchi kun",
+    freeDaysRange: "1–{last}-kunlar",
   },
 
   profile: {
@@ -1760,5 +1785,28 @@ export const uz = {
     iosStep2: "Ro'yxatdan «Bosh ekranga qo'shish»ni tanlang",
     androidStep1: 'Brauzer menyusini oching — uchta nuqta yoki uchta chiziq',
     androidStep2: "«Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang",
+  },
+  pro: {
+    upgrade: "Pro'ga o'tish",
+    perDay: "kuniga {amount} dan",
+    freeLeft: "Yana {count} ta bepul kun bor",
+    freeUsed: "Bepul kunlar tugadi",
+    until: "{date} gacha",
+    menuItem: "Obuna va Pro",
+    homeTitle: "{day}-kundan Pro bilan davom eting",
+    pathFree: "1-kun bepul.",
+    pathFreeRange: "1–{last}-kunlar bepul.",
+    pathPro: "{from}–{total}-kunlar Pro bilan ochiladi.",
+    progressTitle: "Keyingi bosqichga Pro bilan",
+    progressBody: "{from}-kundan {total}-kungacha bo'lgan darslar, ovozli mashqlar va shaxsiy tuzatish darslari Pro bilan ochiladi.",
+    nextDayPro: "{day}-kun Pro bilan ochiladi",
+    freeDone: "{done}/{total} bepul kun bajarildi",
+    pathSubtitle: "Pro bilan butun yo'l ochiq — har kuni yangi dars.",
+    benefitPathTitle: "90 kunlik to'liq yo'l",
+    benefitPathBody: "Barcha darslar va vazifalar",
+    benefitVoiceTitle: "Har kuni ovozli mashq",
+    benefitVoiceBody: "AI bilan jonli suhbatlar",
+    benefitRepairTitle: "Shaxsiy tuzatish darslari",
+    benefitRepairBody: "Xatolaringiz asosida tuziladi",
   },
 }

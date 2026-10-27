@@ -15,7 +15,7 @@ const DISMISS_KEY_PREFIX = 'rgg.phone-prompt.dismissed-on'
 
 export function PhoneNumberPrompt() {
   const t = useT()
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   const { user, refreshUser } = useAuth()
   const [open, setOpen] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('+998')
@@ -38,9 +38,24 @@ export function PhoneNumberPrompt() {
     queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
     enabled: false,
   })
-  const giftWaiting = Boolean(gift?.isAvailable && !gift.isClaimed)
+  const { data: giftShowing } = useQuery({
+    queryKey: ['welcome-gift-showing', user?.id],
+    queryFn: () => false,
+    enabled: false,
+  })
+  const giftWaiting = Boolean((gift?.isAvailable && !gift.isClaimed) || giftShowing)
 
-  const visible = open && !!user && !user.phoneNumber && !giftWaiting && !isBusyPath(pathname)
+  // Closing the gift is not an invitation for the next dialog: the prompt waits for the next page.
+  const [giftWasShowing, setGiftWasShowing] = useState(false)
+  if (giftShowing && !giftWasShowing) setGiftWasShowing(true)
+  if (!giftShowing && giftWasShowing) {
+    setGiftWasShowing(false)
+    setOpen(false)
+  }
+
+  // Home's welcome dialog (after the level test) has the screen first.
+  const welcomeOpen = Boolean((state as { welcome?: unknown } | null)?.welcome)
+  const visible = open && !!user && !user.phoneNumber && !giftWaiting && !welcomeOpen && !isBusyPath(pathname)
   const dialogRef = useFocusTrap<HTMLDivElement>(visible)
 
   useEffect(() => {

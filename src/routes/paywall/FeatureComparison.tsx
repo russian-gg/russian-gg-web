@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { useT } from '../../lib/i18n'
+import { freePlanItems, useProOffer } from '../../lib/pro-offer'
 import { Card } from '../../components/ui'
 import { cx } from '../../lib/cx'
 import { CrownGlyph, GiftGlyph } from './glyphs'
@@ -18,6 +19,7 @@ import { CrownGlyph, GiftGlyph } from './glyphs'
  */
 export function FeatureComparison() {
   const t = useT()
+  const { entitlement } = useProOffer()
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -29,7 +31,7 @@ export function FeatureComparison() {
       />
       <BenefitCard
         title={t.billing.freeLimits}
-        items={t.billing.freeLimitItems}
+        items={freePlanItems(t, entitlement?.maxUnlockedDay ?? 1)}
         glyph={<GiftGlyph className="size-8" knockout="var(--color-ground-sunken)" />}
       />
     </div>

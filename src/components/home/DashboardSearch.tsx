@@ -3,7 +3,8 @@ import { Lock, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
-import { useT } from '../../lib/i18n'
+import { pickContent } from '../../lib/content'
+import { useLocale, useT } from '../../lib/i18n'
 import type { SearchResultView } from '../../lib/types'
 
 /** Matches the server's own floor, so the client never asks a question it knows returns nothing. */
@@ -21,6 +22,7 @@ const DEBOUNCE_MS = 250
  */
 export function DashboardSearch() {
   const t = useT()
+  const { locale } = useLocale()
   const navigate = useNavigate()
   const [term, setTerm] = useState('')
   const [debounced, setDebounced] = useState('')
@@ -106,11 +108,11 @@ export function DashboardSearch() {
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-ink">
-                        {result.titleUz}
+                        {pickContent(locale, { uz: result.titleUz, ru: result.titleRu, en: result.titleEn })}
                       </span>
                       {result.subtitleUz && (
                         <span className="text-support block truncate text-xs">
-                          {result.subtitleUz}
+                          {pickContent(locale, { uz: result.subtitleUz, ru: result.subtitleRu, en: result.subtitleEn })}
                         </span>
                       )}
                     </span>

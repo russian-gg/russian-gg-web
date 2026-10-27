@@ -158,12 +158,15 @@ export function WelcomeGiftGate() {
   const [touchOnly, setTouchOnly] = useState(() => window.matchMedia(TOUCH_QUERY).matches)
 
   /*
-    The gift is the reward for the first finished mission or lesson — the server only offers it
-    once one exists — so it never stands between a new learner and the conversation they were
-    just sent to start. It waits out every activity screen and opens on the result after it.
+    The gift is the reward for the first finished mission or lesson, at any score — the server
+    only offers it once one exists — so it never stands between a new learner and the
+    conversation they were just sent to start. It lets them read their result first: it waits
+    out the activity and its result screen, and opens on the page they go to from there.
+    Before a box is picked it has no close button, so it cannot be walked past.
   */
   const isPublicPage = ['/', '/signin', '/signup', '/reset-password'].includes(location.pathname)
-  const enabled = Boolean(user?.hasCompletedDiagnostic && !isPublicPage && !isBusyPath(location.pathname))
+  const isResultPage = /^\/missions\/attempts\/[^/]+\/result$/.test(location.pathname)
+  const enabled = Boolean(user && !isPublicPage && !isResultPage && !isBusyPath(location.pathname))
   const { data, refetch } = useQuery({
     queryKey: ['welcome-gift', user?.id],
     queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
@@ -179,7 +182,15 @@ export function WelcomeGiftGate() {
     if (enabled && waiting) void refetch()
   }, [enabled, waiting, refetch, location.pathname])
 
-  const visible = Boolean(enabled && data?.isAvailable && !data.isClaimed && !hidden)
+  // Once a box is picked the claim marks the gift claimed, but the box still has to open and
+  // show the prize: the dialog stays until the learner closes it.
+  const claiming = phase !== 'choosing'
+  const visible = Boolean(enabled && !hidden && (claiming || (data?.isAvailable && !data.isClaimed)))
+
+  // The phone prompt reads this so it never opens on top of, or straight after, the gift.
+  useEffect(() => {
+    queryClient.setQueryData(['welcome-gift-showing', user?.id], visible)
+  }, [queryClient, user?.id, visible])
 
   useEffect(() => {
     setHidden(false)
@@ -289,6 +300,11 @@ export function WelcomeGiftGate() {
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['entitlement'] }),
         queryClient.invalidateQueries({ queryKey: ['course-map'] }),
+        // Bonus days open lessons: every view that shows a lock has to ask again.
+        queryClient.invalidateQueries({ queryKey: ['day-missions'] }),
+        queryClient.invalidateQueries({ queryKey: ['home'] }),
+        queryClient.invalidateQueries({ queryKey: ['progress'] }),
+        queryClient.invalidateQueries({ queryKey: ['mission-detail'] }),
       ])
       const remaining = Math.max(0, MIN_OPENING_MS - (performance.now() - startedAt))
       window.setTimeout(() => setPhase('revealed'), remaining)

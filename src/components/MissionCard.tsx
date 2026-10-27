@@ -5,6 +5,7 @@ import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { fill, useLocale, useT } from '../lib/i18n'
 import { missionLock, missionLockDestination, missionLockText } from '../lib/mission-lock'
+import { hasFoundationLesson } from '../lib/foundation-days'
 import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
 import { missionCardClass } from './mission-card-style'
@@ -204,6 +205,7 @@ export function MissionPreviewDialog({
     ru: mission.objectiveRu,
     en: mission.objectiveEn,
   })
+  const kindLabel = !mission.isDialogue && hasFoundationLesson(mission.courseDay) ? t.home.kindLesson : copy.missionEyebrow
   const needsRegisterNote =
     mission.category === 'StreetRussian' ||
     mission.formality === 'Informal' ||
@@ -215,8 +217,8 @@ export function MissionPreviewDialog({
       open={open}
       eyebrow={
         mission.courseDay
-          ? `${copy.missionEyebrow} · ${fill(t.common.day, { day: mission.courseDay })}`
-          : copy.missionEyebrow
+          ? `${kindLabel} · ${fill(t.common.day, { day: mission.courseDay })}`
+          : kindLabel
       }
       title={title}
       closeLabel={t.common.close}

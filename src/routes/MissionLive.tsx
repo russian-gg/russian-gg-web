@@ -8,7 +8,8 @@ import { api } from '../lib/api'
 import { characterColors, characterName, characterPalette } from '../lib/character'
 import { cx } from '../lib/cx'
 import { foundationLessons } from '../lib/foundation-lessons'
-import { fill, useT } from '../lib/i18n'
+import { pickContent } from '../lib/content'
+import { fill, useLocale, useT } from '../lib/i18n'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { LiveFunctionDeclaration, LiveVoiceStatus } from '../lib/liveVoice'
 import type { EntitlementView, MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
@@ -93,6 +94,7 @@ const CLOSING_LINE_MS = 3500
 export function MissionLive() {
   const t = useT()
   const copy = t.missionLive
+  const { locale } = useLocale()
   const navigate = useNavigate()
   const { missionId } = useParams<{ missionId: string }>()
 
@@ -692,7 +694,13 @@ export function MissionLive() {
           </p>
 
           {mission.dialogue.goalUz && !goalReached && (
-            <p className="max-w-sm text-sm leading-relaxed text-ink-muted">{mission.dialogue.goalUz}</p>
+            <p className="max-w-sm text-sm leading-relaxed text-ink-muted">
+              {pickContent(locale, {
+                uz: mission.dialogue.goalUz,
+                ru: mission.dialogue.goalRu,
+                en: mission.summary.objectiveEn,
+              })}
+            </p>
           )}
         </div>
 

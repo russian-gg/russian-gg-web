@@ -127,7 +127,9 @@ function Details({ row, showFreeLabel }: { row: MissionRow; showFreeLabel: boole
   const area = mission.topic !== 'Unset' ? t.labels.topic[mission.topic] : t.labels.category[mission.category]
   // What the learner will be able to say, from the mission's own target phrases. Written in
   // Uzbek in the content, whatever the interface language.
-  const learning = mission.learningPointsUz.filter(Boolean).slice(0, 6)
+  const learning = (locale === 'uz' ? mission.learningPointsUz : mission.learningPointsRu ?? mission.learningPointsUz)
+    .filter(Boolean)
+    .slice(0, 6)
 
   return (
     <div className="grid gap-5 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] md:gap-6">

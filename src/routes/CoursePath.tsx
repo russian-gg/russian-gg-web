@@ -13,10 +13,13 @@ import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionLock } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
-import type { CourseDayView, EntitlementView, MissionSummary, ProgressView } from '../lib/types'
+import { formatPrice } from '../lib/format'
+import type { CourseDayView, EntitlementView, MissionSummary, PlansView, ProgressView } from '../lib/types'
 import { MissionProgress } from '../components/MissionCard'
 import { FilterPills, SearchField, StatTile } from '../components/Catalog'
 import { CoursePathHero } from '../components/CoursePathHero'
+import { PathProStrip } from '../components/ProEntry'
+import { cheapestDay as cheapestPlanDay } from '../lib/pro-offer'
 import { PreviewDialog } from '../components/PreviewDialog'
 import { Button, ButtonFace, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
@@ -301,7 +304,7 @@ export function CoursePath() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <CoursePathHero completedDays={completedDays} totalDays={90} />
+      <CoursePathHero completedDays={completedDays} currentDay={todayEntry?.day.day ?? progress?.currentDay} totalDays={90} />
 
       {/*
         The path counted, the way the missions and tests shelves open: how long it is, how much
@@ -313,6 +316,12 @@ export function CoursePath() {
         <StatTile icon={Timer} label={t.path.filterActive} value={counts.active} markClassName="bg-caution-soft text-caution" />
         <StatTile icon={Lock} label={t.path.locked} value={counts.locked} markClassName="bg-ground-sunken text-ink-muted" />
       </Sequence>
+
+      {entitlement?.hasProAccess === false && (
+        <Reveal delay={0.18}>
+          <PathProStrip />
+        </Reveal>
+      )}
 
       {/*
         The filters are pills that wrap rather than a segmented control in a tray: there are four
@@ -407,6 +416,9 @@ export function CoursePath() {
           <LockedDayDialog
             key="locked"
             locked={locked}
+            freeDays={maxUnlockedDay}
+            readyDays={Math.min(LAST_AUTHORED_DAY, days.length)}
+            todayDay={todayEntry?.day.day}
             onDismiss={() => setLocked(null)}
             onGoToToday={
               todayEntry
@@ -513,16 +525,36 @@ function DayPreviewDialog({
  */
 function LockedDayDialog({
   locked,
+  freeDays,
+  readyDays,
+  todayDay,
   onDismiss,
   onGoToToday,
 }: {
   locked: LockedDay
+  /** The last day this learner has without Pro: day 1, or more with a won bonus. */
+  freeDays: number
+  /** Days with a written lesson. Pro is not sold on days that still say "coming soon". */
+  readyDays: number
+  /** The open day the learner is on, named on the button that leads back to it. */
+  todayDay?: number
   onDismiss: () => void
   /** Opens the day that is actually next. Absent when there is no open day to send them to. */
   onGoToToday?: () => void
 }) {
   const lockedRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
+  const { locale } = useLocale()
+  const isPro = locked.kind === 'pro'
+
+  // The cheapest day of Pro, on the button where the decision is made. The paywall's own
+  // query: a learner going on to it finds the prices already loaded.
+  const { data: plans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: () => api.get<PlansView>('/billing/plans'),
+    enabled: isPro,
+  })
+  const cheapestDay = cheapestPlanDay(plans)
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -532,8 +564,6 @@ function LockedDayDialog({
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onDismiss])
-
-  const isPro = locked.kind === 'pro'
 
   return (
     <Overlay open onDismiss={onDismiss} backdropClassName="bg-black/35">
@@ -552,18 +582,29 @@ function LockedDayDialog({
 
         <p className="text-support mt-2">
           {isPro
-            ? t.path.lockedProBody
+            ? fill(freeDays > 1 ? t.path.lockedProBodyRange : t.path.lockedProBody, {
+                last: freeDays,
+                ready: readyDays,
+              })
             : fill(t.path.lockedProgressBody, { day: locked.day })}
         </p>
 
         {isPro ? (
           <>
             <LinkButton to={`/paywall?day=${locked.day}`} block className="mt-5">
-              {t.path.buyPro}
+              {cheapestDay
+                ? fill(t.path.seeProPerDay, { amount: formatPrice(cheapestDay.tiyin, cheapestDay.currency, locale) })
+                : t.path.seePro}
             </LinkButton>
-            <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
-              {t.common.later}
-            </Button>
+            {onGoToToday && todayDay ? (
+              <Button variant="ghost" block className="mt-2" onClick={onGoToToday}>
+                {fill(t.path.finishDayFirst, { day: todayDay })}
+              </Button>
+            ) : (
+              <Button variant="ghost" block className="mt-2" onClick={onDismiss}>
+                {t.common.later}
+              </Button>
+            )}
           </>
         ) : onGoToToday ? (
           <>

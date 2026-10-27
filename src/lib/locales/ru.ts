@@ -117,7 +117,9 @@ export const ru: Dictionary = {
       wonTitle: 'Вы уцелели! 🎉',
       wonBody: 'Вы говорили минуту без остановки. Балл ваш.',
       next: 'Следующий вопрос',
+      questions: ["Как вас зовут и где вы работаете?", "Что вы делали сегодня утром? Постарайтесь сказать по-русски.", "Вы хотите попросить хлеб в магазине. Что вы скажете?", "Назовите таксисту свой адрес.", "Познакомьтесь с коллегой на работе.", "Объясните врачу, что у вас болит.", "Спросите цену на базаре и поторгуйтесь.", "Поговорите с соседом о погоде."],
     },
+    games: {"arra": {"title": "Пила", "body": "Говорите без остановки — замолчите, и пила приблизится."}, "rod-runner": {"title": "Лёд и род", "body": "Ведите русское слово по дорожке его рода."}, "tez-gapir": {"title": "Говори быстро", "body": "30 секунд говорите по-русски на одну тему."}, "fight-for-life": {"title": "Помоги!", "body": "Говорите по-русски — ваш голос даёт герою силу."}, "error-hunt": {"title": "Ловец ошибок", "body": "Найдите и исправьте ошибку в русской фразе."}, "first-reaction": {"title": "Первая реакция", "body": "Ответьте на неожиданную ситуацию за 5 секунд."}, "ice-mystery": {"title": "Тайна ледяного города", "body": "Задавайте вопросы, находите улики и раскройте тайну."}, "soz-ovi": {"title": "Охота за словами", "body": "Найдите русское слово по картинке."}, "tez-javob": {"title": "Быстрый ответ", "body": "Ответьте за 10 секунд."}, "dialog": {"title": "Диалог", "body": "Соберите разговор в правильном порядке."}, "eshitib-top": {"title": "Услышь и найди", "body": "Выберите фразу, которую услышали."}, "xotira": {"title": "Память", "body": "Найдите пары — слово и его перевод."}},
   },
 
   placement: {
@@ -169,6 +171,7 @@ export const ru: Dictionary = {
       scoreFailed: 'Не удалось посчитать результат. Попробуйте ещё раз.',
       nothingHeard: 'Мы вас не услышали. Разрешите доступ к микрофону или напишите ответ.',
     },
+    continueToHome: "Продолжить",
   },
 
   lessonOne: {
@@ -445,6 +448,9 @@ export const ru: Dictionary = {
       known: "выучил",
       unknown: "не знаю",
       again: "повторю",
+      deckMin: "Просмотрите хотя бы {count} карт.",
+      deckSeen: "Просмотрено: {seen} / {total}",
+      deckAtLeast: "(минимум {count})",
     },
 
     exercise: {
@@ -488,7 +494,7 @@ export const ru: Dictionary = {
     perDay: '/день',
     telegram: 'Связаться через Telegram',
     stopListening: 'Остановить воспроизведение',
-    geminiReply: 'Ответ Gemini',
+    partnerReply: "Ответ собеседника",
     attachmentNote:
       'Пока сохраняется только имя файла вместе с комментарием. При необходимости позже подключим полную загрузку.',
   },
@@ -970,6 +976,14 @@ export const ru: Dictionary = {
       loadFailed: 'Не удалось загрузить историю активности.',
       weekdays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
     },
+    welcomeTitle: "Добро пожаловать!",
+    welcomeBody: "Ваш уровень определён. С чего начнём? Закончите первый урок или первый разговор — вас ждёт подарок.",
+    welcomeLesson: "Начать урок {day}",
+    welcomeLessonHint: "Правило, фразы и разговорная практика",
+    welcomeMission: "Начать первый разговор",
+    welcomeMissionHint: "Живой голосовой разговор с ИИ",
+    welcomeMissionHintNamed: "«{title}» — живой голосовой разговор с ИИ",
+    sectionsCount: "Разделов: {count}",
   },
 
   path: {
@@ -1000,9 +1014,7 @@ export const ru: Dictionary = {
     startConversation: 'Начать разговор',
     lockedFallback: 'Это задание пока закрыто.',
     lockedProTitle: 'День {day} входит в Pro',
-    lockedProBody:
-      'На бесплатном плане открыт первый день. Остальные 89 дней и библиотеку заданий ' +
-      'открывает Pro.',
+    lockedProBody: "На бесплатном плане открыт день 1. С Pro сейчас готово {ready} дней, остальные скоро появятся.",
     lockedProgressTitle: 'Этот день ещё закрыт',
     lockedProgressBody: 'Сначала завершите предыдущие дни — после этого день {day} откроется сам.',
     buyPro: 'Купить Pro',
@@ -1014,6 +1026,10 @@ export const ru: Dictionary = {
     noResults: 'Подходящих дней не найдено.',
     comingSoon: 'Скоро',
     statTotal: 'Всего дней',
+    lockedProBodyRange: "На бесплатном плане открыты дни 1–{last}. С Pro сейчас готово {ready} дней, остальные скоро появятся.",
+    seePro: "Посмотреть Pro",
+    seeProPerDay: "Посмотреть Pro · {amount} в день",
+    finishDayFirst: "Сначала закончу день {day}",
   },
 
   preview: {
@@ -1201,6 +1217,10 @@ export const ru: Dictionary = {
     cooldownOk: 'Понятно',
     cooldownNext: "Выбрать другое задание",
     failedBody: 'Ваш результат {score}%. Для прохождения нужно минимум {pass}%.',
+    attemptsTitle: "Попытки",
+    attemptsValue: "{count}, затем перерыв {hours} ч",
+    attemptsAhead: "У вас {count} попытки. Если ни одна не пройдёт, ждать {hours} ч.",
+    lastAttempt: "Последняя попытка — если не пройдёт, перерыв {hours} ч.",
   },
 
   missionLive: {
@@ -1325,11 +1345,11 @@ export const ru: Dictionary = {
   },
 
   result: {
-    notPassed: 'Не пройдено',
-    notPassedBody: 'Чтобы засчитать разговор, нужно минимум 80%. Попробуйте ещё раз.',
+    notPassed: "Не пройдено",
+    notPassedBody: "В этот раз до проходного балла не хватило. Попробуйте ещё раз.",
     retryNow: 'Попробовать снова',
     retryIn: 'Повтор через {time}',
-    nextMission: 'Следующая миссия',
+    nextMission: "Перейти к 90-дневному пути",
     preparing: 'Готовим результат',
     completed: 'Занятие выполнено',
     milestoneUnlocked: 'Открыт этап дня {day}',
@@ -1353,6 +1373,8 @@ export const ru: Dictionary = {
       "Магазин, кафе, транспорт, врач и городские службы — в каждом живой разговор.",
     proOfferCta: "Посмотреть Pro",
     movedToDay: 'Вы перешли на день {day}.',
+    retryPrompt: "Попробуйте ещё раз — фразы уже знакомы.",
+    wentWell: "Что получилось:",
   },
 
   billing: {
@@ -1371,7 +1393,7 @@ export const ru: Dictionary = {
       'Полный прогресс и история уровня',
       'Библиотека заданий',
     ],
-    freeLimitItems: ['Тест уровня', 'Первый день', 'Ограниченные примеры заданий'],
+    freeLimitItems: ['Тест уровня', '{freeDays}', 'Ограниченные примеры заданий'],
     title: "Продолжайте путь с Pro",
     subtitle:
       'На бесплатном плане открыты тест уровня и первый день. Чтобы продолжить дальше, ' +
@@ -1395,8 +1417,8 @@ export const ru: Dictionary = {
     freeLimits: 'На бесплатном плане',
     viewPlans: "Посмотреть планы",
     planTagline: "Начните учить русский уже сегодня и расширьте свои возможности.",
-    yourProgress: "Ваш прогресс",
-    freePlanTitle: "Возможности плана Free",
+    yourProgress: "Открытые дни и оплата",
+    freePlanTitle: "Что входит в бесплатный план",
     proPlanTitle: "Что даёт план Pro?",
     upsellTitle: "Подпишитесь, чтобы открыть больше возможностей",
     upsellBody: "С планом Pro русский язык даётся заметно быстрее.",
@@ -1450,6 +1472,8 @@ export const ru: Dictionary = {
     receiptNote: "Чек об оплате сохранён в приложении {provider}.",
     startDay: "Начать день {day}",
     cancelFailed: "Не удалось отменить подписку. Попробуйте ещё раз.",
+    freeDayOne: "Первый день",
+    freeDaysRange: "Дни 1–{last}",
   },
   profile: {
     level: 'Ваш уровень',
@@ -1736,6 +1760,29 @@ export const ru: Dictionary = {
     iosStep2: 'Выберите «На экран «Домой»»',
     androidStep1: 'Откройте меню браузера — три точки или три полоски',
     androidStep2: 'Выберите «Установить приложение» или «Добавить на главный экран»',
+  },
+  pro: {
+    upgrade: "Перейти на Pro",
+    perDay: "от {amount} в день",
+    freeLeft: "Бесплатных дней осталось: {count}",
+    freeUsed: "Бесплатные дни закончились",
+    until: "до {date}",
+    menuItem: "Подписка и Pro",
+    homeTitle: "Продолжайте с {day}-го дня с Pro",
+    pathFree: "1-й день бесплатный.",
+    pathFreeRange: "Дни 1–{last} бесплатные.",
+    pathPro: "Дни {from}–{total} открываются с Pro.",
+    progressTitle: "К следующему этапу с Pro",
+    progressBody: "Уроки с {from}-го по {total}-й день, голосовые занятия и персональные занятия на исправление открываются с Pro.",
+    nextDayPro: "День {day} открывается с Pro",
+    freeDone: "Пройдено бесплатных дней: {done}/{total}",
+    pathSubtitle: "С Pro открыт весь путь — новый урок каждый день.",
+    benefitPathTitle: "Весь 90-дневный путь",
+    benefitPathBody: "Все уроки и задания",
+    benefitVoiceTitle: "Голосовая практика каждый день",
+    benefitVoiceBody: "Живые разговоры с ИИ",
+    benefitRepairTitle: "Персональные занятия на исправление",
+    benefitRepairBody: "Строятся по вашим ошибкам",
   },
 }
 
