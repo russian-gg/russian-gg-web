@@ -18,6 +18,8 @@ import type { CourseDayView, EntitlementView, MissionSummary, PlansView, Progres
 import { MissionProgress } from '../components/MissionCard'
 import { FilterPills, SearchField, StatTile } from '../components/Catalog'
 import { CoursePathHero } from '../components/CoursePathHero'
+import { PathProStrip } from '../components/ProEntry'
+import { cheapestDay as cheapestPlanDay } from '../lib/pro-offer'
 import { PreviewDialog } from '../components/PreviewDialog'
 import { Button, ButtonFace, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
@@ -315,6 +317,12 @@ export function CoursePath() {
         <StatTile icon={Lock} label={t.path.locked} value={counts.locked} markClassName="bg-ground-sunken text-ink-muted" />
       </Sequence>
 
+      {entitlement?.hasProAccess === false && (
+        <Reveal delay={0.18}>
+          <PathProStrip />
+        </Reveal>
+      )}
+
       {/*
         The filters are pills that wrap rather than a segmented control in a tray: there are four
         of them, and the fourth — the Pro days — is the one a learner on the free plan goes
@@ -546,10 +554,7 @@ function LockedDayDialog({
     queryFn: () => api.get<PlansView>('/billing/plans'),
     enabled: isPro,
   })
-  const cheapestDay = plans?.options.reduce<{ tiyin: number; currency: string } | null>((best, option) => {
-    const tiyin = Math.max(1, Math.round(option.amountTiyin / (option.period === 'Monthly' ? 30 : 90)))
-    return !best || tiyin < best.tiyin ? { tiyin, currency: option.currency } : best
-  }, null)
+  const cheapestDay = cheapestPlanDay(plans)
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

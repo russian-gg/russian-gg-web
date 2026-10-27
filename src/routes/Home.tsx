@@ -5,6 +5,7 @@ import { fill, useT } from '../lib/i18n'
 import type { HomeView } from '../lib/types'
 import { TodayLessonCard } from '../components/home/TodayLessonCard'
 import { WelcomeStartDialog, type WelcomeStart } from '../components/home/WelcomeStartDialog'
+import { HomeProCard } from '../components/ProEntry'
 import { HeroBanner } from '../components/home/HeroBanner'
 import { DashboardSearch } from '../components/home/DashboardSearch'
 import { FeatureTiles, RecommendedLessons } from '../components/home/HomeSections'
@@ -173,6 +174,7 @@ export function Home() {
           underneath and the delay costs nothing, because it is below the fold anyway.
         */}
         <Sequence as="aside" className="min-w-0 space-y-6" gap={stagger.base} delay={0.2}>
+          {data.tier === 'Free' && <Reveal><HomeProCard /></Reveal>}
           <Reveal><QuoteCard /></Reveal>
           <Reveal><ProgressRing currentDay={data.currentDay} /></Reveal>
           <Reveal><AchievementsPanel /></Reveal>

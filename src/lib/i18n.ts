@@ -91,6 +91,10 @@ export function useT(): Dictionary {
  * library for what is a dozen interpolations across the app.
  */
 export function fill(template: string, values: Record<string, string | number>): string {
+  // The type says this is always a string. A dictionary held from before a key existed (a
+  // stale chunk, a hot reload) says otherwise, and one missing label must not take down the
+  // whole screen through the error boundary.
+  if (typeof template !== 'string') return ''
   return template.replace(/\{(\w+)\}/g, (match, key: string) =>
     key in values ? String(values[key]) : match,
   )

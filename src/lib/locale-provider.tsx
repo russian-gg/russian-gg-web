@@ -125,7 +125,10 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       locale,
-      t: dictionary,
+      // Uzbek straight from the module, not the copy held in state: it is compiled in, so the
+      // two are the same object in a build, and in development an edited uz.ts reaches the
+      // screen on hot reload instead of leaving new keys undefined until a full reload.
+      t: locale === 'uz' ? uz : dictionary,
       setLocale,
       adoptAccountLocale,
     }),

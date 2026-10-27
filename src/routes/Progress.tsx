@@ -19,6 +19,7 @@ import overallArt from '../assets/images/progress_icon_2.webp'
 import missionsArt from '../assets/images/progress_icon_3.webp'
 import levelArt from '../assets/images/progress_icon_4.webp'
 import { ConfidenceTrend, MilestoneTimeline, SkillRow } from '../components/Progress'
+import { ProgressProCard } from '../components/ProEntry'
 import { Badge, Card, QueryError, Spinner, UzHint } from '../components/ui'
 import { CountUp, Meter, Reveal, Sequence, SequenceInView } from '../components/motion'
 import { fadeIn, pop, rise, spring, stagger } from '../lib/motion'
@@ -172,6 +173,10 @@ export function Progress() {
               </Reveal>
               </Sequence>
             </Card>
+          </Reveal>
+
+          <Reveal>
+            <ProgressProCard />
           </Reveal>
 
           <Reveal as="section">

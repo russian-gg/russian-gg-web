@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ChevronUp,
   ClipboardCheck,
+  Crown,
   Clock,
   Compass,
   Gamepad2,
@@ -48,6 +49,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
+import { HeaderProPill, RailProCard } from './ProEntry'
+import { useProOffer } from '../lib/pro-offer'
 import { Badge, Spinner, Switch } from './ui'
 import { duration, ease } from '../lib/motion'
 
@@ -117,6 +120,7 @@ export function AppShell() {
           <Wordmark />
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             <WelcomeDiscountCountdown />
+            <HeaderProPill />
             <ProfileMenu compact />
           </div>
         </div>
@@ -143,6 +147,9 @@ export function AppShell() {
 
         {/* Sign-out lives inside the menu, not beside it: one account surface, not two. */}
         <div className="mt-auto pt-8">
+          <div className="mb-3">
+            <RailProCard />
+          </div>
           <SidebarAudioControls />
           <div className="mt-3">
           <ProfileMenu />
@@ -360,7 +367,10 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
     user?.displayName?.trim() || user?.email?.split('@')[0] || user?.phoneNumber || t.account.learner
   // The plan, not the level: this row is the account, and the level already has a home on
   // the profile and progress screens.
-  const subtitle = planLabel(entitlement, t)
+  const offer = useProOffer()
+  const plan = planLabel(entitlement, t)
+  // On the free plan the line under the name says where to go next, not only where they are.
+  const subtitle = plan && entitlement?.hasProAccess === false ? `${plan} · ${t.pro.upgrade}` : plan
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   function go(path: string) {
@@ -434,6 +444,18 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             was three places to look for one thing.
           */}
           <MenuItem label={t.account.settings} icon={<GearGlyph />} onClick={() => go('/settings')} />
+          <MenuItem
+            label={t.pro.menuItem}
+            icon={<Crown aria-hidden="true" strokeWidth={1.9} className="size-5 text-coin-strong" />}
+            onClick={() => go(entitlement?.hasProAccess ? '/settings/billing' : '/paywall')}
+            trailing={
+              offer.discountPercent ? (
+                <span className="rounded-full bg-coin px-2 py-0.5 text-[11px] font-black text-coin-ink">
+                  -{offer.discountPercent}%
+                </span>
+              ) : undefined
+            }
+          />
           <ThemeToggleItem />
           <LanguageItem />
 
@@ -600,11 +622,13 @@ function MenuItem({
   icon,
   onClick,
   danger = false,
+  trailing,
 }: {
   label: string
   icon: ReactNode
   onClick: () => void
   danger?: boolean
+  trailing?: ReactNode
 }) {
   return (
     <button
@@ -618,7 +642,8 @@ function MenuItem({
       <span className="shrink-0" aria-hidden="true">
         {icon}
       </span>
-      {label}
+      <span className="min-w-0 flex-1">{label}</span>
+      {trailing}
     </button>
   )
 }
