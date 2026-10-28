@@ -1,0 +1,26 @@
+.first-reaction-media {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #3f346e;
+}
+
+.first-reaction-media picture,
+.first-reaction-media img,
+.first-reaction-media__fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.first-reaction-media img {
+  object-fit: cover;
+}
+
+.first-reaction-media--compact img {
+  object-fit: contain;
+}

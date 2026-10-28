@@ -9,11 +9,12 @@ import { readAudioPreferences } from '../../../lib/audio-preferences'
 import { GameSpeech, type GameSpeechStatus } from '../../../lib/game-speech'
 import { speakingGames, type GameAnswer, type GameDashboard, type GameSession, type SpeakingGame, type StartGame } from '../../../lib/speaking-games'
 import { copies, gameLabels, isSpeakingGame, type GameCopy, type GameSlug } from './copy'
-import { CharacterNote, CompanionPicker, GameMark, MicMark, ReactionScene, Timer, type Companion } from './visuals'
+import { CharacterNote, CompanionPicker, GameMark, MicMark, Timer, type Companion } from './visuals'
 import { Feedback, Results, Statistics } from './Results'
 import { Evidence, MysteryMap } from './MysteryMap'
 import { ErrorHuntProgress, ErrorHuntScene } from './ErrorHuntScene'
 import { TezGapirBackdrop, TezGapirLevelPicker, TezGapirScene, TezGapirTranscript } from './TezGapirScene'
+import { FirstReactionGame } from './FirstReactionGame'
 
 function gameError(caught: unknown, copy: GameCopy) {
   if (!(caught instanceof RequestError)) return caught instanceof TypeError ? copy.connectionError : copy.error
@@ -55,7 +56,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const [reload, setReload] = useState(0)
   const [character, setCharacter] = useState<Companion>('penguin')
   const [level, setLevel] = useState(slug === 'tez-gapir' ? '' : 'A1')
-  const [rounds, setRounds] = useState(slug === 'tez-gapir' ? 0 : 3)
+  const [rounds, setRounds] = useState(slug === 'tez-gapir' ? 0 : slug === 'first-reaction' ? 5 : 3)
   const [transcript, setTranscript] = useState('')
   const [typed, setTyped] = useState('')
   const [textMode, setTextMode] = useState(false)
@@ -66,7 +67,11 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const [accusationRecording, setAccusationRecording] = useState(false)
   const [playingAudio, setPlayingAudio] = useState(false)
   const [audioFailed, setAudioFailed] = useState(false)
-  const [speech] = useState(() => new GameSpeech(setTranscript, setSpeechStatus))
+  const reactionSpeechAt = useRef<number | null>(null)
+  const [speech] = useState(() => new GameSpeech((value) => {
+    setTranscript(value)
+    if (slug === 'first-reaction' && value.trim() && reactionSpeechAt.current === null) reactionSpeechAt.current = Date.now()
+  }, setSpeechStatus))
   const busyRef = useRef(false)
   const alive = useRef(true)
   const current = useRef<GameSession | null>(null)
@@ -156,7 +161,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     void Promise.all([speakingGames.catalog(), speakingGames.dashboard(), initialId.current ? speakingGames.session(slug, initialId.current) : Promise.resolve(null)])
       .then(async ([games, stats, saved]) => {
         const game = games.find((entry) => entry.slug === slug) ?? null
-        const unfinished = slug === 'tez-gapir' && game?.isAccessible && !initialId.current
+        const unfinished = (slug === 'tez-gapir' || slug === 'first-reaction') && game?.isAccessible && !initialId.current
           ? stats.activeSessions.find((entry) => entry.gameSlug === slug) : null
         const settings = unfinished ? await speakingGames.session(slug, unfinished.id) : null
         if (!active) return
@@ -240,6 +245,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
       stopAudio()
       const next = await speakingGames.command(slug, value.id, action, body)
       adopt(next)
+      if (slug === 'first-reaction') reactionSpeechAt.current = null
       setTranscript('')
       setTyped('')
       pendingAnswer.current = null
@@ -250,9 +256,10 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   async function begin() {
     const value = current.current
     if (!value || busyRef.current) return
+    if (slug === 'first-reaction' && value.status === 'answering' && value.deadlineUtc && Date.parse(value.deadlineUtc) <= Date.now() + offset.current) { await submit(); return }
     stopAudio()
     const continuing = value.status === 'answering'
-    if (!continuing) { setTranscript(''); setTyped('') }
+    if (!continuing) { setTranscript(''); setTyped(''); if (slug === 'first-reaction') reactionSpeechAt.current = null }
     setError('')
     if (!textMode) {
       busyRef.current = true
@@ -279,9 +286,13 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
       setBusy(true)
       const answer = textMode ? typed.trim() : await speech.finish(languageOnly ? 5000 : undefined)
       if (!alive.current) return
+      const onset = slug === 'first-reaction' && !textMode && reactionSpeechAt.current !== null && value.roundStartedAt
+        ? Math.max(0, Math.round(reactionSpeechAt.current + offset.current - Date.parse(value.roundStartedAt))) : null
       pendingAnswer.current = {
         id: value.id,
-        body: { requestId: crypto.randomUUID(), expectedVersion: value.version, text: answer, action: slug === 'ice-mystery' ? accusing ? 'accuse' : 'question' : 'answer', locationId: location ?? undefined },
+        body: { requestId: crypto.randomUUID(), expectedVersion: value.version, text: answer, action: slug === 'ice-mystery' ? accusing ? 'accuse' : 'question' : 'answer', locationId: location ?? undefined,
+          ...(slug === 'first-reaction' ? { speechStartedMilliseconds: onset !== null && onset <= value.durationSeconds * 1000 ? onset : null, inputMode: textMode ? 'text' as const : 'voice' as const } : {}),
+        },
       }
       setTranscript(answer)
       busyRef.current = false
@@ -305,6 +316,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     const tick = () => {
       const remaining = Math.max(0, (deadline - Date.now() - offset.current) / 1000)
       setSeconds(remaining)
+      if (slug === 'first-reaction' && remaining === 0 && pendingAnswer.current) { speech.abort(); return }
       if (remaining === 0 && expiredVersion.current !== session.version && !busyRef.current) {
         expiredVersion.current = session.version
         void submitRef.current()
@@ -313,7 +325,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     tick()
     const timer = window.setInterval(tick, 100)
     return () => window.clearInterval(timer)
-  }, [session?.status, session?.version, session?.deadlineUtc])
+  }, [session?.status, session?.version, session?.deadlineUtc, slug, speech])
 
   async function resume(id: string) {
     if (!validateSetup()) return
@@ -345,6 +357,11 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
     setAccusing(false)
     setAccusationRecording(false)
     pendingAnswer.current = null
+    if (slug === 'first-reaction') {
+      reactionSpeechAt.current = null
+      startRequest.current = null
+      setDashboard((value) => value ? { ...value, activeSessions: value.activeSessions.filter((entry) => entry.id !== session?.id) } : value)
+    }
     if (slug === 'tez-gapir') {
       setDashboard((value) => value ? { ...value, activeSessions: value.activeSessions.filter((entry) => entry.id !== session?.id) } : value)
       setLevel('')
@@ -364,6 +381,17 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const pending = Boolean(pendingAnswer.current || session?.pendingAnswer)
 
   const LevelPicker = slug === 'tez-gapir' ? TezGapirLevelPicker : Select
+
+  if (slug === 'first-reaction') return <FirstReactionGame copy={copy} catalog={catalog} dashboard={dashboard} session={session}
+    loading={loading} busy={busy} error={error} retryExhausted={retryExhausted} pending={pending}
+    character={character} level={level} transcript={transcript} typed={typed} textMode={textMode}
+    supported={speech.supported} speechStatus={speechStatus} seconds={seconds} playingAudio={playingAudio} audioFailed={audioFailed}
+    onCharacter={(value) => { setCharacter(value); startRequest.current = null }} onLevel={(value) => { setLevel(value); startRequest.current = null }}
+    onTextMode={() => { speech.abort(); stopAudio(); setTextMode(!textMode); if (!textMode) setTyped(transcript); reactionSpeechAt.current = null }} onTyped={setTyped}
+    onStart={() => void start()} onResume={(id) => void resume(id)} onBegin={() => void begin()} onSubmit={() => void submit()}
+    onNext={() => void command('next')} onEnd={() => { if (window.confirm(copy.endConfirm)) void command('end') }} onAgain={again}
+    onRetry={() => { if (retryAction.current) void run(retryAction.current); else if (pending) void submit(); else setReload((n) => n + 1) }}
+    onAudio={(target) => { if (session) void playAudio(session, target) }} onLeave={() => { speech.abort(); stopAudio(); expiredVersion.current = current.current?.version ?? -1 }} />
 
   return <main className="sg" data-game={slug} data-session={slug === 'tez-gapir' && session && session.status !== 'completed' ? 'active' : undefined}>
     {slug === 'tez-gapir' && <TezGapirBackdrop />}
@@ -395,7 +423,6 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
           {showMap ? <MysteryMap session={session} copy={copy} busy={busy} visit={(id) => void command(session.status === 'feedback' ? 'next' : 'visit', id)} accuse={() => void enterAccusation()} /> : <>
             <div className="sg-board" data-listening={slug === 'error-hunt' || slug === 'tez-gapir' ? answering && speechStatus === 'listening' : undefined}>
               {isMystery && <button disabled={busy || answering} onClick={() => { speech.abort(); stopAudio(); setLocation(null); setAccusing(false) }} className="mb-5 text-sm font-bold text-signal-ink">← {copy.leave}</button>}
-              {slug === 'first-reaction' && session.prompt.kind !== 'ready' && <ReactionScene text={session.prompt.textRu} />}
               <ErrorHuntScene enabled={slug === 'error-hunt'} session={session} seconds={answering ? seconds : session.durationSeconds} timer={!isMystery && slug !== 'tez-gapir' && <Timer seconds={answering ? seconds : session.durationSeconds} duration={session.durationSeconds} label={copy.seconds} starred={slug === 'error-hunt'} />}>
                 <TezGapirScene enabled={slug === 'tez-gapir'} session={session} seconds={answering ? seconds : session.durationSeconds} listening={answering && speechStatus === 'listening'} copy={copy}>
                 <h1 className="sg-prompt" lang={accusing || session.prompt.kind === 'ready' ? undefined : 'ru'}>{accusing ? copy.accusation : session.prompt.kind === 'ready' ? copy.ready : session.prompt.textRu}</h1>

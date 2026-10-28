@@ -171,9 +171,9 @@ export const gameLabels: Record<GameSlug, Record<Locale, { title: string; descri
     en: { title: 'Error hunter', description: 'Spot the mistake and say the corrected sentence aloud.', rules: 'Find the mistake and say the corrected sentence in Russian. Review the Uzbek explanation and corrected version after your answer.' },
   },
   'first-reaction': {
-    uz: { title: 'Birinchi reaksiya', description: 'Kutilmagan vaziyat. Ruscha javob uchun 5 soniya.', rules: '7 ta vaziyat. Tezlik: +3, moslik: +2, grammatika: +2, hissiy ifoda: +1. Jim qolish: −1. Mavzudan tashqari: −2.' },
-    ru: { title: 'Первая реакция', description: 'Неожиданная ситуация. 5 секунд на реакцию.', rules: '7 ситуаций. Скорость: +3, по теме: +2, грамматика: +2, эмоция: +1. Молчание: −1. Не по теме: −2.' },
-    en: { title: 'First reaction', description: 'An unexpected situation. 5 seconds to react in Russian.', rules: '7 situations. Speed: +3, relevance: +2, grammar: +2, expression: +1. Silence: −1. Off topic: −2.' },
+    uz: { title: 'Birinchi reaksiya', description: 'Kutilmagan vaziyat. Ruscha javob uchun 20 soniya.', rules: '5 ta vaziyat. Avval vaziyat va yordamchi iboralarni ko‘ring. Tayyorman degach, ruscha javob berish uchun 20 soniya boshlanadi. Har raundda 10 ballgacha to‘plang.' },
+    ru: { title: 'Первая реакция', description: 'Неожиданная ситуация. 20 секунд на ответ по-русски.', rules: '5 ситуаций. Сначала посмотрите ситуацию и полезные фразы. Нажмите «Я готов», чтобы начать 20 секунд ответа. За раунд можно получить до 10 баллов.' },
+    en: { title: 'First reaction', description: 'An unexpected situation. 20 seconds to react in Russian.', rules: '5 situations. Preview the situation and useful phrases first. Press Ready to start your 20-second response. Earn up to 10 points per round.' },
   },
   'ice-mystery': {
     uz: { title: 'Muzli shahar siri', description: '5 ta joy. 5 ta dalil. Baliqni kim o‘g‘irlagan?', rules: 'Ruscha savollar bering. Har bir qahramonga 10 tagacha savol. Dalillarni to‘plab, aybdorni va sababini ovoz bilan ayting. Ishni keyin davom ettirish mumkin.' },
