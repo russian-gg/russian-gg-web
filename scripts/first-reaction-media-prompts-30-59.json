@@ -1,0 +1,158 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "transparentBackground": false,
+  "width": 640,
+  "height": 360,
+  "prompts": [
+    {
+      "index": 30,
+      "scene": "stolen_phone",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: On a sunlit city pavement, a startled young adult reaches toward a thief who is walking away quickly holding the adult's stolen smartphone. Clear everyday theft situation, no weapons, no violence."
+    },
+    {
+      "index": 31,
+      "scene": "falling_in_hole",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A surprised uninjured adult has slipped into a shallow earthen hole beside a country path; seen from above, sitting at the bottom looking up with hands raised. Daylight, realistic soil textures, safe non-graphic scene."
+    },
+    {
+      "index": 32,
+      "scene": "earthquake",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A bright modern living room during a small earthquake: hanging lamp tilted, a few books and a plant pot suspended mid-fall, subtle wall crack, startled adult bracing against a doorway. No injury or disaster gore."
+    },
+    {
+      "index": 33,
+      "scene": "forgotten_password",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: Close view of a real adult looking puzzled at a modern smartphone held in their hand. The screen shows only a large simple padlock symbol with empty passcode dots, no letters or numbers. Cozy home, morning sunlight."
+    },
+    {
+      "index": 34,
+      "scene": "overslept_work",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: An adult office worker in a rumpled shirt bolts upright in a sunlit bed, looking startled at a classic bedside alarm clock while work shoes and briefcase wait by the door. Overslept for work, no readable clock numerals."
+    },
+    {
+      "index": 35,
+      "scene": "sneeze_cat",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike fluffy tabby cat is unexpectedly sitting inside a collapsed adult shirt on a sunny bedroom rug, beside a crumpled tissue. A faint golden transformation sparkle suggests a person just sneezed and became the cat. Real cat anatomy, no cartoon face."
+    },
+    {
+      "index": 36,
+      "scene": "clown_boss",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: In a believable bright modern office, an adult manager arrives wearing a tasteful colourful clown suit, red nose and oversized bow tie. Colleagues in ordinary office clothing look surprised and amused. Realistic adult proportions, premium cinematic CGI."
+    },
+    {
+      "index": 37,
+      "scene": "running_soup",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A realistic ceramic bowl of fresh vegetable soup on a sunny kitchen table, with the soup magically rising into a curling stream and flowing away from the spoon and bowl along the table. Whimsical realistic fluids, no anthropomorphic face or cartoon limbs."
+    },
+    {
+      "index": 38,
+      "scene": "missing_shadow",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike adult stands surprised on a sunlit tiled plaza, looking down: nearby benches and trees cast clear long shadows but the person's ground is completely shadowless. Natural anatomy, clear mystery, warm afternoon light."
+    },
+    {
+      "index": 39,
+      "scene": "speaking_meow",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A surprised adult in a cozy living room touches their mouth while a real tabby cat looks up at them; a delicate luminous sound wave shaped like a cat silhouette leaves the person's mouth. No text or written meow, no cartoon speech bubble."
+    },
+    {
+      "index": 40,
+      "scene": "bed_boat",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A cozy wooden bed with pillows and rumpled blanket has transformed into a small wooden rowboat floating gently inside a sunlit bedroom flooded with calm clear water. Believable tactile wood, cotton and reflected light, magical but lifelike."
+    },
+    {
+      "index": 41,
+      "scene": "sleeping_office",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A bright contemporary office where every adult employee is peacefully asleep at their desks, heads resting on folded arms, while a newly arrived colleague stands in the doorway surprised. Warm daylight, tasteful real office furniture."
+    },
+    {
+      "index": 42,
+      "scene": "singing_kettle",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A beautiful realistic stainless-steel stovetop kettle in a sunlit kitchen, steam rises in graceful luminous sound-wave ribbons as if the kettle is singing opera. Rich metal reflections, physical materials, no eyes, mouth, written music or cartoon face."
+    },
+    {
+      "index": 43,
+      "scene": "talking_puddle",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: Low close view of an adult shoe gently stepping into a rainwater puddle on a warm sunlit street, the splash forms elegant circular luminous sound ripples as if the puddle replies. Real water, wet stone reflections, no face or text."
+    },
+    {
+      "index": 44,
+      "scene": "running_socks",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A pair of realistic colourful knitted socks magically scurries away across a sunlit bedroom floor while their surprised owner reaches toward them from the bed. Fabric visibly bent into running steps without faces, hands or cartoon eyes."
+    },
+    {
+      "index": 45,
+      "scene": "time_machine",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A believable premium science-fiction time machine inside a warm workshop: elegant brass and glass circular portal, mechanical gears and glowing amber-violet rings, a curious adult stands nearby ready to travel. No readable labels, numbers or text."
+    },
+    {
+      "index": 46,
+      "scene": "one_wish",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike adult holds an ornate brass lamp in both hands on a sunny terrace while a single beautiful golden light spiral rises from it. Their face is thoughtful and hopeful, one magical wish, realistic textures and natural anatomy."
+    },
+    {
+      "index": 47,
+      "scene": "one_day_invisible",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A modern sunlit room where an empty shirt and trousers float in the shape of an invisible person holding a cup, while a sunbeam passes through the empty collar. Premium realistic CGI, cloth physics, no visible head or transparent cartoon body."
+    },
+    {
+      "index": 48,
+      "scene": "all_languages",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A young adult traveler in a bright international railway concourse confidently chats with three adults from different cultures, everyone smiling and understanding one another; subtle luminous connecting sound arcs. Natural faces, no flags, text or speech bubbles."
+    },
+    {
+      "index": 49,
+      "scene": "flying_person",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike adult floats freely high above a beautiful sunlit city park, arms relaxed outward, clouds and rooftops below, clear joyful feeling of human flight. Cinematic premium CGI, realistic clothes and proportions, safe dreamlike atmosphere."
+    },
+    {
+      "index": 50,
+      "scene": "mind_reading_2",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: Two lifelike adult friends sit in a warm sunny cafe; one looks intrigued at the other while a subtle translucent thought vignette of a beach holiday hovers above the other person's head. No text or cartoon bubble, realistic natural expressions."
+    },
+    {
+      "index": 51,
+      "scene": "becoming_invisible",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike adult in a bright room looks astonished as their raised hand and sleeve gradually dissolve into subtle glass-like transparency and golden particles. The rest of their naturally proportioned body remains visible. Premium realistic fantasy CGI."
+    },
+    {
+      "index": 52,
+      "scene": "magic_wand",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike hand holds a finely crafted wooden magic wand, drawing a graceful golden light trail above a realistic wooden table; a small book and ordinary cup float a few inches in the warm sunlit room. No text or eyes on objects."
+    },
+    {
+      "index": 53,
+      "scene": "change_past",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A thoughtful lifelike adult examines an old sepia family photograph at a sunny desk; a subtle luminous circular time ripple around the photo reveals the same scene becoming bright and changed. No written dates, readable text or clock numbers."
+    },
+    {
+      "index": 54,
+      "scene": "see_future",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike young adult looks into a beautiful clear glass sphere on a warm wooden desk; inside it appears a tiny realistic futuristic green city with sunlit towers and gardens. Subtle magical glow, believable glass and real-world proportions."
+    },
+    {
+      "index": 55,
+      "scene": "job_interview",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A nervous but hopeful adult applicant in smart clothes sits across from a friendly interviewer in a bright modern office, a tidy folder on the desk, a welcoming handshake beginning. Natural adult faces, believable office materials, no text."
+    },
+    {
+      "index": 56,
+      "scene": "project_win",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A happy group of naturally proportioned adult colleagues in a bright design studio celebrates around a physical prototype model and a tasteful golden award. The team applauds the project leader, warm daylight, no text, plaques or banners."
+    },
+    {
+      "index": 57,
+      "scene": "conference_speech",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A lifelike adult stands confidently at a microphone on a modern conference stage facing a softly blurred seated audience, hands making a natural speaking gesture, warm professional spotlights. No logos, presentation text or readable screens."
+    },
+    {
+      "index": 58,
+      "scene": "book_published",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A proud lifelike adult author in a warm sunlit bookshop holds their freshly published hardback book while friends congratulate them; copies on a small table have elegant plain covers without any lettering. Real paper and cloth textures."
+    },
+    {
+      "index": 59,
+      "scene": "grant_received",
+      "prompt": "Use case: stylized-concept. Asset type: lifelike cinematic situation image for a Russian language speaking game. Create a high-end realistic 3D cinematic still, with believable human/animal proportions, natural faces, tactile fabric/wood/metal/water materials, soft warm daylight, subtle depth of field and nuanced shadows. The scene must be immediately understandable, like a premium realistic video still. Wide landscape 16:9 composition, central subject crop-safe with room around edges. No mascots, exaggerated eyes, toy humans, flat illustration/vector, UI panels, speech bubbles, captions, letters, numbers, logos or watermarks. Primary scene: A happy adult researcher in a bright modern laboratory shakes hands with a colleague who hands over a formal blank envelope; tasteful scientific equipment and a microscope in the background suggest research funding success. No text, logos or numbers."
+    }
+  ]
+}

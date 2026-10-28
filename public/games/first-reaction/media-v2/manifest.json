@@ -1,0 +1,370 @@
+{
+  "width": 640,
+  "height": 360,
+  "frames": 12,
+  "durationMs": 2000,
+  "format": "animated-webp",
+  "animation": "seamless camera drift",
+  "scenes": [
+    {
+      "scene": "elephant_in_room.gif",
+      "animation": "elephant_in_room.anim.webp",
+      "poster": "elephant_in_room.webp",
+      "bytes": 320580
+    },
+    {
+      "scene": "cat_waking_up.gif",
+      "animation": "cat_waking_up.anim.webp",
+      "poster": "cat_waking_up.webp",
+      "bytes": 300662
+    },
+    {
+      "scene": "talking_phone.gif",
+      "animation": "talking_phone.anim.webp",
+      "poster": "talking_phone.webp",
+      "bytes": 243710
+    },
+    {
+      "scene": "candy_rain.gif",
+      "animation": "candy_rain.anim.webp",
+      "poster": "candy_rain.webp",
+      "bytes": 423232
+    },
+    {
+      "scene": "invisible_person.gif",
+      "animation": "invisible_person.anim.webp",
+      "poster": "invisible_person.webp",
+      "bytes": 276064
+    },
+    {
+      "scene": "talking_cat.gif",
+      "animation": "talking_cat.anim.webp",
+      "poster": "talking_cat.webp",
+      "bytes": 279086
+    },
+    {
+      "scene": "on_the_moon.gif",
+      "animation": "on_the_moon.anim.webp",
+      "poster": "on_the_moon.webp",
+      "bytes": 326758
+    },
+    {
+      "scene": "flying_house.gif",
+      "animation": "flying_house.anim.webp",
+      "poster": "flying_house.webp",
+      "bytes": 358800
+    },
+    {
+      "scene": "president.gif",
+      "animation": "president.anim.webp",
+      "poster": "president.webp",
+      "bytes": 164220
+    },
+    {
+      "scene": "growing_wings.gif",
+      "animation": "growing_wings.anim.webp",
+      "poster": "growing_wings.webp",
+      "bytes": 245214
+    },
+    {
+      "scene": "frozen_time.gif",
+      "animation": "frozen_time.anim.webp",
+      "poster": "frozen_time.webp",
+      "bytes": 374300
+    },
+    {
+      "scene": "animal_language.gif",
+      "animation": "animal_language.anim.webp",
+      "poster": "animal_language.webp",
+      "bytes": 374758
+    },
+    {
+      "scene": "living_food.gif",
+      "animation": "living_food.anim.webp",
+      "poster": "living_food.webp",
+      "bytes": 280050
+    },
+    {
+      "scene": "mind_reading.gif",
+      "animation": "mind_reading.anim.webp",
+      "poster": "mind_reading.webp",
+      "bytes": 318950
+    },
+    {
+      "scene": "giant_person.gif",
+      "animation": "giant_person.anim.webp",
+      "poster": "giant_person.webp",
+      "bytes": 337438
+    },
+    {
+      "scene": "million_win.gif",
+      "animation": "million_win.anim.webp",
+      "poster": "million_win.webp",
+      "bytes": 347956
+    },
+    {
+      "scene": "promotion.gif",
+      "animation": "promotion.anim.webp",
+      "poster": "promotion.webp",
+      "bytes": 205628
+    },
+    {
+      "scene": "meeting_old_friend.gif",
+      "animation": "meeting_old_friend.anim.webp",
+      "poster": "meeting_old_friend.webp",
+      "bytes": 276020
+    },
+    {
+      "scene": "dream_come_true.gif",
+      "animation": "dream_come_true.anim.webp",
+      "poster": "dream_come_true.webp",
+      "bytes": 186194
+    },
+    {
+      "scene": "finding_treasure.gif",
+      "animation": "finding_treasure.anim.webp",
+      "poster": "finding_treasure.webp",
+      "bytes": 468464
+    },
+    {
+      "scene": "wedding_invitation.gif",
+      "animation": "wedding_invitation.anim.webp",
+      "poster": "wedding_invitation.webp",
+      "bytes": 214840
+    },
+    {
+      "scene": "exam_success.gif",
+      "animation": "exam_success.anim.webp",
+      "poster": "exam_success.webp",
+      "bytes": 235636
+    },
+    {
+      "scene": "friend_from_abroad.gif",
+      "animation": "friend_from_abroad.anim.webp",
+      "poster": "friend_from_abroad.webp",
+      "bytes": 249732
+    },
+    {
+      "scene": "lottery_win.gif",
+      "animation": "lottery_win.anim.webp",
+      "poster": "lottery_win.webp",
+      "bytes": 240320
+    },
+    {
+      "scene": "puppy_gift.gif",
+      "animation": "puppy_gift.anim.webp",
+      "poster": "puppy_gift.webp",
+      "bytes": 291314
+    },
+    {
+      "scene": "missed_plane.gif",
+      "animation": "missed_plane.anim.webp",
+      "poster": "missed_plane.webp",
+      "bytes": 223996
+    },
+    {
+      "scene": "house_fire.gif",
+      "animation": "house_fire.anim.webp",
+      "poster": "house_fire.webp",
+      "bytes": 402590
+    },
+    {
+      "scene": "lost_wallet.gif",
+      "animation": "lost_wallet.anim.webp",
+      "poster": "lost_wallet.webp",
+      "bytes": 267380
+    },
+    {
+      "scene": "attacking_dog.gif",
+      "animation": "attacking_dog.anim.webp",
+      "poster": "attacking_dog.webp",
+      "bytes": 409260
+    },
+    {
+      "scene": "lost_in_forest.gif",
+      "animation": "lost_in_forest.anim.webp",
+      "poster": "lost_in_forest.webp",
+      "bytes": 505858
+    },
+    {
+      "scene": "stolen_phone.gif",
+      "animation": "stolen_phone.anim.webp",
+      "poster": "stolen_phone.webp",
+      "bytes": 253220
+    },
+    {
+      "scene": "falling_in_hole.gif",
+      "animation": "falling_in_hole.anim.webp",
+      "poster": "falling_in_hole.webp",
+      "bytes": 450880
+    },
+    {
+      "scene": "earthquake.gif",
+      "animation": "earthquake.anim.webp",
+      "poster": "earthquake.webp",
+      "bytes": 282900
+    },
+    {
+      "scene": "forgotten_password.gif",
+      "animation": "forgotten_password.anim.webp",
+      "poster": "forgotten_password.webp",
+      "bytes": 223418
+    },
+    {
+      "scene": "overslept_work.gif",
+      "animation": "overslept_work.anim.webp",
+      "poster": "overslept_work.webp",
+      "bytes": 221532
+    },
+    {
+      "scene": "sneeze_cat.gif",
+      "animation": "sneeze_cat.anim.webp",
+      "poster": "sneeze_cat.webp",
+      "bytes": 333924
+    },
+    {
+      "scene": "clown_boss.gif",
+      "animation": "clown_boss.anim.webp",
+      "poster": "clown_boss.webp",
+      "bytes": 275556
+    },
+    {
+      "scene": "running_soup.gif",
+      "animation": "running_soup.anim.webp",
+      "poster": "running_soup.webp",
+      "bytes": 281836
+    },
+    {
+      "scene": "missing_shadow.gif",
+      "animation": "missing_shadow.anim.webp",
+      "poster": "missing_shadow.webp",
+      "bytes": 361290
+    },
+    {
+      "scene": "speaking_meow.gif",
+      "animation": "speaking_meow.anim.webp",
+      "poster": "speaking_meow.webp",
+      "bytes": 259198
+    },
+    {
+      "scene": "bed_boat.gif",
+      "animation": "bed_boat.anim.webp",
+      "poster": "bed_boat.webp",
+      "bytes": 299584
+    },
+    {
+      "scene": "sleeping_office.gif",
+      "animation": "sleeping_office.anim.webp",
+      "poster": "sleeping_office.webp",
+      "bytes": 297290
+    },
+    {
+      "scene": "singing_kettle.gif",
+      "animation": "singing_kettle.anim.webp",
+      "poster": "singing_kettle.webp",
+      "bytes": 268788
+    },
+    {
+      "scene": "talking_puddle.gif",
+      "animation": "talking_puddle.anim.webp",
+      "poster": "talking_puddle.webp",
+      "bytes": 385434
+    },
+    {
+      "scene": "running_socks.gif",
+      "animation": "running_socks.anim.webp",
+      "poster": "running_socks.webp",
+      "bytes": 240988
+    },
+    {
+      "scene": "time_machine.gif",
+      "animation": "time_machine.anim.webp",
+      "poster": "time_machine.webp",
+      "bytes": 427574
+    },
+    {
+      "scene": "one_wish.gif",
+      "animation": "one_wish.anim.webp",
+      "poster": "one_wish.webp",
+      "bytes": 297164
+    },
+    {
+      "scene": "one_day_invisible.gif",
+      "animation": "one_day_invisible.anim.webp",
+      "poster": "one_day_invisible.webp",
+      "bytes": 269084
+    },
+    {
+      "scene": "all_languages.gif",
+      "animation": "all_languages.anim.webp",
+      "poster": "all_languages.webp",
+      "bytes": 292090
+    },
+    {
+      "scene": "flying_person.gif",
+      "animation": "flying_person.anim.webp",
+      "poster": "flying_person.webp",
+      "bytes": 251712
+    },
+    {
+      "scene": "mind_reading_2.gif",
+      "animation": "mind_reading_2.anim.webp",
+      "poster": "mind_reading_2.webp",
+      "bytes": 268778
+    },
+    {
+      "scene": "becoming_invisible.gif",
+      "animation": "becoming_invisible.anim.webp",
+      "poster": "becoming_invisible.webp",
+      "bytes": 306330
+    },
+    {
+      "scene": "magic_wand.gif",
+      "animation": "magic_wand.anim.webp",
+      "poster": "magic_wand.webp",
+      "bytes": 270810
+    },
+    {
+      "scene": "change_past.gif",
+      "animation": "change_past.anim.webp",
+      "poster": "change_past.webp",
+      "bytes": 303138
+    },
+    {
+      "scene": "see_future.gif",
+      "animation": "see_future.anim.webp",
+      "poster": "see_future.webp",
+      "bytes": 312468
+    },
+    {
+      "scene": "job_interview.gif",
+      "animation": "job_interview.anim.webp",
+      "poster": "job_interview.webp",
+      "bytes": 222546
+    },
+    {
+      "scene": "project_win.gif",
+      "animation": "project_win.anim.webp",
+      "poster": "project_win.webp",
+      "bytes": 343916
+    },
+    {
+      "scene": "conference_speech.gif",
+      "animation": "conference_speech.anim.webp",
+      "poster": "conference_speech.webp",
+      "bytes": 151950
+    },
+    {
+      "scene": "book_published.gif",
+      "animation": "book_published.anim.webp",
+      "poster": "book_published.webp",
+      "bytes": 295188
+    },
+    {
+      "scene": "grant_received.gif",
+      "animation": "grant_received.anim.webp",
+      "poster": "grant_received.webp",
+      "bytes": 210866
+    }
+  ]
+}
