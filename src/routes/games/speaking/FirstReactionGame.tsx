@@ -28,7 +28,7 @@ interface Props {
 function Portrait({ character, speaking = false, celebrating = false }: { character: Companion; speaking?: boolean; celebrating?: boolean }) {
   return <div className="fr-portrait" data-speaking={speaking} data-celebrating={celebrating} aria-hidden="true">
     <div className="fr-portrait-aura" />
-    <img src={`/games/characters/${character}.webp`} width="512" height="512" alt="" />
+    <img src={`/games/first-reaction/characters/${character}.webp`} width="512" height="512" alt="" />
     {celebrating && <><Sparkles className="fr-spark fr-spark-a" /><Sparkles className="fr-spark fr-spark-b" /></>}
   </div>
 }

@@ -852,7 +852,7 @@ for (const size of Object.keys(SIZES)) {
           const portraits = h.page.locator('.fr-companions img')
           assert.equal(await portraits.count(), 3)
           for (const portrait of await portraits.all()) {
-            assert.match(await portrait.getAttribute('src'), /^\/games\/characters\/(penguin|panda|pero)\.webp$/)
+            assert.match(await portrait.getAttribute('src'), /^\/games\/first-reaction\/characters\/(penguin|panda|pero)\.webp$/)
             await portrait.evaluate((image) => image.decode())
           }
           await h.page.getByRole('radio', { name: 'A2', exact: true }).check()
@@ -1585,7 +1585,8 @@ for (const slug of SLUGS) {
       status: 'feedback', character: companion, feedback: feedback(ANSWER), availableActions: ['next', 'end'],
     }) }, async (h) => {
       const expected = slug === 'error-hunt' ? `/games/error-hunt/characters/${companion}.webp`
-        : ['tez-gapir', 'first-reaction'].includes(slug) ? `/games/characters/${companion}.webp`
+        : slug === 'first-reaction' ? `/games/first-reaction/characters/${companion}.webp`
+          : slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
           : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
       await h.open(`?session=${h.session().id}`)
       const portrait = h.page.locator(slug === 'first-reaction' ? '.fr-feedback-character img, .fr-result-hero img' : slug === 'tez-gapir' ? '.sg-character-note img, .tg-thanks img' : '.sg-character-note img')

@@ -39,7 +39,7 @@ for (const width of [320, 390, 1280]) {
     assert.equal(await images.count(), 3)
     for (const image of await images.all()) {
       await image.evaluate((element) => element.decode())
-      assert.match(await image.getAttribute('src'), /^\/games\/characters\/(panda|penguin|pero)\.webp$/)
+      assert.match(await image.getAttribute('src'), /^\/games\/first-reaction\/characters\/(panda|penguin|pero)\.webp$/)
     }
     const box = await card.boundingBox()
     assert.ok(box.width > 250 && box.width <= width, `card fits viewport: ${JSON.stringify(box)}`)

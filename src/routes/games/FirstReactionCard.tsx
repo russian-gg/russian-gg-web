@@ -31,7 +31,7 @@ export function FirstReactionCard({ to, requiresPro }: { to: string; requiresPro
         <Zap className="absolute right-5 bottom-7 size-12 rotate-12 text-amber-200/25" />
         <span className="absolute top-4 rounded-2xl rounded-bl-sm border border-white/35 bg-white/95 px-4 py-2 text-sm font-black text-[#33255d] shadow-xl" lang="ru">{copy.reply}</span>
         <span className="relative grid w-full max-w-80 grid-cols-[1fr_1.2fr_1fr] items-end gap-1">
-          {['panda', 'penguin', 'pero'].map((character) => <img key={character} src={`/games/characters/${character}.webp`} alt="" loading="lazy" decoding="async" width="512" height="512"
+          {['panda', 'penguin', 'pero'].map((character) => <img key={character} src={`/games/first-reaction/characters/${character}.webp`} alt="" loading="lazy" decoding="async" width="512" height="512"
             className={`${character === 'penguin' ? 'h-36' : 'h-28'} w-full min-w-0 object-contain drop-shadow-xl transition-transform duration-300 motion-safe:group-hover:-translate-y-1`} />)}
         </span>
         <span className="mt-1 flex gap-1.5">{Array.from({ length: 5 }, (_, index) => <span key={index} className={`h-1.5 w-7 rounded-full ${index === 0 ? 'bg-cyan-200' : 'bg-white/20'}`} />)}</span>
