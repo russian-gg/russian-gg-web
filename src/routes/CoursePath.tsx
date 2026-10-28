@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { CalendarDays, CircleCheck, Crown, Lock, Play, RotateCcw, Timer } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { LESSON_ONE_SECTIONS, readFoundationLessonProgress, type LessonOneProgress } from '../lib/demo-lesson-one'
-import { FOUNDATION_LESSON_DAYS } from '../lib/foundation-days'
+import { FOUNDATION_LESSON_DAYS, hasFoundationLesson } from '../lib/foundation-days'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { fill, useLocale, useT, type Locale } from '../lib/i18n'
 import { missionLock } from '../lib/mission-lock'
@@ -26,6 +26,14 @@ import { AnimatePresence } from 'motion/react'
 import { CountUp, Meter, Overlay, Reveal, Sequence, SequenceInView } from '../components/motion'
 import { pop, rise, stagger } from '../lib/motion'
 import lockArt from '../assets/images/lock.webp'
+
+/*
+ * Loaded on the first tap: the card reads the lesson content, the largest module in the app,
+ * which the path itself never needs.
+ */
+const LessonDetailsSheet = lazy(() =>
+  import('../components/LessonDetailsSheet').then((module) => ({ default: module.LessonDetailsSheet })),
+)
 
 /**
  * The last day with anything behind it. Days 31-90 are on the map so the ninety-day timeline is
@@ -436,7 +444,30 @@ export function CoursePath() {
         Clearing `selectedDay` on dismiss would empty the panel in the same frame it starts to
         leave, so the learner would watch a blank card slide away.
       */}
-      {selectedDay && (
+      {/*
+        A day with an authored lesson opens the same card the missions open on their map: what
+        the lesson teaches, how much is in it, and the button that starts it. The dialog stays
+        for the few days without a lesson, where there is nothing of the lesson's own to show.
+      */}
+      {selectedDay && hasFoundationLesson(selectedDay.day.day) && (
+        <Suspense fallback={null}>
+        <LessonDetailsSheet
+          day={selectedDay.day.day}
+          open={previewOpen}
+          status={
+            isDayDone(selectedDay.day)
+              ? 'done'
+              : (foundationProgress[selectedDay.day.day]?.completed.length ?? 0) > 0 ? 'inProgress' : 'new'
+          }
+          completed={foundationProgress[selectedDay.day.day]?.completed.length ?? 0}
+          total={LESSON_ONE_SECTIONS.length}
+          isOpening={openingDay === selectedDay.day.day}
+          onDismiss={() => setPreviewOpen(false)}
+          onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
+        />
+        </Suspense>
+      )}
+      {selectedDay && !hasFoundationLesson(selectedDay.day.day) && (
         <DayPreviewDialog
           open={previewOpen}
           selected={selectedDay}

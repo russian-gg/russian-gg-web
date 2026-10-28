@@ -169,7 +169,7 @@ const lesson1: LessonData = {
   game: {
     kind: 'gender-houses',
     title: 'Rangli uy',
-    instruction: 'So‘zni mos rangli uyga sudrang: ko‘k — мужской род, qizil — женский род, sariq — средний род. Telefonda avval so‘zni, keyin uyni bosishingiz ham mumkin.',
+    instruction: 'Har bir so‘zni o‘z uyiga joylang. So‘z oxiriga qarang.',
     pairs: [
       { left: 'дом', right: 'Мужской род' }, { left: 'квартира', right: 'Женский род' },
       { left: 'окно', right: 'Средний род' }, { left: 'сосед', right: 'Мужской род' },
@@ -327,7 +327,7 @@ const lesson2: LessonData = {
   game: {
     kind: 'gender-houses',
     title: 'Juftini top',
-    instruction: 'So‘zni mos rangli uyga sudrang: ko‘k — мужской род, qizil — женский род, sariq — средний род. Ehtiyot bo‘ling, bugungi istisnolar ham bor! So‘ng ovoz chiqarib ayting: «Папа — мужской род, он мой». Telefonda avval so‘zni, keyin uyni bosishingiz ham mumkin.',
+    instruction: 'Har bir so‘zni o‘z uyiga joylang. Bugungi istisnolarga e’tibor bering: папа, дядя, имя, время.',
     pairs: [
       { left: 'папа', right: 'Мужской род' }, { left: 'книга', right: 'Женский род' },
       { left: 'имя', right: 'Средний род' }, { left: 'телефон', right: 'Мужской род' },
@@ -496,7 +496,7 @@ const lesson3: LessonData = {
   game: {
     kind: 'matching',
     title: 'Topishmoq: mening xonam',
-    instruction: 'Chapdagi topishmoqni o‘qing va xonadagi mos narsani tanlang. So‘ng ovoz chiqarib ayting: «мой стул», «моя кровать», «моё окно». Yordam: «нём», «него», «ним» — мужской yoki средний род, «ней», «неё», «она» — женский род.',
+    instruction: 'Topishmoqqa mos narsani tanlang. Olmoshga qarang: «нём», «ним» — мужской yoki средний род, «ней», «она» — женский род.',
     pairs: [
       { left: 'На нём сидят.', right: 'стул' },
       { left: 'За ним едят и работают.', right: 'стол' },
@@ -664,7 +664,7 @@ const lesson4: LessonData = {
   game: {
     kind: 'matching',
     title: 'Juftini top',
-    instruction: 'Chapdagi so‘zni bosing, so‘ng unga mos egalik olmoshini tanlang: «мой», «моя», «моё» yoki «мои». So‘zning rodiga qarang!',
+    instruction: 'Har bir so‘zga mos egalik olmoshini tanlang. So‘zning rodiga qarang.',
     pairs: [
       { left: 'дом', right: 'мой' },
       { left: 'книга', right: 'моя' },
@@ -835,7 +835,7 @@ const lesson5: LessonData = {
   game: {
     kind: 'matching',
     title: 'Topishmoq: bu nima?',
-    instruction: 'Chapdagi ta’rifni o‘qing, so‘ng u qaysi narsa haqida ekanini o‘ngdan tanlang. Keyin ovoz chiqarib ayting: «У меня есть …»',
+    instruction: 'Ta’rifga mos narsani tanlang.',
     pairs: [
       { left: 'Это есть у всех студентов. Там пишут ручкой.', right: 'тетрадь' },
       { left: 'Это есть у каждого. По нему звонят.', right: 'телефон' },
@@ -1007,7 +1007,7 @@ const lesson6: LessonData = {
   game: {
     kind: 'matching',
     title: 'Kim qayerda ishlaydi?',
-    instruction: 'Kasbni bosing, so‘ng u ishlaydigan joyni tanlang: больница, школа, офис yoki ресторан. Bitta joyda bir nechta kasb ishlashi mumkin.',
+    instruction: 'Har bir kasbga mos ish joyini tanlang. Bitta joyda bir nechta kasb bo‘lishi mumkin.',
     pairs: [
       { left: 'врач', right: 'больница' },
       { left: 'медсестра', right: 'больница' },
@@ -1176,7 +1176,7 @@ const lesson7: LessonData = {
   game: {
     kind: 'matching',
     title: 'Hikoyani yig‘ing',
-    instruction: 'Har bir savol — hikoyangizning bitta bo‘g‘ini. Savolni bosing, so‘ng unga mos javob gapni tanlang. Oxirida butun hikoyani ovoz chiqarib ayting: «Меня зовут Али. Мне двадцать три года…»',
+    instruction: 'Har bir savolga mos javob gapni tanlang.',
     pairs: [
       { left: 'Как тебя зовут?', right: 'Меня зовут Али.' },
       { left: 'Сколько тебе лет?', right: 'Мне двадцать три года.' },
@@ -1347,7 +1347,7 @@ const lesson8: LessonData = {
   game: {
     kind: 'matching',
     title: 'Topib ko‘ring: kim nima qilyapti?',
-    instruction: 'Tasvirni o‘qing, so‘ng unga mos gapni toping. Kim haqida gap ketyapti — он, она yoki они? Keyin gapni ovoz chiqarib ayting: «Он читает».',
+    instruction: 'Tasvirga mos gapni toping. Fe’l kimga mos kelishiga qarang: он, она yoki они.',
     pairs: [
       { left: '📖 Папа на диване, у него книга', right: 'Он читает.' },
       { left: '💻 Сосед в офисе, у него компьютер', right: 'Он работает.' },
@@ -1516,7 +1516,7 @@ const lesson9: LessonData = {
   game: {
     kind: 'matching',
     title: 'Bo‘sh joyni to‘ldiring',
-    instruction: 'Gapni bosing, so‘ng qavs ichidagi fe’lning to‘g‘ri shaklini toping. Kim haqida gap ketyapti — shunga qarang. Keyin butun gapni ovoz chiqarib ayting: «Я гуляю в парке».',
+    instruction: 'Qavs ichidagi fe’lning to‘g‘ri shaklini tanlang. Gap kim haqida ekaniga qarang.',
     pairs: [
       { left: 'Я ___ в парке. (гулять)', right: 'гуляю' },
       { left: 'Ты ___ готовить? (уметь)', right: 'умеешь' },
@@ -1686,7 +1686,7 @@ const lesson10: LessonData = {
   game: {
     kind: 'matching',
     title: 'Telefon qo‘ng‘irog‘i',
-    instruction: 'Telefonda gaplashing: chapdagi gapni bosing, so‘ng unga mos javobni toping. Fe’lga qarang — u kim haqida gapirilayotganiga mos bo‘lishi kerak: «он может», «они отдыхают».',
+    instruction: 'Chapdagi gapga mos javobni toping. Fe’l kimga mos kelishiga qarang.',
     pairs: [
       { left: 'Алло! Привет! Как дела?', right: 'Привет! Всё хорошо, спасибо!' },
       { left: 'Ты можешь говорить?', right: 'Да, могу.' },
@@ -1854,7 +1854,7 @@ const lesson11: LessonData = {
   game: {
     kind: 'matching',
     title: 'Fe’l va olmosh',
-    instruction: 'Chapdagi olmoshni bosing, so‘ng unga mos fe’l shaklini tanlang. Fe’l oxiriga qarang: «я люблю», «ты говоришь», «он готовит».',
+    instruction: 'Har bir olmoshga mos fe’l shaklini tanlang. Fe’l oxiriga qarang.',
     pairs: [
       { left: 'Я', right: 'люблю' },
       { left: 'Ты', right: 'говоришь' },
@@ -2014,7 +2014,7 @@ const lesson12: LessonData = {
   game: {
     kind: 'matching',
     title: 'Xobbini toping',
-    instruction: 'Xobbi va harakatni juftlang: xobbisi «рисование» bo‘lgan odam nima qiladi? — «рисует». Avval xobbini, keyin unga mos fe’lni bosing.',
+    instruction: 'Har bir xobbiga mos fe’lni tanlang: «рисование» — «рисует».',
     pairs: [
       { left: 'рисование', right: 'рисует' },
       { left: 'футбол', right: 'играет в футбол' },
@@ -2191,7 +2191,7 @@ const lesson13: LessonData = {
   game: {
     kind: 'matching',
     title: 'Fe’lni toping',
-    instruction: 'Gapni fe’lning to‘g‘ri shakli bilan juftlang. Avval olmoshga qarang, keyin guruhni eslang: 1-tuslanish — «-ешь, -ет», 2-tuslanish — «-ишь, -ит».',
+    instruction: 'Gapga fe’lning to‘g‘ri shaklini tanlang. 1-tuslanish: «-ешь, -ет», 2-tuslanish: «-ишь, -ит».',
     pairs: [
       { left: 'Утром я … в парке. Это спорт!', right: 'бегаю' },
       { left: 'Ты … по-русски?', right: 'говоришь' },
@@ -2371,7 +2371,7 @@ const lesson14: LessonData = {
   game: {
     kind: 'matching',
     title: 'Kun tartibi',
-    instruction: 'Dialogdagi kun tartibini eslang. Har bir ishni kunning to‘g‘ri qismiga joylashtiring: «Утром», «Днём» yoki «Вечером». So‘ng ovoz chiqarib ayting: «Утром я встаю».',
+    instruction: 'Har bir ishni kunning to‘g‘ri qismiga joylang. Dialogdagi kun tartibini eslang.',
     pairs: [
       { left: 'встаю', right: 'Утром' },
       { left: 'завтракаю', right: 'Утром' },
@@ -2552,7 +2552,7 @@ const lesson15: LessonData = {
   game: {
     kind: 'matching',
     title: 'Topingchi, bu kim?',
-    instruction: 'Tavsifni o‘qing va kim haqida ekanini toping: oila a’zolaridan biri, Пингвин yoki Панда. Avval tavsifni, keyin javobni bosing. Dialogni eslang!',
+    instruction: 'Tavsifga mos qahramonni toping. Dialogni eslang.',
     pairs: [
       { left: 'Утром он бреет бороду. Потом пьёт чай.', right: 'папа' },
       { left: 'Она встаёт в пять. Готовит завтрак.', right: 'мама' },
@@ -2720,7 +2720,7 @@ const lesson17: LessonData = {
   game: {
     kind: 'city-map',
     title: 'Uyga yo‘l',
-    instruction: 'Siz shahar bo‘ylab sayohat qilyapsiz. Bekatni tanlang va qayerga ketayotganingizni ayting: «Я иду в…» yoki «Я еду на…».',
+    instruction: 'Har bir joyga mos gapni tanlang. «в» yoki «на» ishlatilishiga qarang.',
     pairs: [
       { left: 'магазин', right: 'Я иду в магазин.' },
       { left: 'школа', right: 'Я иду в школу.' },
@@ -2879,7 +2879,7 @@ const lesson18: LessonData = {
   game: {
     kind: 'matching',
     title: 'Kun tartibi',
-    instruction: 'Har bir ish-harakatni kunning to‘g‘ri qismiga joylashtiring: «утром», «днём», «вечером» yoki «ночью». So‘ng butun kuningizni tartib bilan ayting.',
+    instruction: 'Har bir ishni kunning to‘g‘ri qismiga joylang.',
     pairs: [
       { left: 'Я просыпаюсь.', right: 'утром' },
       { left: 'Я делаю зарядку.', right: 'утром' },
@@ -3036,7 +3036,7 @@ const lesson19: LessonData = {
   game: {
     kind: 'matching',
     title: 'Kechagi tergov',
-    instruction: 'Kecha kim nima qilganini aniqlang: olmosh va fe’lni bosing, so‘ng fe’lning o‘tgan zamondagi mos shaklini toping.',
+    instruction: 'Har bir gapga fe’lning o‘tgan zamon shaklini toping. Kim haqida ekaniga qarang: -л, -ла yoki -ли.',
     pairs: [
       { left: 'Он (работать)', right: 'работал' },
       { left: 'Она (читать)', right: 'читала' },
@@ -3195,7 +3195,7 @@ const lesson21: LessonData = {
   game: {
     kind: 'matching',
     title: 'Rejalashtiruvchi',
-    instruction: 'Haftalik rejangizni tuzing: har bir jarayon uchun uning natijasini toping va ayting: «Я буду читать» — «Я прочитаю».',
+    instruction: 'Har bir jarayonga uning natijasini toping: «буду читать» — «прочитаю».',
     pairs: [
       { left: 'буду читать', right: 'прочитаю' },
       { left: 'буду писать', right: 'напишу' },
@@ -3353,7 +3353,7 @@ const lesson22: LessonData = {
   game: {
     kind: 'matching',
     title: 'Oshxona kvesti',
-    instruction: 'Sizga 8 ta vazifa beriladi. Har bir savolga mos asbobni toping va gap tuzing: «Я режу хлеб ножом».',
+    instruction: 'Har bir vazifaga mos asbobni toping. Asbob «чем?» shaklida keladi: «ножом».',
     pairs: [
       { left: 'Чем режешь хлеб?', right: 'ножом' },
       { left: 'Чем ешь суп?', right: 'ложкой' },
@@ -3515,7 +3515,7 @@ const lesson23: LessonData = {
   game: {
     kind: 'matching',
     title: 'Texno-do‘kon',
-    instruction: 'Do‘konda 8 ta mahsulot bor. Mahsulotni bosing, so‘ng uning «чем?» shaklini toping va ayting: «Я пользуюсь телефоном».',
+    instruction: 'Har bir mahsulotga uning «чем?» shaklini toping.',
     pairs: [
       { left: 'телефон', right: 'телефоном' },
       { left: 'компьютер', right: 'компьютером' },
@@ -3677,7 +3677,7 @@ const lesson24: LessonData = {
   game: {
     kind: 'matching',
     title: 'Sport turini toping',
-    instruction: 'Sport turini ta’rifidan toping, so‘ng gap tuzing: «Я занимаюсь футболом».',
+    instruction: 'Ta’rifga mos sport turini toping.',
     pairs: [
       { left: 'В него играют ногами.', right: 'футболом' },
       { left: 'В него играют руками.', right: 'баскетболом' },
@@ -3836,7 +3836,7 @@ const lesson25: LessonData = {
   game: {
     kind: 'matching',
     title: 'Sovg‘a kimga?',
-    instruction: 'Har bir gapda qavs ichidagi so‘zni «кому?» shakliga qo‘ying: «Я дарю цветы (мама)» — «маме».',
+    instruction: 'Qavs ichidagi so‘zning «кому?» shaklini toping: «мама» — «маме».',
     pairs: [
       { left: 'Я дарю цветы (мама)', right: 'маме' },
       { left: 'Я дарю часы (папа)', right: 'папе' },

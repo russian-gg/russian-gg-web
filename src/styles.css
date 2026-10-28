@@ -107,6 +107,18 @@
   --color-coin-ink: #7b5200;
 
   /*
+    The three gender houses in the lesson game: a tint for the house and an ink for its words.
+    The border keeps the gender colour itself (#0000FF / #FF2400 / yellow), which is what is
+    taught; these only carry the surfaces, so the houses follow the theme.
+  */
+  --color-house-blue-soft: #e7f0ff;
+  --color-house-blue-ink: #0000ff;
+  --color-house-red-soft: #fff0ef;
+  --color-house-red-ink: #ff2400;
+  --color-house-yellow-soft: #fff9d8;
+  --color-house-yellow-ink: #8a6d00;
+
+  /*
     Chart series. Tokens rather than literals in the chart module, because the dark theme
     needs its own steps: these three are chosen for a white card and are far too dark to
     read on one. Assigned in this fixed order and never cycled — a fourth series folds into
@@ -205,6 +217,13 @@
   --color-coin-strong: #b66f10;
   --color-coin-border: #80621e;
   --color-coin-ink: #f5cf66;
+
+  --color-house-blue-soft: #16233a;
+  --color-house-blue-ink: #8fb1ff;
+  --color-house-red-soft: #2a1614;
+  --color-house-red-ink: #ff8a7a;
+  --color-house-yellow-soft: #251f11;
+  --color-house-yellow-ink: #e3c552;
 
   /*
     The same three identities, re-picked for the dark card rather than lightened from the
