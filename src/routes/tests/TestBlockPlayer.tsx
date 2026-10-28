@@ -356,6 +356,7 @@ function QuestionDot({
  * a slower fade of its own. Both are CSS transitions, so reduced motion stills them.
  */
 function Countdown({ leftMs, limitMs, label }: { leftMs: number; limitMs: number; label: string }) {
+  const secondsShort = useT().common.secondsShort
   const share = limitMs > 0 ? Math.max(0, Math.min(1, leftMs / limitMs)) : 0
   const seconds = Math.ceil(leftMs / 1000)
   const tone = share > 0.5 ? 'calm' : share > 0.2 ? 'hurry' : 'urgent'
@@ -403,7 +404,7 @@ function Countdown({ leftMs, limitMs, label }: { leftMs: number; limitMs: number
           tone === 'urgent' && 'text-danger',
         )}
       >
-        {seconds}s
+        {fill(secondsShort, { seconds })}
       </span>
     </div>
   )

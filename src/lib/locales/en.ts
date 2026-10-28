@@ -21,6 +21,7 @@ export const en: Dictionary = {
     loadFailedBody: 'Check your connection and refresh the page.',
     offline: "No internet connection. Check it and try again.",
     serverError: "Something went wrong on our side. Try again in a moment.",
+    secondsShort: "{seconds}s",
   },
 
   level: {
@@ -44,6 +45,8 @@ export const en: Dictionary = {
     dayShort: 'Day {day}',
     planNote:
       'The first point is what was measured just now. The rest is where the plan takes you at ten minutes of speaking a day.',
+    headlineFallback: "Your speaking level: {level}",
+    verdictFallback: "You said {words} Russian words; your longest run was {run} words in a row.",
   },
 
   arcade: {
@@ -116,6 +119,9 @@ export const en: Dictionary = {
       questions: ["What is your name and where do you work?", "What did you do this morning? Try to say it in Russian.", "You want to ask for bread in a shop. What do you say?", "Tell the taxi driver your address.", "Introduce yourself to a colleague at work.", "Explain to the doctor what hurts.", "Ask the price at the bazaar and bargain.", "Talk to your neighbour about the weather."],
     },
     games: {"arra": {"title": "The Saw", "body": "Keep talking — fall silent and the saw moves closer."}, "rod-runner": {"title": "Лёд и род", "body": "Steer each Russian word into the lane of its gender."}, "tez-gapir": {"title": "Speak fast", "body": "Speak Russian on one topic for 30 seconds."}, "fight-for-life": {"title": "Помоги!", "body": "Speak Russian — your voice gives the hero strength."}, "error-hunt": {"title": "Error hunter", "body": "Find and fix the mistake in a Russian sentence."}, "first-reaction": {"title": "First reaction", "body": "Answer an unexpected situation in 5 seconds."}, "ice-mystery": {"title": "Mystery of the ice city", "body": "Ask questions, find clues and solve the mystery."}, "soz-ovi": {"title": "Word hunt", "body": "Find the Russian word for the picture."}, "tez-javob": {"title": "Quick answer", "body": "Answer in 10 seconds."}, "dialog": {"title": "Dialogue", "body": "Put the conversation in the right order."}, "eshitib-top": {"title": "Hear and find", "body": "Choose the sentence you heard."}, "xotira": {"title": "Memory", "body": "Find the pairs — a word and its translation."}},
+    unlockWithPro: "Unlock with Pro",
+    emptyTitle: "No games yet",
+    emptyBody: "Games will appear here soon.",
   },
 
   placement: {
@@ -142,7 +148,7 @@ export const en: Dictionary = {
     finish: 'Finish',
     remaining: 'Time left',
 
-    step: 'Step 1',
+    step: "Level test",
     introTitle: 'Tell us about your level of Russian',
     introBody:
       'Press the microphone and talk for 40 seconds. Where is it hard — at work, out on the street? Mixing in Uzbek is fine. No questions, no test.',
@@ -168,6 +174,10 @@ export const en: Dictionary = {
       nothingHeard: "We didn't hear you. Allow the microphone or type your answer instead.",
     },
     continueToHome: "Continue",
+    connectFailed: "Couldn't connect. Please try again in a moment.",
+    micFailed: "The microphone didn't start. Check that access is allowed.",
+    saveAndStart: "Save the plan and start",
+    claimFailed: "Your result is saved but couldn't be linked to your account just now. Refresh the page in a moment — no need to speak again.",
   },
 
   lessonOne: {
@@ -320,7 +330,6 @@ export const en: Dictionary = {
   lesson: {
     eyebrow: 'Lesson {day} · A1',
     progress: 'Lesson progress',
-    sectionsOf: '{done} / {total} sections',
     back: '← Back',
     next: 'Continue →',
     finishLesson: 'Finish the lesson',
@@ -339,19 +348,6 @@ export const en: Dictionary = {
       genderTale: 'Говори правильно!',
     },
 
-    /** One line under each step name: what the learner is about to do. */
-    sectionNotes: {
-      tests: "Warm-up dialogue and a quick test",
-      phonetics: "A pronunciation rule",
-      grammar: "How words join into sentences",
-      phrases: "15 phrases with GIFs, translation and colour coding",
-      game: "A new game on today's topic",
-      missions: "Read the dialogue, then question and answer with the AI",
-      vocabulary: "20 picture cards with word pairs",
-      picture: "A creative exercise: write a text or a dialogue",
-      complete: "Reflection and the lesson wrap-up",
-    },
-
     gate: {
       tests: 'Answer every quiz correctly to continue.',
       phrases: 'Open and rate every phrase to continue.',
@@ -366,51 +362,56 @@ export const en: Dictionary = {
     rule: {
       listen: 'Hear the rule',
       speed: { slow: 'Slow', normal: 'Normal', fast: 'Fast' },
-      tongueTwister: 'Скороговорка · a speed drill',
-      tongueTwisterHint: 'Slowly first, then at normal speed, then fast.',
+      tongueTwister: 'Скороговорка',
       penguinKingdom: 'The Penguin kingdom',
       pandaKingdom: 'The Panda kingdom',
       featherKingdom: 'The Feather kingdom',
     },
 
     phrases: {
-      intro: "Pick a phrase. It opens as a card: the situation, how to say it and an example. To continue, rate every phrase: know it, don't know it, or review it.",
-      open: 'Open the card',
+      intro: "Tap a phrase, listen, then rate it.",
       close: 'Close',
       example: 'Example sentence',
       repeat: 'Listen and repeat!',
     },
 
     game: {
-      words: 'Words',
-      swipe: 'Swipe sideways →',
       hearWord: 'Hear the word {word}',
+      houses: { masculine: 'Blue house', feminine: 'Red house', neuter: 'Yellow house' },
+      speakers: { penguin: 'Penguin', panda: 'Panda', pero: 'Pero' },
+      slots: {
+        wall: 'on the wall', nearWindow: 'by the window', corner: 'in the corner', centre: 'in the middle',
+        besideWall: 'by the wall', besideTable: 'by the table', onTable: 'on the table', onFloor: 'on the floor',
+      },
+      crosswordSpelling: 'Right length — check the spelling.',
+      crosswordLength: 'The word has {count} letters.',
+      describePlace: 'Describe: {place}',
+      describePlaceholder: 'Это … . Здесь есть …',
       allPlaced: 'Every word is placed! ✓',
       wrongHouse: "— that doesn't belong in this house, try again",
-      pairs: 'Pairs',
-      points: 'points',
       missingFromBag: "What's missing from the bag?",
       bagReady: 'Bag packed!',
-      bagBonus: 'You got to work on time. +30 bonus points!',
+      bagBonus: 'You got to work on time.',
       ready: 'Done',
-      cityMap: 'City map',
       pickTrueSentenceSuffix: '— pick the true sentence:',
       cityDone: 'The city map is finished!',
-      cityDoneBody: 'You built correct sentences about 10 favourite places — 100 points!',
+      cityDoneBody: 'You built correct sentences about 10 favourite places.',
       guestsAndFamily: 'Guests and family in one room',
       pickPluralSuffix: '— pick the plural:',
-      objects: 'Objects',
       roomReady: 'The room is ready! ✓',
       wrongPlace: 'That belongs somewhere else. Try again.',
       pickSpotSuffix: '— tap the right spot in the room.',
-      familyPhoto: 'Family photo',
       familyPhotoAlt: 'A family photo with Panda and Penguin',
+      ruleMasculine: "Ends in a consonant or «-й» — the blue house (masculine).",
+      ruleFeminine: "Ends in «-а» or «-я» — the red house (feminine).",
+      ruleNeuter: "Ends in «-о» or «-е» — the yellow house (neuter).",
     },
 
     missions: {
       practiseDialogue: 'Practise the dialogue',
       aiChat: 'Talk to the AI',
-      intro: "Listen to each line. Then tap the microphone and read the whole dialogue aloud — it is checked as a whole. After that you answer the AI's questions.",
+      intro: "Listen to each line and repeat it aloud.",
+      aiIntro: "Listen to the question and answer aloud.",
       goToAi: 'Move on to the AI conversation →',
       nextLine: 'Next line',
       backToDialogue: '← Back to the dialogue',
@@ -421,7 +422,7 @@ export const en: Dictionary = {
       emptyRecording: "Nothing was recorded. Tap the microphone, speak, then tap again when you finish.",
       youSaid: "You said: {text}",
       checkFailed: "Your recording couldn't be checked. Check your internet connection and try again.",
-      micDialogue: "Tap, read the whole dialogue, then tap again when you finish.",
+      micDialogue: "Record yourself reading the whole dialogue (optional).",
       micStopDialogue: "Recording… Tap to stop when you have read it.",
       micAnswer: "Tap, answer, then tap again when you finish.",
       micStopAnswer: "Recording… Tap to stop when you have answered.",
@@ -435,18 +436,15 @@ export const en: Dictionary = {
     },
 
     vocabulary: {
-      cards: '{count} cards',
-      deckTitle: 'A deck of new words',
+      deckTitle: 'New words',
       open: 'Open',
       resume: 'Resume',
       listenAndRepeat: 'Listen and repeat',
-      tapForFront: 'Tap the card for the front',
       known: "Know it · выучил",
       unknown: "Don't know · не знаю",
       again: "Review · повторю",
-      deckMin: "Look at at least {count} cards",
-      deckSeen: "Seen: {seen} / {total}",
-      deckAtLeast: "(at least {count})",
+      progress: '{seen} / {total} · at least {count}',
+      comingBack: '+{count} to review',
     },
 
     exercise: {
@@ -455,13 +453,12 @@ export const en: Dictionary = {
       placeholder: 'Write your answer here…',
       listenToText: 'Hear the text',
       sample: 'Example',
+      showSample: 'Show the example',
     },
 
     complete: {
       badge: 'Lesson {day} complete',
       title: 'Excellent!',
-      body:
-        "Today's phrases, the rule, the game and the speaking drills are done. Use what is new in your next conversation.",
       saveFailed: "Your lesson result wasn't saved. Check your internet connection and try again.",
       saveRetry: "Save again",
       nextOpened: "Day {day} is open",
@@ -474,6 +471,13 @@ export const en: Dictionary = {
       play: 'Listen',
       pause: 'Pause',
     },
+    stepMap: 'Lesson sections',
+    needRussian: 'Write it in Russian letters.',
+    saving: 'Saving…',
+    finishAnyway: 'Finish anyway',
+    showTask: 'Go to the task',
+    tryAgainLook: "Try again — look closely at the word in the question.",
+    rightAnswerIs: "The right answer:",
   },
 
   dayPreview: {
@@ -484,6 +488,12 @@ export const en: Dictionary = {
     repeat: 'Repeat lesson',
     close: 'Close',
     lessonDay: 'Lesson {day}',
+    progressOf: '{done} / {total} sections',
+    statPhrases: 'Phrases',
+    statWords: 'New words',
+    statQuestions: 'AI questions',
+    statSections: 'Sections',
+    countValue: '{count}',
     sections: 'sections',
     completed: 'Completed',
     dayBadge: 'Day {day}',
@@ -760,7 +770,7 @@ export const en: Dictionary = {
     usePhoneInstead: 'Continue with phone number',
     signInFailed: 'Sign-in failed. Please try again.',
     signUpFailed: 'Sign-up failed. Please try again.',
-    invalidCredentials: 'The phone number/email or password is incorrect.',
+    invalidCredentials: "Wrong number or password. No account? Sign up.",
     accountInactive: 'This account is inactive.',
     invalidEmail: 'Enter a valid email address.',
     emailTaken: 'An account with this email already exists.',
@@ -814,6 +824,8 @@ export const en: Dictionary = {
         email_taken: 'This email address is already used by another account.',
         phone_not_registered: "No account uses this number. Sign up, or sign in with Google.",
       },
+      noSms: "No SMS? Check the number or",
+      noSmsTelegram: "message us on Telegram",
     },
   },
 
@@ -1028,6 +1040,7 @@ export const en: Dictionary = {
 
   preview: {
     whatToExpect: 'What to expect',
+    whatYouLearn: "What you'll learn",
     missionEyebrow: 'Task',
     goal: 'Goal',
     time: 'Time',
@@ -1215,6 +1228,7 @@ export const en: Dictionary = {
     attemptsValue: "{count}, then a {hours}-hour break",
     attemptsAhead: "You have {count} attempts. If neither passes, you wait {hours} hours.",
     lastAttempt: "Last attempt — if it doesn't pass, a {hours}-hour break.",
+    micPrimer: "Your browser will ask for the microphone — tap Allow. {character} speaks first, then you answer.",
   },
 
   missionLive: {
@@ -1365,6 +1379,10 @@ export const en: Dictionary = {
     movedToDay: 'You have moved to day {day}.',
     retryPrompt: "Give it another go — the phrases are familiar now.",
     wentWell: "What went well:",
+    strengthTitle: "What went well",
+    retryTitle: "Let's try again",
+    currentStep: "Current step",
+    stepPending: "Not done yet",
   },
 
   billing: {
@@ -1464,6 +1482,7 @@ export const en: Dictionary = {
     cancelFailed: "The subscription couldn't be cancelled. Try again.",
     freeDayOne: "The first day",
     freeDaysRange: "Days 1–{last}",
+    cancelConfirmBody: "Pro keeps working until {date}, then your account moves to the free plan.",
   },
 
   profile: {
@@ -1577,6 +1596,7 @@ export const en: Dictionary = {
       productAnalyticsBody:
         'Anonymous usage data, so we can tell which lessons actually help.',
     },
+    deleteProWarning: "You have Pro until {date}. Deleting the account forfeits the remaining time.",
   },
 
   feedbackPage: {
@@ -1634,7 +1654,7 @@ export const en: Dictionary = {
   },
 
   lessonFeedback: {
-    eyebrow: '{days} days of lessons done',
+    eyebrow: "You finished {days} days of lessons! 🎉",
     title: 'We would love your feedback',
     body: 'Take a minute — your answers help us make the lessons even better.',
     satisfactionQuestion: 'How satisfied are you with the lessons you have completed?',
@@ -1743,7 +1763,7 @@ export const en: Dictionary = {
     neverShow: "Don't show this again",
     title: 'Install the app on your phone',
     body: 'One tap from the home screen — no browser, no typing an address.',
-    action: 'Download',
+    action: "Install",
     later: 'Not now',
     close: 'Close',
     howTitle: 'How to install',

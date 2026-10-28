@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   AudioLines,
   Check,
+  ChevronRight,
   Gamepad2,
   Image,
   Layers,
@@ -52,7 +53,7 @@ import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
 import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio, VoiceError } from '../lib/liveVoice'
-import { playUiSound, type UiSound } from '../lib/ui-sounds'
+import { playUiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
 import { Celebration } from '../components/Celebration'
 import { missionLock } from '../lib/mission-lock'
@@ -150,22 +151,116 @@ function fillTemplate(segments: string[], answer: string): string {
   return segments.map((segment, index) => segment + (index < segments.length - 1 ? (values[index] ?? '') : '')).join('')
 }
 
-function isExerciseAnswered(starter: string, answer: string): boolean {
-  const segments = splitBlankSegments(starter)
-  if (segments.length === 1) return answer.trim().length > 0
-  const values = readBlankValues(answer)
-  return segments.slice(0, -1).every((_, index) => (values[index] ?? '').trim().length > 0)
+/**
+ * A written answer counts only once it has Russian in it: a single Latin letter used to unlock
+ * the step, so the writing task could be skipped by typing anything at all.
+ */
+function hasRussian(text: string): boolean {
+  return /[А-Яа-яЁё]/u.test(text)
 }
 
-function isGameSolved(lesson: LessonData, matches: Record<string, string>): boolean {
+function blankAnswers(starter: string, answer: string): string[] {
+  const segments = splitBlankSegments(starter)
+  if (segments.length === 1) return [answer]
+  const values = readBlankValues(answer)
+  return segments.slice(0, -1).map((_, index) => values[index] ?? '')
+}
+
+function isExerciseAnswered(starter: string, answer: string): boolean {
+  return blankAnswers(starter, answer).every((value) => hasRussian(value))
+}
+
+/** How many of the game's items are solved, out of how many — the one counter every game shows. */
+function gameProgress(lesson: LessonData, matches: Record<string, string>): { done: number; total: number } {
   if (lesson.game.kind === 'family-crossword') {
-    return (lesson.game.clues ?? []).every((clue) => matches[clue.answer] === clue.answer)
+    const clues = lesson.game.clues ?? []
+    return { done: clues.filter((clue) => matches[clue.answer] === clue.answer).length, total: clues.length }
   }
   // The picture game stores a free-text description rather than a fixed right-hand value.
   if (lesson.game.kind === 'picture-description') {
-    return lesson.game.pairs.every((pair) => Boolean(matches[pair.left]?.trim()))
+    return { done: lesson.game.pairs.filter((pair) => hasRussian(matches[pair.left] ?? '')).length, total: lesson.game.pairs.length }
   }
-  return lesson.game.pairs.every((pair) => matches[pair.left] === pair.right)
+  return { done: lesson.game.pairs.filter((pair) => matches[pair.left] === pair.right).length, total: lesson.game.pairs.length }
+}
+
+function isGameSolved(lesson: LessonData, matches: Record<string, string>): boolean {
+  const { done, total } = gameProgress(lesson, matches)
+  return done >= total
+}
+
+/**
+ * How far the learner is through what blocks Next, shown on the button itself: a faded button
+ * with the reason in small print far below it read as a broken page. Null where the step has no
+ * count to give.
+ */
+function gateProgress(sectionId: SectionId, lesson: LessonData, state: StoredState): { done: number; total: number } | null {
+  switch (sectionId) {
+    case 'tests':
+      return { done: lesson.tests.filter((quiz, index) => state.answers[index] === quiz.correct).length, total: lesson.tests.length }
+    case 'phrases':
+      return { done: Object.keys(state.phraseRatings).length, total: lesson.phrases.length }
+    case 'game':
+      return gameProgress(lesson, state.gameMatches)
+    case 'missions':
+      return state.aiChatStarted
+        ? { done: Math.min(state.aiAnswered.length, aiAnswerTarget(lesson.questions.length)), total: aiAnswerTarget(lesson.questions.length) }
+        : null
+    case 'vocabulary':
+      return { done: Math.min(state.vocabularyReviewed, vocabularyTarget(lesson.vocabulary.length)), total: vocabularyTarget(lesson.vocabulary.length) }
+    case 'picture': {
+      const blanks = blankAnswers(lesson.exercise.starter, state.exerciseAnswer)
+      return blanks.length > 1 ? { done: blanks.filter(hasRussian).length, total: blanks.length } : null
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * A fixed shuffle, seeded by the lesson day: the order stays the same between visits, but it is
+ * never the authored order — sorting the answers alphabetically lined them up with their words
+ * whenever an author had listed the pairs alphabetically.
+ */
+function seededShuffle<T>(items: T[], seed: number): T[] {
+  let state = seed * 2654435761 >>> 0
+  const random = () => {
+    state = (state + 0x6d2b79f5) >>> 0
+    let value = state
+    value = Math.imul(value ^ (value >>> 15), value | 1)
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
+  }
+  const result = [...items]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1))
+    ;[result[index], result[swap]] = [result[swap], result[index]]
+  }
+  // A shuffle that happens to land every item back in place teaches nothing; rotate it once.
+  if (result.length > 1 && result.every((item, index) => item === items[index])) result.push(result.shift()!)
+  return result
+}
+
+/**
+ * Columns and rows for a cover grid with exactly one tile per item. The grids used to be fixed
+ * at 3×2 and 2×5, so a lesson with another count left tiles that never opened.
+ */
+function coverGrid(count: number): { columns: number; rows: number } {
+  const root = Math.ceil(Math.sqrt(count))
+  for (let columns = root; columns >= 2; columns -= 1) {
+    if (count % columns === 0) return { columns, rows: count / columns }
+  }
+  return { columns: root, rows: Math.ceil(count / root) }
+}
+
+/** Three choices for the item in hand: its answer and two others, taken from the whole game. */
+function threeOptions(pairs: LessonData['game']['pairs'], current: LessonData['game']['pairs'][number]): string[] {
+  const start = pairs.indexOf(current)
+  const others = pairs
+    .map((_, offset) => pairs[(start + 1 + offset) % pairs.length])
+    .filter((pair) => pair !== current && pair.right !== current.right)
+    .map((pair) => pair.right)
+  const distractors = [...new Set(others)].slice(0, 2)
+  return [current.right, ...distractors].sort((a, b) => a.localeCompare(b, 'ru'))
 }
 type StoredState = {
   sectionIndex: number
@@ -250,6 +345,23 @@ export function FoundationLesson() {
   const progress = state.completed.length
   const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate) : null
   const canContinue = blockReason === null
+  const blockProgress = lesson && blockReason ? gateProgress(active.id, lesson, state) : null
+
+  /*
+   * A new step is announced from its heading. The page scrolled to the top but focus stayed on
+   * the Next button at the bottom, so a keyboard or screen-reader learner never heard the step
+   * change. The first render is left alone: focus belongs to whatever opened the lesson.
+   */
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const firstStep = useRef(true)
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false
+      return
+    }
+    headingRef.current?.focus({ preventScroll: true })
+  }, [state.sectionIndex])
+  const sectionRef = useRef<HTMLElement>(null)
 
   /*
    * The lessons ship with the app, so the route alone opened any of them — a free learner could
@@ -317,23 +429,36 @@ export function FoundationLesson() {
   }
 
   function goBack() {
-    setState((current) => ({ ...current, sectionIndex: Math.max(0, current.sectionIndex - 1) }))
+    jumpTo(Math.max(0, state.sectionIndex - 1))
+  }
+
+  function jumpTo(index: number) {
+    setState((current) => ({ ...current, sectionIndex: index }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  /*
+   * The step's own instruction, where it has one worth a line. Every step used to carry a
+   * general note here ("15 ta ibora — gif, tarjima…", "Mavzu bo‘yicha yangi o‘yin") that only
+   * described what was already on the screen below it.
+   */
+  const stepInstruction = active.id === 'missions'
+    ? (state.aiChatStarted ? t.missions.aiIntro : t.missions.intro)
+    : null
 
   return (
     <ColorScopeProvider day={day}>
     <div className="foundation-lesson mx-auto max-w-4xl space-y-4 pb-5 sm:space-y-6">
-      <LessonHero lesson={lesson} progress={progress} compact={state.sectionIndex > 0} />
+      <LessonHero
+        lesson={lesson}
+        progress={progress}
+        compact={state.sectionIndex > 0}
+        state={state}
+        onJump={jumpTo}
+      />
 
-      <section aria-labelledby={`section-${active.id}`}>
-        {/*
-          The nine steps have names of their own — Просыпайся!, Говори чётко! — and they are the
-          same nine in every lesson, so the name alone does not say what this one asks for. The
-          line under it does: what the step is in general, or, where the lesson wrote something
-          more specific than the general case, that instead.
-        */}
-        <div className="mb-3 flex items-end gap-3 sm:mb-4">
+      <section ref={sectionRef} aria-labelledby={`section-${active.id}`} className="scroll-mt-4">
+        <div className={cx('mb-3 flex gap-3 sm:mb-4', stepInstruction ? 'items-start' : 'items-center')}>
           {/*
             Filled rather than tinted: this header sits on the page background, not on a card, and
             `signal-soft` on `ground` is two pale greys apart — the tile disappeared and took the
@@ -343,19 +468,15 @@ export function FoundationLesson() {
             <active.icon aria-hidden="true" strokeWidth={1.9} className="size-6 sm:size-7" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-black tracking-[.1em] text-ink-faint uppercase">
-              {fill(t.sectionsOf, { done: state.sectionIndex + 1, total: sections.length })}
-            </p>
-            <h2 id={`section-${active.id}`} className="text-xl font-black tracking-tight text-ink sm:text-2xl">
+            <h2
+              ref={headingRef}
+              tabIndex={-1}
+              id={`section-${active.id}`}
+              className="text-xl font-black tracking-tight text-ink outline-none sm:text-2xl"
+            >
               {t.sections[active.id]}
             </h2>
-            <p className="mt-0.5 text-sm leading-snug text-ink-muted">
-              {active.id === 'picture'
-                ? lesson.exercise.title
-                : active.id === 'grammar' && day === 1
-                  ? t.sections.genderTale
-                  : t.sectionNotes[active.id]}
-            </p>
+            {stepInstruction && <p className="mt-0.5 text-sm leading-snug text-ink-muted">{stepInstruction}</p>}
           </div>
         </div>
 
@@ -446,43 +567,142 @@ export function FoundationLesson() {
           />
         )}
         {active.id === 'complete' && (
-          <CompleteSection lesson={lesson} recording={recording} onRetry={() => void recordCompletion()} />
+          <CompleteSection lesson={lesson} recording={recording} />
         )}
       </section>
 
-      <div className="border-t border-hairline pt-4">
+      <div className="space-y-3 border-t border-hairline pt-4">
+        {/*
+          A disabled button with no reason next to it reads as a broken page — and the reason in
+          small grey print under it was easy to miss. It sits above the buttons now, in the
+          caution tone, with a way back up to the task.
+        */}
+        {blockReason && (
+          <p role="status" className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-xl bg-caution-soft px-3 py-2 text-sm font-bold text-caution">
+            <span>{blockReason}</span>
+            <button
+              type="button"
+              onClick={() => sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="font-black underline"
+            >
+              {t.showTask}
+            </button>
+          </p>
+        )}
         {/* Wraps rather than overflowing: on a 320px phone the last step's two labels fill the row. */}
         <div className="flex flex-wrap items-center gap-2">
-          {state.sectionIndex > 0 && <Button variant="ghost" onClick={goBack}>{t.back}</Button>}
-          <Button className="ml-auto" disabled={!canContinue} onClick={() => void finishCurrent()}>
-            {active.id === 'complete' ? t.finishLesson : t.next}
-          </Button>
+          {active.id === 'complete' && recording === 'failed' ? (
+            <>
+              {/* A failed save leads with saving again; leaving is still possible, just not first. */}
+              <Button variant="ghost" onClick={() => void finishCurrent()}>{t.finishAnyway}</Button>
+              <Button className="ml-auto" onClick={() => void recordCompletion()}>{t.complete.saveRetry}</Button>
+            </>
+          ) : (
+            <>
+              {state.sectionIndex > 0 && <Button variant="ghost" onClick={goBack}>{t.back}</Button>}
+              <Button
+                className="ml-auto"
+                disabled={!canContinue || (active.id === 'complete' && recording === 'saving')}
+                onClick={() => void finishCurrent()}
+              >
+                {active.id === 'complete'
+                  ? recording === 'saving' ? t.saving : t.finishLesson
+                  : t.next}
+                {blockProgress && (
+                  <span className="ml-1.5 rounded-full bg-on-signal/20 px-2 text-xs tabular-nums">
+                    {blockProgress.done}/{blockProgress.total}
+                  </span>
+                )}
+              </Button>
+            </>
+          )}
         </div>
-        {/* A disabled button with no reason next to it reads as a broken page. */}
-        {blockReason && <p className="mt-2 text-right text-xs font-bold text-ink-muted">{blockReason}</p>}
       </div>
     </div>
     </ColorScopeProvider>
   )
 }
 
-function LessonHero({ lesson, progress, compact }: { lesson: LessonData; progress: number; compact: boolean }) {
+function LessonHero({ lesson, progress, compact, state, onJump }: {
+  lesson: LessonData
+  progress: number
+  compact: boolean
+  state: StoredState
+  onJump: (index: number) => void
+}) {
   const t = useT().lesson
   return (
     <Card className={cx('lesson-hero p-4 sm:p-6', compact && 'py-3 sm:py-4')}>
-      {!compact && <>
+      {compact ? (
+        // Past the first step the hero shrinks, but the day and its title stay: the bar alone
+        // left the learner with no idea which lesson they were in.
+        <p className="flex min-w-0 items-baseline gap-2 text-sm">
+          <span className="shrink-0 text-xs font-black tracking-[.12em] text-signal-ink uppercase">{fill(t.eyebrow, { day: lesson.day })}</span>
+          <span className="truncate font-black text-ink"><RussianText text={lesson.titleRu} /></span>
+        </p>
+      ) : <>
         <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{fill(t.eyebrow, { day: lesson.day })}</p>
         <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
         <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
       </>}
-      <div className={cx('flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs font-bold sm:text-sm', !compact && 'mt-4')}>
-        <span className="min-w-0 text-ink">{t.progress}</span>
-        <span className="shrink-0 whitespace-nowrap text-ink-faint">
-          {fill(t.sectionsOf, { done: progress, total: sections.length })}
-        </span>
+      {/* The bar is plainly progress, so it carries no label of its own — only its count. */}
+      <div className={cx('flex items-center gap-3', compact ? 'mt-2' : 'mt-4')}>
+        <div className="min-w-0 flex-1"><ProgressBar value={progress} max={sections.length} label={t.progress} /></div>
+        <span className="shrink-0 text-xs font-black text-ink-faint tabular-nums sm:text-sm">{progress} / {sections.length}</span>
       </div>
-      <div className="mt-2"><ProgressBar value={progress} max={sections.length} label={t.progress} /></div>
+      <StepMap state={state} onJump={onJump} />
     </Card>
+  )
+}
+
+/**
+ * The nine steps as a row of marks: done, current, and still shut. Back and Next were the only
+ * way around the lesson, so revisiting the phrases from the word deck took four presses, and
+ * nothing showed what was still ahead. A finished step can be reopened; a later one opens only
+ * once the steps before it are done, the same rule Next follows.
+ */
+function StepMap({ state, onJump }: { state: StoredState; onJump: (index: number) => void }) {
+  const t = useT().lesson
+  const reached = Math.max(
+    state.sectionIndex,
+    ...state.completed.map((id) => sections.findIndex((section) => section.id === id) + 1),
+  )
+  return (
+    <nav aria-label={t.stepMap} className="mt-3">
+      <ol className="grid grid-cols-9 gap-1 sm:gap-2">
+        {sections.map((section, index) => {
+          const current = index === state.sectionIndex
+          const done = state.completed.includes(section.id)
+          const open = index <= reached
+          return (
+            <li key={section.id} className="flex justify-center">
+              <button
+                type="button"
+                disabled={!open || current}
+                onClick={() => onJump(index)}
+                aria-current={current ? 'step' : undefined}
+                aria-label={`${index + 1}. ${t.sections[section.id]}`}
+                title={t.sections[section.id]}
+                className={cx(
+                  'flex size-7 items-center justify-center rounded-lg transition sm:size-9 sm:rounded-xl',
+                  current
+                    ? 'bg-signal text-on-signal ring-3 ring-signal-soft'
+                    : done
+                      ? 'bg-milestone-soft text-milestone hover:ring-2 hover:ring-milestone/40'
+                      : open
+                        ? 'bg-ground-sunken text-ink-muted hover:text-ink'
+                        : 'bg-ground-sunken text-ink-faint opacity-50',
+                )}
+              >
+                {done && !current
+                  ? <Check aria-hidden="true" strokeWidth={3} className="size-3.5 sm:size-4" />
+                  : <section.icon aria-hidden="true" strokeWidth={2} className="size-3.5 sm:size-4" />}
+              </button>
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
   )
 }
 
@@ -499,9 +719,15 @@ function TestsSection({ lesson, answers, onAnswer }: { lesson: LessonData; answe
 function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: number; answer: number | null; onAnswer: (answer: number) => void }) {
   const t = useT().lesson
   const correct = answer === quiz.correct
+  /*
+    "Try again" alone taught nothing: a learner could click through every option without
+    learning why one was right. After a second miss the right option is marked and the
+    explanation the quiz carries for a correct answer is shown, so the miss still teaches.
+  */
+  const [misses, setMisses] = useState(0)
+  const revealed = !correct && misses >= 2
   return (
     <Card className={cx('relative overflow-hidden p-4 sm:p-5', correct && 'border-milestone')}>
-      {correct && <Celebration />}
       {quiz.context && <p className="mb-3 text-sm leading-relaxed text-ink-muted"><RussianText text={quiz.context} /></p>}
       <div className="flex items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-sm font-black text-ink-muted">{number}</span>
@@ -512,16 +738,26 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
           <button
             key={option}
             type="button"
+            // Once right, the card stays right: a stray tap on another option while scrolling
+            // used to turn it red and shut the step again.
+            disabled={correct}
             onClick={() => {
               onAnswer(index)
               if (index === quiz.correct) celebrate()
-              else playUiSound('wrong')
+              else {
+                playUiSound('wrong')
+                setMisses((count) => count + 1)
+              }
             }}
             className={cx(
               'raised rounded-xl border-2 px-3 py-2.5 text-left text-sm font-bold',
               answer === index
                 ? index === quiz.correct ? 'border-milestone bg-milestone-soft raised-milestone-soft' : 'border-danger bg-danger-soft raised-danger-soft'
-                : 'border-hairline bg-ground-raised hover:border-signal',
+                : correct
+                  ? 'border-hairline bg-ground-raised opacity-45 shadow-none'
+                  : revealed && index === quiz.correct
+                    ? 'border-milestone border-dashed bg-ground-raised'
+                    : 'border-hairline bg-ground-raised hover:border-signal',
             )}
           >
             <RussianText text={option} />
@@ -531,7 +767,13 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
       {answer !== null && (
         <div className={cx('mt-3 flex items-start gap-2 rounded-xl p-3 text-sm', correct ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger')}>
           <MascotImage mascot={number === 1 ? 'pero' : 'penguin'} className="size-9 shrink-0" />
-          <p>{correct ? quiz.feedback : t.tryAgain}</p>
+          <p>
+            {correct ? quiz.feedback : revealed ? (
+              <>
+                <b>{t.rightAnswerIs}</b> <RussianText text={quiz.options[quiz.correct]} />. {quiz.feedback}
+              </>
+            ) : t.tryAgainLook}
+          </p>
         </div>
       )}
     </Card>
@@ -583,7 +825,12 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
               >
                 {title}
               </p>
-              <p className="mt-0.5 text-[10px] font-bold sm:text-xs" style={{ color }}>{colorName}</p>
+              {/* The yellow itself is unreadable as small text on a light tile, so the name is
+                  written in the yellow house's ink beside a swatch of the real colour. */}
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold sm:text-xs" style={{ color: color === '#FFFF00' ? '#8a6d00' : color }}>
+                <span aria-hidden="true" className="inline-block size-2 rounded-sm outline outline-black/20" style={{ background: color }} />
+                {colorName}
+              </p>
             </div>
           ))}
         </div>
@@ -623,6 +870,11 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
       <p className="mt-2 text-xl font-black text-ink sm:text-2xl"><RussianText text={twister.ru} /></p>
       <p className="mt-1 text-sm font-semibold text-ink-muted">{twister.uz}</p>
 
+      {/*
+        The three speeds say the order by themselves, so the hint that spelled it out is gone, and
+        so is the word-by-word breakdown: the rule above already teaches these sounds, and the
+        cards made the block twice its height.
+      */}
       <div className="mt-3 flex flex-wrap gap-2">
         {tongueTwisterSpeeds.map(({ icon: Icon, key, rate }) => (
           <SpeechButton
@@ -630,26 +882,13 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
             text={twister.ru}
             lang="ru-RU"
             rate={rate}
+            icon={<Icon aria-hidden="true" strokeWidth={2} className="size-4" />}
             className="raised raised-sm inline-flex items-center gap-1.5 rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink"
           >
-            <Icon aria-hidden="true" strokeWidth={2} className="size-4" />
             {t.speed[key]}
           </SpeechButton>
         ))}
       </div>
-      <p className="mt-2 text-xs font-bold text-ink-faint">{t.tongueTwisterHint}</p>
-
-      {twister.breakdown && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
-          {twister.breakdown.map((item) => (
-            <div key={item.word} className="rounded-xl bg-ground-raised p-3">
-              <p className="font-black text-ink"><RussianText text={item.word} /></p>
-              <p className="mt-0.5 text-sm font-bold text-ink-muted">{item.transcription}</p>
-              <p className="mt-0.5 text-xs font-black text-signal-ink">{item.sound}</p>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -693,6 +932,11 @@ function RuleTable({ table }: { table: { headers: string[]; rows: string[][] } }
 function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratings: Record<number, Rating>; onRate: (index: number, rating: Rating) => void }) {
   const t = useT().lesson.phrases
   const [open, setOpen] = useState<number | null>(null)
+  /*
+   * "Don't know" and "review" bring a phrase back once, after the unrated ones — they used to
+   * behave exactly like "know it". Kept per visit: the gate only asks that each phrase is rated.
+   */
+  const revisited = useRef(new Set<number>())
   return (
     <>
       <p className="mb-3 text-sm leading-relaxed text-ink-muted">{t.intro}</p>
@@ -700,17 +944,21 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
         {phrases.map((phrase, index) => (
           <button key={`${phrase.ru}-${index}`} type="button" onClick={() => setOpen(index)} className="raised flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised p-3 text-left hover:border-signal">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-xl">{phrase.icon}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-black text-ink"><RussianText text={phrase.ru} /></span>
-              <span className="mt-0.5 block text-xs font-bold text-signal-ink">{t.open}</span>
-            </span>
-            {ratings[index] && <Check aria-hidden="true" strokeWidth={3} className="size-4 shrink-0 text-milestone" />}
+            <span className="min-w-0 flex-1 font-black text-ink"><RussianText text={phrase.ru} /></span>
+            {/* The whole card is the button; a chevron says so without a line of text under every phrase. */}
+            {ratings[index]
+              ? <Check aria-hidden="true" strokeWidth={3} className="size-4 shrink-0 text-milestone" />
+              : <ChevronRight aria-hidden="true" strokeWidth={2.4} className="size-4 shrink-0 text-ink-faint" />}
           </button>
         ))}
       </div>
       {open !== null && <StudyCard phrase={phrases[open]} onClose={() => setOpen(null)} onRate={(rating) => {
         onRate(open, rating)
-        const next = phrases.findIndex((_, index) => index !== open && !ratings[index])
+        const rated = { ...ratings, [open]: rating }
+        const unrated = phrases.findIndex((_, index) => !rated[index])
+        const again = phrases.findIndex((_, index) => index !== open && rated[index] !== 'known' && !revisited.current.has(index))
+        const next = unrated >= 0 ? unrated : again
+        if (next >= 0 && unrated < 0) revisited.current.add(next)
         setOpen(next >= 0 ? next : null)
       }} />}
     </>
@@ -724,9 +972,9 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
   return createPortal(
     <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/45 p-3" role="dialog" aria-modal="true">
       <Card className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto p-0">
-        <div className="relative flex h-36 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,#fff,var(--color-signal-soft))]">
+        <div className="relative flex h-36 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,var(--color-ground-raised),var(--color-signal-soft))]">
           <span className="lesson-scene-icon text-6xl">{phrase.icon}</span>
-          <button type="button" onClick={onClose} aria-label={t.close} className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-white/90 text-xl font-black">×</button>
+          <button type="button" onClick={onClose} aria-label={t.close} className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-ground-raised/90 text-xl font-black text-ink">×</button>
         </div>
         <div className="p-5">
           <h3 className="text-2xl font-black text-ink"><RussianText text={phrase.ru} /></h3>
@@ -765,16 +1013,17 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
 function GameStage({ lesson, matches, children }: { lesson: LessonData; matches: Record<string, string>; children: ReactNode }) {
   const solvedCount = Object.keys(matches).length
   const total = lesson.game.pairs.length
-  const [burst, setBurst] = useState<{ id: number; final: boolean } | null>(null)
+  const [burst, setBurst] = useState<{ id: number } | null>(null)
   const solvedRef = useRef(solvedCount)
   const burstTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (solvedCount > solvedRef.current) {
-      const final = total > 0 && solvedCount >= total
-      setBurst({ id: Date.now(), final })
+    // Each match already answers with its sound and a check mark. A burst on every one of them
+    // turned into background noise by the tenth lesson, so the confetti is kept for the finish.
+    if (solvedCount > solvedRef.current && total > 0 && solvedCount >= total) {
+      setBurst({ id: Date.now() })
       if (burstTimerRef.current !== null) window.clearTimeout(burstTimerRef.current)
-      burstTimerRef.current = window.setTimeout(() => setBurst(null), final ? 4_200 : 2_600)
+      burstTimerRef.current = window.setTimeout(() => setBurst(null), 4_200)
     }
     solvedRef.current = solvedCount
   }, [solvedCount, total])
@@ -785,7 +1034,7 @@ function GameStage({ lesson, matches, children }: { lesson: LessonData; matches:
 
   return (
     <>
-      {burst && <Celebration key={burst.id} pieces={burst.final ? 150 : 46} balloons={burst.final ? 28 : 0} />}
+      {burst && <Celebration key={burst.id} pieces={150} balloons={28} />}
       {children}
     </>
   )
@@ -794,23 +1043,34 @@ function GameStage({ lesson, matches, children }: { lesson: LessonData; matches:
 type GenderHouseName = 'Мужской род' | 'Женский род' | 'Средний род'
 type WordDrag = { word: string; x: number; y: number }
 
+/*
+ * The house's name and its resident's name are copy (`lesson.game.houses`, `.speakers`). The
+ * ink and the tint are theme tokens, so the houses do not glare on the dark theme; the border
+ * keeps the gender colour itself, which is the thing being taught.
+ */
 const genderHouses: Array<{
   name: GenderHouseName
-  label: string
-  mascot: Mascot
+  key: 'masculine' | 'feminine' | 'neuter'
   /** Who lives here — this house's own character answers when a word lands on it. */
-  speaker: string
+  mascot: Mascot
   color: string
   /** The yellow house's accent is too pale to read as text, so text carries its own ink. */
   ink: string
   background: string
 }> = [
-  { name: 'Мужской род', label: 'Ko‘k uy', mascot: 'penguin', speaker: 'Pingvin', color: '#0000FF', ink: '#0000FF', background: '#e7f0ff' },
-  { name: 'Женский род', label: 'Qizil uy', mascot: 'panda', speaker: 'Panda', color: '#FF2400', ink: '#FF2400', background: '#fff0ef' },
-  { name: 'Средний род', label: 'Sariq uy', mascot: 'pero', speaker: 'Pat', color: '#d4b500', ink: '#8a6d00', background: '#fff9d8' },
+  { name: 'Мужской род', key: 'masculine', mascot: 'penguin', color: '#0000FF', ink: 'var(--color-house-blue-ink)', background: 'var(--color-house-blue-soft)' },
+  { name: 'Женский род', key: 'feminine', mascot: 'panda', color: '#FF2400', ink: 'var(--color-house-red-ink)', background: 'var(--color-house-red-soft)' },
+  { name: 'Средний род', key: 'neuter', mascot: 'pero', color: '#d4b500', ink: 'var(--color-house-yellow-ink)', background: 'var(--color-house-yellow-soft)' },
 ]
 
 type GenderHouse = (typeof genderHouses)[number]
+
+/** The rule that puts a word in each house, said when a word lands in the wrong one. */
+const GENDER_RULE_KEY: Record<string, 'ruleMasculine' | 'ruleFeminine' | 'ruleNeuter'> = {
+  'Мужской род': 'ruleMasculine',
+  'Женский род': 'ruleFeminine',
+  'Средний род': 'ruleNeuter',
+}
 
 function houseByName(name: string): GenderHouse | undefined {
   return genderHouses.find((house) => house.name === name)
@@ -821,6 +1081,7 @@ function houseByName(name: string): GenderHouse | undefined {
  * character — the penguin owns Мужской, the panda Женский, Pat Средний.
  */
 function HouseSpeech({ house, tone, children }: { house: GenderHouse | undefined; tone: 'success' | 'error'; children: ReactNode }) {
+  const t = useT().lesson.game
   return (
     <p
       role="status"
@@ -830,7 +1091,7 @@ function HouseSpeech({ house, tone, children }: { house: GenderHouse | undefined
       )}
     >
       {house && <MascotImage mascot={house.mascot} className="size-8 shrink-0" />}
-      <span>{house ? `${house.speaker}: ` : ''}«{children}»</span>
+      <span>{house ? `${t.speakers[house.mascot]}: ` : ''}«{children}»</span>
     </p>
   )
 }
@@ -839,7 +1100,9 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   const t = useT().lesson.game
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<WordDrag | null>(null)
-  const [error, setError] = useState<{ word: string; house: string } | null>(null)
+  const [error, setError] = useState<{ word: string; house: string; expected?: string } | null>(null)
+  const missesRef = useRef<Record<string, number>>({})
+  const [hintHouse, setHintHouse] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const pointerRef = useRef<{ pointerId: number; word: string; x: number; y: number } | null>(null)
   const draggingRef = useRef<WordDrag | null>(null)
@@ -854,8 +1117,12 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
   }, [])
 
-  function showError(word: string, house: string) {
-    setError({ word, house })
+  function showError(word: string, house: string, expected?: string) {
+    setError({ word, house, expected })
+    const misses = (missesRef.current[word] ?? 0) + 1
+    missesRef.current[word] = misses
+    // Two misses on one word: the right house shows itself.
+    if (misses >= 2 && expected) setHintHouse(expected)
     playUiSound('wrong')
     navigator.vibrate?.([35, 35, 35])
     if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current)
@@ -874,12 +1141,13 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
     const expected = lesson.game.pairs.find((pair) => pair.left === word)?.right
     if (expected === house) {
       setError(null)
+      setHintHouse(null)
       onChange({ ...matches, [word]: house })
       celebrate([25, 35, 60], 'coin')
       if (lesson.game.feedback) showSuccess(house)
       return
     }
-    showError(word, house)
+    showError(word, house, expected)
   }
 
   function startPointer(event: React.PointerEvent<HTMLButtonElement>, word: string) {
@@ -925,21 +1193,10 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="font-black text-signal-ink">{lesson.game.title}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p>
-          </div>
-          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{matchedCount}/{lesson.game.pairs.length}</span>
-        </div>
-      </Card>
+      <GameHeader lesson={lesson} count={`${matchedCount}/${lesson.game.pairs.length}`} />
 
       <Card className="overflow-hidden p-3 sm:p-4">
-        <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-ink-muted">
-          <span>{t.words}</span>
-          <span>{t.swipe}</span>
-        </div>
+        {/* No "words · swipe sideways" label: a chip row cut off at the edge already says it scrolls. */}
         <div className="-mx-3 overflow-x-auto px-3 pt-1 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
           <div className="flex w-max min-w-full gap-2">
             {remaining.length > 0 ? remaining.map((pair) => (
@@ -982,7 +1239,14 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
         <HouseSpeech house={houseByName(error.house)} tone="error">
           {lesson.game.feedback
             ? lesson.game.feedback.incorrect
-            : <><RussianText text={error.word} />{t.wrongHouse}</>}
+            : (
+              <>
+                <RussianText text={error.word} />{t.wrongHouse}
+                {error.expected && GENDER_RULE_KEY[error.expected] && (
+                  <span className="mt-1 block font-semibold">{t[GENDER_RULE_KEY[error.expected]]}</span>
+                )}
+              </>
+            )}
         </HouseSpeech>
       )}
 
@@ -996,21 +1260,22 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
         {genderHouses.map((house) => {
           const placed = lesson.game.pairs.filter((pair) => matches[pair.left] === house.name)
           const isWrongTarget = error?.house === house.name
+          const isHint = hintHouse === house.name && !isWrongTarget
           return (
             <button
               key={house.name}
               type="button"
               data-gender-house={house.name}
               onClick={() => { if (selected) placeWord(selected, house.name) }}
-              className={cx('flex min-h-44 flex-col overflow-hidden rounded-2xl border-2 border-dashed p-2 text-left transition sm:min-h-52 sm:p-4', selected && 'ring-2 ring-signal/30', isWrongTarget && 'animate-pulse border-danger')}
+              className={cx('flex min-h-44 flex-col overflow-hidden rounded-2xl border-2 border-dashed p-2 text-left transition sm:min-h-52 sm:p-4', selected && 'ring-2 ring-signal/30', isWrongTarget && 'animate-pulse border-danger', isHint && 'animate-pulse border-solid ring-4 ring-milestone/40')}
               style={{ borderColor: isWrongTarget ? '#dc2626' : house.color, background: house.background }}
-              aria-label={`${house.label}: ${house.name}`}
+              aria-label={`${t.houses[house.key]}: ${house.name}`}
             >
               <MascotImage mascot={house.mascot} className="h-12 w-12 shrink-0 object-contain object-left sm:h-16 sm:w-16" />
-              <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.ink }}>{house.label}</span>
+              <span className="mt-2 block text-[10px] font-black tracking-[.12em] uppercase sm:text-xs" style={{ color: house.ink }}>{t.houses[house.key]}</span>
               <span className="mt-1 block text-xs font-black leading-tight sm:text-base" style={{ color: house.ink }}><RussianText text={house.name} /></span>
               <span className="mt-2 flex flex-1 flex-wrap content-start gap-1">
-                {placed.map((pair) => <span key={pair.left} className="h-fit rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black shadow-sm sm:px-2 sm:py-1 sm:text-xs" style={{ color: house.ink }}><RussianText text={pair.left} /> <Check aria-hidden="true" strokeWidth={3} className="inline size-3" /></span>)}
+                {placed.map((pair) => <span key={pair.left} className="h-fit rounded-full bg-ground-raised px-1.5 py-0.5 text-[10px] font-black shadow-sm sm:px-2 sm:py-1 sm:text-xs" style={{ color: house.ink }}><RussianText text={pair.left} /> <Check aria-hidden="true" strokeWidth={3} className="inline size-3" /></span>)}
               </span>
             </button>
           )
@@ -1027,12 +1292,33 @@ function GenderHouseGame({ lesson, matches, onChange }: { lesson: LessonData; ma
   )
 }
 
+/**
+ * Every game opens with the same card: its title, its instruction, and the one counter of how
+ * far the learner has got. The games used to repeat that count — a header pill plus a second
+ * tally on the board, or a score in points beside a count of items.
+ */
+function GameHeader({ lesson, count }: { lesson: LessonData; count: string }) {
+  return (
+    <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-black text-signal-ink">{lesson.game.title}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink tabular-nums">{count}</span>
+      </div>
+    </Card>
+  )
+}
+
 function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
-  const t = useT().lesson.game
+  const lessonT = useT().lesson
   const [selected, setSelected] = useState<string | null>(null)
   const [note, setNote] = useState<'correct' | 'incorrect' | null>(null)
+  /** The answer just tapped wrongly, flashed red so a miss is visible on a phone with no vibration. */
+  const [wrongKey, setWrongKey] = useState<string | null>(null)
   const noteTimerRef = useRef<number | null>(null)
-  const shuffledRight = useMemo(() => [...lesson.game.pairs].sort((a, b) => a.right.localeCompare(b.right)), [lesson])
+  const shuffledRight = useMemo(() => seededShuffle(lesson.game.pairs, lesson.day), [lesson])
   const matchedCount = Object.keys(matches).length
   const solved = matchedCount === lesson.game.pairs.length
   const matchedPerRight = new Map<string, number>()
@@ -1045,21 +1331,22 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
     if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
   }, [])
 
-  function showNote(kind: 'correct' | 'incorrect') {
-    if (!lesson.game.feedback) return
+  function showNote(kind: 'correct' | 'incorrect', key?: string) {
+    // A lesson without its own feedback lines still says "try again": a miss used to show nothing.
+    if (!lesson.game.feedback && kind === 'correct') return
     setNote(kind)
+    setWrongKey(kind === 'incorrect' ? key ?? null : null)
     if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current)
-    noteTimerRef.current = window.setTimeout(() => setNote(null), 1_800)
+    noteTimerRef.current = window.setTimeout(() => {
+      setNote(null)
+      setWrongKey(null)
+    }, 1_800)
   }
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <h3 className="font-black text-signal-ink">{lesson.game.title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p>
-      </Card>
+      <GameHeader lesson={lesson} count={`${matchedCount}/${lesson.game.pairs.length}`} />
       <Card className="p-3 sm:p-4">
-        <div className="mb-3 flex items-center justify-between text-xs font-black text-ink-muted"><span>{t.pairs}</span><span>{matchedCount}/{lesson.game.pairs.length}</span></div>
         <div className="grid grid-cols-2 gap-2">
           <div className="grid content-start gap-2">
             {lesson.game.pairs.map((pair) => {
@@ -1075,7 +1362,8 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
               const occurrence = rightOccurrences.get(pair.right) ?? 0
               rightOccurrences.set(pair.right, occurrence + 1)
               const used = occurrence < (matchedPerRight.get(pair.right) ?? 0)
-              return <button key={`${pair.left}→${pair.right}`} type="button" disabled={used} onClick={() => {
+              const key = `${pair.left}→${pair.right}`
+              return <button key={key} type="button" disabled={used} onClick={() => {
                 if (!selected) return
                 const expected = lesson.game.pairs.find((candidate) => candidate.left === selected)?.right
                 if (expected === pair.right) {
@@ -1086,9 +1374,16 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
                 } else {
                   navigator.vibrate?.([30, 30, 30])
                   playUiSound('wrong')
-                  showNote('incorrect')
+                  showNote('incorrect', key)
                 }
-              }} className={cx('raised min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black', used ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><RussianText text={pair.right} /></button>
+              }} className={cx(
+                'raised min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-black',
+                used
+                  ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft'
+                  : wrongKey === key
+                    ? 'animate-pulse border-danger bg-danger-soft text-danger raised-danger-soft'
+                    : 'border-hairline bg-ground-raised text-ink hover:border-signal',
+              )}><RussianText text={pair.right} /></button>
             })}
           </div>
         </div>
@@ -1100,7 +1395,7 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
         </p>
       )}
 
-      {lesson.game.feedback && note && !solved && (
+      {note && !solved && (
         <p
           role="status"
           className={cx(
@@ -1108,7 +1403,7 @@ function MatchingGame({ lesson, matches, onChange }: { lesson: LessonData; match
             note === 'correct' ? 'bg-milestone-soft text-milestone' : 'bg-danger-soft text-danger',
           )}
         >
-          {note === 'correct' ? lesson.game.feedback.correct : lesson.game.feedback.incorrect}
+          {note === 'correct' ? lesson.game.feedback?.correct : lesson.game.feedback?.incorrect ?? lessonT.tryAgain}
         </p>
       )}
     </div>
@@ -1159,15 +1454,9 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
   const [wrong, setWrong] = useState<string | null>(null)
   const solved = lesson.game.pairs.filter((pair) => matches[pair.left] === pair.right)
   const current = lesson.game.pairs[solved.length]
-  const score = solved.length * 10 + (solved.length === lesson.game.pairs.length ? 30 : 0)
-  const options = useMemo(() => {
-    if (!current) return []
-    const distractors = lesson.game.pairs
-      .filter((pair) => pair.left !== current.left && matches[pair.left] !== pair.right)
-      .map((pair) => pair.right)
-      .slice(0, 2)
-    return [current.right, ...distractors].sort((a, b) => a.localeCompare(b, 'ru'))
-  }, [current, lesson.game.pairs, matches])
+  // Drawn from the whole game, not just the unsolved items: those ran out, and the last item
+  // was left with its own answer as the only choice.
+  const options = useMemo(() => (current ? threeOptions(lesson.game.pairs, current) : []), [current, lesson.game.pairs])
 
   function choose(option: string) {
     if (!current) return
@@ -1184,18 +1473,12 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
-          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{score} {t.points}</span>
-        </div>
-      </Card>
+      <GameHeader lesson={lesson} count={`${solved.length}/${lesson.game.pairs.length}`} />
 
       <Card className="overflow-hidden p-3 sm:p-5">
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] sm:items-center">
-          <div className="relative mx-auto flex aspect-square w-full max-w-56 items-center justify-center rounded-[2rem] bg-[linear-gradient(145deg,#dff3ff,#fff2c9)]">
+          <div className="relative mx-auto flex aspect-square w-full max-w-56 items-center justify-center rounded-[2rem] bg-[linear-gradient(145deg,var(--color-signal-soft),var(--color-coin-faint))]">
             <ShoppingBag aria-hidden="true" strokeWidth={1.2} className="size-24 text-signal-ink/80" />
-            <span className="absolute right-3 bottom-3 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-ink">{solved.length}/{lesson.game.pairs.length}</span>
           </div>
           <div>
             {current ? <>
@@ -1220,9 +1503,12 @@ function MissingBagGame({ lesson, matches, onChange }: { lesson: LessonData; mat
 
 function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
   const t = useT().lesson.game
+  const lessonT = useT().lesson
+  const draftId = useId()
   const [selected, setSelected] = useState(lesson.game.pairs[0]?.left ?? '')
   const [draft, setDraft] = useState(matches[selected] ?? '')
-  const completed = lesson.game.pairs.filter((pair) => Boolean(matches[pair.left]?.trim())).length
+  const completed = gameProgress(lesson, matches).done
+  const latinOnly = draft.trim().length > 0 && !hasRussian(draft)
 
   function selectPicture(place: string) {
     setSelected(place)
@@ -1232,24 +1518,26 @@ function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonD
 
   function saveDescription() {
     const description = draft.trim()
-    if (!selected || !description) return
-    onChange({ ...matches, [selected]: description })
+    if (!selected || !hasRussian(description)) return
+    const next = { ...matches, [selected]: description }
+    onChange(next)
     celebrate([25, 30, 45], completed + 1 === lesson.game.pairs.length ? 'win' : 'coin')
+    // On to the next picture still waiting for a description, so "Ready" moves the game along.
+    const following = lesson.game.pairs.find((pair) => !hasRussian(next[pair.left] ?? ''))
+    if (following) {
+      setSelected(following.left)
+      setDraft(next[following.left] ?? '')
+    }
   }
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
-          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{completed}/{lesson.game.pairs.length}</span>
-        </div>
-      </Card>
+      <GameHeader lesson={lesson} count={`${completed}/${lesson.game.pairs.length}`} />
 
       <Card className="p-3 sm:p-5">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {lesson.game.pairs.map((pair) => {
-            const done = Boolean(matches[pair.left]?.trim())
+            const done = hasRussian(matches[pair.left] ?? '')
             return <button key={pair.left} type="button" onClick={() => selectPicture(pair.left)} className={cx('raised flex min-h-28 flex-col items-center justify-center rounded-2xl border-2 p-3', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground-raised text-ink hover:border-signal')}><SceneIcon word={pair.left} className="size-9 text-signal-ink" /><span className="mt-2 text-sm font-black">{pair.left}</span>{done && <Check aria-hidden="true" strokeWidth={3} className="mt-1 size-3.5" />}</button>
           })}
         </div>
@@ -1258,8 +1546,22 @@ function PictureDescriptionGame({ lesson, matches, onChange }: { lesson: LessonD
       {lesson.game.example && <Card className="border-hairline bg-ground-raised p-4 text-sm leading-relaxed text-ink"><RussianText text={lesson.game.example} /></Card>}
 
       <Card className="p-3 sm:p-4">
-        <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={5} className="w-full resize-y rounded-2xl border border-hairline bg-ground-raised px-4 py-3 text-sm text-ink outline-none transition focus:border-signal" />
-        <Button className="mt-3" disabled={!draft.trim()} onClick={saveDescription}>{t.ready}</Button>
+        {/* Named after the picture it is for: an unlabelled box under the grid said neither which
+            picture nor what to write. */}
+        <label htmlFor={draftId} className="mb-2 block text-xs font-black tracking-[.08em] text-ink-muted uppercase">
+          {fill(t.describePlace, { place: selected })}
+        </label>
+        <textarea
+          id={draftId}
+          value={draft}
+          lang="ru"
+          placeholder={t.describePlaceholder}
+          onChange={(event) => setDraft(event.target.value)}
+          rows={5}
+          className={cx('w-full resize-y rounded-2xl border bg-ground-raised px-4 py-3 text-sm text-ink outline-none transition focus:border-signal', latinOnly ? 'border-danger' : 'border-hairline')}
+        />
+        {latinOnly && <p className="mt-1 text-xs font-bold text-danger">{lessonT.needRussian}</p>}
+        <Button className="mt-3" disabled={!hasRussian(draft)} onClick={saveDescription}>{t.ready}</Button>
       </Card>
     </div>
   )
@@ -1271,14 +1573,7 @@ function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matche
   const [wrong, setWrong] = useState<string | null>(null)
   const solved = lesson.game.pairs.filter((pair) => matches[pair.left] === pair.right)
   const current = lesson.game.pairs.find((pair) => pair.left === selected)
-  const options = useMemo(() => {
-    if (!current) return []
-    const distractors = lesson.game.pairs
-      .filter((pair) => pair.left !== current.left && matches[pair.left] !== pair.right)
-      .map((pair) => pair.right)
-      .slice(0, 2)
-    return [current.right, ...distractors].sort((a, b) => a.localeCompare(b, 'ru'))
-  }, [current, lesson.game.pairs, matches])
+  const options = useMemo(() => (current ? threeOptions(lesson.game.pairs, current) : []), [current, lesson.game.pairs])
 
   function choose(option: string) {
     if (!current) return
@@ -1296,17 +1591,14 @@ function CityMapGame({ lesson, matches, onChange }: { lesson: LessonData; matche
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div><span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{solved.length * 10} ball</span></div>
-      </Card>
+      <GameHeader lesson={lesson} count={`${solved.length}/${lesson.game.pairs.length}`} />
 
       <Card className="overflow-hidden p-3 sm:p-5">
-        <div className="rounded-2xl bg-[linear-gradient(145deg,#ddf3ff,#e6f7df_55%,#fff0c5)] p-3 sm:p-5">
-          <div className="mb-3 flex items-center justify-between text-xs font-black text-ink-muted"><span>{t.cityMap}</span><span>{solved.length}/{lesson.game.pairs.length}</span></div>
+        <div className="rounded-2xl bg-[linear-gradient(145deg,var(--color-signal-soft),var(--color-milestone-soft)_55%,var(--color-coin-faint))] p-3 sm:p-5">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {lesson.game.pairs.map((pair) => {
               const done = matches[pair.left] === pair.right
-              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('raised flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink raised-signal-soft' : 'border-white bg-white/75 text-ink hover:border-signal')}><CityIcon word={pair.left} className="size-8" /><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-black">+10 <Check aria-hidden="true" strokeWidth={3} className="size-3" /></span>}</button>
+              return <button key={pair.left} type="button" disabled={done} onClick={() => { setSelected(pair.left); setWrong(null); playUiSound('select') }} className={cx('raised flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 p-2 text-center', done ? 'border-milestone bg-milestone-soft text-milestone raised-milestone-soft' : selected === pair.left ? 'border-signal bg-ground-raised text-signal-ink raised-signal-soft' : 'border-ground-raised bg-ground-raised/75 text-ink hover:border-signal')}><CityIcon word={pair.left} className="size-8" /><span className="mt-1 text-xs font-black"><RussianText text={pair.left} /></span>{done && <Check aria-hidden="true" strokeWidth={3} className="mt-1 size-3" />}</button>
             })}
           </div>
         </div>
@@ -1345,19 +1637,14 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
-          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{solved}/{lesson.game.pairs.length}</span>
-        </div>
-      </Card>
+      <GameHeader lesson={lesson} count={`${solved}/${lesson.game.pairs.length}`} />
 
       <Card className="overflow-hidden p-3 sm:p-4">
-        <div className="relative mx-auto aspect-[4/3] max-w-xl overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#fff7dc,#dff3ff)]">
+        <div className="relative mx-auto aspect-[4/3] max-w-xl overflow-hidden rounded-2xl bg-[linear-gradient(160deg,var(--color-coin-faint),var(--color-signal-soft))]">
           {lesson.sceneImage
             ? <img src={lesson.sceneImage} alt={t.guestsAndFamily} className="h-full w-full object-cover" />
             : <div className="flex h-full items-center justify-center"><Users aria-hidden="true" strokeWidth={1.2} className="size-20 text-signal-ink/70" /></div>}
-          <div className="absolute inset-0 grid grid-cols-3 grid-rows-2" aria-hidden="true">
+          <div className="absolute inset-0 grid" style={coverGridStyle(lesson.game.pairs.length)} aria-hidden="true">
             {lesson.game.pairs.map((pair) => (
               <span key={pair.left} className={cx('flex items-center justify-center border border-white/30 bg-ink/85 text-2xl font-black text-white transition-all duration-500', matches[pair.left] === pair.right && 'scale-0 opacity-0')}>
                 ?
@@ -1396,18 +1683,24 @@ function PluralPuzzle({ lesson, matches, onChange }: { lesson: LessonData; match
   )
 }
 
+/** Where each slot sits in the room. Its caption is copy, at `lesson.game.slots[label]`. */
 const roomSlots = [
-  { id: 'picture-wall', label: 'devorda', gridColumn: '1', gridRow: '1' },
-  { id: 'tv-wall', label: 'devorda', gridColumn: '2 / span 2', gridRow: '1' },
-  { id: 'near-window', label: 'deraza yonida', gridColumn: '4', gridRow: '1' },
-  { id: 'corner', label: 'burchakda', gridColumn: '1', gridRow: '2' },
-  { id: 'room-centre', label: 'xona o‘rtasida', gridColumn: '2 / span 2', gridRow: '2' },
-  { id: 'beside-wall', label: 'devor yonida', gridColumn: '4', gridRow: '2' },
-  { id: 'beside-table', label: 'stol yonida', gridColumn: '1', gridRow: '3' },
-  { id: 'on-desk', label: 'stol ustida', gridColumn: '2', gridRow: '3' },
-  { id: 'computer-desk', label: 'stol ustida', gridColumn: '3', gridRow: '3' },
-  { id: 'on-floor', label: 'polda', gridColumn: '4', gridRow: '3' },
+  { id: 'picture-wall', label: 'wall', gridColumn: '1', gridRow: '1' },
+  { id: 'tv-wall', label: 'wall', gridColumn: '2 / span 2', gridRow: '1' },
+  { id: 'near-window', label: 'nearWindow', gridColumn: '4', gridRow: '1' },
+  { id: 'corner', label: 'corner', gridColumn: '1', gridRow: '2' },
+  { id: 'room-centre', label: 'centre', gridColumn: '2 / span 2', gridRow: '2' },
+  { id: 'beside-wall', label: 'besideWall', gridColumn: '4', gridRow: '2' },
+  { id: 'beside-table', label: 'besideTable', gridColumn: '1', gridRow: '3' },
+  { id: 'on-desk', label: 'onTable', gridColumn: '2', gridRow: '3' },
+  { id: 'computer-desk', label: 'onTable', gridColumn: '3', gridRow: '3' },
+  { id: 'on-floor', label: 'onFloor', gridColumn: '4', gridRow: '3' },
 ] as const
+
+function coverGridStyle(count: number) {
+  const { columns, rows } = coverGrid(count)
+  return { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }
+}
 
 function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matches: Record<string, string>; onChange: (matches: Record<string, string>) => void }) {
   const t = useT().lesson.game
@@ -1433,15 +1726,9 @@ function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matche
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div><h3 className="font-black text-signal-ink">{lesson.game.title}</h3><p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p></div>
-          <span className="shrink-0 rounded-full bg-ground-raised px-2.5 py-1 text-xs font-black text-signal-ink">{placed}/{lesson.game.pairs.length}</span>
-        </div>
-      </Card>
+      <GameHeader lesson={lesson} count={`${placed}/${lesson.game.pairs.length}`} />
 
       <Card className="overflow-hidden p-3 sm:p-4">
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs font-black text-ink-muted"><span>{t.objects}</span><span>{t.swipe}</span></div>
         <div className="-mx-3 overflow-x-auto px-3 pt-1 pb-2 [scrollbar-width:thin] sm:-mx-4 sm:px-4">
           <div className="flex w-max min-w-full gap-2">
             {remaining.length > 0 ? remaining.map((pair) => (
@@ -1461,17 +1748,18 @@ function RoomBuilder({ lesson, matches, onChange }: { lesson: LessonData; matche
 }
 
 function RoomScene({ matches = {}, selected = null, wrongSlot = null, onSlot }: { matches?: Record<string, string>; selected?: string | null; wrongSlot?: string | null; onSlot?: (slot: string) => void }) {
+  const t = useT().lesson.game
   return (
     <Card className="overflow-hidden p-3 sm:p-4">
-      <div className="relative mx-auto aspect-[4/3] max-w-2xl overflow-hidden rounded-2xl border border-signal/25 bg-[linear-gradient(to_bottom,#dff3ff_0_63%,#d8bd98_63%_100%)] p-2 sm:p-4">
+      <div className="relative mx-auto aspect-[4/3] max-w-2xl overflow-hidden rounded-2xl border border-signal/25 bg-[linear-gradient(to_bottom,var(--color-signal-soft)_0_63%,#d8bd98_63%_100%)] p-2 sm:p-4">
         <div className="absolute top-2 right-3 h-16 w-20 rounded-lg border-4 border-white bg-[#bfe6ff] shadow-inner sm:h-24 sm:w-32"><span className="absolute inset-x-0 top-1/2 border-t-2 border-white" /><span className="absolute inset-y-0 left-1/2 border-l-2 border-white" /></div>
         <div className="relative z-10 grid h-full grid-cols-4 grid-rows-3 gap-1.5 sm:gap-3">
           {roomSlots.map((slot) => {
             const word = Object.entries(matches).find(([, value]) => value === slot.id)?.[0]
             return (
-              <button key={slot.id} type="button" disabled={!onSlot} onClick={() => onSlot?.(slot.id)} style={{ gridColumn: slot.gridColumn, gridRow: slot.gridRow }} className={cx('flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed bg-white/72 p-1 text-center shadow-sm transition sm:p-2', selected && 'hover:border-signal hover:bg-white', wrongSlot === slot.id ? 'animate-pulse border-danger bg-danger-soft' : word ? 'border-milestone bg-milestone-soft/90' : 'border-white/90')}>
+              <button key={slot.id} type="button" disabled={!onSlot} onClick={() => onSlot?.(slot.id)} style={{ gridColumn: slot.gridColumn, gridRow: slot.gridRow }} className={cx('flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed bg-ground-raised/70 p-1 text-center shadow-sm transition sm:p-2', selected && 'hover:border-signal hover:bg-ground-raised', wrongSlot === slot.id ? 'animate-pulse border-danger bg-danger-soft' : word ? 'border-milestone bg-milestone-soft/90' : 'border-ground-raised/90')}>
                 <RoomCellIcon word={word} slot={slot.id} className="size-5 sm:size-6" />
-                <span className={cx('mt-0.5 max-w-full wrap-break-word text-[9px] font-black leading-tight sm:text-xs', word ? 'text-milestone' : 'text-ink-muted')}>{word ? <RussianText text={word} /> : slot.label}</span>
+                <span className={cx('mt-0.5 max-w-full wrap-break-word text-[9px] font-black leading-tight sm:text-xs', word ? 'text-milestone' : 'text-ink-muted')}>{word ? <RussianText text={word} /> : t.slots[slot.label]}</span>
               </button>
             )
           })}
@@ -1486,7 +1774,7 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
   const clues = lesson.game.clues ?? []
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [wrong, setWrong] = useState<string | null>(null)
-  const solved = Object.keys(matches).length
+  const solved = gameProgress(lesson, matches).done
 
   function check(answer: string) {
     const value = (answers[answer] ?? '').trim().toLocaleLowerCase('ru-RU')
@@ -1502,15 +1790,11 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
 
   return (
     <div className="space-y-3">
-      <Card className="border-signal/40 bg-signal-soft/45 p-3 sm:p-4">
-        <h3 className="font-black text-signal-ink">{lesson.game.title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-ink-muted">{lesson.game.instruction}</p>
-      </Card>
+      <GameHeader lesson={lesson} count={`${solved}/${clues.length}`} />
       <Card className="overflow-hidden p-3 sm:p-4">
-        <div className="mb-3 flex items-center justify-between text-xs font-black text-ink-muted"><span>{t.familyPhoto}</span><span>{solved}/{clues.length}</span></div>
         <div className="relative mx-auto aspect-square max-w-md overflow-hidden rounded-2xl bg-signal-soft">
           <img src={lesson.sceneImage} alt={t.familyPhotoAlt} className="h-full w-full object-cover" />
-          <div className="absolute inset-0 grid grid-cols-2 grid-rows-5" aria-hidden="true">
+          <div className="absolute inset-0 grid" style={coverGridStyle(clues.length)} aria-hidden="true">
             {clues.map(({ answer }) => <span key={answer} className={cx('border border-white/25 bg-ink/80 transition-all duration-500', matches[answer] && 'scale-0 opacity-0')} />)}
           </div>
         </div>
@@ -1526,7 +1810,11 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
                   value={done ? answer : answers[answer] ?? ''}
                   disabled={done}
                   lang="ru"
-                  onChange={(event) => setAnswers((current) => ({ ...current, [answer]: event.target.value }))}
+                  aria-invalid={wrong === answer}
+                  onChange={(event) => {
+                    setAnswers((current) => ({ ...current, [answer]: event.target.value }))
+                    if (wrong === answer) setWrong(null)
+                  }}
                   onKeyDown={(event) => { if (event.key === 'Enter') check(answer) }}
                   placeholder={'_ '.repeat(answer.length).trim()}
                   className="min-w-0 flex-1 rounded-xl border border-hairline bg-ground px-3 py-2 text-sm font-black text-ink outline-none focus:border-signal disabled:text-milestone"
@@ -1535,6 +1823,14 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
                 ? <Check aria-hidden="true" strokeWidth={3} className="size-4" />
                 : <ArrowRight aria-hidden="true" strokeWidth={2.4} className="size-4" />}</button>
               </div>
+              {/* A red border alone did not say what was wrong: the word, or only its spelling. */}
+              {wrong === answer && (
+                <p role="status" className="mt-1.5 text-xs font-bold text-danger">
+                  {(answers[answer] ?? '').trim().length === answer.length
+                    ? t.crosswordSpelling
+                    : fill(t.crosswordLength, { count: answer.length })}
+                </p>
+              )}
             </Card>
           )
         })}
@@ -1598,8 +1894,12 @@ function MissionModes({
    * refused microphone printed in success green read as praise.
    */
   const [feedback, setFeedback] = useState<{ kind: 'note' | 'error'; text: string } | null>(null)
-  /** The browser has not asked for the microphone yet in this block — so say it is coming. */
-  const [micAsked, setMicAsked] = useState(false)
+  /**
+   * The browser is asking for the microphone right now. The note explaining that prompt sat
+   * under the mic from the start, as one more line nobody needed yet; it shows while the
+   * browser's own prompt is open, which is when it helps.
+   */
+  const [micPending, setMicPending] = useState(false)
   const [listening, setListening] = useState(false)
   const allAnswered = lesson.questions.every((_, index) => aiAnswered.includes(index))
   const answeredEnough = aiAnswered.length >= aiAnswerTarget(lesson.questions.length)
@@ -1655,8 +1955,8 @@ function MissionModes({
       if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
         throw new VoiceError('mic_unsupported')
       }
-      setMicAsked(true)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      setMicPending(true)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).finally(() => setMicPending(false))
       streamRef.current = stream
       // Keep the permission request inside the learner's tap; Android may reject it after a network await.
       const attempt = await requireAttempt()
@@ -1738,7 +2038,9 @@ function MissionModes({
       const spokenFeedback = [result.feedback.strengthNote, result.feedback.headlineCorrection, result.feedback.pronunciationNote].filter(Boolean).join('. ')
       // The server writes the feedback in the learner's language, so it is read in that voice.
       await speak(spokenFeedback, SPEECH_TAG[locale])
-      onDone?.()
+      // An answer counts only when something was heard: any recording, silence included, used
+      // to tick the question off.
+      if (result.transcript?.trim()) onDone?.()
     } catch (error) {
       setFeedback({ kind: 'error', text: error instanceof RequestError ? error.message : t.checkFailed })
     } finally {
@@ -1755,9 +2057,7 @@ function MissionModes({
 
       {mode === 'dialogue' ? (
         <div>
-          <p className="mb-3 text-sm leading-relaxed text-ink-muted">
-            {t.intro}
-          </p>
+          {/* The instruction is the step's subtitle now, above the card, rather than said twice. */}
           <div className="grid gap-2">
             {lesson.dialogue.slice(0, revealed).map((line, index) => (
               <div key={`${line}-${index}`} className={cx('flex items-start gap-2 rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}>
@@ -1770,19 +2070,38 @@ function MissionModes({
               </div>
             ))}
           </div>
-          <MicButton
-            listening={listening}
-            processing={processing}
-            caption={listening ? t.micStopDialogue : t.micDialogue}
-            onClick={() => void toggleRecording()}
-          />
-          {!micAsked && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
-          <p className="mt-2 text-center text-xs font-black text-ink-faint">{Math.min(revealed, lesson.dialogue.length)} / {lesson.dialogue.length}</p>
+          {/*
+            "Next line" moves the step on, so it is the main action. Recording the whole dialogue
+            is optional practice — it was the largest control here while counting for nothing.
+            The line count sits on the button it belongs to, not under the mic.
+          */}
           <div className="mt-3">
             {dialogueDone
               ? <Button size="lg" block onClick={startAiChat}><span className="whitespace-normal leading-tight">{t.goToAi}</span></Button>
-              : <Button size="lg" block variant="secondary" onClick={revealNext}>{t.nextLine}</Button>}
+              : (
+                <Button size="lg" block onClick={revealNext}>
+                  {t.nextLine}
+                  <span className="ml-1.5 rounded-full bg-on-signal/20 px-2 text-xs tabular-nums">{Math.min(revealed, lesson.dialogue.length)}/{lesson.dialogue.length}</span>
+                </Button>
+              )}
           </div>
+          <div className="mt-3 flex items-center gap-3 rounded-2xl bg-ground-sunken p-2.5">
+            <button
+              type="button"
+              onClick={() => void toggleRecording()}
+              disabled={processing}
+              aria-label={listening ? t.stopRecording : t.mic}
+              className={cx('flex size-10 shrink-0 items-center justify-center rounded-full disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger' : 'bg-signal-soft text-signal-ink')}
+            >
+              {processing
+                ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                : listening
+                  ? <Square aria-hidden="true" strokeWidth={0} className="size-4 fill-current" />
+                  : <Mic aria-hidden="true" strokeWidth={1.9} className="size-5" />}
+            </button>
+            <p className="min-w-0 text-sm font-bold text-ink-muted">{listening ? t.micStopDialogue : t.micDialogue}</p>
+          </div>
+          {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
         </div>
       ) : (
         <div className="text-center">
@@ -1819,7 +2138,7 @@ function MissionModes({
                   if (next !== null) setTimeout(() => goToQuestion(next), 900)
                 })}
               />
-              {!micAsked && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
+              {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
               <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                 {lesson.questions.length > 1 && (
                   <button
@@ -1902,15 +2221,15 @@ function VocabularySection({ words, reviewed, onReviewed }: {
 
   return (
     <>
+      {/* One title and one progress line: the count used to appear twice, plus a third line
+          saying how many to look at. */}
       <Card className="flex flex-wrap items-center gap-3 p-4 sm:flex-nowrap sm:gap-4 sm:p-5">
         <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-signal-soft sm:size-16"><Layers aria-hidden="true" strokeWidth={1.6} className="size-8 text-signal-ink" /></div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-black tracking-[.12em] text-signal-ink uppercase">{fill(t.cards, { count: words.length })}</p>
-          <h3 className="mt-1 text-xl font-black text-ink">{t.deckTitle}</h3>
-          <p className="mt-1 text-sm font-bold text-ink-muted">
-            {reviewed === 0
-              ? fill(t.deckMin, { count: target })
-              : `${fill(t.deckSeen, { seen: Math.min(reviewed, words.length), total: words.length })}${reviewed >= target ? ' ✓' : ` ${fill(t.deckAtLeast, { count: target })}`}`}
+          <h3 className="text-xl font-black text-ink">{t.deckTitle}</h3>
+          <p className="mt-1 text-sm font-bold text-ink-muted tabular-nums">
+            {fill(t.progress, { seen: Math.min(reviewed, words.length), total: words.length, count: target })}
+            {reviewed >= target && <Check aria-hidden="true" strokeWidth={3} className="ml-1 inline size-3.5 text-milestone" />}
           </p>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>{reviewed > 0 && !finishedDeck ? t.resume : t.open}</Button>
@@ -1934,22 +2253,42 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
   onReviewed: (count: number) => void
 }) {
   const t = useT().lesson.vocabulary
+  const closeLabel = useT().lesson.phrases.close
   const dialogRef = useFocusTrap<HTMLDivElement>()
-  const [index, setIndex] = useState(startIndex)
+  /*
+   * The deck as a queue of card indexes. "Don't know" and "review" send a card to the back once,
+   * so it comes round again before the deck closes; every rating used to just move on.
+   */
+  const [queue, setQueue] = useState(() => words.map((_, index) => index).slice(startIndex))
+  const [requeued, setRequeued] = useState<Set<number>>(() => new Set())
   const [flipped, setFlipped] = useState(false)
+  const index = queue[0] ?? 0
   const word = words[index]
-  function rate(sound: UiSound) {
-    playUiSound(sound)
+  const comingBack = queue.filter((card, position) => position > 0 && requeued.has(card)).length
+  function rate(rating: Rating) {
+    // "Don't know" is an honest answer, not a wrong one: it gets the neutral sound, as on the
+    // phrase card.
+    playUiSound(rating === 'known' ? 'coin' : 'select')
     // Rating a card banks it, so closing early keeps everything seen up to this point.
-    onReviewed(index + 1)
-    if (index === words.length - 1) { onClose(); return }
-    setIndex((current) => current + 1)
+    if (!requeued.has(index)) onReviewed(index + 1)
+    const sendBack = rating !== 'known' && !requeued.has(index)
+    const rest = queue.slice(1)
+    const next = sendBack ? [...rest, index] : rest
+    if (sendBack) setRequeued((current) => new Set(current).add(index))
+    if (next.length === 0) { onClose(); return }
+    setQueue(next)
     setFlipped(false)
   }
   return createPortal(
     <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] overflow-y-auto bg-ground p-3 sm:p-6" role="dialog" aria-modal="true">
       <div className="mx-auto flex min-h-full max-w-lg flex-col">
-        <div className="flex items-center justify-between py-2 text-sm font-black text-ink-muted"><span>{index + 1} / {words.length}</span><button type="button" onClick={onClose} className="raised raised-sm flex size-10 items-center justify-center rounded-full border border-hairline text-xl text-ink">×</button></div>
+        <div className="flex items-center justify-between gap-3 py-2 text-sm font-black text-ink-muted">
+          <span className="tabular-nums">
+            {index + 1} / {words.length}
+            {comingBack > 0 && <span className="ml-2 text-caution">{fill(t.comingBack, { count: comingBack })}</span>}
+          </span>
+          <button type="button" onClick={onClose} aria-label={closeLabel} className="raised raised-sm flex size-10 items-center justify-center rounded-full border border-hairline text-xl text-ink">×</button>
+        </div>
         <div className="flex flex-1 items-center py-2">
           <div role="button" tabIndex={0} onClick={() => setFlipped((current) => !current)} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -1962,12 +2301,15 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
               {!flipped ? (
                 <><h2 className="text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="raised raised-signal mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.listenAndRepeat}</SpeechButton></>
               ) : (
-                <><h2 className="text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl">{word.uz}</h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><span className="mt-4 block text-sm font-bold text-ink-muted">{t.tapForFront}</span></>
+                // The back is the translation alone: it used to repeat the front's example
+                // sentence and add a hint to tap, which the card already answers to.
+                <div className="flex min-h-40 items-center justify-center sm:min-h-48"><h2 className="text-center text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl">{word.uz}</h2></div>
               )}
             </div>
           </div>
         </div>
-        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('coin')} className="raised raised-signal rounded-xl bg-signal py-3 text-xs font-black text-on-signal">выучил</button><button type="button" onClick={() => rate('wrong')} className="raised raised-danger-soft rounded-xl border border-danger py-3 text-xs font-black text-danger">не знаю</button><button type="button" onClick={() => rate('select')} className="raised rounded-xl border border-hairline py-3 text-xs font-black text-ink">повторю</button></div>}
+        {/* The labels come from the dictionary: hard-coded Russian could not be read on day one. */}
+        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('known')} className="raised raised-signal rounded-xl bg-signal px-1 py-3 text-xs font-black text-on-signal">{t.known}</button><button type="button" onClick={() => rate('unknown')} className="raised raised-danger-soft rounded-xl border border-danger px-1 py-3 text-xs font-black text-danger">{t.unknown}</button><button type="button" onClick={() => rate('repeat')} className="raised rounded-xl border border-hairline px-1 py-3 text-xs font-black text-ink">{t.again}</button></div>}
       </div>
     </div>, document.body,
   )
@@ -1982,9 +2324,13 @@ function ExerciseSection({ lesson, answer, onAnswerChange }: {
   // Only some days actually put a picture here; the rest are pure writing tasks, so the
   // heading icon should not promise an illustration that never arrives.
   const hasScene = lesson.day === 1 || Boolean(lesson.sceneImage) || lesson.game.kind === 'room-builder'
+  const lessonT = useT().lesson
   const segments = splitBlankSegments(lesson.exercise.starter)
   const hasBlanks = segments.length > 1
   const fullText = fillTemplate(segments, answer)
+  // The sample stays folded: shown up front, it was there to copy before the learner had tried.
+  const [sampleOpen, setSampleOpen] = useState(false)
+  const latinOnly = blankAnswers(lesson.exercise.starter, answer).some((value) => value.trim().length > 0 && !hasRussian(value))
 
   return (
     <Card className="p-4 sm:p-5">
@@ -2024,12 +2370,18 @@ function ExerciseSection({ lesson, answer, onAnswerChange }: {
         </SpeechButton>
       )}
 
-      {lesson.exercise.example && (
+      {latinOnly && <p role="status" className="mt-2 text-sm font-bold text-danger">{lessonT.needRussian}</p>}
+
+      {lesson.exercise.example && (sampleOpen ? (
         <div className="mt-4 rounded-xl border border-hairline bg-ground-sunken p-3">
           <p className="text-xs font-black tracking-[.12em] text-ink-muted uppercase">{t.sample}</p>
           <p className="mt-1.5 text-sm leading-relaxed text-ink"><RussianText text={lesson.exercise.example} /></p>
         </div>
-      )}
+      ) : (
+        <button type="button" onClick={() => setSampleOpen(true)} className="mt-4 block text-sm font-black text-signal-ink underline">
+          {t.showSample}
+        </button>
+      ))}
     </Card>
   )
 }
@@ -2112,21 +2464,20 @@ function BlankInput({ value, onChange }: { value: string; onChange: (value: stri
 function NeighborScene() {
   const t = useT().lesson.missions
   return (
-    <div className="relative mb-4 aspect-[16/10] overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#dff1ff_0_62%,#d7c4a7_62%)]">
+    <div className="relative mb-4 aspect-[16/10] overflow-hidden rounded-2xl bg-[linear-gradient(180deg,var(--color-signal-soft)_0_62%,#d7c4a7_62%)]">
       <div className="absolute top-5 left-1/2 h-24 w-28 -translate-x-1/2 rounded-t-full border-[10px] border-[#a66b43] bg-[#fff4d7] sm:h-36 sm:w-40" />
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-5 sm:gap-10">
         <MascotImage mascot="penguin" className="h-32 w-28 sm:h-48 sm:w-40" />
         <MascotImage mascot="panda" className="h-28 w-28 sm:h-44 sm:w-40" />
       </div>
-      <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-signal-ink">{t.twoNeighbours}</span>
+      <span className="absolute top-3 left-3 rounded-full bg-ground-raised/90 px-3 py-1 text-xs font-black text-signal-ink">{t.twoNeighbours}</span>
     </div>
   )
 }
 
-function CompleteSection({ lesson, recording, onRetry }: {
+function CompleteSection({ lesson, recording }: {
   lesson: LessonData
   recording: 'idle' | 'saving' | 'saved' | 'failed'
-  onRetry: () => void
 }) {
   const dictionary = useT()
   const t = dictionary.lesson.complete
@@ -2146,7 +2497,11 @@ function CompleteSection({ lesson, recording, onRetry }: {
       <MascotImage mascot="penguin" className="mx-auto h-28 w-28 object-contain" />
       <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{fill(t.badge, { day: lesson.day })}</span>
       <h3 className="mt-3 text-3xl font-black text-ink">{t.title}</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage ?? t.body}</p>
+      {/* Only a lesson's own message: the general one said "done" a third time, after the badge
+          and the title, before the outcomes that are the useful part. */}
+      {lesson.completionMessage && (
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage}</p>
+      )}
       <div className="mt-5 grid gap-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
         {/*
           The card's tone is decoration, so it rides on a bar rather than on the words: painting the
@@ -2161,10 +2516,10 @@ function CompleteSection({ lesson, recording, onRetry }: {
           </div>
         ))}
       </div>
+      {/* Saving again is the main button under the card while this shows. */}
       {recording === 'failed' && (
         <div className="mt-4 text-left">
           <ErrorNote>{t.saveFailed}</ErrorNote>
-          <Button variant="secondary" size="sm" className="mt-2" onClick={onRetry}>{t.saveRetry}</Button>
         </div>
       )}
       {recording === 'saved' && nextDay <= 90 && entitlement && (
@@ -2178,37 +2533,9 @@ function CompleteSection({ lesson, recording, onRetry }: {
           )}
         </div>
       )}
-      {lesson.reflection && <ReflectionQuestions reflection={lesson.reflection} />}
+      {/* The lesson data still carries `reflection` questions; the closing card no longer asks them. */}
       {lesson.completionAction && <a href={lesson.completionAction.href} target="_blank" rel="noreferrer" className="raised raised-signal mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-signal px-5 py-2.5 text-sm font-black text-on-signal">{lesson.completionAction.label} <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="inline size-4" /></a>}
     </Card>
-  )
-}
-
-function ReflectionQuestions({ reflection }: { reflection: NonNullable<LessonData['reflection']> }) {
-  const [picked, setPicked] = useState<Record<number, number>>({})
-  return (
-    <div className="mt-5 space-y-3 text-left">
-      {reflection.questions.map((item, questionIndex) => (
-        <div key={item.question} className="rounded-2xl bg-ground-raised p-3 sm:p-4">
-          <p className="text-sm font-black text-ink">{item.question}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {item.options.map((option, optionIndex) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => { setPicked((current) => ({ ...current, [questionIndex]: optionIndex })); playUiSound('select') }}
-                className={cx(
-                  'raised raised-sm rounded-full border-2 px-3 py-1.5 text-xs font-black',
-                  picked[questionIndex] === optionIndex ? 'border-signal bg-signal-soft text-signal-ink raised-signal-soft' : 'border-hairline bg-ground text-ink-muted hover:border-signal',
-                )}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
   )
 }
 
@@ -2243,7 +2570,14 @@ async function speak(text: string, lang: string) {
   }
 }
 
-function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken, rate }: {
+/**
+ * Whether the learner has played anything by hand in this visit. A new AI question plays itself
+ * only after that: sound starting on its own surprised a learner in a quiet room, and a browser
+ * that blocks autoplay before any tap left the button spinning.
+ */
+let audioUnlocked = false
+
+function SpeechButton({ text, lang, children, className, stopPropagation = false, autoPlayToken, rate, icon }: {
   text: string
   lang: string
   /**
@@ -2255,6 +2589,8 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   stopPropagation?: boolean
   autoPlayToken?: string
   rate?: number
+  /** Shown in place of the play glyph while idle — the tongue twister's speed marks. */
+  icon?: ReactNode
 }) {
   const t = useT().lesson.audio
   const id = useId()
@@ -2277,6 +2613,7 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
 
   function toggle(event: React.MouseEvent) {
     if (stopPropagation) event.stopPropagation()
+    audioUnlocked = true
     if (status === 'playing') {
       pausePromptAudio()
       window.speechSynthesis?.pause()
@@ -2303,14 +2640,14 @@ function SpeechButton({ text, lang, children, className, stopPropagation = false
   }, [id])
 
   useEffect(() => {
-    if (autoPlayToken) void start()
+    if (autoPlayToken && audioUnlocked) void start()
     // A token is emitted only when a new AI prompt becomes active.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlayToken])
 
   return (
     <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? t.pause : t.play}>
-      {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
+      {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : icon ?? <PlayGlyph />}
       {children != null && <span>{children}</span>}
     </button>
   )
@@ -2375,6 +2712,8 @@ function RuleSpeechButton({ segments, className, children }: {
       // One voice for the whole passage beats no audio at all when the provider is down.
       const combined = queue.map((segment) => segment.text).join(' ')
       setStatus('playing')
+      // The rule text is lesson content, written in Uzbek whatever the interface language, so
+      // the fallback voice stays Uzbek; Russian words in it are split off to a Russian voice.
       await new Promise<void>((resolve) => speakWithBrowser(combined, 'uz-UZ', resolve))
     } finally {
       if (playingRef.current) setStatus('idle')
@@ -2383,6 +2722,7 @@ function RuleSpeechButton({ segments, className, children }: {
   }
 
   function toggle() {
+    audioUnlocked = true
     if (status === 'playing') {
       pausePromptAudio()
       window.speechSynthesis?.pause()

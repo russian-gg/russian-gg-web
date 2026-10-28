@@ -16,7 +16,16 @@ import { useInstallOffer } from '../lib/pwa'
  * either interrupts something that cannot simply be resumed — the offer waits for the next
  * ordinary screen instead.
  */
-const BUSY = ['/missions/', '/onboarding']
+const BUSY = ['/missions/', '/onboarding', '/lessons/', '/games/', '/tests/blocks/']
+
+/*
+  Signing in waits too: on a small phone the sheet slid over "Kod olish" (Get code) and
+  "Tasdiqlash" (Confirm) while the learner was waiting for the SMS.
+*/
+const AUTH = ['/signin', '/signup', '/reset-password']
+
+/** Pages without the app's bottom tab bar, where the sheet sits on the screen's own edge. */
+const NO_TAB_BAR = ['/', ...AUTH]
 
 /**
  * The offer to put Russian.gg on the phone's home screen.
@@ -35,7 +44,8 @@ export function InstallPrompt() {
   const { offered: ready, how, install, dismiss, never, setNever } = useInstallOffer()
   const [showingSteps, setShowingSteps] = useState(false)
 
-  const offered = ready && !BUSY.some((path) => pathname.startsWith(path))
+  const offered = ready && !BUSY.some((path) => pathname.startsWith(path)) && !AUTH.includes(pathname)
+  const aboveTabBar = !NO_TAB_BAR.includes(pathname)
   const sheet = useRef<HTMLDivElement>(null)
 
   /*
@@ -106,7 +116,7 @@ export function InstallPrompt() {
         role="dialog"
         aria-label={t.install.title}
         // Above the tab bar, clear of the home indicator, and clear of the browser's own bar.
-        className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-50 md:inset-x-auto md:right-6 md:bottom-6 md:w-96"
+        className={`fixed inset-x-3 z-50 md:inset-x-auto md:right-6 md:bottom-6 md:w-96 ${aboveTabBar ? 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))]' : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom))]'}`}
         ref={sheet}
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1, transition: springSoft }}

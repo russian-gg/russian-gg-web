@@ -12,7 +12,7 @@ export function TezGapirCard({ to, requiresPro }: { to: string; requiresPro: boo
   const { locale } = useLocale()
   const copy = copies[locale]
   const label = gameLabels['tez-gapir'][locale]
-  const { play, proRequired } = useT().arcade
+  const { play, proRequired, unlockWithPro } = useT().arcade
 
   return (
     <MotionLink
@@ -55,7 +55,7 @@ export function TezGapirCard({ to, requiresPro }: { to: string; requiresPro: boo
           <span className="mt-2 block text-sm leading-relaxed text-slate-200/90">{label.description}</span>
           <span className="mt-5 flex flex-wrap items-center gap-3">
             <span className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-[#ff6b00] to-[#ff3d00] px-6 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/25 transition-colors group-hover:from-orange-500 group-hover:to-orange-600">
-              <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} /> {play}
+              {requiresPro ? <LockKeyhole aria-hidden="true" className="size-4" /> : <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} />} {requiresPro ? unlockWithPro : play}
             </span>
             <span className="text-xs font-bold text-sky-100/80">{copy.rounds}: 3–5</span>
           </span>

@@ -25,6 +25,7 @@ export const uz = {
     loadFailedBody: 'Internetni tekshirib, sahifani yangilang.',
     offline: "Internet aloqasi yo'q. Ulanishni tekshirib, qayta urinib ko'ring.",
     serverError: "Serverda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.",
+    secondsShort: "{seconds} s",
   },
 
   /**
@@ -53,6 +54,8 @@ export const uz = {
     dayShort: '{day}-kun',
     planNote:
       "Birinchi nuqta — hozir o'lchangani. Qolgani — kunda 10 daqiqa gapirsangiz reja qayerga olib borishi.",
+    headlineFallback: "Gapirish darajangiz: {level}",
+    verdictFallback: "Siz {words} ta ruscha so'z aytdingiz; eng uzun ketma-ketlik — {run} ta so'z.",
   },
 
   /**
@@ -134,6 +137,9 @@ export const uz = {
       questions: ["Ismingiz nima va qayerda ishlaysiz?", "Bugun ertalab nima qildingiz? Ruscha aytishga harakat qiling.", "Do'konda non so'ramoqchisiz. Nima deysiz?", "Taksi haydovchisiga manzilingizni ayting.", "Ishdagi hamkasbingiz bilan tanishing.", "Shifokorga nima og'riyotganini tushuntiring.", "Bozorda narxni so'rang va savdolashing.", "Qo'shningiz bilan ob-havo haqida gaplashing."],
     },
     games: {"arra": {"title": "Arra", "body": "To'xtamay gapiring — jim qolsangiz, arra yaqinlashadi."}, "rod-runner": {"title": "Лёд и род", "body": "Ruscha so'zni to'g'ri rod yo'lagiga olib boring."}, "tez-gapir": {"title": "Tez gapir", "body": "30 soniyada mavzu bo'yicha ruscha gapiring."}, "fight-for-life": {"title": "Помоги!", "body": "Ruscha gapiring — ovozingiz qahramonga kuch beradi."}, "error-hunt": {"title": "Xato ovchisi", "body": "Ruscha gapdagi xatoni toping va tuzating."}, "first-reaction": {"title": "Birinchi reaksiya", "body": "Kutilmagan vaziyatga 5 soniyada javob bering."}, "ice-mystery": {"title": "Muz shahri siri", "body": "Savollar bering, dalillarni toping va sirni oching."}, "soz-ovi": {"title": "So'z ovi", "body": "Rasm bo'yicha ruscha so'zni toping."}, "tez-javob": {"title": "Tez javob", "body": "10 soniyada javob bering."}, "dialog": {"title": "Dialog", "body": "Suhbatni to'g'ri tartibda tuzing."}, "eshitib-top": {"title": "Eshitib top", "body": "Eshitgan gapingizni tanlang."}, "xotira": {"title": "Xotira", "body": "Juftlarni toping — so'z va tarjimasi."}},
+    unlockWithPro: "Pro bilan ochish",
+    emptyTitle: "Hozircha o‘yinlar yo‘q",
+    emptyBody: "O‘yinlar tez orada shu yerda paydo bo‘ladi.",
   },
 
   /**
@@ -165,7 +171,7 @@ export const uz = {
     finish: 'Yakunlash',
     remaining: 'Qolgan vaqt',
 
-    step: '1 qadam',
+    step: "Daraja testi",
     introTitle: 'Rus tili darajangiz haqida aytib bering',
     introBody:
       "Mikrofonni bosing va 40 soniya gapiring. Qayerda qiynalasiz — ishdami, ko'chadami? O'zbekcha aralashtirsangiz ham bo'ladi, savol yo'q, test yo'q.",
@@ -192,6 +198,10 @@ export const uz = {
       nothingHeard: 'Sizni eshitmadik. Mikrofonga ruxsat bering yoki javobni yozib yuboring.',
     },
     continueToHome: "Davom etish",
+    connectFailed: "Ulanib bo'lmadi. Birozdan keyin urinib ko'ring.",
+    micFailed: "Mikrofon ochilmadi. Ruxsat berilganini tekshiring.",
+    saveAndStart: "Rejani saqlab, boshlash",
+    claimFailed: "Natijangiz saqlangan, lekin hozir hisobga ulab bo'lmadi. Sahifani birozdan keyin yangilang — qayta gapirish shart emas.",
   },
 
   lessonOne: {
@@ -264,7 +274,7 @@ export const uz = {
       rules:
         'So‘zni to‘g‘ri rangli uyga sudrang. Telefonda so‘zni, keyin rangli uyni bosing. Har bir to‘g‘ri javob — 10 ball.',
       rulesNote:
-        '🎧 tugmasi orqali urg‘uni tinglang va ovoz chiqarib takrorlang. AI missiyasida to‘g‘ri urg‘u alohida tekshiriladi.',
+        '🎧 tugmasi orqali urg‘uni tinglang va ovoz chiqarib takrorlang. AI suhbatida to‘g‘ri urg‘u alohida tekshiriladi.',
       words: 'So‘zlar',
       points: 'ball',
       house: 'uy',
@@ -280,7 +290,7 @@ export const uz = {
       expected: 'Kutilgan javob: {answer}',
       aiChecks:
         'AI urg‘u (сосе́д, кварти́ра, этаже́), unlilar talaffuzi va javobning to‘liqligini tekshiradi.',
-      readyTitle: 'Ovozli missiyaga tayyormisiz?',
+      readyTitle: 'Ovozli suhbatga tayyormisiz?',
       readyBody:
         'AI yuqoridagi 6 ta savolni ketma-ket beradi. Siz mikrofon orqali javob berasiz; AI urg‘u, talaffuz va javobning to‘liqligini tekshiradi.',
       startAi: '🎙️ 6 ta AI savolini boshlash',
@@ -288,7 +298,7 @@ export const uz = {
       startDialogue: '🐧🐼 Dialogni AI bilan mashq qilish',
       dialogueLoading: 'Dialog tayyorlanmoqda…',
       dialogueFailed: 'Dialogni yuklab bo‘lmadi. Sahifani yangilab ko‘ring.',
-      dialogueMissing: 'Dialog missiyasi topilmadi.',
+      dialogueMissing: 'Suhbat topilmadi.',
     },
 
     vocabulary: {
@@ -344,7 +354,6 @@ export const uz = {
   lesson: {
     eyebrow: '{day}-dars · A1',
     progress: 'Dars progressi',
-    sectionsOf: '{done} / {total} bo‘lim',
     back: '← Orqaga',
     next: 'Davom etish →',
     finishLesson: 'Darsni yakunlash',
@@ -363,19 +372,6 @@ export const uz = {
       genderTale: 'Говори правильно!',
     },
 
-    /** One line under each step name: what the learner is about to do. */
-    sectionNotes: {
-      tests: "Kirish dialogi va yengil test",
-      phonetics: "Talaffuz qoidasi",
-      grammar: "So'zlarni bog'lash va gap tuzish qoidasi",
-      phrases: "15 ta ibora — gif, tarjima va rang kodlari bilan",
-      game: "Mavzu bo‘yicha yangi o‘yin",
-      missions: "Dialogni o‘qish va AI bilan savol-javob",
-      vocabulary: "20 ta karta — so‘z birikmalari va rasmlar",
-      picture: "Ijodiy mashq: matn yoki dialog tuzish",
-      complete: "Refleksiya va dars yakuni",
-    },
-
     gate: {
       tests: 'Davom etish uchun barcha testlarga to‘g‘ri javob bering.',
       phrases: 'Davom etish uchun barcha iboralarni ochib, baholang.',
@@ -390,51 +386,56 @@ export const uz = {
     rule: {
       listen: 'Qoidani tinglash',
       speed: { slow: 'Sekin', normal: 'Oddiy', fast: 'Tez' },
-      tongueTwister: 'Скороговорка · tez aytish mashqi',
-      tongueTwisterHint: 'Avval sekin, keyin oddiy tezlikda, so‘ng tez ayting.',
+      tongueTwister: 'Скороговорка',
       penguinKingdom: 'Pingvin qirolligi',
       pandaKingdom: 'Panda qirolligi',
       featherKingdom: 'Pat qirolligi',
     },
 
     phrases: {
-      intro: "Iborani tanlang. U karta shaklida ochiladi: vaziyat, talaffuz va namuna gap. Davom etish uchun har bir iboraga baho bering: bilaman, bilmayman yoki takrorlayman.",
-      open: 'Kartani oching',
+      intro: "Iborani bosing, tinglang va baholang.",
       close: 'Yopish',
       example: 'Namuna gap',
       repeat: 'Tinglang va takrorlang!',
     },
 
     game: {
-      words: 'So‘zlar',
-      swipe: 'Yon tomonga suring →',
       hearWord: '{word} so‘zini tinglash',
+      houses: { masculine: 'Ko‘k uy', feminine: 'Qizil uy', neuter: 'Sariq uy' },
+      speakers: { penguin: 'Pingvin', panda: 'Panda', pero: 'Pat' },
+      slots: {
+        wall: 'devorda', nearWindow: 'deraza yonida', corner: 'burchakda', centre: 'xona o‘rtasida',
+        besideWall: 'devor yonida', besideTable: 'stol yonida', onTable: 'stol ustida', onFloor: 'polda',
+      },
+      crosswordSpelling: "Harflar soni to‘g‘ri — imloni tekshiring.",
+      crosswordLength: "So‘zda {count} ta harf bor.",
+      describePlace: 'Tasvirlang: {place}',
+      describePlaceholder: 'Это … . Здесь есть …',
       allPlaced: 'Barcha so‘zlar joylashtirildi! ✓',
       wrongHouse: '— bu uyga mos emas, yana urinib ko‘ring',
-      pairs: 'Juftlar',
-      points: 'ball',
       missingFromBag: 'Sumkada nima yo‘q?',
       bagReady: 'Sumka tayyor!',
-      bagBonus: 'Ishga o‘z vaqtida yetib keldingiz. +30 bonus ball!',
+      bagBonus: 'Ishga o‘z vaqtida yetib keldingiz.',
       ready: 'Tayyor',
-      cityMap: 'Shahar xaritasi',
       pickTrueSentenceSuffix: 'haqida to‘g‘ri gapni tanlang:',
       cityDone: 'Shahar xaritasi tayyor!',
-      cityDoneBody: '10 ta sevimli joy haqida to‘g‘ri gap tuzdingiz — 100 ball!',
+      cityDoneBody: '10 ta sevimli joy haqida to‘g‘ri gap tuzdingiz.',
       guestsAndFamily: 'Mehmonlar va oila bir xonada',
       pickPluralSuffix: 'so‘zining ko‘pligini tanlang:',
-      objects: 'Buyumlar',
       roomReady: 'Xona tayyor! ✓',
       wrongPlace: 'Bu buyumning joyi boshqa. Yana urinib ko‘ring.',
       pickSpotSuffix: 'uchun xonadagi mos joyni bosing.',
-      familyPhoto: 'Oilaviy surat',
       familyPhotoAlt: 'Panda va Pingvin bilan oilaviy surat',
+      ruleMasculine: "Undosh yoki «-й» bilan tugaydi — ko‘k uy (мужской род).",
+      ruleFeminine: "«-а» yoki «-я» bilan tugaydi — qizil uy (женский род).",
+      ruleNeuter: "«-о» yoki «-е» bilan tugaydi — sariq uy (средний род).",
     },
 
     missions: {
       practiseDialogue: 'Dialogni mashq qiling',
       aiChat: 'AI bilan suhbat',
-      intro: "Har bir qatorni tinglang. So'ng mikrofonni bosib, butun dialogni ovoz chiqarib o'qing — u bir butun holda tekshiriladi. Keyin AI savollariga javob berasiz.",
+      intro: "Har bir qatorni tinglang va ovoz chiqarib takrorlang.",
+      aiIntro: "Savolni tinglang va ovoz bilan javob bering.",
       goToAi: 'AI bilan suhbatga o‘tish →',
       nextLine: 'Keyingi qator',
       backToDialogue: '← Dialogga qaytish',
@@ -445,7 +446,7 @@ export const uz = {
       emptyRecording: "Ovoz yozilmadi. Mikrofonni bosing, gapiring, tugagach yana bosing.",
       youSaid: "Siz aytdingiz: {text}",
       checkFailed: "Ovozni tekshirib bo'lmadi. Internetni tekshirib, yana urinib ko'ring.",
-      micDialogue: "Bosing va butun dialogni o'qing, tugagach yana bosing.",
+      micDialogue: "O‘zingizni yozib oling: butun dialogni o‘qing (ixtiyoriy).",
       micStopDialogue: "Yozilmoqda… O'qib bo'lgach, to'xtatish uchun bosing.",
       micAnswer: "Bosing, javob bering, tugagach yana bosing.",
       micStopAnswer: "Yozilmoqda… Javob bergach, to'xtatish uchun bosing.",
@@ -459,18 +460,15 @@ export const uz = {
     },
 
     vocabulary: {
-      cards: '{count} ta karta',
-      deckTitle: 'Yangi so‘zlar kolodasi',
+      deckTitle: 'Yangi so‘zlar',
       open: 'Ochish',
       resume: 'Davom ettirish',
       listenAndRepeat: 'Tinglang va takrorlang',
-      tapForFront: 'Old tomon uchun kartani bosing',
       known: "Bilaman · выучил",
       unknown: "Bilmayman · не знаю",
       again: "Takrorlayman · повторю",
-      deckMin: "Kamida {count} ta kartani ko‘ring",
-      deckSeen: "Ko‘rildi: {seen} / {total}",
-      deckAtLeast: "(kamida {count})",
+      progress: '{seen} / {total} · kamida {count}',
+      comingBack: '+{count} takrorlash uchun',
     },
 
     exercise: {
@@ -479,13 +477,12 @@ export const uz = {
       placeholder: 'Javobingizni shu yerga yozing…',
       listenToText: 'Matnni tinglash',
       sample: 'Namuna',
+      showSample: 'Namunani ko‘rsatish',
     },
 
     complete: {
       badge: '{day}-dars muvaffaqiyatli tugadi',
       title: 'Ajoyib!',
-      body:
-        'Bugungi iboralar, qoida, o‘yin va ovozli mashqlar yakunlandi. Yangi bilimlarni keyingi suhbatda ishlating.',
       saveFailed: "Dars natijasi saqlanmadi. Internetni tekshirib, qayta urinib ko'ring.",
       saveRetry: "Qayta saqlash",
       nextOpened: "{day}-kun ochildi",
@@ -498,6 +495,13 @@ export const uz = {
       play: 'Tinglash',
       pause: 'Pauza',
     },
+    stepMap: 'Dars bo‘limlari',
+    needRussian: 'Ruscha harflar bilan yozing.',
+    saving: 'Saqlanmoqda…',
+    finishAnyway: 'Baribir yakunlash',
+    showTask: 'Vazifaga o‘tish',
+    tryAgainLook: "Yana urinib ko‘ring — savoldagi so‘zga e'tibor bering.",
+    rightAnswerIs: "To‘g‘ri javob:",
   },
 
   dayPreview: {
@@ -508,6 +512,12 @@ export const uz = {
     repeat: 'Darsni takrorlash',
     close: 'Yopish',
     lessonDay: '{day}-dars',
+    progressOf: '{done} / {total} bo‘lim',
+    statPhrases: 'Iboralar',
+    statWords: 'Yangi so‘zlar',
+    statQuestions: 'AI savollar',
+    statSections: 'Bo‘limlar',
+    countValue: '{count} ta',
     sections: 'bo‘lim',
     completed: 'Yakunlangan',
     dayBadge: '{day}-kun',
@@ -674,7 +684,7 @@ export const uz = {
       proBadge: 'Ommabop',
       proBody: "Oyiga yo'lning 30 kuni",
       proFeatures: [
-        "Har oy 30 kunlik missiyalar",
+        "Har oy 30 kunlik darslar",
         "Har kuni ovozli mashq",
         "Barcha o'yinlar",
         'Progress va tuzatishlar tahlili',
@@ -785,7 +795,7 @@ export const uz = {
     usePhoneInstead: 'Telefon raqami bilan davom etish',
     signInFailed: "Kirishda xatolik. Qayta urinib ko'ring.",
     signUpFailed: "Ro'yxatdan o'tishda xatolik. Qayta urinib ko'ring.",
-    invalidCredentials: "Telefon raqami/email yoki parol noto'g'ri.",
+    invalidCredentials: "Raqam yoki parol noto'g'ri. Hisobingiz yo'qmi? Ro'yxatdan o'ting.",
     accountInactive: 'Bu hisob faol emas.',
     invalidEmail: "To'g'ri email manzilini kiriting.",
     emailTaken: 'Bu email bilan hisob allaqachon mavjud.',
@@ -839,6 +849,8 @@ export const uz = {
         email_taken: 'Bu pochta manzili boshqa profilga biriktirilgan.',
         phone_not_registered: "Bu raqam bilan hisob topilmadi. Ro'yxatdan o'ting yoki Google bilan kiring.",
       },
+      noSms: "SMS kelmadimi? Raqamni tekshiring yoki",
+      noSmsTelegram: "Telegram orqali yozing",
     },
   },
 
@@ -1053,6 +1065,7 @@ export const uz = {
 
   preview: {
     whatToExpect: 'Nimani kutish mumkin',
+    whatYouLearn: 'Bu darsda nimani o‘rganasiz',
     missionEyebrow: 'Topshiriq',
     goal: 'Maqsad',
     time: 'Vaqt',
@@ -1124,7 +1137,7 @@ export const uz = {
     rule: 'Qoida',
     next: 'Keyingi savol',
     seeResults: "Natijalarni ko'rish",
-    reviewTitle: 'Itoglar',
+    reviewTitle: 'Natijalar',
     score: "{correct}/{total} to'g'ri",
     backToTests: 'Testlarga qaytish',
     notAnswered: 'Javob berilmagan',
@@ -1233,7 +1246,7 @@ export const uz = {
     retriesLeft: "Yana {count} ta urinish qoldi",
     cooldownTitle: "Biroz kuting",
     cooldownBody:
-      "Bu suhbatni {time} dan so'ng qayta boshlashingiz mumkin. Shu vaqt ichida keyingi missiyaga o'tsangiz bo'ladi.",
+      "Bu suhbatni {time} dan so'ng qayta boshlashingiz mumkin. Shu vaqt ichida boshqa topshiriqqa o'tsangiz bo'ladi.",
     cooldownOk: "Tushunarli",
     cooldownNext: "Boshqa topshiriqni tanlash",
     failedBody: "Sizning balingiz {score}%. O'tish uchun kamida {pass}% kerak.",
@@ -1241,6 +1254,7 @@ export const uz = {
     attemptsValue: "{count} ta, so'ng {hours} soat tanaffus",
     attemptsAhead: "{count} ta urinish bor. Hech biri o'tmasa, {hours} soat kutasiz.",
     lastAttempt: "Oxirgi urinish — o'tmasa, {hours} soat tanaffus.",
+    micPrimer: "Mikrofonga ruxsat so'raladi — «Ruxsat berish»ni bosing. {character} birinchi gapiradi, keyin siz javob berasiz.",
   },
 
   missionLive: {
@@ -1393,6 +1407,10 @@ export const uz = {
     movedToDay: 'Siz {day}-kunga o‘tdingiz.',
     retryPrompt: "Yana bir bor urinib ko'ring — iboralar endi tanish.",
     wentWell: "Yaxshi chiqqani:",
+    strengthTitle: "Yaxshi tomoni",
+    retryTitle: "Yana bir urinamiz",
+    currentStep: "Hozirgi qadam",
+    stepPending: "Hali bajarilmagan",
   },
 
   billing: {
@@ -1492,6 +1510,7 @@ export const uz = {
     cancelFailed: "Obunani bekor qilib bo'lmadi. Qayta urinib ko'ring.",
     freeDayOne: "Birinchi kun",
     freeDaysRange: "1–{last}-kunlar",
+    cancelConfirmBody: "Pro {date} gacha ishlashda davom etadi, keyin hisobingiz bepul rejaga o'tadi.",
   },
 
   profile: {
@@ -1606,6 +1625,7 @@ export const uz = {
       productAnalyticsBody:
         "Qaysi mashqlar foydali ekanini tushunish uchun anonim foydalanish ma'lumotlari.",
     },
+    deleteProWarning: "Sizda {date} gacha Pro bor. Hisob o'chirilsa, qolgan muddat qaytarilmaydi.",
   },
 
   feedbackPage: {
@@ -1668,7 +1688,7 @@ export const uz = {
   },
 
   lessonFeedback: {
-    eyebrow: "{days} kunlik darslar ortda qoldi",
+    eyebrow: "{days} kunlik darsni tugatdingiz! 🎉",
     title: "Fikringiz biz uchun muhim",
     body: "Bir daqiqa vaqt ajrating — javoblaringiz darslarni yanada yaxshilashga yordam beradi.",
     satisfactionQuestion: "O'tgan darslardan qanchalik mamnunsiz?",
@@ -1777,7 +1797,7 @@ export const uz = {
     neverShow: "Boshqa ko'rsatilmasin",
     title: "Ilovani telefoningizga o'rnating",
     body: "Bosh ekrandan bir bosishda ochiladi — brauzer ham, manzil terish ham kerak emas.",
-    action: 'Yuklab olish',
+    action: "O'rnatish",
     later: 'Keyinroq',
     close: 'Yopish',
     howTitle: "Qanday o'rnatiladi",

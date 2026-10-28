@@ -620,11 +620,13 @@ export function CheckCircle({
   )
 }
 
-export function Spinner({ label = 'Yuklanmoqda' }: { label?: string }) {
+export function Spinner({ label }: { label?: string }) {
+  // In the learner's language: it said "Yuklanmoqda" to everyone.
+  const loading = useT().common.loading
   return (
     <div className="flex items-center justify-center gap-3 py-12 text-ink-faint" role="status">
       <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-signal" strokeWidth={2.4} />
-      <span className="text-sm">{label}…</span>
+      <span className="text-sm">{label ?? loading}…</span>
     </div>
   )
 }

@@ -180,10 +180,20 @@ export function MissionBrief({ mission }: MissionBriefProps) {
           variant={locked ? 'secondary' : 'primary'}
           aria-disabled={locked}
           className={locked ? 'opacity-60' : undefined}
-          onClick={() => (locked ? setShowCooldown(true) : navigate(`/missions/${mission.summary.id}/live`))}
+          onClick={() =>
+            locked
+              ? setShowCooldown(true)
+              : navigate(`/missions/${mission.summary.id}/live`, { state: { autostart: true } })
+          }
         >
           {locked ? copy.retryLocked : copy.start}
         </Button>
+        {/* Said before the browser asks, so the permission prompt is expected, not a surprise. */}
+        {!locked && (
+          <p className="text-center text-xs leading-relaxed text-ink-muted">
+            {fill(copy.micPrimer, { character: name })}
+          </p>
+        )}
         <p className="text-center text-xs font-semibold text-ink-faint">
           {locked && remaining
             ? fill(copy.cooldownBody, { time: remaining })

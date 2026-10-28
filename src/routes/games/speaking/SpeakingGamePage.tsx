@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { ArrowRight, Headphones } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Spinner } from '../../../components/ui'
@@ -48,6 +49,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
   const [catalog, setCatalog] = useState<SpeakingGame | null>(null)
   const [dashboard, setDashboard] = useState<GameDashboard | null>(null)
   const [session, setSession] = useState<GameSession | null>(null)
+  const [confirmingEnd, setConfirmingEnd] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -452,7 +454,7 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
             {isMystery && <div className="mt-8"><Evidence session={session} copy={copy} /></div>}
           </>}
           {slug === 'error-hunt' && <ErrorHuntProgress session={session} copy={copy} />}
-          {(!answering || pending) && <div className="mt-10 text-center"><Button variant="ghost" disabled={busy} onClick={() => { if (window.confirm(copy.endConfirm)) void command('end') }}>{copy.finish}</Button></div>}
+          {(!answering || pending) && <div className="mt-10 text-center"><Button variant="ghost" disabled={busy} onClick={() => setConfirmingEnd(true)}>{copy.finish}</Button><ConfirmDialog open={confirmingEnd} title={copy.finish} body={<p>{copy.endConfirm}</p>} confirmLabel={copy.finish} onConfirm={() => { setConfirmingEnd(false); void command('end') }} onCancel={() => setConfirmingEnd(false)} /></div>}
         </>}
       </>}
     </div>

@@ -1535,6 +1535,7 @@ function ConversationThread({
   audioAvailable: boolean
   onListen: (text: string) => void
 }) {
+  const threadCopy = useT().result
   const endRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -1565,7 +1566,7 @@ function ConversationThread({
                 }`}
               >
                 <p className="text-sm font-semibold text-ink-muted">
-                  {message.passed ? 'Yaxshi tomoni' : 'Yana bir urinamiz'}
+                  {message.passed ? threadCopy.strengthTitle : threadCopy.retryTitle}
                 </p>
                 <p className="mt-1 text-base leading-relaxed text-ink">{message.strength}</p>
                 <p className="mt-2 border-t border-hairline pt-2 text-base leading-relaxed text-ink">
@@ -1988,6 +1989,7 @@ function shortStepLabel(step: MissionDetail['steps'][number], t: Dictionary) {
 }
 
 function CheckMark({ done, current }: { done: boolean; current: boolean }) {
+  const stepCopy = useT().result
   if (done) {
     return (
       <span
@@ -2005,7 +2007,7 @@ function CheckMark({ done, current }: { done: boolean; current: boolean }) {
       className={`mt-0.5 size-4 shrink-0 rounded-full border-2 ${
         current ? 'border-signal' : 'border-hairline'
       }`}
-      aria-label={current ? 'Hozirgi qadam' : 'Hali bajarilmagan'}
+      aria-label={current ? stepCopy.currentStep : stepCopy.stepPending}
       role="img"
     />
   )
