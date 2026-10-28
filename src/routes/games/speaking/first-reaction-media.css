@@ -6,7 +6,7 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: inherit;
-  background: #3f346e;
+  background: #f6c5a7;
 }
 
 .first-reaction-media picture,
@@ -21,6 +21,9 @@
   object-fit: cover;
 }
 
-.first-reaction-media--compact img {
-  object-fit: contain;
+.first-reaction-media__fallback {
+  display: grid;
+  place-items: center;
+  color: #8d4a40;
+  background: radial-gradient(ellipse at 35% 30%, #fff4dc, #f6c5a7 70%);
 }

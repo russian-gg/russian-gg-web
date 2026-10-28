@@ -68,7 +68,7 @@ scenario('first-reaction inaccessible shelf entry preserves paywall link', { slu
 })
 
 for (const [size, width] of [['mobile', 320], ['desktop', 1280]]) {
-  scenario(`first-reaction frozen preparation media hints ${size}`, { slug: 'first-reaction', size, viewport: { width, height: 960 } }, async (h) => {
+  scenario(`first-reaction unified situation waits for microphone ${size}`, { slug: 'first-reaction', size, viewport: { width, height: 960 } }, async (h) => {
     await h.open()
     await button(h.page, 'Panda').click()
     await h.page.getByRole('radio', { name: 'B1', exact: true }).check()
@@ -83,36 +83,57 @@ for (const [size, width] of [['mobile', 320], ['desktop', 1280]]) {
     await h.page.getByRole('heading', { name: h.session().prompt.textRu, exact: true }).waitFor()
     assert.equal(await h.page.locator('.fr-hints span').count(), 2)
     assert.equal(await h.page.getByRole('timer').count(), 0)
-    assert.equal(await h.page.locator('.fr-mic-core').count(), 0)
+    assert.equal(await h.page.locator('.fr-mic-core').count(), 1)
+    assert.equal(await h.page.locator('.fr-ready-heading, .fr-end').count(), 0)
+    assert.equal(await button(h.page, 'Ready').innerText(), '')
+    assert.equal(await button(h.page, 'Listen to the situation').innerText(), '')
+    assert.equal(await button(h.page, 'Type an answer').innerText(), '')
+    assert.equal(await button(h.page, 'Finish game').innerText(), '')
     assert.deepEqual(await h.page.evaluate(() => window.__gameSpeech.snapshot()), [])
     const images = h.page.locator('.fr-scene-visual img')
     assert.ok(await images.count() > 0)
     for (const image of await images.all()) {
       await image.evaluate((element) => element.decode())
       assert.ok(await image.evaluate((element) => element.complete && element.naturalWidth > 0))
-      assert.match(await image.evaluate((element) => element.currentSrc), /\.svg$/, 'reduced motion uses the still scene')
+      assert.match(await image.evaluate((element) => element.currentSrc), /\/media-v2\/talking_cat\.webp$/, 'reduced motion uses the still scene')
     }
     await h.page.clock.fastForward(60000)
     assert.equal(h.calls('begin').length, 0)
     assert.equal(h.calls('answer').length, 0)
     assert.equal(h.session().deadlineUtc, null)
     await screenshot(h.page, `reaction-preparation-${size}`)
+    const sceneBefore = await h.page.locator('.fr-scene-visual').evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height }
+    })
+    const sourceBefore = await images.first().getAttribute('src')
+    await begin(h)
+    const sceneAfter = await h.page.locator('.fr-scene-visual').evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height }
+    })
+    assert.deepEqual(sceneAfter, sceneBefore, 'the situation stays in place and keeps its size when the microphone activates')
+    assert.equal(await images.first().getAttribute('src'), sourceBefore)
+    assert.equal(await h.page.locator('.fr-mic-core').count(), 1)
+    assert.equal(await button(h.page, 'Finish answer').innerText(), '')
+    assert.equal(await h.page.getByRole('timer').getAttribute('aria-label'), '20 seconds')
+    await screenshot(h.page, `reaction-active-${size}`)
   })
 }
 
-scenario('first-reaction animated local GIF loads with motion enabled', { slug: 'first-reaction' }, async (h) => {
+scenario('first-reaction animated local scene loads with motion enabled', { slug: 'first-reaction' }, async (h) => {
   await h.page.emulateMedia({ reducedMotion: 'no-preference' })
   await h.start()
   const image = h.page.locator('.fr-scene-visual img')
   await image.evaluate((element) => element.decode())
-  assert.match(await image.evaluate((element) => element.currentSrc), /\/games\/first-reaction\/media\/talking_cat\.gif$/)
+  assert.match(await image.evaluate((element) => element.currentSrc), /\/games\/first-reaction\/media-v2\/talking_cat\.anim\.webp$/)
   assert.ok(await image.evaluate((element) => element.naturalWidth > 0))
   assert.equal(h.calls('begin').length, 0)
 })
 
 scenario('first-reaction unavailable GIF and poster preserve readable preparation', { slug: 'first-reaction' }, async (h) => {
   await h.page.emulateMedia({ reducedMotion: 'no-preference' })
-  await h.page.route('**/games/first-reaction/media/talking_cat.*', (route) => route.fulfill({ status: 404, body: '' }))
+  await h.page.route('**/games/first-reaction/media-v2/talking_cat.*', (route) => route.fulfill({ status: 404, body: '' }))
   await h.start()
   await h.page.locator('.first-reaction-media__fallback').waitFor()
   assert.equal(await h.page.locator('.fr-scene-visual img').count(), 0)
