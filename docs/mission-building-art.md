@@ -154,12 +154,37 @@ If a tool forgets the style partway, re-upload the reference and resend the styl
 
 ---
 
-## Map background (send in the same chat)
+## Map background: the endless road
 
-**field-desktop.webp** (16:9)
-> Now draw a top-down view of a wide green meadow for a game level map in the same style: a winding sandy dirt path from bottom-left to top-right with gentle curves, trees and bushes in small groups, wildflowers, a few rocks, a small river with a wooden bridge in one corner, soft white clouds at the top edges. No buildings, no text, no people. Wide 16:9.
+The map is one background tile repeated vertically, one copy per 6 missions, so the road can
+grow forever. The tile must therefore be **seamless top-to-bottom**: the road leaves the top
+edge at exactly the same place, width and angle where it enters the bottom edge, and the ground,
+light and colours match along both edges.
 
-**field-phone.webp** (9:16)
-> Same meadow, but tall 9:16: the sandy path winds from the bottom upward in an S shape to the top. No buildings, no text, no people.
+Send it in a new chat with `mission_1.png` and `mission_2.png` uploaded as the style reference,
+so the road matches the buildings.
 
-**Leave room for the buildings:** paths with wide, empty grass bends work best. The buildings are placed on top of the path in the app, so the background must stay empty.
+**mission-road.webp** (portrait 2:3, for example 1024×1536)
+
+> Draw a seamless, vertically tileable background for a mobile language-learning game map, in the same isometric 3D game style, colours and soft warm lighting as the reference images.
+>
+> Scene: a friendly city-edge landscape seen from above at an isometric angle. One single winding asphalt road with a pale curb and white dashed centre line snakes from the bottom edge to the top edge in a smooth S-curve, making exactly three wide bends (left, right, left). The road is the only path; it never branches and never leaves the picture at the sides.
+>
+> Seamless rule (most important): the road crosses the BOTTOM edge and the TOP edge at the exact same horizontal position (the centre of the image), at the same width and the same straight vertical direction, so that two copies of the image stacked one above the other form one continuous road with no visible seam. The ground colour, shadows and lighting along the top edge and bottom edge must match each other exactly. No objects may be cut by the top or bottom edge.
+>
+> Around the road: soft pastel ground in lilac, warm peach and light sky blue, gentle rolling hills, small rounded islands of green grass with round leafy trees, slim cypress trees, flower bushes and a few smooth rocks. Add small details that suit a journey through a Russian-speaking city: a few classic black street lamps along the curb, white birch trees among the green trees, a short metal guard rail on the outer side of bends, a small wooden bench.
+>
+> Inside each of the six bends, on both sides of the road, leave a flat, empty, slightly lighter clearing (roughly the size of a small house) right next to the curb. These clearings must stay empty: game buildings will be placed there later.
+>
+> Style: clean, bright, cheerful, high detail, soft shadows falling down-right, no harsh contrast. No buildings, no houses, no cars, no people, no animals, no text, no letters, no signs with words, no logos, no watermark, no frame or border, no vignette, no clouds covering the road.
+
+**If the tool can't make it seamless by itself** (most can't do it perfectly):
+
+1. Open the image in Photopea (free) → Filter → Other → Offset, vertical = half the image height, wrap around. The old top and bottom edges now meet in the middle of the image.
+2. Paint over that middle seam with the Healing Brush or Clone Stamp until the road and ground flow through it.
+3. Run Offset again with the same value to put it back. The top and bottom edges now match.
+4. Test it: stack two copies on top of each other and look at the join.
+
+**Desktop variant** (only if the portrait tile looks too tall on wide screens): same prompt, but "landscape 16:9, the road enters at the bottom-centre and leaves at the top-centre, making two wide bends", and apply the same seamless rule.
+
+**Export:** webp, about 1600 px wide, quality ~80, as `russian-gg-web/src/assets/images/mission-road.webp`.
