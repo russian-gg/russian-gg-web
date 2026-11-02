@@ -25,6 +25,10 @@ import { Meter } from '../motion'
  * a speaking practice — and what the learner will get from it, in the mission's own objective
  * rather than a category name.
  *
+ * The day's number and the title share the top line, and nothing else is written above or
+ * under them: the "DARS · KUNDALIK HAYOT" kicker, the objective paragraph and the "7 / 9
+ * bo'lim" status only restated what the title, the bar and the button already say.
+ *
  * A lesson the learner has already begun shows how far they got — sections done out of the
  * lesson's nine, as a bar — and its button says "continue". That progress is the lesson
  * player's own, kept in this browser, the same figure the ninety-day path shows for the day.
@@ -41,7 +45,6 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
   const [previewOpen, setPreviewOpen] = useState(false)
 
   const title = pickContent(locale, { uz: mission.titleUz, ru: mission.titleRu, en: mission.titleEn })
-  const objective = pickContent(locale, { uz: mission.objectiveUz, ru: mission.objectiveRu, en: mission.objectiveEn })
   // A day with an authored lesson opens the lesson; anything else is a speaking practice.
   const isLesson = !mission.isDialogue && hasFoundationLesson(mission.courseDay)
   const lock = missionLock(mission)
@@ -89,30 +92,24 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
             : 'shadow-[0_8px_24px_rgb(15_115_85/0.06)] hover:-translate-y-0.5 hover:border-signal/55 hover:shadow-[0_10px_28px_rgb(22_24_29/0.08)]',
         )}
       >
-        {mission.courseDay != null && (
-          <span
-            aria-hidden="true"
-            className="flex size-16 shrink-0 flex-col items-center justify-center self-start rounded-2xl bg-signal-soft text-signal-ink"
-          >
-            <span className="text-2xl leading-none font-black tabular-nums">{mission.courseDay}</span>
-            <span className="mt-1 text-[11px] leading-none font-extrabold tracking-wide uppercase">{t.home.dayUnit}</span>
-          </span>
-        )}
-
         <span className="block min-w-0 flex-1">
-          <span className="block text-xs font-black tracking-[.12em] text-signal-ink uppercase">
-            {isLesson ? t.home.kindLesson : t.home.kindPractice}
-            <span className="text-ink-faint"> · {t.labels.category[mission.category]}</span>
+          <span className="flex items-center gap-3 sm:gap-4">
+            {mission.courseDay != null && (
+              <span
+                aria-hidden="true"
+                className="flex size-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-signal-soft text-signal-ink sm:size-16"
+              >
+                <span className="text-2xl leading-none font-black tabular-nums">{mission.courseDay}</span>
+                <span className="mt-1 text-[11px] leading-none font-extrabold tracking-wide uppercase">{t.home.dayUnit}</span>
+              </span>
+            )}
+            <span className="flex min-w-0 items-start gap-2">
+              <span className="min-w-0 text-xl leading-snug font-extrabold wrap-break-word text-ink sm:text-2xl">{title}</span>
+              {mission.isCompleted && <CompletedGlyph label={t.path.done} />}
+            </span>
           </span>
 
-          <span className="mt-1.5 flex items-start gap-2">
-            <span className="min-w-0 text-xl leading-snug font-extrabold wrap-break-word text-ink sm:text-2xl">{title}</span>
-            {mission.isCompleted && <CompletedGlyph label={t.path.done} />}
-          </span>
-
-          {objective && <span className="mt-1.5 line-clamp-2 block text-sm leading-6 text-ink-muted">{objective}</span>}
-
-          <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-ink-muted">
+          <span className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-ink-muted">
             <span className="inline-flex items-center gap-1.5">
               <Clock aria-hidden="true" strokeWidth={1.9} className="size-4" />
               {/* A lesson is nine sections, not a fixed number of minutes; a conversation has a real time. */}
@@ -126,19 +123,6 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
                 {fill(t.home.phrases, { count: mission.targetPhraseCount })}
               </span>
             )}
-            <span className={cx('inline-flex items-center gap-2', mission.isCompleted && 'text-milestone')}>
-              <span
-                aria-hidden="true"
-                className={cx('size-2 rounded-full', mission.isCompleted ? 'bg-milestone' : started || best !== null ? 'bg-signal' : 'bg-ink-faint')}
-              />
-              {mission.isCompleted
-                ? t.path.done
-                : started
-                  ? `${sectionsDone} / ${sectionsTotal} ${t.dayPreview.sections}`
-                  : best !== null
-                    ? fill(t.practice.bestScore, { score: best })
-                    : t.home.notStarted}
-            </span>
           </span>
 
           {/* A started lesson shows how far it has got; nothing is drawn for one nobody has opened. */}
