@@ -6,12 +6,10 @@
  * the lesson content into their bundle to find out. `foundation-lessons.ts` types its registry
  * from this tuple, so a day added to one and not the other fails the typecheck.
  *
- * The days are not contiguous: 16 and 20 have no lesson yet and keep the voice player.
+ * Days 1–25 are all lessons now; the days after them keep the voice player.
  */
 export const FOUNDATION_LESSON_DAYS = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-  17, 18, 19,
-  21, 22, 23, 24, 25,
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
 ] as const
 
 export type FoundationLessonDay = (typeof FOUNDATION_LESSON_DAYS)[number]

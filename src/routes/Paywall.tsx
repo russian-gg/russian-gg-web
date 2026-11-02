@@ -136,6 +136,12 @@ export function Paywall() {
     return () => window.clearInterval(timer)
   }, [welcomeGift?.expiresAt, welcomeGift?.isDiscountActive])
 
+  // The view is reported from here, not from /billing/plans: the app shell and the course path
+  // fetch the prices too, and counting that call counted every free learner opening the app.
+  useEffect(() => {
+    track('paywall_viewed')
+  }, [])
+
   useEffect(() => {
     setPromoPreview(null)
     setPromoFeedback(null)

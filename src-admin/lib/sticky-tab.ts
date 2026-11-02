@@ -27,7 +27,7 @@ export function useStickyTab<T extends string>(key: string, options: readonly T[
 
   /*
    * Re-checked when the options change, not only on mount: a tab can disappear while the
-   * screen is open — the demo tab only exists on a build that has the feature — and the state
+   * screen is open — the agent settings tab only exists for an Admin account — and the state
    * would otherwise keep pointing at it.
    */
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { adminFetch, formatDate, formatDateTime, formatNumber, useAdminQuery } from '../lib/api'
+import { adminFetch, formatDate, formatDateTime, formatNumber, session, useAdminQuery } from '../lib/api'
 import { useStickyTab } from '../lib/sticky-tab'
 import type {
   SalesMessage,
@@ -47,6 +47,13 @@ const statusTone = {
 } as const
 
 const SALES_TABS = ['dashboard', 'inbox', 'settings'] as const
+
+/*
+ * A sales account works the inbox; the bot itself — token, webhook, prompt, whether it writes
+ * first — is Admin's, and the API refuses the settings to anybody else. The tab is left out
+ * rather than shown and refused, because any 403 signs the panel out.
+ */
+const INBOX_TABS = ['dashboard', 'inbox'] as const satisfies ReadonlyArray<(typeof SALES_TABS)[number]>
 
 /** How many chats a page of the inbox holds, and how many each press of "more" adds. */
 const PAGE = 20
@@ -119,7 +126,8 @@ const EMPTY: Record<SalesFolder, string> = {
 }
 
 export function Sales() {
-  const [tab, setTab] = useStickyTab('sales', SALES_TABS)
+  const isAdmin = session.role() === 'Admin'
+  const [tab, setTab] = useStickyTab<(typeof SALES_TABS)[number]>('sales', isAdmin ? SALES_TABS : INBOX_TABS)
 
   /*
    * Asked for from here rather than from the inbox, because the badge has to be right on the
@@ -143,7 +151,7 @@ export function Sales() {
     { id: 'dashboard', label: 'Sotuv paneli', Glyph: DashboardGlyph },
     // Conversations waiting, not messages: five from one person is one thing to answer.
     { id: 'inbox', label: 'Suhbatlar', Glyph: InboxGlyph, badge: unread?.chats },
-    { id: 'settings', label: 'Agent sozlamalari', Glyph: SlidersGlyph },
+    ...(isAdmin ? [{ id: 'settings' as const, label: 'Agent sozlamalari', Glyph: SlidersGlyph }] : []),
   ]
 
   return (
@@ -201,7 +209,7 @@ export function Sales() {
 
       {tab === 'dashboard' && <SalesDashboardTab />}
       {tab === 'inbox' && <Inbox waiting={unread?.chats ?? 0} />}
-      {tab === 'settings' && <AgentSettings />}
+      {tab === 'settings' && isAdmin && <AgentSettings />}
     </Screen>
   )
 }
@@ -1093,6 +1101,8 @@ function AgentSettings() {
         body: JSON.stringify({
           systemPrompt: draft.systemPrompt,
           isEnabled: draft.isEnabled,
+          // Left out when an older API never sent it, so the save leaves the stored value alone.
+          proactiveEnabled: draft.proactiveEnabled,
           webhookUrl: draft.webhookUrl,
           siteBaseUrl: draft.siteBaseUrl,
           // Empty means "keep the one you have": the field starts empty every time, because
@@ -1174,9 +1184,11 @@ function AgentSettings() {
             className="h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 font-mono text-sm text-ink focus:border-signal focus:outline-none"
           />
           {/* Not the webhook. That one is the API; these two are different hosts here, and a
-              demo link built from the wrong one is a dead link sent to somebody interested. */}
+              sign-up or payment link built from the wrong one is a dead link sent to somebody
+              interested. */}
           <span className="mt-1.5 block text-xs text-ink-faint">
-            Demo havolalari shu manzildan yasaladi — API emas, foydalanuvchi ochadigan sayt.
+            Ro'yxatdan o'tish va to'lov havolalari shu manzildan yasaladi — API emas,
+            foydalanuvchi ochadigan sayt.
           </span>
         </label>
 
@@ -1212,6 +1224,32 @@ function AgentSettings() {
         O'chirilganda bot xabarlarni yozib boradi, lekin javob bermaydi.
       </p>
 
+      {/*
+        The bot writing first: reminders after the paywall, an unfinished checkout, a failed
+        payment, days without a lesson, and the tap-to-answer surveys. Off until somebody turns
+        it on here, and it needs the agent on as well. The rules that keep it polite are the
+        server's — 9:00 to 21:00, one a day, three a week, silence after two unanswered.
+        Hidden on an API too old to have it, rather than shown as a switch that saves nothing.
+      */}
+      {draft.proactiveEnabled !== undefined && (
+        <>
+          <Checkbox
+            checked={draft.proactiveEnabled}
+            onChange={(checked) => setDraft({ ...draft, proactiveEnabled: checked })}
+            disabled={!draft.isEnabled}
+            className="text-sm font-bold text-ink"
+          >
+            Bot o'zi birinchi yozadi
+          </Checkbox>
+          <p className="text-xs text-ink-faint">
+            Telegrami hisobiga bog'langan foydalanuvchilarga eslatmalar va so'rovnomalar yuboradi:
+            to'lov sahifasidan qaytganlar, to'lovni tugatmaganlar, darsni tashlab qo'yganlar.
+            Faqat 9:00–21:00 oralig'ida, kuniga bittadan, haftasiga uchtadan ko'p emas; ikki
+            eslatmaga javob bo'lmasa, bot jim turadi.
+          </p>
+        </>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-bold text-ink">Agent ko'rsatmasi</span>
         {/*
@@ -1231,7 +1269,7 @@ function AgentSettings() {
       {/*
         The stored prompt is the one that runs, and it is the operator's. That is the right
         rule and it has a cost nobody could see: a shipped improvement to the script — the
-        agent learning to offer a demo, or to propose a topic when somebody cannot name one —
+        agent learning to walk somebody through signing in, or to propose a topic when somebody cannot name one —
         sat in the code doing nothing, because production was still running the text saved
         months earlier and no screen said so. Now one does.
       */}
@@ -1253,7 +1291,7 @@ function AgentSettings() {
       </label>
 
       <p className="text-xs text-ink-faint">
-        {'{{user_name}}, {{user_status}}, {{last_activity}}, {{user_metrics_summary}}'} — bu
+        {'{{user_name}}, {{user_status}}, {{last_activity}}, {{user_metrics_summary}}, {{prices}}'} — bu
         o'rinbosarlar har bir suhbatda haqiqiy ma'lumot bilan almashtiriladi.
       </p>
 

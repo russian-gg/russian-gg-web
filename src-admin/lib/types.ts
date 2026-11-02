@@ -442,6 +442,11 @@ export type SalesChat = {
 export type SalesSettings = {
   systemPrompt: string
   isEnabled: boolean
+  /**
+   * Whether the bot writes first — reminders and surveys. Optional for the same deploy-skew
+   * reason as `siteBaseUrl`: absent on an API that predates it.
+   */
+  proactiveEnabled?: boolean
   updatedAt: string
   botConfigured: boolean
   /** Last four characters only — the panel cannot read a token back out. */
@@ -449,7 +454,7 @@ export type SalesSettings = {
   botUsername?: string | null
   webhookUrl?: string | null
   /**
-   * Where demo links point. The site, not the API — on this deployment they differ.
+   * Where sign-up and payment links point. The site, not the API — on this deployment they differ.
    *
    * Optional because the panel and the API deploy separately: for a few minutes on every
    * release one of them is older, and a required field turns that window into a crash.
