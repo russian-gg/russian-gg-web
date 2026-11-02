@@ -21,6 +21,7 @@ import { GameMark } from './speaking/visuals'
 import { TezGapirCard } from './TezGapirCard'
 import { ErrorHuntCard } from './ErrorHuntCard'
 import { LifeCard } from './fight-for-life/LifeCard'
+import { FirstReactionCard } from './FirstReactionCard'
 import * as m from 'motion/react-m'
 import { Reveal, Sequence } from '../../components/motion'
 import { rise, stagger, tactile } from '../../lib/motion'
@@ -110,6 +111,7 @@ export function Games() {
           if (game.slug === 'tez-gapir') return <TezGapirCard key={game.slug} to={destination} requiresPro={locked} />
           if (game.slug === 'error-hunt') return <ErrorHuntCard key={game.slug} to={destination} requiresPro={locked} />
           if (game.slug === 'fight-for-life') return <LifeCard key={game.slug} to={destination} requiresPro={locked} />
+          if (game.slug === 'first-reaction') return <FirstReactionCard key={game.slug} to={destination} requiresPro={locked} />
 
           if (isSpeakingGame(game.slug)) {
             const label = gameLabels[game.slug][locale]

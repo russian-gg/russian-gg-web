@@ -46,17 +46,18 @@ function catalog() {
   return SLUGS.map((slug, index) => ({
     slug, titleRu: COPY.ru.titles[index], titleUz: COPY.uz.titles[index], descriptionRu: `Game ${index + 1}`,
     isEnabled: true, isAccessible: true, lockReason: null,
-    durationSeconds: [30, 10, 5, 60][index], totalRounds: [3, 5, 7, 50][index], levels: ['A1', 'A2', 'B1'],
+    durationSeconds: [30, 10, 20, 60][index], totalRounds: [3, 5, 5, 50][index], levels: ['A1', 'A2', 'B1'],
     themes: [{ id: 'food-a1', titleRu: 'Food A1', titleUz: 'Taom A1', level: 'A1' }, { id: 'work-a2', titleRu: 'Work A2', titleUz: 'Ish A2', level: 'A2' }],
   }))
 }
 
 function prompt(slug, round = 0, locationId = null) {
+  if (slug === 'first-reaction') return { id: `reaction-${round}`, textRu: ['Ваша кошка заговорила. Что вы ей скажете?', 'Вы нашли кошелёк на улице. Что вы сделаете?', 'Вы опоздали на поезд. Что вы сделаете?', 'Вы получили неожиданное повышение. Что вы скажете?', 'Вы выиграли миллион. Что вы сделаете?'][round % 5], titleUz: 'Ruscha javob bering', kind: 'reaction', scene: ['talking_cat.gif', 'lost_wallet.gif', 'missed_plane.gif', 'promotion.gif', 'million_win.gif'][round % 5], mediaUrl: `/games/first-reaction/media/${['talking_cat.gif', 'lost_wallet.gif', 'missed_plane.gif', 'promotion.gif', 'million_win.gif'][round % 5]}`, hints: ['Я думаю, что…', 'Я бы хотел…'], options: [] }
   return { id: locationId ?? `${slug}-${round}`, textRu: `${locationId ? QUESTION : ANSWER} ${round + 1}`, titleUz: 'Ruscha javob bering', kind: slug, scene: locationId, options: [] }
 }
 
 function readyPrompt(slug, round = 0, locationId = null) {
-  if (slug === 'ice-mystery') return prompt(slug, round, locationId)
+  if (slug === 'ice-mystery' || slug === 'first-reaction') return prompt(slug, round, locationId)
   return { id: `ready-${round}`, kind: 'ready', textRu: '', titleUz: null, scene: null, options: [] }
 }
 
@@ -165,9 +166,13 @@ function model(options) {
       if (body.action === 'accuse') assert.ok(['ready', 'feedback', 'answering'].includes(session.status))
       else assert.equal(session.status, 'answering')
       assert.equal(typeof body.text, 'string')
-      assert.ok(body.text.trim(), 'this fixture expects a substantive answer')
+      if (slug !== 'first-reaction') assert.ok(body.text.trim(), 'this fixture expects a substantive answer')
       assert.equal(body.action, slug === 'ice-mystery' ? body.locationId ? 'question' : 'accuse' : 'answer')
       session.feedback = { ...feedback(body.text), points: options.roundScores?.[session.roundIndex] ?? 7 }
+      if (slug === 'first-reaction') {
+        session.feedback.reactionStartedMilliseconds = body.inputMode === 'voice' ? body.speechStartedMilliseconds ?? null : null
+        if (!body.text.trim()) session.feedback = { ...session.feedback, points: 0, correct: null, correctAnswer: null }
+      }
       session.score += session.feedback.points
       session.history.push({ roundIndex: session.roundIndex, prompt: clone(session.prompt), feedback: clone(session.feedback), answeredAt: now(), locationId: body.locationId ?? null })
       session.deadlineUtc = null
@@ -325,9 +330,9 @@ async function fixture(options = {}) {
     calls(action) { return state.calls.filter((call) => call.action === action) },
     session() { return [...state.sessions.values()].at(-1) },
     async open(suffix = '') {
-      await page.goto(`${BASE}/games/${options.slug}${suffix}`)
+      await page.goto(`${BASE}/games/${options.slug}${suffix}`, { timeout: options.navigationTimeout ?? 6000 })
       await page.locator(`main[data-game="${options.slug}"]`).waitFor()
-      await until(async () => await page.locator('.sg-setup, .sg-hud, .sg-results, .sg-error').count() > 0, 'game must finish loading')
+      await until(async () => await page.locator('.sg-setup, .sg-hud, .sg-results, .sg-error, .fr-setup, .fr-hud, .fr-result').count() > 0, 'game must finish loading')
       assert.equal(new URL(page.url()).pathname, `/games/${options.slug}`)
       await noOverflow(page)
     },
@@ -335,7 +340,7 @@ async function fixture(options = {}) {
       await h.open()
       if (options.slug === 'tez-gapir') await chooseTezSetup(h)
       await button(page, options.slug === 'tez-gapir' ? CONTINUE[options.locale] : COPY[options.locale].start).click()
-      await page.locator('.sg-hud').waitFor()
+      await page.locator(options.slug === 'first-reaction' ? '.fr-hud' : '.sg-hud').waitFor()
       assert.equal(h.calls('start').length, 1)
       assert.equal(new URL(page.url()).searchParams.get('session'), h.session().id)
     },
@@ -707,6 +712,22 @@ scenario('error hunt shelf card respects games disabled by admin', { shelfGames:
 })
 
 async function beginVoice(h, alreadyAnswering = false, accusation = false) {
+  if (h.options.slug === 'first-reaction') {
+    const before = await h.page.evaluate(() => window.__gameSpeech.snapshot().length)
+    const count = h.calls('begin').length
+    if (!alreadyAnswering) {
+      assert.equal(h.session().prompt.kind, 'reaction')
+      await h.page.getByRole('heading', { name: h.session().prompt.textRu, exact: true }).waitFor()
+      assert.equal(await h.page.getByRole('timer').count(), 0)
+    }
+    await button(h.page, alreadyAnswering ? 'Reconnect microphone' : 'Ready').click()
+    await h.page.waitForFunction((count) => window.__gameSpeech.snapshot().length === count + 1, before)
+    assert.equal(h.calls('begin').length, count)
+    await h.page.evaluate(() => window.__gameSpeech.started())
+    if (!alreadyAnswering) await until(() => h.calls('begin').length === count + 1, 'ready must begin only after microphone readiness')
+    await h.page.getByRole('status').filter({ hasText: 'Speak, I’m listening' }).waitFor()
+    return
+  }
   const count = h.calls('begin').length
   const before = await h.page.evaluate(() => window.__gameSpeech.snapshot().length)
   const hidden = !alreadyAnswering && !accusation && h.options.slug !== 'ice-mystery'
@@ -746,7 +767,7 @@ async function sendVoice(h, text = ANSWER, deadline = false) {
     assert.equal(h.calls('answer').length, count, 'the deadline must not submit two seconds early')
     await h.page.clock.fastForward(2250)
   }
-  else await button(h.page, h.options.slug === 'tez-gapir' ? 'Finish' : 'Submit answer').click()
+  else await button(h.page, h.options.slug === 'tez-gapir' ? 'Finish' : h.options.slug === 'first-reaction' ? 'Finish answer' : 'Submit answer').click()
   await until(() => h.calls('answer').length === count + 1, 'answer must be submitted once')
   assert.equal(h.calls('answer').at(-1).body.text, text, 'submission must include the final event emitted during stop')
 }
@@ -794,6 +815,16 @@ async function checkFeedback(h, text = ANSWER) {
   await panel.waitFor()
   assert.equal(h.session().status, 'feedback')
   assert.ok((await panel.innerText()).includes(text))
+  if (h.options.slug === 'first-reaction') {
+    assert.ok((await panel.innerText()).includes('Mock explanation'))
+    assert.equal(await panel.locator('.fr-criteria [data-passed="true"]').count(), 3)
+    const nexts = h.calls('next').length
+    await h.page.clock.fastForward(65000)
+    assert.equal(h.calls('next').length, nexts)
+    assert.equal(await button(h.page, 'Next').isEnabled(), true)
+    await noOverflow(h.page)
+    return
+  }
   assert.ok((await h.page.locator('.sg-board').innerText()).includes('Mock explanation'))
   const languageOnly = ['tez-gapir', 'error-hunt'].includes(h.options.slug)
   assert.equal(await panel.locator('[data-positive="true"]').count(), languageOnly ? 0 : 4)
@@ -814,6 +845,34 @@ for (const size of Object.keys(SIZES)) {
       scenario(`setup ${slug} ${locale} ${size}`, { slug, locale, size }, async (h) => {
         const c = COPY[locale]
         await h.open()
+        if (slug === 'first-reaction') {
+          await h.page.getByRole('heading', { name: c.titles[2], exact: true }).waitFor()
+          await button(h.page, c.panda).click()
+          assert.equal(await button(h.page, c.panda).getAttribute('aria-pressed'), 'true')
+          const portraits = h.page.locator('.fr-companions img')
+          assert.equal(await portraits.count(), 3)
+          for (const portrait of await portraits.all()) {
+            assert.match(await portrait.getAttribute('src'), /^\/games\/first-reaction\/characters\/(penguin|panda|pero)\.webp$/)
+            await portrait.evaluate((image) => image.decode())
+          }
+          await h.page.getByRole('radio', { name: 'A2', exact: true }).check()
+          assert.match(await h.page.locator('.fr-facts').innerText(), /20/)
+          assert.match(await h.page.locator('.fr-facts').innerText(), /5/)
+          await h.page.getByRole('tab', { name: c.all, exact: true }).click()
+          await h.page.getByRole('cell', { name: 'Mock all winner', exact: true }).waitFor()
+          await screenshot(h.page, `setup-first-reaction-${locale}-${size}`)
+          await button(h.page, c.start).click()
+          await h.page.locator('.fr-hud').waitFor()
+          assert.equal(h.calls('start')[0].body.character, 'panda')
+          assert.equal(h.calls('start')[0].body.level, 'A2')
+          assert.equal(h.calls('start')[0].body.rounds, 5)
+          assert.equal(h.session().durationSeconds, 20)
+          await h.page.getByRole('heading', { name: h.session().prompt.textRu, exact: true }).waitFor()
+          assert.equal(await h.page.getByRole('timer').count(), 0)
+          assert.equal(h.calls('begin').length, 0)
+          assert.deepEqual(await h.page.evaluate(() => window.__gameSpeech.snapshot()), [])
+          return
+        }
         await h.page.getByRole('heading', { name: c.titles[SLUGS.indexOf(slug)], exact: true }).waitFor()
         await button(h.page, c.panda).click()
         assert.equal(await button(h.page, c.panda).getAttribute('aria-pressed'), 'true')
@@ -900,6 +959,39 @@ for (const size of Object.keys(SIZES)) {
       await h.start()
       const originalId = h.session().id
       const total = h.session().totalRounds
+      if (slug === 'first-reaction') {
+        assert.equal(total, 5)
+        await screenshot(h.page, `ready-first-reaction-${size}`)
+        for (let round = 0; round < 5; round++) {
+          assert.equal(h.session().roundIndex, round)
+          await beginVoice(h)
+          await sendVoice(h, `${ANSWER} ${round + 1}`, round === 0)
+          await checkFeedback(h, `${ANSWER} ${round + 1}`)
+          if (round === 0) await screenshot(h.page, `feedback-first-reaction-${size}`)
+          assert.equal(await h.page.locator('.fr-result').count(), 0)
+          await button(h.page, 'Next').click()
+          if (round < 4) {
+            await button(h.page, 'Ready').waitFor()
+            assert.equal(await h.page.getByRole('timer').count(), 0)
+            assert.equal(await h.page.locator('.fr-transcript').count(), 0)
+          }
+        }
+        await button(h.page, 'Play again').waitFor()
+        assert.equal(h.session().status, 'completed')
+        assert.equal(await h.page.locator('.fr-result-score>strong').innerText(), '35 / 50')
+        assert.equal(await h.page.locator('details').count(), 5)
+        await h.page.locator('details summary').first().click()
+        assert.ok((await h.page.locator('details').first().innerText()).includes(`${ANSWER} 1`))
+        assert.equal(await h.page.locator('[data-game-share="first-reaction"]').count(), 1)
+        await screenshot(h.page, `results-first-reaction-${size}`)
+        await button(h.page, 'Play again').click()
+        await button(h.page, 'Start').click()
+        await h.page.locator('.fr-hud').waitFor()
+        assert.notEqual(h.session().id, originalId)
+        assert.notEqual(h.calls('start')[0].body.requestId, h.calls('start')[1].body.requestId)
+        assert.equal(h.session().score, 0)
+        return
+      }
       if (slug === 'error-hunt') assert.equal(total, 5)
       await screenshot(h.page, `ready-${slug}-${size}`)
       for (let round = 0; round < total; round++) {
@@ -1037,22 +1129,24 @@ for (const size of Object.keys(SIZES)) {
     scenario(`text fallback first-reaction ${unsupported ? 'unsupported' : 'permission denied'} ${size}`, { slug: 'first-reaction', size, unsupported }, async (h) => {
       await h.start()
       if (unsupported) {
-        assert.equal(await button(h.page, 'Speak').isDisabled(), true)
-        assert.ok((await h.page.locator('.sg-board').innerText()).includes('Speech recognition is unavailable'))
+        assert.equal(await button(h.page, 'Ready').isDisabled(), true)
+        assert.ok((await h.page.locator('.fr-response').innerText()).includes('Speech recognition is unavailable'))
       } else {
-        await button(h.page, 'Speak').click()
+        await button(h.page, 'Ready').click()
         await h.page.waitForFunction(() => window.__gameSpeech.snapshot().length === 1)
         await h.page.evaluate(() => window.__gameSpeech.error('not-allowed'))
         await h.page.getByRole('alert').filter({ hasText: 'Allow microphone access' }).waitFor()
       }
       assert.equal(h.calls('begin').length, 0)
       await button(h.page, 'Type an answer').click()
-      await button(h.page, 'Speak').click()
+      await button(h.page, 'Ready').click()
       await h.page.getByRole('textbox', { name: 'Your answer', exact: true }).fill(`  ${ANSWER}  `)
       assert.equal(await button(h.page, 'Answer by voice').count(), 0, 'input mode is fixed while a round is answering')
-      await button(h.page, 'Submit answer').click()
+      await button(h.page, 'Finish answer').click()
       await checkFeedback(h)
       assert.equal(h.calls('answer').at(-1).body.text, ANSWER)
+      assert.equal(h.calls('answer').at(-1).body.inputMode, 'text')
+      assert.equal(h.calls('answer').at(-1).body.speechStartedMilliseconds, null)
       assert.equal((await h.page.evaluate(() => window.__gameSpeech.snapshot())).length, unsupported ? 0 : 1)
     })
   }
@@ -1282,7 +1376,7 @@ scenario('canonical pero companion is sent to the server', { slug: 'first-reacti
   await h.open()
   await button(h.page, 'Feather').click()
   await button(h.page, 'Start').click()
-  await h.page.locator('.sg-hud').waitFor()
+  await h.page.locator('.fr-hud').waitFor()
   assert.equal(h.calls('start')[0].body.character, 'pero')
   assert.equal(h.session().character, 'pero')
 })
@@ -1491,16 +1585,17 @@ for (const slug of SLUGS) {
       status: 'feedback', character: companion, feedback: feedback(ANSWER), availableActions: ['next', 'end'],
     }) }, async (h) => {
       const expected = slug === 'error-hunt' ? `/games/error-hunt/characters/${companion}.webp`
-        : slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
+        : slug === 'first-reaction' ? `/games/first-reaction/characters/${companion}.webp`
+          : slug === 'tez-gapir' ? `/games/characters/${companion}.webp`
           : `/characters/${companion === 'penguin' ? 'pingvin' : companion}.webp`
       await h.open(`?session=${h.session().id}`)
-      const portrait = h.page.locator(slug === 'tez-gapir' ? '.sg-character-note img, .tg-thanks img' : '.sg-character-note img')
+      const portrait = h.page.locator(slug === 'first-reaction' ? '.fr-feedback-character img, .fr-result-hero img' : slug === 'tez-gapir' ? '.sg-character-note img, .tg-thanks img' : '.sg-character-note img')
       const activePortrait = slug === 'ice-mystery' ? h.page.locator(`.sg-map img[src="${expected}"]`) : portrait
       assert.equal(await activePortrait.getAttribute('src'), expected)
       await activePortrait.evaluate((image) => image.decode())
       complete(h.session())
       await h.page.reload()
-      await h.page.locator('.sg-results').waitFor()
+      await h.page.locator(slug === 'first-reaction' ? '.fr-result' : '.sg-results').waitFor()
       if (slug === 'error-hunt') assert.equal(await portrait.count(), 0)
       else {
         assert.equal(await portrait.getAttribute('src'), expected)

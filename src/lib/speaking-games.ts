@@ -3,12 +3,13 @@ import type { GameSlug } from '../routes/games/speaking/copy'
 import type { Companion } from '../routes/games/speaking/visuals'
 
 export interface GameOption { id: string; textRu: string }
-export interface GamePrompt { id: string; textRu: string; titleUz: string | null; kind: string; scene: string | null; options: GameOption[] }
+export interface GamePrompt { id: string; textRu: string; titleUz: string | null; kind: string; scene: string | null; options: GameOption[]; mediaUrl?: string | null; hints?: string[] | null }
 export interface GameCriterion { code: string; label: string; passed: boolean; points: number }
 export interface GameWord { text: string; category: string; points: number }
 export interface GameFeedback {
   answer: string; correct: boolean | null; points: number; explanation: string; correctAnswer: string | null
   criteria: GameCriterion[]; words: GameWord[]; characterPhrase: string; evaluationKind: string
+  reactionStartedMilliseconds?: number | null
 }
 export interface GameTurn { roundIndex: number; prompt: GamePrompt; feedback: GameFeedback; answeredAt: string; locationId: string | null }
 export interface GameClue { id: string; textRu: string; locationId: string }
@@ -19,7 +20,7 @@ export interface GameSummary {
   rewardPoints: number; dailyReward: number; cityPoints: number; cityObjects: string[]
 }
 export interface GameCommand { requestId: string; expectedVersion: number; locationId?: string }
-export interface GameAnswer extends GameCommand { text: string; action: string; suspectId?: string }
+export interface GameAnswer extends GameCommand { text: string; action: string; suspectId?: string; speechStartedMilliseconds?: number | null; inputMode?: 'voice' | 'text' }
 export interface GameSession {
   id: string; gameSlug: GameSlug; version: number; status: string; character: Companion; level: string
   score: number; roundIndex: number; totalRounds: number; durationSeconds: number; roundStartedAt: string | null

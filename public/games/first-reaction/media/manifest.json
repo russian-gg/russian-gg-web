@@ -1,0 +1,248 @@
+{
+  "width": 640,
+  "height": 360,
+  "frames": 12,
+  "durationMs": 2000,
+  "scenes": [
+    {
+      "scene": "elephant_in_room.gif",
+      "poster": "elephant_in_room.svg"
+    },
+    {
+      "scene": "cat_waking_up.gif",
+      "poster": "cat_waking_up.svg"
+    },
+    {
+      "scene": "talking_phone.gif",
+      "poster": "talking_phone.svg"
+    },
+    {
+      "scene": "candy_rain.gif",
+      "poster": "candy_rain.svg"
+    },
+    {
+      "scene": "invisible_person.gif",
+      "poster": "invisible_person.svg"
+    },
+    {
+      "scene": "talking_cat.gif",
+      "poster": "talking_cat.svg"
+    },
+    {
+      "scene": "on_the_moon.gif",
+      "poster": "on_the_moon.svg"
+    },
+    {
+      "scene": "flying_house.gif",
+      "poster": "flying_house.svg"
+    },
+    {
+      "scene": "president.gif",
+      "poster": "president.svg"
+    },
+    {
+      "scene": "growing_wings.gif",
+      "poster": "growing_wings.svg"
+    },
+    {
+      "scene": "frozen_time.gif",
+      "poster": "frozen_time.svg"
+    },
+    {
+      "scene": "animal_language.gif",
+      "poster": "animal_language.svg"
+    },
+    {
+      "scene": "living_food.gif",
+      "poster": "living_food.svg"
+    },
+    {
+      "scene": "mind_reading.gif",
+      "poster": "mind_reading.svg"
+    },
+    {
+      "scene": "giant_person.gif",
+      "poster": "giant_person.svg"
+    },
+    {
+      "scene": "million_win.gif",
+      "poster": "million_win.svg"
+    },
+    {
+      "scene": "promotion.gif",
+      "poster": "promotion.svg"
+    },
+    {
+      "scene": "meeting_old_friend.gif",
+      "poster": "meeting_old_friend.svg"
+    },
+    {
+      "scene": "dream_come_true.gif",
+      "poster": "dream_come_true.svg"
+    },
+    {
+      "scene": "finding_treasure.gif",
+      "poster": "finding_treasure.svg"
+    },
+    {
+      "scene": "wedding_invitation.gif",
+      "poster": "wedding_invitation.svg"
+    },
+    {
+      "scene": "exam_success.gif",
+      "poster": "exam_success.svg"
+    },
+    {
+      "scene": "friend_from_abroad.gif",
+      "poster": "friend_from_abroad.svg"
+    },
+    {
+      "scene": "lottery_win.gif",
+      "poster": "lottery_win.svg"
+    },
+    {
+      "scene": "puppy_gift.gif",
+      "poster": "puppy_gift.svg"
+    },
+    {
+      "scene": "missed_plane.gif",
+      "poster": "missed_plane.svg"
+    },
+    {
+      "scene": "house_fire.gif",
+      "poster": "house_fire.svg"
+    },
+    {
+      "scene": "lost_wallet.gif",
+      "poster": "lost_wallet.svg"
+    },
+    {
+      "scene": "attacking_dog.gif",
+      "poster": "attacking_dog.svg"
+    },
+    {
+      "scene": "lost_in_forest.gif",
+      "poster": "lost_in_forest.svg"
+    },
+    {
+      "scene": "stolen_phone.gif",
+      "poster": "stolen_phone.svg"
+    },
+    {
+      "scene": "falling_in_hole.gif",
+      "poster": "falling_in_hole.svg"
+    },
+    {
+      "scene": "earthquake.gif",
+      "poster": "earthquake.svg"
+    },
+    {
+      "scene": "forgotten_password.gif",
+      "poster": "forgotten_password.svg"
+    },
+    {
+      "scene": "overslept_work.gif",
+      "poster": "overslept_work.svg"
+    },
+    {
+      "scene": "sneeze_cat.gif",
+      "poster": "sneeze_cat.svg"
+    },
+    {
+      "scene": "clown_boss.gif",
+      "poster": "clown_boss.svg"
+    },
+    {
+      "scene": "running_soup.gif",
+      "poster": "running_soup.svg"
+    },
+    {
+      "scene": "missing_shadow.gif",
+      "poster": "missing_shadow.svg"
+    },
+    {
+      "scene": "speaking_meow.gif",
+      "poster": "speaking_meow.svg"
+    },
+    {
+      "scene": "bed_boat.gif",
+      "poster": "bed_boat.svg"
+    },
+    {
+      "scene": "sleeping_office.gif",
+      "poster": "sleeping_office.svg"
+    },
+    {
+      "scene": "singing_kettle.gif",
+      "poster": "singing_kettle.svg"
+    },
+    {
+      "scene": "talking_puddle.gif",
+      "poster": "talking_puddle.svg"
+    },
+    {
+      "scene": "running_socks.gif",
+      "poster": "running_socks.svg"
+    },
+    {
+      "scene": "time_machine.gif",
+      "poster": "time_machine.svg"
+    },
+    {
+      "scene": "one_wish.gif",
+      "poster": "one_wish.svg"
+    },
+    {
+      "scene": "one_day_invisible.gif",
+      "poster": "one_day_invisible.svg"
+    },
+    {
+      "scene": "all_languages.gif",
+      "poster": "all_languages.svg"
+    },
+    {
+      "scene": "flying_person.gif",
+      "poster": "flying_person.svg"
+    },
+    {
+      "scene": "mind_reading_2.gif",
+      "poster": "mind_reading_2.svg"
+    },
+    {
+      "scene": "becoming_invisible.gif",
+      "poster": "becoming_invisible.svg"
+    },
+    {
+      "scene": "magic_wand.gif",
+      "poster": "magic_wand.svg"
+    },
+    {
+      "scene": "change_past.gif",
+      "poster": "change_past.svg"
+    },
+    {
+      "scene": "see_future.gif",
+      "poster": "see_future.svg"
+    },
+    {
+      "scene": "job_interview.gif",
+      "poster": "job_interview.svg"
+    },
+    {
+      "scene": "project_win.gif",
+      "poster": "project_win.svg"
+    },
+    {
+      "scene": "conference_speech.gif",
+      "poster": "conference_speech.svg"
+    },
+    {
+      "scene": "book_published.gif",
+      "poster": "book_published.svg"
+    },
+    {
+      "scene": "grant_received.gif",
+      "poster": "grant_received.svg"
+    }
+  ]
+}
