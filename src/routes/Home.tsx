@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { fill, useT } from '../lib/i18n'
+import { useT } from '../lib/i18n'
 import type { HomeView } from '../lib/types'
 import { TodayLessonCard } from '../components/home/TodayLessonCard'
 import { WelcomeStartDialog, type WelcomeStart } from '../components/home/WelcomeStartDialog'
 import { HomeProCard } from '../components/ProEntry'
 import { useCourseDays } from '../lib/course-days'
 import { HeroBanner } from '../components/home/HeroBanner'
-import { DashboardSearch } from '../components/home/DashboardSearch'
 import { FeatureTiles, RecommendedLessons } from '../components/home/HomeSections'
 import {
   AchievementsPanel,
@@ -18,7 +17,7 @@ import {
 } from '../components/home/HomeSidePanels'
 import { missionLock, missionLockDestination } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
-import { Badge, EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
+import { EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
 import { Reveal, Sequence } from '../components/motion'
 import { rise, stagger } from '../lib/motion'
 
@@ -101,28 +100,11 @@ export function Home() {
           onDismiss={() => navigate(location.pathname, { replace: true, state: null })}
         />
       )}
-      <Reveal className="max-w-2xl">
-        <DashboardSearch />
-      </Reveal>
-
       <Reveal className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:gap-8">
         {/* The column the learner came for. */}
         <Sequence className="min-w-0 space-y-6" gap={stagger.base}>
           <Reveal variants={rise}>
             <HeroBanner to={startPath} label={startLabel} />
-          </Reveal>
-
-          {/*
-            The day, the phase, the streak and the plan. They used to sit inside a card with the
-            mission title, and they are kept here rather than moved into the banner: a hero with
-            four status chips in it is a dashboard header again, and these read perfectly well as
-            a quiet line underneath one.
-          */}
-          <Reveal className="flex flex-wrap items-center gap-2">
-            <Badge tone="signal">{fill(t.common.dayOfTotal, { day: today, total: 90 })}</Badge>
-            <Badge>{t.labels.phase[data.phase]}</Badge>
-            {data.streakDays > 1 && <Badge tone="milestone">{fill(t.home.streak, { count: data.streakDays })}</Badge>}
-            {data.tier === 'Free' && <Badge tone="caution">{t.account.plan.free}</Badge>}
           </Reveal>
 
           <Reveal as="section">

@@ -934,15 +934,8 @@ export const uz = {
     fallbackTitle: 'Bugungi dars',
     empty: 'Bugunga dars topilmadi',
     emptyBody: "90 kunlik yo'ldan boshqa darsni tanlang yoki mashq kutubxonasiga o'ting.",
-    streak: '{count} kun ketma-ket',
     seeAll: 'Barchasini ko‘rish',
     more: 'Batafsil',
-    search: {
-      label: 'Kurs bo‘yicha qidirish',
-      placeholder: 'Kun yoki mavzuni qidiring...',
-      noResults: 'Hech narsa topilmadi.',
-      day: '{day}-kun',
-    },
     features: {
       title: 'Asosiy imkoniyatlar',
       subtitle: 'O‘rganishni qiziqarli va samarali qiling',
