@@ -108,15 +108,7 @@ export function Home() {
           </Reveal>
 
           <Reveal as="section">
-            <SectionHeading accent
-              action={
-                <Link to="/path" className="text-sm font-bold text-signal-ink">
-                  {t.home.seeAll}
-                </Link>
-              }
-            >
-              {t.home.todayMission}
-            </SectionHeading>
+            <SectionHeading accent>{t.home.todayMission}</SectionHeading>
             {data.todayMission ? (
               <TodayLessonCard mission={data.todayMission} />
             ) : (

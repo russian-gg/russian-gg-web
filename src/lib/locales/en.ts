@@ -903,8 +903,6 @@ export const en: Dictionary = {
     startPractice: 'Start the practice',
     repeat: 'Go through it again',
     kindLesson: 'Lesson',
-    kindPractice: 'Speaking practice',
-    notStarted: 'Not started yet',
     phrases: '{count} phrases',
     dayUnit: 'day',
     fallbackTitle: "Today's lesson",

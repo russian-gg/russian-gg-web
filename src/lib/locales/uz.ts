@@ -927,8 +927,6 @@ export const uz = {
     startPractice: 'Mashqni boshlash',
     repeat: "Qayta o'tish",
     kindLesson: 'Dars',
-    kindPractice: 'Ovozli mashq',
-    notStarted: 'Hali boshlanmagan',
     phrases: '{count} ta ibora',
     dayUnit: 'kun',
     fallbackTitle: 'Bugungi dars',

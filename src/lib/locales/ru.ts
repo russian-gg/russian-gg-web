@@ -909,8 +909,6 @@ export const ru: Dictionary = {
     startPractice: 'Начать занятие',
     repeat: 'Пройти ещё раз',
     kindLesson: 'Урок',
-    kindPractice: 'Голосовое занятие',
-    notStarted: 'Ещё не начат',
     phrases: 'Фраз: {count}',
     dayUnit: 'день',
     fallbackTitle: 'Урок на сегодня',
