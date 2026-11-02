@@ -8,6 +8,7 @@ import {
   Gamepad2,
   Image,
   Layers,
+  Lightbulb,
   MessagesSquare,
   Mic,
   PenLine,
@@ -21,8 +22,10 @@ import {
   PartyPopper,
   Play,
   ShoppingBag,
+  SkipForward,
   Turtle,
   Users,
+  Volume2,
   Zap,
 } from 'lucide-react'
 import {
@@ -38,6 +41,9 @@ import { fill, useLocale, useT, type Dictionary, type Locale } from '../lib/i18n
 
 const SPEECH_TAG: Record<Locale, string> = { uz: 'uz-UZ', ru: 'ru-RU', en: 'en-GB' }
 import { useFocusTrap } from '../lib/focus-trap'
+import { AnimatePresence, type Variants } from 'motion/react'
+import * as m from 'motion/react-m'
+import { duration, ease } from '../lib/motion'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -66,16 +72,27 @@ import type { EntitlementView, MissionSummary, StartAttemptResponse, VoiceNoteTu
  * step out by once they have been through a few lessons.
  */
 const sections = [
-  { id: 'tests', icon: Sunrise },
-  { id: 'phonetics', icon: AudioLines },
-  { id: 'grammar', icon: SpellCheck },
-  { id: 'phrases', icon: Repeat2 },
-  { id: 'game', icon: Gamepad2 },
-  { id: 'missions', icon: MessagesSquare },
-  { id: 'vocabulary', icon: Layers },
-  { id: 'picture', icon: PenLine },
-  { id: 'complete', icon: Trophy },
+  { id: 'tests', icon: Sunrise, tone: '#5b6b7f' },
+  { id: 'phonetics', icon: AudioLines, tone: '#0f8a7e' },
+  { id: 'grammar', icon: SpellCheck, tone: '#5b4fd6' },
+  { id: 'phrases', icon: Repeat2, tone: '#be185d' },
+  { id: 'game', icon: Gamepad2, tone: '#7e3fc9' },
+  { id: 'missions', icon: MessagesSquare, tone: '#c9580a' },
+  { id: 'vocabulary', icon: Layers, tone: '#1f6fe0' },
+  { id: 'picture', icon: PenLine, tone: '#9a5b00' },
+  { id: 'complete', icon: Trophy, tone: '#15803d' },
 ] as const
+
+/*
+ * Each step's own colour, so a learner knows the step by it as well as by its mark. It paints
+ * only the tiles that carry the mark — the step's header and its place in the step map — and
+ * never a word: in a lesson, colour on Russian text means gender, case or a verb ending (see
+ * RussianText), and a section tint on the words would read as one of those. Every tone is dark
+ * enough to carry the white mark, in both themes.
+ */
+function toneStyle(tone: string) {
+  return { backgroundColor: tone, boxShadow: `0 6px 16px color-mix(in srgb, ${tone} 28%, transparent)` }
+}
 
 type SectionId = (typeof sections)[number]['id']
 
@@ -437,15 +454,6 @@ export function FoundationLesson() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  /*
-   * The step's own instruction, where it has one worth a line. Every step used to carry a
-   * general note here ("15 ta ibora — gif, tarjima…", "Mavzu bo‘yicha yangi o‘yin") that only
-   * described what was already on the screen below it.
-   */
-  const stepInstruction = active.id === 'missions'
-    ? (state.aiChatStarted ? t.missions.aiIntro : t.missions.intro)
-    : null
-
   return (
     <ColorScopeProvider day={day}>
     <div className="foundation-lesson mx-auto max-w-4xl space-y-4 pb-5 sm:space-y-6">
@@ -458,13 +466,13 @@ export function FoundationLesson() {
       />
 
       <section ref={sectionRef} aria-labelledby={`section-${active.id}`} className="scroll-mt-4">
-        <div className={cx('mb-3 flex gap-3 sm:mb-4', stepInstruction ? 'items-start' : 'items-center')}>
+        <div className="mb-3 flex items-center gap-3 sm:mb-4">
           {/*
             Filled rather than tinted: this header sits on the page background, not on a card, and
-            `signal-soft` on `ground` is two pale greys apart — the tile disappeared and took the
-            mark with it.
+            a pale tint on `ground` is two pale greys apart — the tile disappeared and took the
+            mark with it. The fill is the step's own tone.
           */}
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-signal text-on-signal shadow-[0_6px_16px_rgb(31_111_224/0.25)] sm:size-14">
+          <span style={toneStyle(active.tone)} className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-white sm:size-14">
             <active.icon aria-hidden="true" strokeWidth={1.9} className="size-6 sm:size-7" />
           </span>
           <div className="min-w-0">
@@ -476,7 +484,6 @@ export function FoundationLesson() {
             >
               {t.sections[active.id]}
             </h2>
-            {stepInstruction && <p className="mt-0.5 text-sm leading-snug text-ink-muted">{stepInstruction}</p>}
           </div>
         </div>
 
@@ -577,7 +584,8 @@ export function FoundationLesson() {
           small grey print under it was easy to miss. It sits above the buttons now, in the
           caution tone, with a way back up to the task.
         */}
-        {blockReason && (
+        {/* Not on the phrases: the ticks on the tiles and the count on Next already say what is left. */}
+        {blockReason && active.id !== 'phrases' && (
           <p role="status" className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-xl bg-caution-soft px-3 py-2 text-sm font-bold text-caution">
             <span>{blockReason}</span>
             <button
@@ -683,10 +691,11 @@ function StepMap({ state, onJump }: { state: StoredState; onJump: (index: number
                 aria-current={current ? 'step' : undefined}
                 aria-label={`${index + 1}. ${t.sections[section.id]}`}
                 title={t.sections[section.id]}
+                style={current ? { backgroundColor: section.tone } : open && !done ? { color: section.tone } : undefined}
                 className={cx(
                   'flex size-7 items-center justify-center rounded-lg transition sm:size-9 sm:rounded-xl',
                   current
-                    ? 'bg-signal text-on-signal ring-3 ring-signal-soft'
+                    ? 'text-white ring-3 ring-signal-soft'
                     : done
                       ? 'bg-milestone-soft text-milestone hover:ring-2 hover:ring-milestone/40'
                       : open
@@ -804,9 +813,13 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
       <div className="flex items-start gap-3 sm:gap-5">
         {!hasSpeakerLines && <MascotImage mascot={rule.mascot} className="size-16 shrink-0 sm:size-24" />}
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
+          {/* The speaker beside the title is the whole "listen to the rule" control: the labelled
+              button under the lead was one more line of text saying what the icon already says. */}
+          <div className="flex items-start gap-2">
+            <h3 className="min-w-0 flex-1 text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
+            <RuleSpeechButton segments={speechSegments} label={t.listen} className="raised raised-sm raised-signal-soft size-10 shrink-0 rounded-full bg-signal-soft text-signal-ink" />
+          </div>
           <p className="mt-2 font-semibold leading-relaxed text-ink-muted"><RussianText text={rule.lead} /></p>
-          <RuleSpeechButton segments={speechSegments} className="raised raised-sm raised-signal-soft mt-3 inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-2 text-sm font-black text-signal-ink">{t.listen}</RuleSpeechButton>
         </div>
       </div>
       {genderStory && (
@@ -845,7 +858,7 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
       {rule.examples.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {rule.examples.map((example) => (
-            <SpeechButton key={example} text={example} lang="ru-RU" className={cx('raised raised-sm rounded-full border border-hairline bg-ground-raised px-3 py-2 font-black text-ink', /^[АОУ]$/u.test(example) && 'text-3xl text-[#FF2400]')}>
+            <SpeechButton key={example} text={example} lang="ru-RU" className={cx('raised raised-sm rounded-full border border-hairline bg-ground-raised px-2.5 py-1.5 text-sm font-black text-ink', /^[АОУ]$/u.test(example) && 'text-2xl text-[#FF2400]')}>
               <RussianText text={example} />
             </SpeechButton>
           ))}
@@ -875,15 +888,16 @@ function TongueTwister({ twister }: { twister: NonNullable<LessonData['phonetics
         so is the word-by-word breakdown: the rule above already teaches these sounds, and the
         cards made the block twice its height.
       */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      {/* One row at every width: three equal columns, the label shrinking before it wraps. */}
+      <div className="mt-3 grid grid-cols-3 gap-1.5 sm:max-w-sm">
         {tongueTwisterSpeeds.map(({ icon: Icon, key, rate }) => (
           <SpeechButton
             key={key}
             text={twister.ru}
             lang="ru-RU"
             rate={rate}
-            icon={<Icon aria-hidden="true" strokeWidth={2} className="size-4" />}
-            className="raised raised-sm inline-flex items-center gap-1.5 rounded-full border border-hairline bg-ground-raised px-3 py-2 text-sm font-black text-ink"
+            icon={<Icon aria-hidden="true" strokeWidth={2} className="size-4 shrink-0" />}
+            className="raised raised-sm min-w-0 gap-1 rounded-full border border-hairline bg-ground-raised px-2 py-2 text-xs font-black whitespace-nowrap text-ink sm:text-sm"
           >
             {t.speed[key]}
           </SpeechButton>
@@ -904,42 +918,105 @@ function SpeakerLine({ speaker, text }: { speaker: Mascot; text: string }) {
   )
 }
 
+/** Columns a rule card shows without being opened: the row's key and the one cell beside it. */
+const RULE_CARD_SUMMARY = 2
+
+/**
+ * A rule card's details unfold from under its summary and fold back into it. Height carries
+ * the motion so the cards below slide rather than jump; the fade lags the opening and leads
+ * the closing, so the text is never seen squashed mid-way.
+ */
+const ruleCardDetails: Variants = {
+  closed: {
+    height: 0,
+    opacity: 0,
+    transition: { height: { duration: duration.base, ease: ease.move }, opacity: { duration: duration.quick } },
+  },
+  open: {
+    height: 'auto',
+    opacity: 1,
+    transition: { height: { duration: duration.base, ease: ease.enter }, opacity: { duration: duration.base, delay: 0.06 } },
+  },
+}
+
+/**
+ * A rule table as a stack of cards, one per row. The grid it replaced was four to six columns
+ * wide, so on a phone it scrolled sideways and the learner lost which header a cell sat under.
+ *
+ * Each card leads with the row's first two cells — the word and what it is (`стол · stol`,
+ * `я · у меня есть`). A row with more columns than that opens on tap to show the rest, each
+ * under its own header, so a learner meets one form at a time instead of the whole grid at
+ * once; the first card starts open to show that the others do too. A row that fits in the
+ * summary is just a card, with nothing to open.
+ */
 function RuleTable({ table }: { table: { headers: string[]; rows: string[][] } }) {
+  const [open, setOpen] = useState<Set<number>>(() => new Set([0]))
+  const expandable = table.headers.length > RULE_CARD_SUMMARY
+  function toggle(index: number) {
+    setOpen((current) => {
+      const next = new Set(current)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  }
   return (
-    <div className="overflow-x-auto rounded-2xl border border-hairline bg-ground-raised">
-      <table className="w-full min-w-max text-left text-sm">
-        <thead>
-          <tr className="bg-ground-sunken">
-            {table.headers.map((header) => (
-              <th key={header} className="px-3 py-2 font-black text-ink">{header}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {table.rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-t border-hairline">
-              {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="px-3 py-2 align-top text-ink-muted"><RussianText text={cell} /></td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="grid gap-1.5">
+      {table.rows.map((row, rowIndex) => {
+        const isOpen = expandable && open.has(rowIndex)
+        const summary = (
+          <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+            <span className="font-black text-ink"><RussianText text={row[0] ?? ''} /></span>
+            {row[1] && <span className="text-ink-muted"><RussianText text={row[1]} /></span>}
+          </span>
+        )
+        return (
+          <div key={rowIndex} className={cx('overflow-hidden rounded-2xl border bg-ground-raised transition-colors duration-300', isOpen ? 'border-signal' : 'border-hairline')}>
+            {expandable ? (
+              <button
+                type="button"
+                onClick={() => toggle(rowIndex)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm sm:text-base"
+              >
+                {summary}
+                <ChevronRight aria-hidden="true" strokeWidth={2.4} className={cx('size-4 shrink-0 text-ink-faint transition-transform duration-300', isOpen && 'rotate-90')} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2.5 text-sm sm:text-base">{summary}</div>
+            )}
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <m.div key="details" variants={ruleCardDetails} initial="closed" animate="open" exit="closed" className="overflow-hidden">
+                  <dl className="grid gap-x-3 gap-y-1 border-t border-hairline bg-ground-sunken/60 px-3 py-2.5 text-sm sm:grid-cols-2">
+                    {row.slice(RULE_CARD_SUMMARY).map((cell, cellIndex) => (
+                      <div key={cellIndex} className="flex min-w-0 items-baseline gap-2">
+                        <dt className="shrink-0 text-[11px] font-black tracking-[.06em] text-ink-faint uppercase">{table.headers[cellIndex + RULE_CARD_SUMMARY]}</dt>
+                        <dd className="min-w-0 font-bold wrap-break-word text-ink"><RussianText text={cell} /></dd>
+                      </div>
+                    ))}
+                  </dl>
+                </m.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratings: Record<number, Rating>; onRate: (index: number, rating: Rating) => void }) {
-  const t = useT().lesson.phrases
   const [open, setOpen] = useState<number | null>(null)
   /*
-   * "Don't know" and "review" bring a phrase back once, after the unrated ones — they used to
-   * behave exactly like "know it". Kept per visit: the gate only asks that each phrase is rated.
+   * Every lesson brings new phrases, so there is nothing yet to grade them against: the card
+   * used to ask "know / don't know / will repeat" of a phrase seen for the first time. It has
+   * one "next" now, which ticks the phrase off and opens the next one not yet seen. The tick on
+   * each tile and the count on the step's own Next button say what is left; the intro line
+   * that spelled this out is gone.
    */
-  const revisited = useRef(new Set<number>())
   return (
     <>
-      <p className="mb-3 text-sm leading-relaxed text-ink-muted">{t.intro}</p>
       <div className="grid gap-2 sm:grid-cols-2">
         {phrases.map((phrase, index) => (
           <button key={`${phrase.ru}-${index}`} type="button" onClick={() => setOpen(index)} className="raised flex items-center gap-3 rounded-2xl border border-hairline bg-ground-raised p-3 text-left hover:border-signal">
@@ -952,28 +1029,28 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
           </button>
         ))}
       </div>
-      {open !== null && <StudyCard phrase={phrases[open]} onClose={() => setOpen(null)} onRate={(rating) => {
-        onRate(open, rating)
-        const rated = { ...ratings, [open]: rating }
-        const unrated = phrases.findIndex((_, index) => !rated[index])
-        const again = phrases.findIndex((_, index) => index !== open && rated[index] !== 'known' && !revisited.current.has(index))
-        const next = unrated >= 0 ? unrated : again
-        if (next >= 0 && unrated < 0) revisited.current.add(next)
+      {open !== null && <StudyCard phrase={phrases[open]} onClose={() => setOpen(null)} onNext={() => {
+        onRate(open, 'known')
+        const seen = { ...ratings, [open]: 'known' as const }
+        // The next unseen phrase after this one, wrapping round; none left closes the card.
+        const after = phrases.findIndex((_, index) => index > open && !seen[index])
+        const next = after >= 0 ? after : phrases.findIndex((_, index) => !seen[index])
         setOpen(next >= 0 ? next : null)
       }} />}
     </>
   )
 }
 
-function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () => void; onRate: (rating: Rating) => void }) {
-  const rating = useT().lesson.vocabulary
+function StudyCard({ phrase, onClose, onNext }: { phrase: Phrase; onClose: () => void; onNext: () => void }) {
   const t = useT().lesson.phrases
   const dialogRef = useFocusTrap<HTMLDivElement>()
   return createPortal(
     <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/45 p-3" role="dialog" aria-modal="true">
       <Card className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto p-0">
         <div className="relative flex h-36 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,var(--color-ground-raised),var(--color-signal-soft))]">
-          <span className="lesson-scene-icon text-6xl">{phrase.icon}</span>
+          {phrase.image
+            ? <img src={phrase.image} alt="" className="absolute inset-0 size-full object-cover" />
+            : <span className="lesson-scene-icon text-6xl">{phrase.icon}</span>}
           <button type="button" onClick={onClose} aria-label={t.close} className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-ground-raised/90 text-xl font-black text-ink">×</button>
         </div>
         <div className="p-5">
@@ -989,12 +1066,10 @@ function StudyCard({ phrase, onClose, onRate }: { phrase: Phrase; onClose: () =>
             </div>
           )}
           <SpeechButton text={phrase.ru} lang="ru-RU" className="raised raised-signal mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.repeat}</SpeechButton>
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => { playUiSound('coin'); onRate('known') }} className="raised raised-signal rounded-xl bg-signal px-2 py-2 text-xs font-black text-on-signal">{rating.known}</button>
-            {/* "Don't know" is an honest answer, not a wrong one: it gets the neutral sound. */}
-            <button type="button" onClick={() => { playUiSound('select'); onRate('unknown') }} className="raised raised-danger-soft rounded-xl border border-danger px-2 py-2 text-xs font-black text-danger">{rating.unknown}</button>
-            <button type="button" onClick={() => { playUiSound('select'); onRate('repeat') }} className="raised rounded-xl border border-hairline px-2 py-2 text-xs font-black text-ink">{rating.again}</button>
-          </div>
+          <Button size="lg" block className="mt-4" onClick={() => { playUiSound('coin'); onNext() }}>
+            {t.next}
+            <ArrowRight aria-hidden="true" strokeWidth={2.4} className="size-5" />
+          </Button>
         </div>
       </Card>
     </div>, document.body,
@@ -1866,17 +1941,9 @@ function MissionModes({
   const { locale } = useLocale()
   const t = dictionary.lesson.missions
   const voiceErrors = dictionary.voiceErrors
-  // The block runs in order: practise the dialogue line by line, then carry it into the AI
-  // conversation. A learner coming back to a finished dialogue lands straight in the AI step.
+  // The block runs in order: read the dialogue, then carry it into the AI conversation. A
+  // learner coming back to a finished dialogue lands straight in the AI step.
   const [mode, setMode] = useState<'dialogue' | 'ai'>(aiChatStarted ? 'ai' : 'dialogue')
-  const [revealed, setRevealed] = useState(() => (dialoguePractised ? lesson.dialogue.length : 1))
-  const dialogueDone = revealed >= lesson.dialogue.length
-
-  function revealNext() {
-    const next = Math.min(revealed + 1, lesson.dialogue.length)
-    setRevealed(next)
-    if (next >= lesson.dialogue.length) onDialoguePractised()
-  }
 
   function startAiChat() {
     onDialoguePractised()
@@ -2028,14 +2095,11 @@ function MissionModes({
       form.set('audio', audio, `foundation-answer.${recordingExtension(mimeType)}`)
       const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
       attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
-      const message = [
-        result.transcript ? fill(t.youSaid, { text: result.transcript }) : '',
-        result.feedback.strengthNote,
-        result.feedback.headlineCorrection,
-        result.feedback.pronunciationNote,
-      ].filter(Boolean).join('. ')
-      setFeedback({ kind: 'note', text: message })
+      // Straight to the feedback. It used to open with "You said: …" and the whole transcript —
+      // after a full-dialogue reading, the entire dialogue written out again before a word of
+      // comment.
       const spokenFeedback = [result.feedback.strengthNote, result.feedback.headlineCorrection, result.feedback.pronunciationNote].filter(Boolean).join('. ')
+      setFeedback({ kind: 'note', text: spokenFeedback })
       // The server writes the feedback in the learner's language, so it is read in that voice.
       await speak(spokenFeedback, SPEECH_TAG[locale])
       // An answer counts only when something was heard: any recording, silence included, used
@@ -2050,16 +2114,16 @@ function MissionModes({
 
   return (
     <Card className="p-4 sm:p-5">
+      {/* The first badge is also the way back to the dialogue, which used to be one more link. */}
       <div className="mb-3 grid grid-cols-2 gap-2">
-        <StepBadge index={1} title={t.practiseDialogue} active={mode === 'dialogue'} done={dialoguePractised} />
+        <StepBadge index={1} title={t.practiseDialogue} active={mode === 'dialogue'} done={dialoguePractised} onClick={mode === 'ai' ? () => setMode('dialogue') : undefined} />
         <StepBadge index={2} title={t.aiChat} active={mode === 'ai'} done={aiChatStarted} />
       </div>
 
       {mode === 'dialogue' ? (
         <div>
-          {/* The instruction is the step's subtitle now, above the card, rather than said twice. */}
           <div className="grid gap-2">
-            {lesson.dialogue.slice(0, revealed).map((line, index) => (
+            {lesson.dialogue.map((line, index) => (
               <div key={`${line}-${index}`} className={cx('flex items-start gap-2 rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}>
                 <SpeechButton
                   text={dialogueSpeechText(line)}
@@ -2071,43 +2135,24 @@ function MissionModes({
             ))}
           </div>
           {/*
-            "Next line" moves the step on, so it is the main action. Recording the whole dialogue
-            is optional practice — it was the largest control here while counting for nothing.
-            The line count sits on the button it belongs to, not under the mic.
+            The whole dialogue is on the screen at once, as a chat, and the microphone under it is
+            the one thing to do here: read it all aloud. Lines no longer open one by one behind a
+            "Next line" button, and the caption under the mic shows only while it is recording.
           */}
-          <div className="mt-3">
-            {dialogueDone
-              ? <Button size="lg" block onClick={startAiChat}><span className="whitespace-normal leading-tight">{t.goToAi}</span></Button>
-              : (
-                <Button size="lg" block onClick={revealNext}>
-                  {t.nextLine}
-                  <span className="ml-1.5 rounded-full bg-on-signal/20 px-2 text-xs tabular-nums">{Math.min(revealed, lesson.dialogue.length)}/{lesson.dialogue.length}</span>
-                </Button>
-              )}
-          </div>
-          <div className="mt-3 flex items-center gap-3 rounded-2xl bg-ground-sunken p-2.5">
-            <button
-              type="button"
-              onClick={() => void toggleRecording()}
-              disabled={processing}
-              aria-label={listening ? t.stopRecording : t.mic}
-              className={cx('flex size-10 shrink-0 items-center justify-center rounded-full disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger' : 'bg-signal-soft text-signal-ink')}
-            >
-              {processing
-                ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                : listening
-                  ? <Square aria-hidden="true" strokeWidth={0} className="size-4 fill-current" />
-                  : <Mic aria-hidden="true" strokeWidth={1.9} className="size-5" />}
-            </button>
-            <p className="min-w-0 text-sm font-bold text-ink-muted">{listening ? t.micStopDialogue : t.micDialogue}</p>
-          </div>
+          <MicRoundButton
+            listening={listening}
+            processing={processing}
+            onClick={() => void toggleRecording()}
+            label={listening ? t.stopRecording : t.mic}
+          />
+          {listening && <p className="mt-2 text-center text-sm font-bold text-ink-muted">{t.micStopDialogue}</p>}
+          <Button size="lg" block className="mt-4" onClick={startAiChat}>
+            <span className="whitespace-normal leading-tight">{t.goToAi}</span>
+          </Button>
           {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
         </div>
       ) : (
         <div className="text-center">
-          <p className="text-xs font-black tracking-[.14em] text-signal-ink uppercase">
-            {fill(t.answeredOf, { done: aiAnswered.length, total: lesson.questions.length })}
-          </p>
           {allAnswered ? (
             // A finished block says so and points at the button that moves on, instead of
             // staying on the last question forever.
@@ -2117,40 +2162,53 @@ function MissionModes({
           ) : (
             <>
               <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="raised raised-signal-soft mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
-              {showAnswer ? (
-                <div className="mt-2 rounded-xl bg-ground-sunken p-3 text-left">
-                  <p className="text-xs font-black tracking-[.12em] text-ink-faint uppercase">{t.sampleAnswer}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={lesson.questions[questionIndex].answer} /></p>
-                </div>
-              ) : (
-                <button type="button" onClick={() => setShowAnswer(true)} className="mt-2 text-sm font-black text-signal-ink underline">
-                  {t.showAnswer}
+              {/*
+                The question, the mic, nothing else. The sample answer waits behind the lamp and
+                the next question behind the skip mark, both as icons beside the mic: the counter,
+                the captions and the two text links were more to read than the question itself.
+              */}
+              <div className="mt-4 flex items-center justify-center gap-5">
+                <button
+                  type="button"
+                  onClick={() => setShowAnswer((current) => !current)}
+                  aria-label={t.showAnswer}
+                  aria-pressed={showAnswer}
+                  title={t.showAnswer}
+                  className={cx('raised raised-sm flex size-11 items-center justify-center rounded-full border border-hairline', showAnswer ? 'bg-caution-soft text-caution' : 'bg-ground-raised text-ink-muted')}
+                >
+                  <Lightbulb aria-hidden="true" strokeWidth={2.2} className="size-5" />
                 </button>
-              )}
-              <MicButton
-                listening={listening}
-                processing={processing}
-                caption={listening ? t.micStopAnswer : t.micAnswer}
-                onClick={() => void toggleRecording(() => {
-                  const answered = aiAnswered.includes(questionIndex) ? aiAnswered : [...aiAnswered, questionIndex]
-                  onAiAnswered(questionIndex)
-                  const next = nextOpenQuestion(questionIndex, answered)
-                  if (next !== null) setTimeout(() => goToQuestion(next), 900)
-                })}
-              />
-              {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-                {lesson.questions.length > 1 && (
+                <MicRoundButton
+                  listening={listening}
+                  processing={processing}
+                  className=""
+                  label={listening ? t.stopRecording : t.mic}
+                  onClick={() => void toggleRecording(() => {
+                    const answered = aiAnswered.includes(questionIndex) ? aiAnswered : [...aiAnswered, questionIndex]
+                    onAiAnswered(questionIndex)
+                    const next = nextOpenQuestion(questionIndex, answered)
+                    if (next !== null) setTimeout(() => goToQuestion(next), 900)
+                  })}
+                />
+                {lesson.questions.length > 1 ? (
                   <button
                     type="button"
                     onClick={() => goToQuestion(nextOpenQuestion(questionIndex, aiAnswered) ?? (questionIndex + 1) % lesson.questions.length)}
-                    className="text-sm font-black text-ink-muted underline"
+                    aria-label={t.nextQuestion}
+                    title={t.nextQuestion}
+                    className="raised raised-sm flex size-11 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink-muted"
                   >
-                    {t.nextQuestion}
+                    <SkipForward aria-hidden="true" strokeWidth={2.2} className="size-5" />
                   </button>
-                )}
-                <button type="button" onClick={() => setMode('dialogue')} className="text-sm font-black text-ink-muted underline">{t.backToDialogue}</button>
+                ) : <span aria-hidden="true" className="size-11" />}
               </div>
+              {listening && <p className="mt-2 text-center text-sm font-bold text-ink-muted">{t.micStopAnswer}</p>}
+              {showAnswer && (
+                <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-left text-sm leading-relaxed text-ink">
+                  <RussianText text={lesson.questions[questionIndex].answer} />
+                </p>
+              )}
+              {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
             </>
           )}
           {/* For a learner whose microphone will not work: an explicit way on, not a hidden one. */}
@@ -2170,14 +2228,16 @@ function MissionModes({
   )
 }
 
-function StepBadge({ index, title, active, done }: { index: number; title: string; active: boolean; done: boolean }) {
+function StepBadge({ index, title, active, done, onClick }: { index: number; title: string; active: boolean; done: boolean; onClick?: () => void }) {
   const t = useT().lesson.missions
-  return (
-    <div className={cx('rounded-xl border-2 px-3 py-2', active ? 'border-signal bg-signal-soft' : done ? 'border-milestone bg-milestone-soft/40' : 'border-hairline bg-ground-sunken')}>
-      <p className="text-[10px] font-black tracking-[.12em] text-ink-faint uppercase">{fill(t.step, { n: index })} {done && !active ? '✓' : ''}</p>
-      <p className={cx('text-xs font-black', active ? 'text-signal-ink' : 'text-ink-muted')}>{title}</p>
-    </div>
-  )
+  const className = cx('rounded-xl border-2 px-3 py-2 text-left', active ? 'border-signal bg-signal-soft' : done ? 'border-milestone bg-milestone-soft/40' : 'border-hairline bg-ground-sunken', onClick && 'hover:border-signal')
+  const body = <>
+    <p className="text-[10px] font-black tracking-[.12em] text-ink-faint uppercase">{fill(t.step, { n: index })} {done && !active ? '✓' : ''}</p>
+    <p className={cx('text-xs font-black', active ? 'text-signal-ink' : 'text-ink-muted')}>{title}</p>
+  </>
+  return onClick
+    ? <button type="button" onClick={onClick} className={className}>{body}</button>
+    : <div className={className}>{body}</div>
 }
 
 /** The speaker label in front of a dialogue line is a stage direction, not something to read out. */
@@ -2192,17 +2252,8 @@ function DialogueLine({ line }: { line: string }) {
   return <><span className="text-ink">{line.slice(0, separator + 1)}</span><RussianText text={line.slice(separator + 1)} /></>
 }
 
-/** The microphone, with what to do written under it: a bare round button explained nothing. */
-function MicButton({ listening, processing, caption, onClick }: { listening: boolean; processing: boolean; caption: string; onClick: () => void }) {
-  const t = useT().lesson.missions
-  return <>
-    <MicRoundButton listening={listening} processing={processing} onClick={onClick} label={listening ? t.stopRecording : t.mic} />
-    <p className="mt-2 text-center text-sm font-bold text-ink-muted">{caption}</p>
-  </>
-}
-
-function MicRoundButton({ listening, processing, onClick, label }: { listening: boolean; processing: boolean; onClick: () => void; label: string }) {
-  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised mx-auto mt-4 flex size-16 items-center justify-center rounded-full text-2xl disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger raised-danger' : 'bg-signal text-on-signal raised-signal')} aria-label={label}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
+function MicRoundButton({ listening, processing, onClick, label, className }: { listening: boolean; processing: boolean; onClick: () => void; label: string; className?: string }) {
+  return <button type="button" onClick={onClick} disabled={processing} className={cx('raised flex size-16 shrink-0 items-center justify-center rounded-full text-2xl disabled:opacity-60', listening ? 'animate-pulse bg-danger text-on-danger raised-danger' : 'bg-signal text-on-signal raised-signal', className ?? 'mx-auto mt-4')} aria-label={label}>{processing ? <span className="size-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : listening
       ? <Square aria-hidden="true" strokeWidth={0} className="size-5 fill-current" />
       : <Mic aria-hidden="true" strokeWidth={1.9} className="size-6" />}</button>
 }
@@ -2256,8 +2307,9 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
   const closeLabel = useT().lesson.phrases.close
   const dialogRef = useFocusTrap<HTMLDivElement>()
   /*
-   * The deck as a queue of card indexes. "Don't know" and "review" send a card to the back once,
-   * so it comes round again before the deck closes; every rating used to just move on.
+   * The deck as a queue of card indexes. Every word is new in its lesson, so the back offers two
+   * answers, not three: "learned" sets the card aside, "again" sends it to the back once so it
+   * comes round before the deck closes. "Don't know" did exactly what "again" did.
    */
   const [queue, setQueue] = useState(() => words.map((_, index) => index).slice(startIndex))
   const [requeued, setRequeued] = useState<Set<number>>(() => new Set())
@@ -2289,27 +2341,50 @@ function VocabularyDeck({ words, startIndex, onClose, onReviewed }: {
           </span>
           <button type="button" onClick={onClose} aria-label={closeLabel} className="raised raised-sm flex size-10 items-center justify-center rounded-full border border-hairline text-xl text-ink">×</button>
         </div>
-        <div className="flex flex-1 items-center py-2">
+        <div className="flex flex-1 items-center py-2 pb-6">
+          {/*
+            The cards still to come peek out under this one, so it reads as a deck in the hand.
+            They are sized from the card itself, not from the space around it, so the stack
+            stays visible whichever side is up and however tall that side is.
+          */}
+          <div className="relative w-full">
+          {queue.length > 2 && <span aria-hidden="true" className="absolute inset-x-6 inset-y-0 translate-y-6 rotate-1 rounded-[1.75rem] border-2 border-hairline bg-ground-sunken" />}
+          {queue.length > 1 && <span aria-hidden="true" className="absolute inset-x-3 inset-y-0 translate-y-3 -rotate-1 rounded-[1.75rem] border-2 border-hairline bg-ground-raised shadow-sm" />}
           <div role="button" tabIndex={0} onClick={() => setFlipped((current) => !current)} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
               setFlipped((current) => !current)
             }
-          }} className="w-full cursor-pointer overflow-hidden rounded-[1.75rem] border-2 border-hairline bg-ground-raised text-left shadow-[0_12px_35px_rgba(20,35,60,.14)]">
-            <div className="flex h-32 items-center justify-center bg-signal-soft text-6xl sm:h-40">{word.icon}</div>
-            <div className="min-h-52 p-5 sm:min-h-60 sm:p-7">
+          }} className="relative w-full cursor-pointer overflow-hidden rounded-[1.75rem] border-2 border-hairline bg-ground-raised text-left shadow-[0_12px_35px_rgba(20,35,60,.14)]">
+            <div className="relative flex h-40 items-center justify-center overflow-hidden bg-signal-soft text-7xl sm:h-48">
+              {word.image
+                ? <img src={word.image} alt="" className="absolute inset-0 size-full object-cover" />
+                : word.icon}
+            </div>
+            <div className="min-h-44 p-5 sm:min-h-52 sm:p-7">
               {!flipped ? (
-                <><h2 className="text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl"><RussianText text={word.ru} /></h2><p className="mt-4 rounded-xl bg-ground-sunken p-3 leading-relaxed text-ink"><RussianText text={word.example} /></p><SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="raised raised-signal mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.listenAndRepeat}</SpeechButton></>
+                // The front is the picture and the word, and the speaker to hear it: the example
+                // sentence made every card a paragraph to read before it could be turned.
+                <div className="flex min-h-34 flex-col items-center justify-center gap-4 text-center sm:min-h-42">
+                  <h2 className="text-3xl font-black wrap-break-word text-ink min-[390px]:text-4xl"><RussianText text={word.ru} /></h2>
+                  <SpeechButton text={word.ru} lang="ru-RU" stopPropagation className="raised raised-signal size-12 rounded-full bg-signal text-on-signal" />
+                </div>
               ) : (
                 // The back is the translation alone: it used to repeat the front's example
                 // sentence and add a hint to tap, which the card already answers to.
-                <div className="flex min-h-40 items-center justify-center sm:min-h-48"><h2 className="text-center text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl">{word.uz}</h2></div>
+                <div className="flex min-h-34 items-center justify-center sm:min-h-42"><h2 className="text-center text-2xl font-black wrap-break-word text-ink min-[390px]:text-3xl">{word.uz}</h2></div>
               )}
             </div>
           </div>
+          </div>
         </div>
         {/* The labels come from the dictionary: hard-coded Russian could not be read on day one. */}
-        {flipped && <div className="grid grid-cols-3 gap-2 py-3"><button type="button" onClick={() => rate('known')} className="raised raised-signal rounded-xl bg-signal px-1 py-3 text-xs font-black text-on-signal">{t.known}</button><button type="button" onClick={() => rate('unknown')} className="raised raised-danger-soft rounded-xl border border-danger px-1 py-3 text-xs font-black text-danger">{t.unknown}</button><button type="button" onClick={() => rate('repeat')} className="raised rounded-xl border border-hairline px-1 py-3 text-xs font-black text-ink">{t.again}</button></div>}
+        {flipped && (
+          <div className="grid grid-cols-2 gap-2 py-3">
+            <button type="button" onClick={() => rate('known')} className="raised raised-milestone rounded-xl bg-milestone px-2 py-3.5 text-sm font-black text-on-signal">{t.known}</button>
+            <button type="button" onClick={() => rate('repeat')} className="raised rounded-xl border border-hairline bg-ground-raised px-2 py-3.5 text-sm font-black text-ink">{t.again}</button>
+          </div>
+        )}
       </div>
     </div>, document.body,
   )
@@ -2475,6 +2550,8 @@ function NeighborScene() {
   )
 }
 
+const closingMascots: readonly Mascot[] = ['panda', 'penguin', 'pero']
+
 function CompleteSection({ lesson, recording }: {
   lesson: LessonData
   recording: 'idle' | 'saving' | 'saved' | 'failed'
@@ -2494,9 +2571,13 @@ function CompleteSection({ lesson, recording }: {
   return (
     <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
       <Celebration pieces={180} balloons={34} />
-      <MascotImage mascot="penguin" className="mx-auto h-28 w-28 object-contain" />
-      <span className="mt-2 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{fill(t.badge, { day: lesson.day })}</span>
-      <h3 className="mt-3 text-3xl font-black text-ink">{t.title}</h3>
+      {/* A different character closes each day — the same frowning penguin every time read as
+          a telling-off — with its "Ajoyib!" beside it, and the day and the praise under them. */}
+      <div className="flex items-center justify-center gap-3">
+        <MascotImage mascot={closingMascots[lesson.day % closingMascots.length]} className="h-24 w-24 shrink-0 object-contain sm:h-28 sm:w-28" />
+        <h3 className="text-3xl font-black text-ink sm:text-4xl">{t.title}</h3>
+      </div>
+      <span className="mt-3 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{fill(t.badge, { day: lesson.day })}</span>
       {/* Only a lesson's own message: the general one said "done" a third time, after the badge
           and the title, before the outcomes that are the useful part. */}
       {lesson.completionMessage && (
@@ -2675,10 +2756,11 @@ function playPromptAudioSegment(text: string, character: Mascot | undefined, onS
  * order, in that segment's own mascot voice, instead of reading the whole passage as one string
  * in one voice.
  */
-function RuleSpeechButton({ segments, className, children }: {
+function RuleSpeechButton({ segments, className, label }: {
   segments: { text: string; character?: Mascot }[]
   className?: string
-  children: ReactNode
+  /** What the speaker icon does, for a screen reader — the button itself carries no text. */
+  label: string
 }) {
   const t = useT().lesson.audio
   const id = useId()
@@ -2752,9 +2834,12 @@ function RuleSpeechButton({ segments, className, children }: {
   }, [id])
 
   return (
-    <button type="button" onClick={toggle} className={cx('inline-flex items-center justify-center gap-2', className)} aria-label={status === 'playing' ? t.pause : t.play}>
-      {status === 'loading' ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : status === 'playing' ? <PauseGlyph /> : <PlayGlyph />}
-      {children != null && <span>{children}</span>}
+    <button type="button" onClick={toggle} title={label} className={cx('inline-flex items-center justify-center', className)} aria-label={status === 'playing' ? t.pause : label}>
+      {status === 'loading'
+        ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        : status === 'playing'
+          ? <PauseGlyph />
+          : <Volume2 aria-hidden="true" strokeWidth={2.2} className="size-5" />}
     </button>
   )
 }
