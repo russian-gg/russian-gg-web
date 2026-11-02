@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   Gamepad2,
+  Headphones,
   Image,
   Layers,
   Lightbulb,
@@ -58,7 +59,7 @@ import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
-import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio, VoiceError } from '../lib/liveVoice'
+import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio, stopPromptAudio, VoiceError } from '../lib/liveVoice'
 import { playUiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
 import { Celebration } from '../components/Celebration'
@@ -100,10 +101,9 @@ type SectionId = (typeof sections)[number]['id']
  * Every section that sets a task has to be finished before the lesson moves on — clicking past
  * the work was how a learner could reach the closing card having done none of it.
  *
- * Two sections deliberately stay open. The phonetics and grammar blocks are reading, with no
- * answer to check. The dialogue block only asks that a mode be opened: its recording needs a
- * microphone and the voice backend, and a learner whose mic is refused must still be able to
- * finish the day rather than be sealed in mid-lesson.
+ * The phonetics and grammar blocks stay open: they are reading, with no answer to check. The
+ * dialogue block asks for every AI question to be answered aloud — there is no way past it
+ * without the microphone.
  */
 function sectionBlockReason(
   sectionId: SectionId,
@@ -121,15 +121,10 @@ function sectionBlockReason(
     case 'game':
       return isGameSolved(lesson, state.gameMatches) ? null : gate.game
     case 'missions':
-      // Two steps, in order: read the dialogue through, then answer the AI questions aloud.
-      // Opening the question screen used to be enough, so the speaking half could be skipped
-      // without the learner noticing. Now it counts answers — or an explicit "without the
-      // microphone", for a learner whose microphone is refused.
+      // Two steps, in order: read the dialogue through, then answer every AI question aloud.
       if (!state.dialoguePractised) return gate.dialogue
       if (!state.aiChatStarted) return gate.aiChat
-      return state.aiAnswered.length >= aiAnswerTarget(lesson.questions.length) || state.aiSkipped
-        ? null
-        : fill(gate.aiAnswers, { count: aiAnswerTarget(lesson.questions.length) })
+      return allQuestionsAnswered(lesson, state.aiAnswered) ? null : gate.aiAnswers
     case 'vocabulary':
       return state.vocabularyReviewed >= vocabularyTarget(lesson.vocabulary.length)
         ? null
@@ -220,7 +215,7 @@ function gateProgress(sectionId: SectionId, lesson: LessonData, state: StoredSta
       return gameProgress(lesson, state.gameMatches)
     case 'missions':
       return state.aiChatStarted
-        ? { done: Math.min(state.aiAnswered.length, aiAnswerTarget(lesson.questions.length)), total: aiAnswerTarget(lesson.questions.length) }
+        ? { done: lesson.questions.filter((_, index) => state.aiAnswered.includes(index)).length, total: lesson.questions.length }
         : null
     case 'vocabulary':
       return { done: Math.min(state.vocabularyReviewed, vocabularyTarget(lesson.vocabulary.length)), total: vocabularyTarget(lesson.vocabulary.length) }
@@ -292,8 +287,8 @@ type StoredState = {
   aiChatStarted: boolean
   /** The AI questions answered aloud, by index. */
   aiAnswered: number[]
-  /** The learner chose to go on without the microphone. */
-  aiSkipped: boolean
+  /** What the AI said about each answered question, by index — shown again on going back to it. */
+  aiFeedback: Record<number, string>
   /** How far into the word deck the learner has got — also where reopening resumes. */
   vocabularyReviewed: number
 }
@@ -309,15 +304,12 @@ const emptyState: StoredState = {
   dialoguePractised: false,
   aiChatStarted: false,
   aiAnswered: [],
-  aiSkipped: false,
+  aiFeedback: {},
   vocabularyReviewed: 0,
 }
 
-/** Enough spoken answers to have practised, without making a learner answer every question. */
-const AI_ANSWER_TARGET = 3
-
-function aiAnswerTarget(questionCount: number) {
-  return Math.min(AI_ANSWER_TARGET, questionCount)
+function allQuestionsAnswered(lesson: LessonData, answered: number[]) {
+  return lesson.questions.every((_, index) => answered.includes(index))
 }
 
 /** Enough cards to have actually studied, without forcing the whole deck in one sitting. */
@@ -378,7 +370,6 @@ export function FoundationLesson() {
     }
     headingRef.current?.focus({ preventScroll: true })
   }, [state.sectionIndex])
-  const sectionRef = useRef<HTMLElement>(null)
 
   /*
    * The lessons ship with the app, so the route alone opened any of them — a free learner could
@@ -465,7 +456,7 @@ export function FoundationLesson() {
         onJump={jumpTo}
       />
 
-      <section ref={sectionRef} aria-labelledby={`section-${active.id}`} className="scroll-mt-4">
+      <section aria-labelledby={`section-${active.id}`} className="scroll-mt-4">
         <div className="mb-3 flex items-center gap-3 sm:mb-4">
           {/*
             Filled rather than tinted: this header sits on the page background, not on a card, and
@@ -545,14 +536,14 @@ export function FoundationLesson() {
             dialoguePractised={state.dialoguePractised}
             aiChatStarted={state.aiChatStarted}
             aiAnswered={state.aiAnswered}
-            aiSkipped={state.aiSkipped}
+            aiFeedback={state.aiFeedback}
             onDialoguePractised={() => setState((current) => ({ ...current, dialoguePractised: true }))}
             onAiChatStarted={() => setState((current) => ({ ...current, aiChatStarted: true }))}
-            onAiAnswered={(index) => setState((current) => ({
+            onAiAnswered={(index, note) => setState((current) => ({
               ...current,
               aiAnswered: current.aiAnswered.includes(index) ? current.aiAnswered : [...current.aiAnswered, index],
+              aiFeedback: { ...current.aiFeedback, [index]: note },
             }))}
-            onAiSkipped={() => setState((current) => ({ ...current, aiSkipped: true }))}
           />
         )}
         {active.id === 'vocabulary' && (
@@ -580,23 +571,10 @@ export function FoundationLesson() {
 
       <div className="space-y-3 border-t border-hairline pt-4">
         {/*
-          A disabled button with no reason next to it reads as a broken page — and the reason in
-          small grey print under it was easy to miss. It sits above the buttons now, in the
-          caution tone, with a way back up to the task.
+          No caution card above the buttons: each step already shows what is left (ticks, the
+          count on Next), and the card said "do the task" on every step. The reason is kept as the
+          disabled button's tooltip.
         */}
-        {/* Not on the phrases: the ticks on the tiles and the count on Next already say what is left. */}
-        {blockReason && active.id !== 'phrases' && (
-          <p role="status" className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-xl bg-caution-soft px-3 py-2 text-sm font-bold text-caution">
-            <span>{blockReason}</span>
-            <button
-              type="button"
-              onClick={() => sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              className="font-black underline"
-            >
-              {t.showTask}
-            </button>
-          </p>
-        )}
         {/* Wraps rather than overflowing: on a 320px phone the last step's two labels fill the row. */}
         <div className="flex flex-wrap items-center gap-2">
           {active.id === 'complete' && recording === 'failed' ? (
@@ -611,6 +589,7 @@ export function FoundationLesson() {
               <Button
                 className="ml-auto"
                 disabled={!canContinue || (active.id === 'complete' && recording === 'saving')}
+                title={blockReason ?? undefined}
                 onClick={() => void finishCurrent()}
               >
                 {active.id === 'complete'
@@ -646,17 +625,17 @@ function LessonHero({ lesson, progress, compact, state, onJump }: {
         // left the learner with no idea which lesson they were in.
         <p className="flex min-w-0 items-baseline gap-2 text-sm">
           <span className="shrink-0 text-xs font-black tracking-[.12em] text-signal-ink uppercase">{fill(t.eyebrow, { day: lesson.day })}</span>
-          <span className="truncate font-black text-ink"><RussianText text={lesson.titleRu} /></span>
+          <span className="truncate font-black text-ink">{lesson.titleRu}</span>
         </p>
       ) : <>
         <p className="text-xs font-black tracking-[.16em] text-signal-ink uppercase">{fill(t.eyebrow, { day: lesson.day })}</p>
-        <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl"><RussianText text={lesson.titleRu} /></h1>
+        {/* Plain ink: a lesson's name is not a word being taught, so it carries no grammar colour. */}
+        <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl">{lesson.titleRu}</h1>
         <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
       </>}
-      {/* The bar is plainly progress, so it carries no label of its own — only its count. */}
-      <div className={cx('flex items-center gap-3', compact ? 'mt-2' : 'mt-4')}>
-        <div className="min-w-0 flex-1"><ProgressBar value={progress} max={sections.length} label={t.progress} /></div>
-        <span className="shrink-0 text-xs font-black text-ink-faint tabular-nums sm:text-sm">{progress} / {sections.length}</span>
+      {/* No count beside the bar: the step marks under it already say which steps are done. */}
+      <div className={compact ? 'mt-2' : 'mt-4'}>
+        <ProgressBar value={progress} max={sections.length} label={t.progress} />
       </div>
       <StepMap state={state} onJump={onJump} />
     </Card>
@@ -794,13 +773,13 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
   /*
    * One segment per speaker turn, not one flat string. A mascot's line carries its `character`
    * so playback switches to that mascot's own Gemini voice; unattributed narration (title,
-   * lead, plain paragraphs, tables) has none and falls back to the learner's base voice. The
+   * plain paragraphs, tables) has none and falls back to the learner's base voice. The
    * old version prefixed every mascot line with its name read aloud ("Пингвин: …") because one
    * voice narrated everyone — now that the voice itself carries the character, that prefix
    * would be redundant.
    */
   const speechSegments: { text: string; character?: Mascot }[] = [
-    { text: `${rule.title}. ${rule.lead}` },
+    { text: rule.title },
     ...rule.body.map((paragraph): { text: string; character?: Mascot } => typeof paragraph === 'string'
       ? { text: paragraph }
       : 'speaker' in paragraph
@@ -819,7 +798,7 @@ function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetic
             <h3 className="min-w-0 flex-1 text-lg font-black leading-tight text-ink sm:text-2xl"><RussianText text={rule.title} /></h3>
             <RuleSpeechButton segments={speechSegments} label={t.listen} className="raised raised-sm raised-signal-soft size-10 shrink-0 rounded-full bg-signal-soft text-signal-ink" />
           </div>
-          <p className="mt-2 font-semibold leading-relaxed text-ink-muted"><RussianText text={rule.lead} /></p>
+          {/* No lead paragraph under the title: the mascot's explanation below says the same, in full. */}
         </div>
       </div>
       {genderStory && (
@@ -939,6 +918,30 @@ const ruleCardDetails: Variants = {
   },
 }
 
+const PRONOUN_START = /^(я|ты|он|она|оно|мы|вы|они)(\s|$|,|\/|\()/u
+
+/**
+ * A conjugation table: one row per person (я, ты, он…) and a column per verb (смотреть, видеть,
+ * слышать). Read row by row it mixes the verbs — "я: смотрю, вижу, слышу" — which is the wrong
+ * way round for learning them; each verb is learnt as its own set of forms.
+ */
+function isVerbParadigm(table: { headers: string[]; rows: string[][] }) {
+  // Infinitives only — "читать (o‘qimoq)", "бриться" — so a table of genders (Мужской, Женский…) stays as it is.
+  const verbColumns = table.headers.slice(1).filter((header) => /^[а-яё]+(ть|ти|чь)(ся|сь)?(\s|\(|$)/iu.test(header.trim()))
+  return verbColumns.length >= 2 && table.rows.length > 1 && table.rows.every((row) => PRONOUN_START.test((row[0] ?? '').trim().toLocaleLowerCase('ru')))
+}
+
+/**
+ * The same table turned round: one row per column — each verb, and the endings column where there
+ * is one — with its forms under the persons they go with.
+ */
+function byVerb(table: { headers: string[]; rows: string[][] }) {
+  return {
+    headers: [table.headers[0], ...table.rows.map((row) => row[0] ?? '')],
+    rows: table.headers.slice(1).map((header, column) => [header, ...table.rows.map((row) => row[column + 1] ?? '')]),
+  }
+}
+
 /**
  * A rule table as a stack of cards, one per row. The grid it replaced was four to six columns
  * wide, so on a phone it scrolled sideways and the learner lost which header a cell sat under.
@@ -949,9 +952,13 @@ const ruleCardDetails: Variants = {
  * once; the first card starts open to show that the others do too. A row that fits in the
  * summary is just a card, with nothing to open.
  */
-function RuleTable({ table }: { table: { headers: string[]; rows: string[][] } }) {
+function RuleTable({ table: authored }: { table: { headers: string[]; rows: string[][] } }) {
+  const paradigm = isVerbParadigm(authored)
+  const table = paradigm ? byVerb(authored) : authored
+  // A verb card is only its name until opened; the opened card is the whole verb.
+  const summaryCells = paradigm ? 1 : RULE_CARD_SUMMARY
   const [open, setOpen] = useState<Set<number>>(() => new Set([0]))
-  const expandable = table.headers.length > RULE_CARD_SUMMARY
+  const expandable = table.headers.length > summaryCells
   function toggle(index: number) {
     setOpen((current) => {
       const next = new Set(current)
@@ -967,7 +974,7 @@ function RuleTable({ table }: { table: { headers: string[]; rows: string[][] } }
         const summary = (
           <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
             <span className="font-black text-ink"><RussianText text={row[0] ?? ''} /></span>
-            {row[1] && <span className="text-ink-muted"><RussianText text={row[1]} /></span>}
+            {summaryCells > 1 && row[1] && <span className="text-ink-muted"><RussianText text={row[1]} /></span>}
           </span>
         )
         return (
@@ -989,9 +996,9 @@ function RuleTable({ table }: { table: { headers: string[]; rows: string[][] } }
               {isOpen && (
                 <m.div key="details" variants={ruleCardDetails} initial="closed" animate="open" exit="closed" className="overflow-hidden">
                   <dl className="grid gap-x-3 gap-y-1 border-t border-hairline bg-ground-sunken/60 px-3 py-2.5 text-sm sm:grid-cols-2">
-                    {row.slice(RULE_CARD_SUMMARY).map((cell, cellIndex) => (
+                    {row.slice(summaryCells).map((cell, cellIndex) => (
                       <div key={cellIndex} className="flex min-w-0 items-baseline gap-2">
-                        <dt className="shrink-0 text-[11px] font-black tracking-[.06em] text-ink-faint uppercase">{table.headers[cellIndex + RULE_CARD_SUMMARY]}</dt>
+                        <dt className="shrink-0 text-[11px] font-black tracking-[.06em] text-ink-faint uppercase">{table.headers[cellIndex + summaryCells]}</dt>
                         <dd className="min-w-0 font-bold wrap-break-word text-ink"><RussianText text={cell} /></dd>
                       </div>
                     ))}
@@ -1032,9 +1039,10 @@ function PhrasesSection({ phrases, ratings, onRate }: { phrases: Phrase[]; ratin
       {open !== null && <StudyCard phrase={phrases[open]} onClose={() => setOpen(null)} onNext={() => {
         onRate(open, 'known')
         const seen = { ...ratings, [open]: 'known' as const }
-        // The next unseen phrase after this one, wrapping round; none left closes the card.
-        const after = phrases.findIndex((_, index) => index > open && !seen[index])
-        const next = after >= 0 ? after : phrases.findIndex((_, index) => !seen[index])
+        // Always the following phrase. It used to jump to the next one not yet seen and close
+        // the card when there was none — so once every phrase was ticked, "Next" only closed it.
+        // Past the last phrase it goes back to any still unseen, and closes only when none are.
+        const next = open + 1 < phrases.length ? open + 1 : phrases.findIndex((_, index) => !seen[index])
         setOpen(next >= 0 ? next : null)
       }} />}
     </>
@@ -1065,11 +1073,25 @@ function StudyCard({ phrase, onClose, onNext }: { phrase: Phrase; onClose: () =>
               <p className="mt-1 text-sm leading-relaxed text-ink"><RussianText text={phrase.example} /></p>
             </div>
           )}
-          <SpeechButton text={phrase.ru} lang="ru-RU" className="raised raised-signal mt-3 inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2.5 text-sm font-black text-on-signal">{t.repeat}</SpeechButton>
-          <Button size="lg" block className="mt-4" onClick={() => { playUiSound('coin'); onNext() }}>
-            {t.next}
-            <ArrowRight aria-hidden="true" strokeWidth={2.4} className="size-5" />
-          </Button>
+          {/*
+            Two buttons of one size, told apart by weight: listening is the soft blue step, moving on
+            is the green one. They were both solid blue — a half-width pill over a full-width bar —
+            so the card read as two equal choices with no order between them.
+          */}
+          <div className="mt-5 grid gap-2.5">
+            <SpeechButton
+              text={phrase.ru}
+              lang="ru-RU"
+              icon={<Volume2 aria-hidden="true" strokeWidth={2.2} className="size-5" />}
+              className="raised raised-signal-soft h-14 w-full rounded-[var(--radius-control)] bg-signal-soft px-5 text-base font-extrabold text-signal-ink"
+            >
+              {t.repeat}
+            </SpeechButton>
+            <Button variant="success" size="lg" block onClick={() => { playUiSound('coin'); onNext() }}>
+              {t.next}
+              <ArrowRight aria-hidden="true" strokeWidth={2.4} className="size-5" />
+            </Button>
+          </div>
         </div>
       </Card>
     </div>, document.body,
@@ -1914,28 +1936,53 @@ function FamilyCrossword({ lesson, matches, onChange }: { lesson: LessonData; ma
   )
 }
 
+/** How long the AI's comment stays on the screen, after it has been read out, before the next question. */
+const ADVANCE_AFTER_FEEDBACK_MS = 5000
+
+/**
+ * The AI's comment, trimmed to what a learner takes in after one answer. The server sends praise,
+ * a correction and a pronunciation note, each sometimes several sentences, and all of it read
+ * aloud ran to a paragraph. One sentence was too little — it said what was wrong but not why.
+ *
+ * So: what went well, in a sentence; then the correction with its reason, up to two sentences.
+ * With nothing to correct, the pronunciation tip takes the correction's place.
+ */
+function shortFeedback(feedback: VoiceNoteTurnFeedback['feedback']) {
+  const correction = leadingSentences(feedback.headlineCorrection, 2)
+  return [
+    leadingSentences(feedback.strengthNote, 1),
+    correction || leadingSentences(feedback.pronunciationNote, 1),
+  ].filter(Boolean).join(' ')
+}
+
+function leadingSentences(text: string | null | undefined, count: number) {
+  // A full stop inside a quoted Russian example («…смотрю.») is followed by the quote, not a space,
+  // so it does not end a sentence here.
+  const sentences = text?.trim().split(/(?<=[.!?…])\s+/u) ?? []
+  return sentences.slice(0, count).filter(Boolean).join(' ')
+}
+
 function MissionModes({
   lesson,
   missionId,
   dialoguePractised,
   aiChatStarted,
   aiAnswered,
-  aiSkipped,
+  aiFeedback,
   onDialoguePractised,
   onAiChatStarted,
   onAiAnswered,
-  onAiSkipped,
 }: {
   lesson: LessonData
   missionId?: string
   dialoguePractised: boolean
   aiChatStarted: boolean
   aiAnswered: number[]
-  aiSkipped: boolean
+  aiFeedback: Record<number, string>
   onDialoguePractised: () => void
   onAiChatStarted: () => void
-  onAiAnswered: (index: number) => void
-  onAiSkipped: () => void
+  /** A question answered aloud, with what the AI said about the answer. */
+  onAiAnswered: (index: number, note: string) => void
 }) {
   const dictionary = useT()
   const { locale } = useLocale()
@@ -1949,6 +1996,8 @@ function MissionModes({
     onDialoguePractised()
     onAiChatStarted()
     setMode('ai')
+    // The comment on the dialogue reading belongs to the dialogue, not to the first question.
+    setFeedback(null)
   }
 
   const [questionIndex, setQuestionIndex] = useState(() => {
@@ -1968,10 +2017,23 @@ function MissionModes({
    */
   const [micPending, setMicPending] = useState(false)
   const [listening, setListening] = useState(false)
-  const allAnswered = lesson.questions.every((_, index) => aiAnswered.includes(index))
-  const answeredEnough = aiAnswered.length >= aiAnswerTarget(lesson.questions.length)
+  /** The dialogue line being played aloud right now, lit up in the chat. */
+  const [speakingLine, setSpeakingLine] = useState<number | null>(null)
+  const allAnswered = allQuestionsAnswered(lesson, aiAnswered)
+  // What shows under the question: a fresh comment or error, else what the AI said last time.
+  const savedNote = mode === 'ai' ? aiFeedback[questionIndex] : undefined
+  const note = feedback ?? (savedNote ? { kind: 'note' as const, text: savedNote } : null)
+
+  /*
+   * After an answer the AI's comment is read out, then left on the screen for a while before the
+   * next question replaces it: moving on the moment the voice stopped left no time to take the
+   * comment in. Going to a question by hand cancels the wait.
+   */
+  const advanceTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(advanceTimer.current), [])
 
   function goToQuestion(index: number) {
+    window.clearTimeout(advanceTimer.current)
     setQuestionIndex(index)
     setShowAnswer(false)
     setFeedback(null)
@@ -2012,12 +2074,14 @@ function MissionModes({
     return attempt
   }
 
-  async function toggleRecording(onDone?: () => void) {
+  async function toggleRecording(onDone?: (note: string) => void) {
     if (listening) {
       recorderRef.current?.stop()
       return
     }
 
+    // Answering again before the next question came up keeps the learner on this one.
+    window.clearTimeout(advanceTimer.current)
     try {
       if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
         throw new VoiceError('mic_unsupported')
@@ -2051,6 +2115,10 @@ function MissionModes({
         streamRef.current = null
         setFeedback({ kind: 'error', text: voiceErrors.mic_failed })
       }
+      // Anything still playing — the dialogue read through, a question — stops before the mic opens.
+      window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id: null } }))
+      stopPromptAudio()
+      window.speechSynthesis?.cancel()
       recorder.start()
       setListening(true)
     } catch (error) {
@@ -2074,7 +2142,7 @@ function MissionModes({
     }
   }
 
-  async function submitRecording(audio: Blob, mimeType: string, attempt: StartAttemptResponse, onDone?: () => void) {
+  async function submitRecording(audio: Blob, mimeType: string, attempt: StartAttemptResponse, onDone?: (note: string) => void) {
     if (audio.size === 0) {
       setFeedback({ kind: 'error', text: t.emptyRecording })
       return
@@ -2095,16 +2163,13 @@ function MissionModes({
       form.set('audio', audio, `foundation-answer.${recordingExtension(mimeType)}`)
       const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
       attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
-      // Straight to the feedback. It used to open with "You said: …" and the whole transcript —
-      // after a full-dialogue reading, the entire dialogue written out again before a word of
-      // comment.
-      const spokenFeedback = [result.feedback.strengthNote, result.feedback.headlineCorrection, result.feedback.pronunciationNote].filter(Boolean).join('. ')
+      const spokenFeedback = shortFeedback(result.feedback)
       setFeedback({ kind: 'note', text: spokenFeedback })
       // The server writes the feedback in the learner's language, so it is read in that voice.
       await speak(spokenFeedback, SPEECH_TAG[locale])
       // An answer counts only when something was heard: any recording, silence included, used
       // to tick the question off.
-      if (result.transcript?.trim()) onDone?.()
+      if (result.transcript?.trim()) onDone?.(spokenFeedback)
     } catch (error) {
       setFeedback({ kind: 'error', text: error instanceof RequestError ? error.message : t.checkFailed })
     } finally {
@@ -2116,113 +2181,131 @@ function MissionModes({
     <Card className="p-4 sm:p-5">
       {/* The first badge is also the way back to the dialogue, which used to be one more link. */}
       <div className="mb-3 grid grid-cols-2 gap-2">
-        <StepBadge index={1} title={t.practiseDialogue} active={mode === 'dialogue'} done={dialoguePractised} onClick={mode === 'ai' ? () => setMode('dialogue') : undefined} />
+        <StepBadge index={1} title={t.practiseDialogue} active={mode === 'dialogue'} done={dialoguePractised} onClick={mode === 'ai' ? () => { setMode('dialogue'); setFeedback(null) } : undefined} />
         <StepBadge index={2} title={t.aiChat} active={mode === 'ai'} done={aiChatStarted} />
       </div>
 
       {mode === 'dialogue' ? (
         <div>
-          <div className="grid gap-2">
-            {lesson.dialogue.map((line, index) => (
-              <div key={`${line}-${index}`} className={cx('flex items-start gap-2 rounded-2xl p-3 text-sm leading-relaxed sm:text-base', index % 2 === 0 ? 'mr-6 bg-ground-sunken' : 'ml-6 bg-signal-soft')}>
-                <SpeechButton
-                  text={dialogueSpeechText(line)}
-                  lang="ru-RU"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ground-raised text-signal-ink shadow-sm"
-                />
-                <span className="min-w-0 flex-1"><DialogueLine line={line} /></span>
-              </div>
-            ))}
-          </div>
+          <DialogueChat lines={lesson.dialogue} currentLine={speakingLine} />
           {/*
-            The whole dialogue is on the screen at once, as a chat, and the microphone under it is
-            the one thing to do here: read it all aloud. Lines no longer open one by one behind a
-            "Next line" button, and the caption under the mic shows only while it is recording.
+            The whole dialogue is on the screen at once, as a chat between the two characters. Under
+            it, two things to do: hear the whole conversation played through, each line in its own
+            character's voice, then read it aloud yourself. The play button on every line and the
+            caption under the recording mic are gone.
           */}
-          <MicRoundButton
-            listening={listening}
-            processing={processing}
-            onClick={() => void toggleRecording()}
-            label={listening ? t.stopRecording : t.mic}
-          />
-          {listening && <p className="mt-2 text-center text-sm font-bold text-ink-muted">{t.micStopDialogue}</p>}
-          <Button size="lg" block className="mt-4" onClick={startAiChat}>
+          <div className="mt-5 flex items-start justify-center gap-8">
+            <DialoguePlayer lines={lesson.dialogue} disabled={listening || processing} onLine={setSpeakingLine} />
+            <div className="flex w-24 flex-col items-center gap-2">
+              <MicRoundButton
+                listening={listening}
+                processing={processing}
+                onClick={() => void toggleRecording()}
+                label={listening ? t.stopRecording : t.readDialogue}
+                className=""
+              />
+              <span aria-hidden="true" className="text-center text-xs font-bold text-ink-muted">{listening ? t.stopRecording : t.readDialogue}</span>
+            </div>
+          </div>
+          <Button size="lg" block className="mt-5" onClick={startAiChat}>
             <span className="whitespace-normal leading-tight">{t.goToAi}</span>
           </Button>
           {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
         </div>
       ) : (
         <div className="text-center">
-          {allAnswered ? (
-            // A finished block says so and points at the button that moves on, instead of
-            // staying on the last question forever.
-            <p role="status" className="mt-3 rounded-2xl bg-milestone-soft p-5 text-base font-black text-milestone">
+          {/*
+            Every question has to be answered, so each one has its own mark: answered ones are
+            ticked, and opening one again brings back what the AI said about the answer.
+          */}
+          {lesson.questions.length > 1 && (
+            <ol aria-label={t.questions} className="flex flex-wrap justify-center gap-1.5">
+              {lesson.questions.map((_, index) => {
+                const answered = aiAnswered.includes(index)
+                const current = index === questionIndex
+                return (
+                  <li key={index}>
+                    <button
+                      type="button"
+                      onClick={() => goToQuestion(index)}
+                      aria-current={current ? 'step' : undefined}
+                      aria-label={fill(t.questionNumber, { n: index + 1 })}
+                      className={cx(
+                        'flex size-8 items-center justify-center rounded-lg text-xs font-black tabular-nums transition',
+                        current
+                          ? 'bg-signal text-on-signal ring-3 ring-signal-soft'
+                          : answered
+                            ? 'bg-milestone-soft text-milestone'
+                            : 'bg-ground-sunken text-ink-muted hover:text-ink',
+                      )}
+                    >
+                      {answered && !current ? <Check aria-hidden="true" strokeWidth={3} className="size-3.5" /> : index + 1}
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
+          <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="raised raised-signal-soft mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
+          {/*
+            The question, the mic, nothing else. The sample answer waits behind the lamp and
+            the next question behind the skip mark, both as icons beside the mic: the counter,
+            the captions and the two text links were more to read than the question itself.
+          */}
+          <div className="mt-4 flex items-center justify-center gap-5">
+            <button
+              type="button"
+              onClick={() => setShowAnswer((current) => !current)}
+              aria-label={t.showAnswer}
+              aria-pressed={showAnswer}
+              title={t.showAnswer}
+              className={cx('raised raised-sm flex size-11 items-center justify-center rounded-full border border-hairline', showAnswer ? 'bg-caution-soft text-caution' : 'bg-ground-raised text-ink-muted')}
+            >
+              <Lightbulb aria-hidden="true" strokeWidth={2.2} className="size-5" />
+            </button>
+            <MicRoundButton
+              listening={listening}
+              processing={processing}
+              className=""
+              label={listening ? t.stopRecording : t.mic}
+              onClick={() => void toggleRecording((note) => {
+                const answered = aiAnswered.includes(questionIndex) ? aiAnswered : [...aiAnswered, questionIndex]
+                onAiAnswered(questionIndex, note)
+                const next = nextOpenQuestion(questionIndex, answered)
+                if (next !== null) advanceTimer.current = window.setTimeout(() => goToQuestion(next), ADVANCE_AFTER_FEEDBACK_MS)
+              })}
+            />
+            {lesson.questions.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => goToQuestion(nextOpenQuestion(questionIndex, aiAnswered) ?? (questionIndex + 1) % lesson.questions.length)}
+                aria-label={t.nextQuestion}
+                title={t.nextQuestion}
+                className="raised raised-sm flex size-11 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink-muted"
+              >
+                <SkipForward aria-hidden="true" strokeWidth={2.2} className="size-5" />
+              </button>
+            ) : <span aria-hidden="true" className="size-11" />}
+          </div>
+          {listening && <p className="mt-2 text-center text-sm font-bold text-ink-muted">{t.micStopAnswer}</p>}
+          {showAnswer && (
+            <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-left text-sm leading-relaxed text-ink">
+              <RussianText text={lesson.questions[questionIndex].answer} />
+            </p>
+          )}
+          {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
+          {/* A finished block says so and points at the button that moves on. */}
+          {allAnswered && (
+            <p role="status" className="mt-4 rounded-2xl bg-milestone-soft p-4 text-sm font-black text-milestone">
               {t.allAnswered}
             </p>
-          ) : (
-            <>
-              <SpeechButton text={lesson.questions[questionIndex].question} lang="ru-RU" autoPlayToken={`${mode}-${questionIndex}`} className="raised raised-signal-soft mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-signal-soft p-5 text-xl font-black text-ink"><RussianText text={lesson.questions[questionIndex].question} /></SpeechButton>
-              {/*
-                The question, the mic, nothing else. The sample answer waits behind the lamp and
-                the next question behind the skip mark, both as icons beside the mic: the counter,
-                the captions and the two text links were more to read than the question itself.
-              */}
-              <div className="mt-4 flex items-center justify-center gap-5">
-                <button
-                  type="button"
-                  onClick={() => setShowAnswer((current) => !current)}
-                  aria-label={t.showAnswer}
-                  aria-pressed={showAnswer}
-                  title={t.showAnswer}
-                  className={cx('raised raised-sm flex size-11 items-center justify-center rounded-full border border-hairline', showAnswer ? 'bg-caution-soft text-caution' : 'bg-ground-raised text-ink-muted')}
-                >
-                  <Lightbulb aria-hidden="true" strokeWidth={2.2} className="size-5" />
-                </button>
-                <MicRoundButton
-                  listening={listening}
-                  processing={processing}
-                  className=""
-                  label={listening ? t.stopRecording : t.mic}
-                  onClick={() => void toggleRecording(() => {
-                    const answered = aiAnswered.includes(questionIndex) ? aiAnswered : [...aiAnswered, questionIndex]
-                    onAiAnswered(questionIndex)
-                    const next = nextOpenQuestion(questionIndex, answered)
-                    if (next !== null) setTimeout(() => goToQuestion(next), 900)
-                  })}
-                />
-                {lesson.questions.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => goToQuestion(nextOpenQuestion(questionIndex, aiAnswered) ?? (questionIndex + 1) % lesson.questions.length)}
-                    aria-label={t.nextQuestion}
-                    title={t.nextQuestion}
-                    className="raised raised-sm flex size-11 items-center justify-center rounded-full border border-hairline bg-ground-raised text-ink-muted"
-                  >
-                    <SkipForward aria-hidden="true" strokeWidth={2.2} className="size-5" />
-                  </button>
-                ) : <span aria-hidden="true" className="size-11" />}
-              </div>
-              {listening && <p className="mt-2 text-center text-sm font-bold text-ink-muted">{t.micStopAnswer}</p>}
-              {showAnswer && (
-                <p className="mt-3 rounded-xl bg-ground-sunken p-3 text-left text-sm leading-relaxed text-ink">
-                  <RussianText text={lesson.questions[questionIndex].answer} />
-                </p>
-              )}
-              {micPending && <p className="mt-1 text-center text-xs text-ink-faint">{t.micPermissionAhead}</p>}
-            </>
-          )}
-          {/* For a learner whose microphone will not work: an explicit way on, not a hidden one. */}
-          {!answeredEnough && !aiSkipped && (
-            <button type="button" onClick={onAiSkipped} className="mt-4 text-xs font-bold text-ink-faint underline">
-              {t.continueWithoutMic}
-            </button>
           )}
         </div>
       )}
-      {feedback && (
-        feedback.kind === 'error'
-          ? <div className="mt-3"><ErrorNote>{feedback.text}</ErrorNote></div>
-          : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={feedback.text} /></p>
+      {note && (
+        note.kind === 'error'
+          ? <div className="mt-3"><ErrorNote>{note.text}</ErrorNote></div>
+          : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={note.text} /></p>
       )}
     </Card>
   )
@@ -2246,10 +2329,159 @@ function dialogueSpeechText(line: string) {
   return separator < 0 ? line : line.slice(separator + 1).trim()
 }
 
-function DialogueLine({ line }: { line: string }) {
+const DIALOGUE_SPEAKERS: Record<string, Mascot> = { Пингвин: 'penguin', Панда: 'panda', Перо: 'pero' }
+
+/** The character a dialogue line belongs to, read from its "Пингвин: …" label. */
+function dialogueSpeaker(line: string): Mascot | undefined {
   const separator = line.indexOf(':')
-  if (separator < 0) return <RussianText text={line} />
-  return <><span className="text-ink">{line.slice(0, separator + 1)}</span><RussianText text={line.slice(separator + 1)} /></>
+  return separator < 0 ? undefined : DIALOGUE_SPEAKERS[line.slice(0, separator).trim()]
+}
+
+/**
+ * The dialogue as a chat between the characters: each line in a bubble beside the one who says
+ * it, instead of a "Пингвин: …" label written in front of plain text. The line being played
+ * lights up, and the list follows it.
+ */
+function DialogueChat({ lines, currentLine }: { lines: string[]; currentLine: number | null }) {
+  const names = useT().lesson.game.speakers
+  const listRef = useRef<HTMLOListElement>(null)
+  useEffect(() => {
+    if (currentLine === null) return
+    listRef.current?.children[currentLine]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [currentLine])
+  return (
+    <ol ref={listRef} className="grid gap-3">
+      {lines.map((line, index) => {
+        const speaker = dialogueSpeaker(line)
+        // The penguin opens on the left and the panda answers on the right; an unlabelled line alternates.
+        const right = speaker ? speaker === 'panda' : index % 2 === 1
+        const speaking = index === currentLine
+        return (
+          <li key={`${line}-${index}`} className={cx('flex items-end gap-2', right && 'flex-row-reverse')}>
+            {/* The picture says who is speaking, so the bubble carries no name; the name is its alt text. */}
+            {speaker
+              ? <img src={mascotImage(speaker)} alt={names[speaker]} className={cx('size-11 shrink-0 object-contain transition-transform duration-300 sm:size-14', speaking && 'scale-110')} />
+              : <span aria-hidden="true" className="size-11 shrink-0 sm:size-14" />}
+            <div
+              className={cx(
+                'min-w-0 max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed transition-shadow duration-300 sm:text-base',
+                right ? 'rounded-br-md bg-signal-soft' : 'rounded-bl-md bg-ground-sunken',
+                speaking && 'ring-2 ring-signal',
+              )}
+            >
+              <p className="text-ink"><RussianText text={dialogueSpeechText(line)} /></p>
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+/**
+ * Plays the whole dialogue through, line after line, each in its own character's voice, and says
+ * which line is playing so the chat can light it. Tapped again, it stops.
+ */
+function DialoguePlayer({ lines, disabled = false, onLine }: {
+  lines: string[]
+  disabled?: boolean
+  onLine: (index: number | null) => void
+}) {
+  const t = useT().lesson.missions
+  const id = useId()
+  const [running, setRunning] = useState(false)
+  /** Stops the run in progress, if there is one. */
+  const cancelRef = useRef<(() => void) | null>(null)
+
+  async function start() {
+    if (readAudioPreferences().muted) return
+    audioUnlocked = true
+    window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id } }))
+    window.speechSynthesis?.cancel()
+
+    let cancelled = false
+    let wake = () => {}
+    const stopped = new Promise<void>((resolve) => { wake = resolve })
+    const cancel = () => {
+      cancelled = true
+      wake()
+      stopPromptAudio()
+      window.speechSynthesis?.cancel()
+    }
+    cancelRef.current = cancel
+    setRunning(true)
+
+    const queue = lines.map((line) => ({ text: cleanSpeechText(dialogueSpeechText(line)), character: dialogueSpeaker(line) }))
+    // A few lines ahead rather than all at once: the audio cache holds twelve clips and a dialogue
+    // is longer than that, so warming every line would evict the first ones before they played.
+    const warm = (index: number) => {
+      const line = queue[index]
+      if (line) void prefetchPromptAudio(line.text, line.character)
+    }
+    warm(0)
+    warm(1)
+    warm(2)
+
+    let browserVoice = false
+    try {
+      for (let index = 0; index < queue.length && !cancelled; index += 1) {
+        warm(index + 3)
+        onLine(index)
+        const { text, character } = queue[index]
+        if (!browserVoice) {
+          try {
+            await Promise.race([
+              playPromptAudioSegment(text, character, (state) => {
+                // A clip that was still loading when Stop was pressed starts late; it is cut off at once.
+                if (cancelled && state === 'playing') stopPromptAudio()
+              }),
+              stopped,
+            ])
+            continue
+          } catch {
+            // The voice service is down: the rest is read by the browser's own Russian voice.
+            browserVoice = true
+          }
+        }
+        if (cancelled) break
+        await Promise.race([new Promise<void>((resolve) => speakWithBrowser(text, 'ru-RU', resolve)), stopped])
+      }
+    } finally {
+      if (cancelRef.current === cancel) cancelRef.current = null
+      setRunning(false)
+      onLine(null)
+    }
+  }
+
+  useEffect(() => {
+    function reset(event: Event) {
+      const owner = (event as CustomEvent<{ id: string | null }>).detail?.id
+      if (owner !== id) cancelRef.current?.()
+    }
+    window.addEventListener('rgg-speech-start', reset)
+    return () => {
+      window.removeEventListener('rgg-speech-start', reset)
+      cancelRef.current?.()
+    }
+  }, [id])
+
+  const label = running ? t.stopListening : t.listenDialogue
+  return (
+    <div className="flex w-24 flex-col items-center gap-2">
+      <button
+        type="button"
+        onClick={() => (running ? cancelRef.current?.() : void start())}
+        disabled={disabled}
+        aria-label={label}
+        className="raised raised-signal-soft flex size-16 shrink-0 items-center justify-center rounded-full bg-signal-soft text-signal-ink disabled:opacity-50"
+      >
+        {running
+          ? <Square aria-hidden="true" strokeWidth={0} className="size-5 fill-current" />
+          : <Headphones aria-hidden="true" strokeWidth={1.9} className="size-6" />}
+      </button>
+      <span aria-hidden="true" className="text-center text-xs font-bold text-ink-muted">{label}</span>
+    </div>
+  )
 }
 
 function MicRoundButton({ listening, processing, onClick, label, className }: { listening: boolean; processing: boolean; onClick: () => void; label: string; className?: string }) {
@@ -2579,39 +2811,23 @@ function CompleteSection({ lesson, recording }: {
       </div>
       <span className="mt-3 inline-flex rounded-full bg-milestone-soft px-3 py-1.5 text-sm font-black text-milestone">{fill(t.badge, { day: lesson.day })}</span>
       {/* Only a lesson's own message: the general one said "done" a third time, after the badge
-          and the title, before the outcomes that are the useful part. */}
+          and the title. The recap tiles of what the day taught are gone — the card ends here. */}
       {lesson.completionMessage && (
         <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">{lesson.completionMessage}</p>
       )}
-      <div className="mt-5 grid gap-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
-        {/*
-          The card's tone is decoration, so it rides on a bar rather than on the words: painting the
-          heading tinted every word the grammar colouring deliberately left alone — the "и" in
-          "Мой и моя" and the bare letters of "Ы и И" came out looking like gender-coded vocabulary.
-        */}
-        {lesson.outcomes.map((outcome) => (
-          <div key={outcome.title} className="rounded-2xl bg-ground-raised p-3">
-            <span aria-hidden="true" className={cx('mx-auto mb-2 block h-1.5 w-8 rounded-full', outcome.tone === 'yellow' ? 'bg-[#e5b600]' : outcome.tone === 'red' ? 'bg-[#ff2400]' : 'bg-[#0000ff]')} />
-            <h4 className="font-black text-ink"><RussianText text={outcome.title} /></h4>
-            <p className="text-sm text-ink-muted">{outcome.translation}</p>
-          </div>
-        ))}
-      </div>
       {/* Saving again is the main button under the card while this shows. */}
       {recording === 'failed' && (
         <div className="mt-4 text-left">
           <ErrorNote>{t.saveFailed}</ErrorNote>
         </div>
       )}
-      {recording === 'saved' && nextDay <= 90 && entitlement && (
+      {/* "Day N is open" went with the recap; past the free plan the learner still has to hear
+          that the next day is Pro, or they meet it as a lock on the path. */}
+      {recording === 'saved' && nextDay <= 90 && nextNeedsPro && (
         <div className="mt-5 rounded-2xl bg-ground-raised p-4 text-left">
-          <p className="font-black text-ink">
-            {fill(nextNeedsPro ? t.nextNeedsPro : t.nextOpened, { day: nextDay })}
-          </p>
-          <p className="mt-1 text-sm text-ink-muted">{nextNeedsPro ? t.nextNeedsProBody : t.nextOpenedBody}</p>
-          {nextNeedsPro && (
-            <LinkButton to="/paywall" size="md" className="mt-3">{dictionary.path.buyPro}</LinkButton>
-          )}
+          <p className="font-black text-ink">{fill(t.nextNeedsPro, { day: nextDay })}</p>
+          <p className="mt-1 text-sm text-ink-muted">{t.nextNeedsProBody}</p>
+          <LinkButton to="/paywall" size="md" className="mt-3">{dictionary.path.buyPro}</LinkButton>
         </div>
       )}
       {/* The lesson data still carries `reflection` questions; the closing card no longer asks them. */}
@@ -2924,8 +3140,7 @@ function readState(storageKey: string | null): StoredState {
       dialoguePractised: parsed.dialoguePractised === true || parsed.missionModeOpened === true,
       aiChatStarted: parsed.aiChatStarted === true || parsed.missionModeOpened === true,
       aiAnswered: Array.isArray(parsed.aiAnswered) ? parsed.aiAnswered.filter((index) => typeof index === 'number') : [],
-      // The old single flag cleared the whole block; those learners are not asked again.
-      aiSkipped: parsed.aiSkipped === true || parsed.missionModeOpened === true,
+      aiFeedback: parsed.aiFeedback && typeof parsed.aiFeedback === 'object' ? parsed.aiFeedback : {},
       vocabularyReviewed: typeof parsed.vocabularyReviewed === 'number' && parsed.vocabularyReviewed > 0
         ? parsed.vocabularyReviewed
         : 0,

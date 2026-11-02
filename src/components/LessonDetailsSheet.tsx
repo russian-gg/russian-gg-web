@@ -1,13 +1,12 @@
 import { useEffect } from 'react'
 import { AnimatePresence, type Variants } from 'motion/react'
 import * as m from 'motion/react-m'
-import { AudioLines, Check, Layers, Play, Repeat2, RotateCcw, SpellCheck, Timer, X } from 'lucide-react'
+import { Check, Play, RotateCcw, Timer, X } from 'lucide-react'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData } from '../lib/foundation-lessons'
 import { fill, useLocale, useT } from '../lib/i18n'
 import { duration, ease, fade, springSoft } from '../lib/motion'
 import { Reveal } from './motion'
-import { ColorScopeProvider, RussianText } from './RussianText'
 import { Badge, Button } from './ui'
 
 export type LessonStatus = 'new' | 'inProgress' | 'done'
@@ -16,10 +15,8 @@ export type LessonStatus = 'new' | 'inProgress' | 'done'
  * A lesson day, read before it is started — the same card the missions open on the map.
  *
  * Tapping a day used to open a small dialog whose only content was one general sentence, the
- * same on every day, and an empty progress bar: "what to expect" said nothing about this lesson.
- * The card says what the day teaches, read from the lesson's own outcomes (which until now only
- * appeared on the closing card), how much is in it, and starts the lesson from its one button —
- * no page in between.
+ * same on every day, and an empty progress bar. The card names the day and starts the lesson
+ * from its one button — no page in between.
  *
  * It rises from the bottom and is part of the page rather than a dialog over it, as the mission
  * card is: the path stays usable, and choosing another day swaps what the card says in place.
@@ -91,16 +88,14 @@ export function LessonDetailsSheet({
           </button>
           {/* Keyed by day, so a new choice arrives rather than the old text being swapped in place. */}
           <Reveal key={lesson.day} variants={fade}>
-            <ColorScopeProvider day={lesson.day}>
-              <Details
-                lesson={lesson}
-                status={status}
-                completed={completed}
-                total={total}
-                isOpening={isOpening}
-                onStart={onStart}
-              />
-            </ColorScopeProvider>
+            <Details
+              lesson={lesson}
+              status={status}
+              completed={completed}
+              total={total}
+              isOpening={isOpening}
+              onStart={onStart}
+            />
           </Reveal>
         </m.section>
       )}
@@ -113,6 +108,13 @@ const rising: Variants = {
   hidden: { opacity: 0, y: 56 },
   shown: { opacity: 1, y: 0, transition: springSoft },
   exit: { opacity: 0, y: 40, transition: { duration: duration.quick, ease: ease.exit } },
+}
+
+/** The gender colours, with the yellow darkened enough to show as a bar on a pale tile. */
+const outcomeTone: Record<LessonData['outcomes'][number]['tone'], string> = {
+  blue: 'bg-[#0000ff]',
+  red: 'bg-[#ff2400]',
+  yellow: 'bg-[#e5b600]',
 }
 
 function Details({ lesson, status, completed, total, isOpening, onStart }: {
@@ -129,17 +131,11 @@ function Details({ lesson, status, completed, total, isOpening, onStart }: {
   const action = status === 'done' ? copy.repeat : status === 'inProgress' ? copy.resume : copy.start
 
   /*
-   * One phone screen, no picture: the scene image and the mascot pushed what the day teaches
-   * below the fold. Four small tiles say it instead — the day's sound, its rule, and how many
-   * words and phrases it brings. How far the learner has got rides on the status chip; the
-   * "0 / 9 bo‘lim" tile only repeated it.
+   * One phone screen, no picture: the day, how far the learner has got (on the status chip), the
+   * title, what the day teaches and the button. What it teaches is the lesson's own outcomes —
+   * the topic, the rule, the sound, each with its Uzbek gloss — rather than tiles of section
+   * names and word counts.
    */
-  const topics = [
-    { icon: AudioLines, label: t.lesson.sections.phonetics, value: lesson.phonetics.title, russian: true },
-    { icon: SpellCheck, label: t.lesson.sections.grammar, value: lesson.grammar.title, russian: true },
-    { icon: Layers, label: copy.statWords, value: fill(copy.countValue, { count: lesson.vocabulary.length }), russian: false },
-    { icon: Repeat2, label: copy.statPhrases, value: fill(copy.countValue, { count: lesson.phrases.length }), russian: false },
-  ]
   return (
     <div className="w-full">
       <div className="flex min-w-0 flex-col">
@@ -149,26 +145,24 @@ function Details({ lesson, status, completed, total, isOpening, onStart }: {
         </div>
 
         <h2 id="lesson-details-title" className="mt-2.5 text-2xl leading-tight font-extrabold tracking-tight wrap-break-word text-ink">
-          <RussianText text={lesson.titleRu} />
+          {/* Plain ink: a lesson's name is not a word being taught, so it carries no grammar colour. */}
+          {lesson.titleRu}
           {/* The Uzbek title translates the Russian one, so it shows to Uzbek readers only. */}
           {locale === 'uz' && <span className="ml-2 text-base font-bold text-ink-muted">{lesson.titleUz}</span>}
         </h2>
 
-        <ul aria-label={t.preview.whatYouLearn} className="mt-4 grid grid-cols-2 gap-2 border-t border-hairline pt-4 lg:grid-cols-4">
-          {topics.map(({ icon: Icon, label, value, russian }) => (
-            <li key={label} className="flex min-w-0 items-start gap-2 rounded-2xl bg-ground-sunken p-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-signal-ink">
-                <Icon aria-hidden="true" strokeWidth={2} className="size-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[10px] font-black tracking-[.08em] text-ink-faint uppercase">{label}</span>
-                <span className="line-clamp-2 text-xs leading-4 font-extrabold sm:text-sm sm:leading-5 wrap-break-word text-ink">
-                  {russian ? <RussianText text={value} /> : value}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
+        {lesson.outcomes.length > 0 && (
+          <ul aria-label={copy.whatYouLearn} className="mt-4 grid gap-2 border-t border-hairline pt-4 sm:grid-cols-3">
+            {lesson.outcomes.map((outcome) => (
+              <li key={outcome.title} className="rounded-2xl bg-ground-sunken px-3 py-2.5 text-center">
+                {/* The tone rides on a bar, not on the words: the titles are names, not taught words. */}
+                <span aria-hidden="true" className={cx('mx-auto mb-1.5 block h-1.5 w-8 rounded-full', outcomeTone[outcome.tone])} />
+                <span className="block font-black leading-snug wrap-break-word text-ink">{outcome.title}</span>
+                <span className="block text-sm text-ink-muted">{outcome.translation}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* On a phone the card can outgrow the screen; the action stays pinned to its bottom edge. */}
         <div className="sticky -bottom-4 -mx-4 mt-auto bg-ground-raised px-4 pt-4 pb-4 sm:static sm:mx-0 sm:flex sm:justify-end sm:p-0 sm:pt-4">

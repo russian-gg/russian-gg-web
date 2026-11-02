@@ -9,7 +9,7 @@ import { collapse, duration, ease, pop, springSoft } from '../lib/motion'
 
 /* -------------------------------------------------------------------------- buttons */
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 /**
@@ -60,6 +60,8 @@ const variants: Record<ButtonVariant, string> = {
   danger:
     'border border-danger bg-transparent text-danger hover:bg-danger-soft ' +
     'raised raised-danger-soft [--glow:transparent]',
+  // Moving on past something just done — the same green face as the path's "start" pill.
+  success: 'border border-transparent bg-milestone text-on-signal raised-milestone raised',
 }
 
 const sizes: Record<ButtonSize, string> = {
