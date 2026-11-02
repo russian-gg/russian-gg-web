@@ -205,7 +205,7 @@ export const uz = {
   },
 
   lessonOne: {
-    eyebrow: '1-dars · A1',
+    eyebrow: '1-dars',
     subtitle: 'Qo‘shni bilan tanishuv',
     progress: 'Dars progressi',
     sectionsDone: '{done} / {total} bo‘lim yakunlandi',
@@ -352,7 +352,7 @@ export const uz = {
   },
 
   lesson: {
-    eyebrow: '{day}-dars · A1',
+    eyebrow: '{day}-dars',
     progress: 'Dars progressi',
     back: '← Orqaga',
     next: 'Davom etish →',
@@ -374,9 +374,9 @@ export const uz = {
 
     gate: {
       tests: 'Davom etish uchun barcha testlarga to‘g‘ri javob bering.',
-      phrases: 'Davom etish uchun barcha iboralarni ochib, baholang.',
+      phrases: 'Davom etish uchun barcha iboralarni oching.',
       game: 'Davom etish uchun o‘yinni oxirigacha yeching.',
-      dialogue: 'Davom etish uchun avval dialogni oxirigacha mashq qiling.',
+      dialogue: 'Davom etish uchun dialogni o‘qing va AI bilan suhbatga o‘ting.',
       aiChat: 'Endi AI bilan suhbatga o‘ting.',
       vocabulary: 'Davom etish uchun kamida {count} ta kartani ko‘rib chiqing.',
       picture: 'Davom etish uchun mashq javobini yozing.',
@@ -393,7 +393,7 @@ export const uz = {
     },
 
     phrases: {
-      intro: "Iborani bosing, tinglang va baholang.",
+      next: 'Keyingisi',
       close: 'Yopish',
       example: 'Namuna gap',
       repeat: 'Tinglang va takrorlang!',
@@ -434,24 +434,17 @@ export const uz = {
     missions: {
       practiseDialogue: 'Dialogni mashq qiling',
       aiChat: 'AI bilan suhbat',
-      intro: "Har bir qatorni tinglang va ovoz chiqarib takrorlang.",
-      aiIntro: "Savolni tinglang va ovoz bilan javob bering.",
       goToAi: 'AI bilan suhbatga o‘tish →',
-      nextLine: 'Keyingi qator',
       backToDialogue: '← Dialogga qaytish',
       step: '{n}-qadam',
       mic: 'Mikrofon',
       stopRecording: 'Yozishni to‘xtatish',
       twoNeighbours: 'Ikki qo‘shni suhbati',
       emptyRecording: "Ovoz yozilmadi. Mikrofonni bosing, gapiring, tugagach yana bosing.",
-      youSaid: "Siz aytdingiz: {text}",
       checkFailed: "Ovozni tekshirib bo'lmadi. Internetni tekshirib, yana urinib ko'ring.",
-      micDialogue: "O‘zingizni yozib oling: butun dialogni o‘qing (ixtiyoriy).",
       micStopDialogue: "Yozilmoqda… O'qib bo'lgach, to'xtatish uchun bosing.",
-      micAnswer: "Bosing, javob bering, tugagach yana bosing.",
       micStopAnswer: "Yozilmoqda… Javob bergach, to'xtatish uchun bosing.",
       micPermissionAhead: "Birinchi marta brauzer mikrofonga ruxsat so'raydi — «Ruxsat berish» (Allow) ni bosing.",
-      answeredOf: "Javob berildi: {done} / {total}",
       allAnswered: "Barcha savollarga javob berdingiz! Endi «Davom etish»ni bosing.",
       sampleAnswer: "Namuna javob",
       showAnswer: "Javobni ko'rsatish",
@@ -465,7 +458,6 @@ export const uz = {
       resume: 'Davom ettirish',
       listenAndRepeat: 'Tinglang va takrorlang',
       known: "Bilaman · выучил",
-      unknown: "Bilmayman · не знаю",
       again: "Takrorlayman · повторю",
       progress: '{seen} / {total} · kamida {count}',
       comingBack: '+{count} takrorlash uchun',

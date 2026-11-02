@@ -1,14 +1,12 @@
 import { useEffect } from 'react'
 import { AnimatePresence, type Variants } from 'motion/react'
 import * as m from 'motion/react-m'
-import { Check, Play, RotateCcw, Timer, X } from 'lucide-react'
+import { AudioLines, Check, Layers, Play, Repeat2, RotateCcw, SpellCheck, Timer, X } from 'lucide-react'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData } from '../lib/foundation-lessons'
 import { fill, useLocale, useT } from '../lib/i18n'
-import { mascotAlt, mascotImage } from '../lib/mascot-images'
 import { duration, ease, fade, springSoft } from '../lib/motion'
 import { Reveal } from './motion'
-import { PreviewFact } from './PreviewDialog'
 import { ColorScopeProvider, RussianText } from './RussianText'
 import { Badge, Button } from './ui'
 
@@ -131,13 +129,19 @@ function Details({ lesson, status, completed, total, isOpening, onStart }: {
   const action = status === 'done' ? copy.repeat : status === 'inProgress' ? copy.resume : copy.start
 
   /*
-   * The outcomes are one line each, and how far the learner has got rides on the status chip;
-   * the facts row at the bottom says how much the lesson holds.
+   * One phone screen, no picture: the scene image and the mascot pushed what the day teaches
+   * below the fold. Four small tiles say it instead — the day's sound, its rule, and how many
+   * words and phrases it brings. How far the learner has got rides on the status chip; the
+   * "0 / 9 bo‘lim" tile only repeated it.
    */
+  const topics = [
+    { icon: AudioLines, label: t.lesson.sections.phonetics, value: lesson.phonetics.title, russian: true },
+    { icon: SpellCheck, label: t.lesson.sections.grammar, value: lesson.grammar.title, russian: true },
+    { icon: Layers, label: copy.statWords, value: fill(copy.countValue, { count: lesson.vocabulary.length }), russian: false },
+    { icon: Repeat2, label: copy.statPhrases, value: fill(copy.countValue, { count: lesson.phrases.length }), russian: false },
+  ]
   return (
-    <div className="grid gap-5 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] md:gap-6">
-      <LessonIllustration lesson={lesson} />
-
+    <div className="w-full">
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 pr-10">
           <Badge tone="signal">{fill(copy.lessonDay, { day: lesson.day })}</Badge>
@@ -150,27 +154,21 @@ function Details({ lesson, status, completed, total, isOpening, onStart }: {
           {locale === 'uz' && <span className="ml-2 text-base font-bold text-ink-muted">{lesson.titleUz}</span>}
         </h2>
 
-        <p className="mt-4 border-t border-hairline pt-4 text-[11px] font-black tracking-[.1em] text-ink-faint uppercase">{t.preview.whatYouLearn}</p>
-        <ul className="mt-2 grid gap-1.5">
-          {lesson.outcomes.map((outcome) => (
-            <li key={outcome.title} className="flex min-w-0 items-start gap-2 text-sm leading-5">
-              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-milestone-soft text-milestone">
-                <Check aria-hidden="true" strokeWidth={3} className="size-2.5" />
+        <ul aria-label={t.preview.whatYouLearn} className="mt-4 grid grid-cols-2 gap-2 border-t border-hairline pt-4 lg:grid-cols-4">
+          {topics.map(({ icon: Icon, label, value, russian }) => (
+            <li key={label} className="flex min-w-0 items-start gap-2 rounded-2xl bg-ground-sunken p-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-signal-ink">
+                <Icon aria-hidden="true" strokeWidth={2} className="size-4" />
               </span>
-              <span className="min-w-0 wrap-break-word">
-                <span className="font-bold text-ink"><RussianText text={outcome.title} /></span>
-                <span lang="uz" className="text-ink-muted"> — {outcome.translation}</span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-black tracking-[.08em] text-ink-faint uppercase">{label}</span>
+                <span className="line-clamp-2 text-xs leading-4 font-extrabold sm:text-sm sm:leading-5 wrap-break-word text-ink">
+                  {russian ? <RussianText text={value} /> : value}
+                </span>
               </span>
             </li>
           ))}
         </ul>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-hairline pt-4 lg:grid-cols-4">
-          <PreviewFact label={copy.statPhrases} value={fill(copy.countValue, { count: lesson.phrases.length })} />
-          <PreviewFact label={copy.statWords} value={fill(copy.countValue, { count: lesson.vocabulary.length })} />
-          <PreviewFact label={copy.statQuestions} value={fill(copy.countValue, { count: lesson.questions.length })} />
-          <PreviewFact label={copy.statSections} value={fill(copy.progressOf, { done: status === 'done' ? total : completed, total })} />
-        </div>
 
         {/* On a phone the card can outgrow the screen; the action stays pinned to its bottom edge. */}
         <div className="sticky -bottom-4 -mx-4 mt-auto bg-ground-raised px-4 pt-4 pb-4 sm:static sm:mx-0 sm:flex sm:justify-end sm:p-0 sm:pt-4">
@@ -217,23 +215,3 @@ function StatusBadge({ status, progress }: { status: LessonStatus; progress: str
   return null
 }
 
-/**
- * The lesson's own scene where it has one, otherwise the character who teaches its rule — in the
- * same frame the mission card gives its picture.
- */
-function LessonIllustration({ lesson }: { lesson: LessonData }) {
-  const mascot = lesson.grammar.mascot
-  return (
-    <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-ground-raised),var(--color-signal-soft))] md:aspect-[4/3]">
-      {lesson.sceneImage ? (
-        <img src={lesson.sceneImage} alt="" className="absolute inset-0 size-full object-cover" />
-      ) : (
-        <img
-          src={mascotImage(mascot)}
-          alt={mascotAlt(mascot)}
-          className="absolute inset-x-0 bottom-0 mx-auto h-[88%] w-auto object-contain"
-        />
-      )}
-    </div>
-  )
-}

@@ -30,6 +30,8 @@ export type Phrase = {
   pronunciation?: string
   example: string
   icon: string
+  /** A real photo of the situation, under /public (e.g. `/lesson-cards/day-1/kvartira.webp`). Shown in place of the icon. */
+  image?: string
 }
 
 export type Vocab = {
@@ -37,6 +39,12 @@ export type Vocab = {
   uz: string
   example: string
   icon: string
+  /**
+   * A real, lively photo of the word — a little funny where it can be, since that is what makes
+   * a card stick. Lives under /public (e.g. `/lesson-cards/day-1/dom.webp`) and is shown in
+   * place of the icon; a word without one keeps its icon.
+   */
+  image?: string
 }
 
 export type LessonData = {

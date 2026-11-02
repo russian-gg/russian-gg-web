@@ -181,7 +181,7 @@ export const en: Dictionary = {
   },
 
   lessonOne: {
-    eyebrow: 'Lesson 1 · A1',
+    eyebrow: 'Lesson 1',
     subtitle: 'Meeting the neighbour',
     progress: 'Lesson progress',
     sectionsDone: '{done} / {total} sections done',
@@ -328,7 +328,7 @@ export const en: Dictionary = {
   },
 
   lesson: {
-    eyebrow: 'Lesson {day} · A1',
+    eyebrow: 'Lesson {day}',
     progress: 'Lesson progress',
     back: '← Back',
     next: 'Continue →',
@@ -350,9 +350,9 @@ export const en: Dictionary = {
 
     gate: {
       tests: 'Answer every quiz correctly to continue.',
-      phrases: 'Open and rate every phrase to continue.',
+      phrases: 'Open every phrase to continue.',
       game: 'Finish the game to continue.',
-      dialogue: 'Practise the dialogue all the way through first.',
+      dialogue: 'Read the dialogue, then move on to the conversation with the AI.',
       aiChat: 'Now move on to the conversation with the AI.',
       vocabulary: 'Look through at least {count} cards to continue.',
       picture: 'Write your answer to the exercise to continue.',
@@ -369,7 +369,7 @@ export const en: Dictionary = {
     },
 
     phrases: {
-      intro: "Tap a phrase, listen, then rate it.",
+      next: 'Next',
       close: 'Close',
       example: 'Example sentence',
       repeat: 'Listen and repeat!',
@@ -410,24 +410,17 @@ export const en: Dictionary = {
     missions: {
       practiseDialogue: 'Practise the dialogue',
       aiChat: 'Talk to the AI',
-      intro: "Listen to each line and repeat it aloud.",
-      aiIntro: "Listen to the question and answer aloud.",
       goToAi: 'Move on to the AI conversation →',
-      nextLine: 'Next line',
       backToDialogue: '← Back to the dialogue',
       step: 'Step {n}',
       mic: 'Microphone',
       stopRecording: 'Stop recording',
       twoNeighbours: 'Two neighbours talking',
       emptyRecording: "Nothing was recorded. Tap the microphone, speak, then tap again when you finish.",
-      youSaid: "You said: {text}",
       checkFailed: "Your recording couldn't be checked. Check your internet connection and try again.",
-      micDialogue: "Record yourself reading the whole dialogue (optional).",
       micStopDialogue: "Recording… Tap to stop when you have read it.",
-      micAnswer: "Tap, answer, then tap again when you finish.",
       micStopAnswer: "Recording… Tap to stop when you have answered.",
       micPermissionAhead: "The first time, your browser asks to use the microphone — tap Allow.",
-      answeredOf: "Answered: {done} / {total}",
       allAnswered: "You answered every question! Now tap Continue.",
       sampleAnswer: "Sample answer",
       showAnswer: "Show the answer",
@@ -441,7 +434,6 @@ export const en: Dictionary = {
       resume: 'Resume',
       listenAndRepeat: 'Listen and repeat',
       known: "Know it · выучил",
-      unknown: "Don't know · не знаю",
       again: "Review · повторю",
       progress: '{seen} / {total} · at least {count}',
       comingBack: '+{count} to review',
