@@ -182,7 +182,16 @@ export type FeedbackItem = {
   attachmentName?: string | null
   attachmentUrl?: string | null
   createdAt: string
+  /** Where the learner was when they reported it, e.g. "5-dars · AI savol 2/3 · mic denied". */
+  context?: string | null
+  contextPath?: string | null
+  userAgent?: string | null
+  status: FeedbackStatus
+  reply?: string | null
+  repliedAt?: string | null
 }
+
+export type FeedbackStatus = 'new' | 'in_review' | 'answered'
 
 export type LessonFeedbackItem = {
   id: string

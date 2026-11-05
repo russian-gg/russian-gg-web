@@ -51,6 +51,8 @@ import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Card, ErrorNote, LinkButton, PauseGlyph, PlayGlyph, ProgressBar, Spinner } from '../components/ui'
 import { ColorScopeProvider, RussianText } from '../components/RussianText'
+import { ReportProblemButton, ReportProblemLink } from '../components/ReportProblem'
+import { useReportPageContext, type ReportContext } from '../lib/report-problem'
 import { readAudioPreferences } from '../lib/audio-preferences'
 import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
@@ -352,6 +354,10 @@ export function FoundationLesson() {
 
   const active = sections[state.sectionIndex] ?? sections[0]
   const progress = state.completed.length
+  // Where a report from this lesson says the learner was: the day and the step on screen.
+  const helpCopy = useT().help
+  const reportLabel = lesson ? fill(helpCopy.contexts.lesson, { day: lesson.day, step: t.sections[active.id] }) : null
+  useReportPageContext(reportLabel)
   const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate) : null
   const canContinue = blockReason === null
   const blockProgress = lesson && blockReason ? gateProgress(active.id, lesson, state) : null
@@ -454,6 +460,7 @@ export function FoundationLesson() {
         compact={state.sectionIndex > 0}
         state={state}
         onJump={jumpTo}
+        report={{ label: reportLabel ?? '' }}
       />
 
       <section aria-labelledby={`section-${active.id}`} className="scroll-mt-4">
@@ -610,16 +617,20 @@ export function FoundationLesson() {
   )
 }
 
-function LessonHero({ lesson, progress, compact, state, onJump }: {
+function LessonHero({ lesson, progress, compact, state, onJump, report }: {
   lesson: LessonData
   progress: number
   compact: boolean
   state: StoredState
   onJump: (index: number) => void
+  report: ReportContext
 }) {
   const t = useT().lesson
   return (
     <Card className={cx('lesson-hero p-4 sm:p-6', compact && 'py-3 sm:py-4')}>
+      {/* The report flag sits beside the title, where it stays as the hero shrinks. */}
+      <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
       {compact ? (
         // Past the first step the hero shrinks, but the day and its title stay: the bar alone
         // left the learner with no idea which lesson they were in.
@@ -633,6 +644,9 @@ function LessonHero({ lesson, progress, compact, state, onJump }: {
         <h1 className="mt-1 text-2xl font-black leading-tight text-ink sm:text-4xl">{lesson.titleRu}</h1>
         <p className="mt-1 text-sm text-ink-muted sm:text-base">{lesson.titleUz}</p>
       </>}
+      </div>
+      <ReportProblemButton context={report} className={compact ? '-my-1.5 -mr-1.5' : '-mt-1 -mr-1.5'} />
+      </div>
       {/* No count beside the bar: the step marks under it already say which steps are done. */}
       <div className={compact ? 'mt-2' : 'mt-4'}>
         <ProgressBar value={progress} max={sections.length} label={t.progress} />
@@ -2304,7 +2318,18 @@ function MissionModes({
       )}
       {note && (
         note.kind === 'error'
-          ? <div className="mt-3"><ErrorNote>{note.text}</ErrorNote></div>
+          ? (
+            <div className="mt-3 space-y-2">
+              <ErrorNote>{note.text}</ErrorNote>
+              <ReportProblemLink
+                context={{
+                  label: fill(dictionary.help.contexts.lesson, { day: lesson.day, step: dictionary.lesson.sections.missions }),
+                  detail: note.text.slice(0, 90),
+                  kind: 'voice',
+                }}
+              />
+            </div>
+          )
           : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={note.text} /></p>
       )}
     </Card>

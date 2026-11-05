@@ -590,6 +590,28 @@ export interface FeedbackSubmissionRequest {
   attachmentName?: string | null
 }
 
+/** What `POST /auth/feedback-form` answers: the stored id and the short code the learner can quote. */
+export interface FeedbackFormResponse {
+  id: string
+  reference: string
+}
+
+export type FeedbackStatus = 'new' | 'in_review' | 'answered'
+
+/** One of the learner's own requests, from `GET /auth/feedback-form/mine`. */
+export interface MyFeedbackItem {
+  id: string
+  reference: string
+  issueType: string
+  title: string
+  message: string
+  context?: string | null
+  status: FeedbackStatus
+  reply?: string | null
+  repliedAt?: string | null
+  createdAt: string
+}
+
 export type OnboardingSpeechStats = {
   words: number
   russianWords: number
