@@ -528,9 +528,7 @@ export const ru: Dictionary = {
     signOut: 'Выйти',
     darkMode: 'Тёмная тема',
     language: 'Язык',
-    speed: 'Скорость',
-    soundOn: 'Звук включён',
-    soundOff: 'Звук выключен',
+    sound: 'Звук',
     plan: {
       free: 'Бесплатно',
       pro: 'Pro',

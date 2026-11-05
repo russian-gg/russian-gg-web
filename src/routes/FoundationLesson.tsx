@@ -3102,7 +3102,7 @@ function speakWithBrowser(text: string, defaultLang: string, onEnd?: () => void,
     }
     const utterance = new SpeechSynthesisUtterance(segment.text)
     utterance.lang = segment.lang
-    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * readAudioPreferences().speed * rate
+    utterance.rate = (segment.lang === 'ru-RU' ? 0.84 : 0.92) * rate
     utterance.voice = pickVoice(voices, segment.lang)
     utterance.onend = () => play(index + 1)
     utterance.onerror = () => play(index + 1)

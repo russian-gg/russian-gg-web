@@ -1038,7 +1038,7 @@ function speakRussianWord(text: string, muted: boolean) {
   window.speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text.toLocaleLowerCase('ru-RU'))
   utterance.lang = 'ru-RU'
-  utterance.rate = Math.max(0.75, readAudioPreferences().speed * 0.88)
+  utterance.rate = 0.88
   window.speechSynthesis.speak(utterance)
 }
 
