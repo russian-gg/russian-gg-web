@@ -7,6 +7,8 @@ import { api, RequestError, track } from '../lib/api'
 import { cx } from '../lib/cx'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT, type Dictionary } from '../lib/i18n'
+import { useReportPageContext } from '../lib/report-problem'
+import { ReportProblemButton, ReportProblemLink } from '../components/ReportProblem'
 import {
   LiveVoiceSession,
   VoiceError,
@@ -343,6 +345,14 @@ export function MissionPlayer() {
       prefetchPromptAudio(text)
     }
   }, [mission, stepIndex])
+
+  // Where a report from this task says the learner was. Before the early returns: it is a hook.
+  const reportLabel = mission
+    ? fill(t.help.contexts.mission, {
+        title: pickContent(locale, { uz: mission.summary.titleUz, ru: mission.summary.titleRu, en: mission.summary.titleEn }),
+      })
+    : null
+  useReportPageContext(reportLabel)
 
   if (isLoading) return <Spinner />
 
@@ -1232,9 +1242,12 @@ export function MissionPlayer() {
             </span>
           </button>
 
-          {summary.courseDay !== null && summary.courseDay !== undefined && (
-            <Badge outline>{fill(dayCopy.dayBadge, { day: summary.courseDay })}</Badge>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {summary.courseDay !== null && summary.courseDay !== undefined && (
+              <Badge outline>{fill(dayCopy.dayBadge, { day: summary.courseDay })}</Badge>
+            )}
+            <ReportProblemButton context={{ label: reportLabel ?? '' }} className="-my-1.5" />
+          </div>
         </header>
 
         <div ref={threadRef} className="mt-8 min-h-0 flex-1 overflow-y-auto pb-64 md:pb-60">
@@ -1258,8 +1271,9 @@ export function MissionPlayer() {
           )}
 
           {error && (
-            <div className="mt-6">
+            <div className="mt-6 space-y-2">
               <ErrorNote>{error}</ErrorNote>
+              <ReportProblemLink context={{ label: reportLabel ?? '', detail: error.slice(0, 90), kind: 'voice' }} />
             </div>
           )}
 

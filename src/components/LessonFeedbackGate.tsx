@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Star } from 'lucide-react'
+import { Check, Flag, Star } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import type { FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { isBusyPath } from '../lib/busy-path'
 import { fill, useT } from '../lib/i18n'
+import { useReportProblem } from '../lib/report-problem'
 import type { LessonFeedbackStatus, SubmitLessonFeedbackRequest } from '../lib/types'
 import { Button, ErrorNote } from './ui'
 import { AnimatePresence } from 'motion/react'
@@ -102,7 +103,10 @@ function writePostponed(checkpoint: number) {
 
 /** One question per step, in order. The last step — the note — is optional and sends the lot. */
 function LessonFeedbackDialog({ checkpoint, onLater }: LessonFeedbackDialogProps) {
-  const dialogRef = useFocusTrap<HTMLDivElement>()
+  const report = useReportProblem()
+  // The report sheet can open on top of this one from the last step. While it is up, this
+  // dialog lets go of focus and Escape, so the two traps do not fight over the same keys.
+  const dialogRef = useFocusTrap<HTMLDivElement>(!report.isOpen)
   const t = useT()
   const copy = t.lessonFeedback
   const { user } = useAuth()
@@ -129,12 +133,13 @@ function LessonFeedbackDialog({ checkpoint, onLater }: LessonFeedbackDialogProps
   useEffect(() => () => window.clearTimeout(advanceTimer.current), [])
 
   useEffect(() => {
+    if (report.isOpen) return
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onLater()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onLater])
+  }, [onLater, report.isOpen])
 
   const step = STEPS[stepIndex]
   const isLastStep = stepIndex === STEPS.length - 1
@@ -344,6 +349,24 @@ function LessonFeedbackDialog({ checkpoint, onLater }: LessonFeedbackDialogProps
                   className="mt-3 block w-full resize-y rounded-xl border border-hairline bg-ground px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
                 />
               </label>
+            )}
+
+            {/*
+              A check-in asks how the lessons feel; a broken thing needs an answer of its own.
+              The report sheet opens over this dialog, so the answers given here are kept.
+            */}
+            {step === 'note' && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-signal-soft px-3.5 py-3">
+                <Flag aria-hidden="true" className="size-5 shrink-0 text-signal-ink" strokeWidth={2} />
+                <p className="min-w-0 flex-1 text-sm text-ink">{t.help.checkinPrompt}</p>
+                <button
+                  type="button"
+                  onClick={() => report.open({ label: fill(t.help.contexts.checkin, { days: checkpoint }), kind: 'content' })}
+                  className="shrink-0 text-sm font-extrabold text-signal-ink hover:underline"
+                >
+                  {t.help.checkinLink}
+                </button>
+              </div>
             )}
 
             {!canContinue && <p className="mt-3 text-xs text-ink-faint">{copy.requiredHint}</p>}

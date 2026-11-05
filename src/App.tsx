@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { InstallPrompt } from './components/InstallPrompt'
+import { ReportProblemProvider } from './components/ReportProblem'
 import { LessonFeedbackGate } from './components/LessonFeedbackGate'
 import { TelegramFloatingButton } from './components/TelegramFloatingButton'
 import { WelcomeGiftGate } from './components/WelcomeGiftGate'
@@ -40,7 +41,6 @@ function route<T extends Record<string, unknown>, K extends keyof T>(
 */
 const AdminContent = route(() => import('./routes/AdminContent'), 'AdminContent')
 const CoursePath = route(() => import('./routes/CoursePath'), 'CoursePath')
-const FeedbacksPage = route(() => import('./routes/FeedbacksPage'), 'FeedbacksPage')
 const Landing = route(() => import('./routes/Landing'), 'Landing')
 const FoundationLesson = route(() => import('./routes/FoundationLesson'), 'FoundationLesson')
 const MissionEntry = route(() => import('./routes/MissionBrief'), 'MissionEntry')
@@ -72,7 +72,7 @@ export function App() {
   useGlobalUiSounds()
 
   return (
-    <>
+    <ReportProblemProvider>
       {/*
         The boundary is inside the router and outside the route table, so the shell, the gates
         and the navigation survive a screen that throws — and `retry` re-renders that screen
@@ -108,7 +108,8 @@ export function App() {
               <Route path="/tests/blocks/:blockId/review" element={<TestReview />} />
               <Route path="/games" element={<Games />} />
               <Route path="/progress" element={<Progress />} />
-              <Route path="/feedbacks" element={<FeedbacksPage />} />
+              {/* The old standalone form. Its job is the Help tab in Settings now; old links land there. */}
+              <Route path="/feedbacks" element={<Navigate to="/settings/help" replace />} />
               <Route path="/lessons/:day/:missionId" element={<FoundationLesson />} />
               {/* A converted mission shows its brief here; every other mission opens the player. */}
               <Route path="/missions/:missionId" element={<MissionEntry />} />
@@ -120,6 +121,7 @@ export function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/general" element={<Settings />} />
               <Route path="/settings/billing" element={<Settings />} />
+              <Route path="/settings/help" element={<Settings />} />
               <Route path="/admin" element={<RequireStaff><AdminContent /></RequireStaff>} />
             </Route>
 
@@ -148,7 +150,7 @@ export function App() {
         after sign-in would ask the wrong half of the audience.
       */}
       <InstallPrompt />
-    </>
+    </ReportProblemProvider>
   )
 }
 

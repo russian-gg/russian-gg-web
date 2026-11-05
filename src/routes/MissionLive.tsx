@@ -10,6 +10,8 @@ import { cx } from '../lib/cx'
 import { foundationLessons } from '../lib/foundation-lessons'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT } from '../lib/i18n'
+import { useReportPageContext } from '../lib/report-problem'
+import { ReportProblemButton, ReportProblemLink } from '../components/ReportProblem'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { LiveFunctionDeclaration, LiveVoiceStatus } from '../lib/liveVoice'
 import type { EntitlementView, MissionDetail, StartAttemptResponse, VoiceSessionOutcome } from '../lib/types'
@@ -548,6 +550,14 @@ export function MissionLive() {
     }
   }
 
+  // Where a report from the call says the learner was. Declared before the early returns below.
+  const reportLabel = mission
+    ? fill(t.help.contexts.live, {
+        title: pickContent(locale, { uz: mission.summary.titleUz, ru: mission.summary.titleRu, en: mission.summary.titleEn }),
+      })
+    : null
+  useReportPageContext(reportLabel, 'voice')
+
   if (isLoading) return <Spinner />
   if (isError || !mission) return <QueryError onRetry={() => void refetch()} />
   if (!mission?.dialogue) {
@@ -633,6 +643,8 @@ export function MissionLive() {
             {formatClock(secondsLeft)}
           </span>
         )}
+
+        <ReportProblemButton context={{ label: reportLabel ?? '', kind: 'voice' }} className="ml-auto" />
       </header>
 
       {/*
@@ -800,12 +812,14 @@ export function MissionLive() {
                 {copy.finishAndSee}
               </Button>
             </div>
+            <ReportProblemLink className="mt-3" context={{ label: reportLabel ?? '', detail: copy.dropped, kind: 'voice' }} />
           </div>
         )}
 
         {error && (
-          <div className="w-full max-w-sm">
+          <div className="w-full max-w-sm space-y-2">
             <ErrorNote>{error}</ErrorNote>
+            <ReportProblemLink context={{ label: reportLabel ?? '', detail: error.slice(0, 90), kind: 'voice' }} />
           </div>
         )}
       </div>

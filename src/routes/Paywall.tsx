@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, RequestError, track } from '../lib/api'
 import { formatDate, formatPrice } from '../lib/format'
 import { fill, useLocale, useT } from '../lib/i18n'
+import { ReportProblemLink } from '../components/ReportProblem'
 import type {
   BillingPeriod,
   CheckoutResponse,
@@ -672,6 +673,15 @@ export function BillingReturn() {
       >
         {t.billing.askForHelp}
       </a>
+      {/* Telegram answers fastest; a request keeps the invoice beside the question for whoever checks it. */}
+      <ReportProblemLink
+        className="mt-3"
+        context={{
+          label: fill(t.help.contexts.payment, { provider: providerNames[provider] }),
+          detail: [copy[0], invoiceId].filter(Boolean).join(' · '),
+          kind: 'payment',
+        }}
+      />
     </Card>
   )
 }

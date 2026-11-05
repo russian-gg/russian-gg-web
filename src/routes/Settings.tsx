@@ -7,9 +7,10 @@ import { TabLinks } from '../components/ui'
 import { ProfileSettings } from './settings/ProfileSettings'
 import { GeneralSettings } from './settings/GeneralSettings'
 import { SubscriptionSettings } from './settings/SubscriptionSettings'
+import { HelpSettings } from './settings/HelpSettings'
 
 /**
- * Everything about the account, in one place, behind three tabs.
+ * Everything about the account, in one place, behind its tabs.
  *
  * Profile, billing and settings used to be three destinations in the account menu covering
  * one subject, so "where do I change my plan?" had three plausible answers and two wrong
@@ -23,6 +24,7 @@ import { SubscriptionSettings } from './settings/SubscriptionSettings'
 const TAB_PROFILE = '/settings'
 const TAB_GENERAL = '/settings/general'
 const TAB_BILLING = '/settings/billing'
+const TAB_HELP = '/settings/help'
 
 export function Settings() {
   const t = useT()
@@ -32,6 +34,7 @@ export function Settings() {
     { to: TAB_PROFILE, label: t.settings.tabProfile },
     { to: TAB_GENERAL, label: t.settings.tabGeneral },
     { to: TAB_BILLING, label: t.settings.tabBilling },
+    { to: TAB_HELP, label: t.settings.tabHelp },
   ]
 
   const active = tabs.some((tab) => tab.to === pathname) ? pathname : TAB_PROFILE
@@ -68,6 +71,7 @@ export function Settings() {
         {active === TAB_PROFILE && <ProfileSettings />}
         {active === TAB_GENERAL && <GeneralSettings />}
         {active === TAB_BILLING && <SubscriptionSettings />}
+        {active === TAB_HELP && <HelpSettings />}
       </Reveal>
     </Sequence>
   )
