@@ -548,9 +548,7 @@ export const uz = {
     signOut: 'Chiqish',
     darkMode: "Qorong'i rejim",
     language: 'Til',
-    speed: 'Tezlik',
-    soundOn: 'Ovoz yoqilgan',
-    soundOff: "Ovoz o'chiq",
+    sound: 'Ovoz',
     plan: {
       free: 'Bepul',
       pro: 'Pro',

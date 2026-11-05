@@ -19,7 +19,6 @@ import {
   Clock,
   Compass,
   Gamepad2,
-  Gauge,
   Globe,
   LogOut,
   MessageCircle,
@@ -34,10 +33,8 @@ import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useAuth } from '../lib/auth-context'
 import {
-  PLAYBACK_SPEEDS,
   readAudioPreferences,
   storeAudioPreferences,
-  type AudioPreferences,
 } from '../lib/audio-preferences'
 import { planLabel } from '../lib/format'
 import { useOpenGames } from '../lib/games'
@@ -153,10 +150,7 @@ export function AppShell() {
           <div className="mb-3">
             <RailProCard />
           </div>
-          <SidebarAudioControls />
-          <div className="mt-3">
           <ProfileMenu />
-          </div>
         </div>
       </aside>
 
@@ -305,53 +299,6 @@ function Wordmark() {
   )
 }
 
-function SidebarAudioControls() {
-  const t = useT()
-  const [preferences, setPreferences] = useState<AudioPreferences>(readAudioPreferences)
-
-  function update(next: AudioPreferences) {
-    setPreferences(next)
-    storeAudioPreferences(next)
-  }
-
-  function cycleSpeed() {
-    const currentIndex = PLAYBACK_SPEEDS.indexOf(preferences.speed)
-    const speed = PLAYBACK_SPEEDS[(currentIndex + 1) % PLAYBACK_SPEEDS.length]
-    update({ ...preferences, speed })
-  }
-
-  return (
-    <div className="rounded-2xl border border-hairline bg-ground-sunken/70 p-1.5">
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={cycleSpeed}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl bg-ground-raised px-3 py-2 text-sm font-bold text-ink transition-colors hover:text-signal-ink"
-          aria-label={`${t.account.speed}: ${preferences.speed}x`}
-        >
-          <span className="flex items-center gap-2 text-ink-muted">
-            <SpeedGlyph />
-            {t.account.speed}
-          </span>
-          <span className="rounded-lg bg-signal-soft px-2 py-0.5 text-xs font-extrabold tabular-nums text-signal-ink">
-            {preferences.speed}x
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => update({ ...preferences, muted: !preferences.muted })}
-          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ground-raised text-ink-muted transition-colors hover:text-signal-ink"
-          aria-label={preferences.muted ? t.account.soundOff : t.account.soundOn}
-          aria-pressed={preferences.muted}
-        >
-          <SoundGlyph muted={preferences.muted} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function ProfileMenu({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate()
   const t = useT()
@@ -399,16 +346,23 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
           compact ? 'max-w-[10.5rem] px-2.5 py-2' : 'w-full px-3 py-2'
         }`}
       >
-        {compact ? (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-signal text-sm font-semibold text-on-signal">
-            {initials}
-          </span>
-        ) : (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ground-sunken text-ink-muted">
-            <GearGlyph />
+        {/*
+          The account itself, not a "Settings" label: who is signed in and on which plan. The
+          menu it opens already starts with Settings, so the word added nothing here.
+        */}
+        <span
+          className={`flex shrink-0 items-center justify-center rounded-full bg-signal font-semibold text-on-signal ${
+            compact ? 'size-8 text-sm' : 'size-9 text-sm'
+          }`}
+        >
+          {initials}
+        </span>
+        {!compact && (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm leading-5 font-bold text-ink">{name}</span>
+            {plan && <span className="block truncate text-xs text-ink-muted">{plan}</span>}
           </span>
         )}
-        {!compact && <span className="min-w-0 flex-1 text-sm font-bold text-ink">{t.account.settings}</span>}
         <ChevronGlyph direction={open ? 'up' : 'down'} />
       </button>
 
@@ -460,6 +414,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             }
           />
           <ThemeToggleItem />
+          <SoundToggleItem />
           <LanguageItem />
 
           <div className="my-2 border-t border-hairline" />
@@ -597,6 +552,35 @@ function ThemeToggleItem() {
 }
 
 /**
+ * Sound for the whole app: lesson audio, the tutor's voice and the interface clicks. A switch in
+ * the account menu rather than a button on every screen, because it is set once, not reached
+ * for mid-lesson — and a stray tap on an always-visible mute made the product look broken.
+ */
+function SoundToggleItem() {
+  const t = useT()
+  const [muted, setMuted] = useState(() => readAudioPreferences().muted)
+
+  return (
+    <button
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={!muted}
+      onClick={() => {
+        storeAudioPreferences({ muted: !muted })
+        setMuted(!muted)
+      }}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] text-ink transition-colors hover:bg-ground-sunken"
+    >
+      <span className="shrink-0" aria-hidden="true">
+        <SoundGlyph muted={muted} />
+      </span>
+      <span className="flex-1">{t.account.sound}</span>
+      <Switch checked={!muted} />
+    </button>
+  )
+}
+
+/**
  * Cycles through the three languages in place. A submenu would mean a second popover inside
  * a popover for a three-item list, and the current language is always visible on the row.
  */
@@ -690,10 +674,6 @@ function GlobeGlyph() {
 
 function ExitGlyph() {
   return <LogOut aria-hidden="true" strokeWidth={STROKE} className={glyph} />
-}
-
-function SpeedGlyph() {
-  return <Gauge aria-hidden="true" strokeWidth={STROKE} className={glyph} />
 }
 
 function SoundGlyph({ muted }: { muted: boolean }) {

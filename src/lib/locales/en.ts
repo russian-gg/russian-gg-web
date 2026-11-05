@@ -524,9 +524,7 @@ export const en: Dictionary = {
     signOut: 'Sign out',
     darkMode: 'Dark mode',
     language: 'Language',
-    speed: 'Speed',
-    soundOn: 'Sound on',
-    soundOff: 'Sound off',
+    sound: 'Sound',
     plan: {
       free: 'Free',
       pro: 'Pro',

@@ -740,7 +740,6 @@ export class LiveVoiceSession {
 
     const source = this.playbackContext.createBufferSource()
     source.buffer = audioBuffer
-    source.playbackRate.value = preferences.speed
     source.connect(this.playbackContext.destination)
     source.onended = () => {
       this.playbackSources = this.playbackSources.filter((queued) => queued !== source)
@@ -751,7 +750,7 @@ export class LiveVoiceSession {
 
     const startAt = Math.max(this.playbackContext.currentTime, this.nextPlaybackTime)
     source.start(startAt)
-    this.nextPlaybackTime = startAt + audioBuffer.duration / preferences.speed
+    this.nextPlaybackTime = startAt + audioBuffer.duration
   }
 
   /**
@@ -1167,7 +1166,7 @@ async function playCachedAudio(
   const audioUrl = URL.createObjectURL(audioBlob)
   const audio = new Audio(audioUrl)
   const preferences = readAudioPreferences()
-  audio.playbackRate = preferences.speed * (callbacks?.rate ?? 1)
+  audio.playbackRate = callbacks?.rate ?? 1
   audio.muted = preferences.muted
   promptAudio = audio
   promptAudioUrl = audioUrl

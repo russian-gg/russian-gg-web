@@ -207,7 +207,6 @@ function GamePlayer({ slug }: { slug: GameSlug }) {
       audioUrl.current = url
       const element = new Audio(url)
       audio.current = element
-      element.playbackRate = readAudioPreferences().speed
       element.onended = () => { if (generation === audioGeneration.current) stopAudio() }
       element.onerror = () => { if (generation === audioGeneration.current) { stopAudio(); setAudioFailed(true) } }
       await element.play()
