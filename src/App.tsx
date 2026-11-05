@@ -109,7 +109,10 @@ export function App() {
               <Route path="/games" element={<Games />} />
               <Route path="/progress" element={<Progress />} />
               {/* The old standalone form. Its job is the Help tab in Settings now; old links land there. */}
-              <Route path="/feedbacks" element={<Navigate to="/settings/help" replace />} />
+              {/* Short, shareable ways in to Help, for links posted on social media. */}
+              {['/murojaat', '/feedback', '/help', '/feedbacks'].map((path) => (
+                <Route key={path} path={path} element={<Navigate to="/settings/help" replace />} />
+              ))}
               <Route path="/lessons/:day/:missionId" element={<FoundationLesson />} />
               {/* A converted mission shows its brief here; every other mission opens the player. */}
               <Route path="/missions/:missionId" element={<MissionEntry />} />
