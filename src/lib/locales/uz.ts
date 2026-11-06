@@ -996,6 +996,17 @@ export const uz = {
   },
 
   path: {
+    /** The 90-day map (see `DaySkyMap`). */
+    sky: {
+      mapLabel: "Kunlar yo'li",
+      dayLabel: '{day}-kun. {title}: {status}',
+      start: 'Boshlash',
+      open: 'Ochiq',
+      progress: '{done} / {total} kun',
+      freeDays: '1–{last}-kunlar bepul',
+      proDays: '{from}–{total}-kunlar Pro bilan',
+      notice: '{day}-kun: {text}',
+    },
     hero: {
       eyebrow: "RUS TILINI O'RGANING",
       subtitle: 'Sen {day}-kundasan! Davom et!',

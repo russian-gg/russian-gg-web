@@ -65,6 +65,7 @@ export function LessonDetailsSheet({
       {open && lesson && (
         <m.section
           key="lesson-details"
+          id="lesson-details"
           aria-labelledby="lesson-details-title"
           variants={rising}
           initial="hidden"

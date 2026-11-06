@@ -1,0 +1,54 @@
+/*
+ * The 90-day sky map: islands floating on their own beats, and clouds drifting with the wind.
+ * The shared map pieces (coins, the cloud curtain) are in `map/map.css`.
+ */
+
+/* An island (and the day standing on it) rises and falls; `--f` is how far, set per island. */
+@keyframes island-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 var(--f);
+  }
+}
+.island {
+  position: absolute;
+  background-repeat: no-repeat;
+  animation: island-float 7s ease-in-out infinite;
+}
+.island-still {
+  animation: none;
+}
+/* The day's coin, its ring and its title float with its island: same beat, same height. */
+.island-sync {
+  animation: island-float 7s ease-in-out infinite;
+}
+
+@keyframes sky-drift {
+  to {
+    transform: translateX(var(--to));
+  }
+}
+.sky-drift {
+  animation: sky-drift linear infinite;
+}
+@keyframes sky-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 var(--f);
+  }
+}
+.sky-bob {
+  animation: sky-bob ease-in-out infinite;
+}
+
+/* The tile's sides fade into the sky, so the map has no hard left and right edge. */
+.sky-tile {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
