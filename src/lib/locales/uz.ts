@@ -544,7 +544,7 @@ export const uz = {
     profile: 'Profil',
     billing: "Obuna va to'lovlar",
     settings: 'Sozlamalar',
-    feedback: 'Yordam va fikr',
+    feedback: 'Fikr bildirish',
     signOut: 'Chiqish',
     darkMode: "Qorong'i rejim",
     language: 'Til',
