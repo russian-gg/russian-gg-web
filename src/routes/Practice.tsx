@@ -63,8 +63,8 @@ export function Practice() {
         <Reveal className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 items-center gap-4">
             <Reveal as="span" variants={pop} className="hidden shrink-0 sm:block">
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)]">
-                <FileText aria-hidden="true" strokeWidth={1.8} className="size-7" />
+              <span className="flex size-14 items-center justify-center rounded-2xl border-2 border-signal/30 bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)]">
+                <FileText aria-hidden="true" strokeWidth={2} className="size-7" />
               </span>
             </Reveal>
             <div className="min-w-0">

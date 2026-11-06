@@ -25,6 +25,9 @@ const SLIDE_MS = 8000
  * What is on the shelf is the panel's decision: only the games the server says are open are
  * drawn, so nobody is shown a door that does not open.
  */
+/** The banner of featured games above the list. Off for now: the list of games is enough. */
+const SHOW_FEATURED = false
+
 export function Games() {
   const open = useOpenGames()
   const t = useT().arcade
@@ -41,12 +44,24 @@ export function Games() {
   const games = [...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner'))
 
   return (
-    <Sequence className="space-y-8" gap={stagger.base}>
+    <Sequence className="space-y-8 sm:space-y-10" gap={stagger.base}>
+      {/* One heading for the page, the way the missions and the 90 days open: the list is the page. */}
       <Reveal>
-        <header>
-          <p className="text-[13px] font-black tracking-[0.12em] text-ink-faint uppercase">{t.today}</p>
-          <h1 className="text-[34px] leading-10 font-black tracking-tight text-ink">{t.title}</h1>
-          <p className="mt-1 text-[15px] text-ink-muted">{t.subtitle}</p>
+        <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="hidden size-14 shrink-0 items-center justify-center rounded-2xl border-2 border-signal/30 bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)] sm:flex">
+              <Gamepad2 aria-hidden="true" strokeWidth={2} className="size-7" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">{t.title}</h1>
+              <p className="mt-0.5 text-sm text-ink-muted sm:text-base">{t.subtitle}</p>
+            </div>
+          </div>
+          {games.length > 0 && (
+            <span className="rounded-full border border-hairline bg-ground-raised px-3.5 py-1.5 text-sm font-extrabold text-ink-muted shadow-[0_4px_16px_rgb(22_24_29/0.05)]">
+              {fill(t.gameCount, { count: games.length })}
+            </span>
+          )}
         </header>
       </Reveal>
 
@@ -56,18 +71,14 @@ export function Games() {
         </Reveal>
       )}
 
-      {games.length > 0 && (
+      {SHOW_FEATURED && games.length > 0 && (
         <Reveal>
           <FeaturedGames games={games} />
         </Reveal>
       )}
 
       {games.length > 0 && (
-        <section aria-labelledby="all-games" className="space-y-4 border-t border-hairline pt-6">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 id="all-games" className="text-[22px] leading-7 font-black text-ink">{t.allGames}</h2>
-            <span className="text-sm font-extrabold text-ink-muted">{fill(t.gameCount, { count: games.length })}</span>
-          </div>
+        <section aria-label={t.allGames}>
           <Sequence className="grid gap-x-6 gap-y-8 sm:grid-cols-2 xl:grid-cols-3" gap={stagger.tight}>
             {games.map((game) => <GameCard key={game.slug} game={game} />)}
           </Sequence>

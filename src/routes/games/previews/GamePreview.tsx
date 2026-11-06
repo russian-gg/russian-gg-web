@@ -67,6 +67,8 @@ function ScaledStage({ width, cover, children }: { width: number; cover: boolean
     const inner = stage.current
     if (!outer || !inner) return
     const measure = () => {
+      // The screen's own height, without the stretch below that makes it fill the box.
+      inner.style.minHeight = ''
       const height = inner.offsetHeight || 1
       if (cover) {
         /*
@@ -78,8 +80,14 @@ function ScaledStage({ width, cover, children }: { width: number; cover: boolean
         setFit({ scale, left: 0, top: Math.max(0, (outer.clientHeight - height * scale) / 2), width: outer.clientWidth / scale })
         return
       }
+      /*
+        A card: the game fills the whole box, edge to edge, with nothing of a frame around it.
+        The page is laid out at the card's own shape — as wide as the box at the scale that
+        fits its full height — so its backdrop runs to every edge instead of leaving bands.
+      */
       const scale = Math.min(outer.clientWidth / width, outer.clientHeight / height)
-      setFit({ scale, left: (outer.clientWidth - width * scale) / 2, top: (outer.clientHeight - height * scale) / 2, width })
+      inner.style.minHeight = `${outer.clientHeight / scale}px`
+      setFit({ scale, left: 0, top: 0, width: outer.clientWidth / scale })
     }
     measure()
     const observer = new ResizeObserver(measure)

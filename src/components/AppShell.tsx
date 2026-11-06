@@ -70,6 +70,8 @@ export function AppShell() {
    */
   const { pathname } = useLocation()
   const mapScreen = pathname === '/path' || pathname === '/practice'
+  // Home and the games shelf sit beside them in the rail, so they take the same width and top edge.
+  const wideScreen = mapScreen || pathname === '/games' || pathname === '/home'
   /*
    * The games row exists only when the panel has opened at least one. Everything is off by
    * default, so the ordinary state is no row at all — and a menu item leading to an empty
@@ -189,7 +191,8 @@ export function AppShell() {
         tabIndex={-1}
         className={cx(
           'mx-auto w-full min-w-0 px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8',
-          mapScreen ? 'md:pt-6 md:pb-6 lg:px-8 2xl:px-10' : 'max-w-[96rem] md:py-10 md:pb-24 lg:px-10 2xl:px-12',
+          wideScreen ? 'md:pt-6 lg:px-8 2xl:px-10' : 'max-w-[96rem] md:py-10 lg:px-10 2xl:px-12',
+          mapScreen ? 'md:pb-6' : 'md:pb-24',
         )}
       >
         <PageTransition />
