@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { FileText } from 'lucide-react'
 import { api } from '../lib/api'
@@ -24,7 +23,6 @@ export function Practice() {
   const t = useT()
   const copy = t.practice
   const { locale } = useLocale()
-  const reduced = useReducedMotion()
   // Kept after the panel closes, so its content stays put while it animates away.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -55,23 +53,6 @@ export function Practice() {
     chosenNode.current?.focus({ preventScroll: true })
   }, [])
 
-  /*
-   * The panel sits on the bottom of the screen, so a mission chosen low on the road would end
-   * up underneath it. Once the panel has its size, the page moves just enough to keep the
-   * chosen node in view above it.
-   */
-  useEffect(() => {
-    if (!open) return
-    const frame = requestAnimationFrame(() => {
-      const sheet = panel.current
-      const node = chosenNode.current
-      if (!sheet || !node) return
-      const sheetTop = window.innerHeight - (parseFloat(getComputedStyle(sheet).bottom) || 0) - sheet.offsetHeight
-      const overlap = node.getBoundingClientRect().bottom + 16 - sheetTop
-      if (overlap > 0) window.scrollBy({ top: overlap, behavior: reduced ? 'auto' : 'smooth' })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [open, selectedId, reduced])
 
   return (
     <>
@@ -109,6 +90,7 @@ export function Practice() {
               openId={open ? selectedId : null}
               currentId={currentId}
               onOpen={openMission}
+              panelRef={panel}
             />
           </Reveal>
         )}
