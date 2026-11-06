@@ -1059,6 +1059,8 @@ export const ru: Dictionary = {
     missionNumber: 'Задание {number}',
     nodeLabel: '{number}. {title}: {status}',
     current: 'Следующее',
+    /** On the tag above the mission that is up next, on the map. */
+    coinStart: 'Начать',
     bestLabel: 'Лучший результат',
     lockedProBody: 'Это задание открывается в тарифе Pro.',
     illustrationAlt: 'Иллюстрация к заданию «{title}»',

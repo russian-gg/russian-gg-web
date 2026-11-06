@@ -1053,6 +1053,8 @@ export const en: Dictionary = {
     missionNumber: 'Mission {number}',
     nodeLabel: '{number}. {title}: {status}',
     current: 'Up next',
+    /** On the tag above the mission that is up next, on the map. */
+    coinStart: 'Start',
     bestLabel: 'Best score',
     lockedProBody: 'This mission opens with Pro.',
     illustrationAlt: 'Illustration for “{title}”',

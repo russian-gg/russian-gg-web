@@ -23,17 +23,19 @@ One illustration per mission, shown in the selected mission's panel on the Missi
   `src/lib/mission-images.ts`; add a line there for each new picture. Never key a picture by
   mission id — the id changes with every new version of a mission, the slug does not.
 - **Mapped (all 40 missions):** `neighbor-introduction`, `ask-the-way`, `bakery`, `cafe`, `call-a-friend`, `my-profession`, `clothing-store`, `doctor-appointment`, `bus-ticket`, `taxi`, `hairdresser`, `fitness-club`, `course-enrolment`, `job-interview`, `rent-a-flat`, `grocery-store`, `pizza-order`, `pharmacy`, `bank`, `post-office`, `cinema`, `restaurant`, `petrol-station`, `hotel`, `doctor-home-visit`, `train-ticket`, `plane-ticket`, `library`, `stadium`, `museum`, `utility-bills`, `dentist`, `prescription-medicine`, `dry-cleaner`, `repair-shop`, `food-delivery`, `pet-shop`, `market`, `flower-shop`, `manicure`.
-- **Shape:** 4:3, exported at 960×720 or larger; the optimiser caps the longest edge at 960px.
-  One separate image per mission — never a collage cropped into scenes.
-- **Style:** the same 3D-cartoon look for all of them, soft light, one clear subject, simple
-  background, and no text, numbers, logos or UI in the picture.
+- **Shape:** square, 640×640, transparent background: one building on its own small grass
+  island, as described in `docs/mission-building-art.md`. The panel sets it on a soft garden
+  ground. One separate image per mission — never a collage cropped into scenes.
+- **Style:** the same isometric 3D game look for all of them, soft light, one clear subject,
+  and no text, numbers, logos or UI in the picture.
 - **Missing file is safe:** the panel always draws a small street of the mission's part of
   town (`ZoneScene`) with the mission's marker on it, and the picture fades in over it once it
   has loaded. A file that is missing or fails never shows as a broken image.
-- **Still needed:** all 40 pictures; none has been delivered yet.
+- **Delivered:** `neighbor-introduction`, `ask-the-way`. **Still needed:** the other 38.
 
-The town behind the mission road is `src/assets/images/missionBg.webp` (built by Vite, not
-served from here). The stand-in scene's pieces are SVG, in
+The road the missions sit on is `src/assets/images/mission-road.webp` (built by Vite, not
+served from here), one tile repeated upwards; the clearing positions are measured in
+`src/components/missions/MissionMap.tsx` (`SLOTS`). The stand-in scene's pieces are SVG, in
 `src/components/missions/scenery.tsx`.
 
 ## tutor-avatar.webp

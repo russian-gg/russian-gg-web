@@ -1077,6 +1077,8 @@ export const uz = {
     missionNumber: '{number}-topshiriq',
     nodeLabel: '{number}. {title}: {status}',
     current: 'Navbatdagi',
+    /** On the tag above the mission that is up next, on the map. */
+    coinStart: 'Boshlash',
     bestLabel: 'Eng yaxshi natija',
     lockedProBody: 'Bu topshiriq Pro tarifida ochiladi.',
     illustrationAlt: '«{title}» vaziyati tasviri',

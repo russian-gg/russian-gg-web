@@ -1,167 +1,299 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { Check, Lock, Timer } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import roadArt from '../../assets/images/mission-road.webp'
 import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { Meter } from '../motion'
+import { CloudCurtain } from '../map/CloudCurtain'
+import { CoinFace } from '../map/Coin'
+import { coinHeight, type CoinBadge, type CoinTone } from '../map/coin-geometry'
+import { INTRO_SECONDS, useMapIntro } from '../map/map-intro'
 import { missionStatusLabel, type MissionRow } from './mission-row'
-import { zoneOf, ZONE_ICON, type MissionZone } from './zones'
+import { CloudShadows, RoadLife } from './road-life'
 
 /*
- * The road's geometry, in pixels, in two sizes: roomy from a tablet up, compact on a phone.
- * Columns are as many as the width allows at `minStep` apart, up to `maxCols` — past that a
- * wider screen spreads the same row out rather than packing more in — and the road folds back
- * and forth row by row, so the whole of it is on screen at once. `pad` keeps an edge node's title
- * and the bend of the road inside the content area: the bend bows out by at most three
- * quarters of `pad * BEND`, which stays inside `pad` and clears an edge node's title.
+ * The road is one illustrated tile (`mission-road.webp`) repeated upwards, one copy per
+ * `SLOTS.length` missions. Every tile has the same empty round clearings beside the road, and a
+ * mission sits on each of them. The slots are the clearings' centres, as fractions of the tile,
+ * listed in road order from the bottom of the tile up — so mission 1 is at the bottom of the
+ * map and the road climbs from there.
  *
- * `top` is the room above the first row for its zone label.
+ * The positions were measured from the picture itself; if the tile is redrawn, measure again.
  */
-const ROOMY = { node: 80, row: 216, minStep: 184, maxCols: 6, wave: 22, pad: 120, label: 168, top: 96, roomy: true }
-const COMPACT = { node: 56, row: 156, minStep: 104, maxCols: 3, wave: 10, pad: 60, label: 104, top: 60, roomy: false }
-const BEND = 1.25
+const SLOTS: ReadonlyArray<readonly [x: number, y: number]> = [
+  [0.684, 0.915],
+  [0.379, 0.92],
+  [0.226, 0.62],
+  [0.716, 0.668],
+  [0.829, 0.308],
+  [0.317, 0.257],
+  [0.571, 0.136],
+]
+const TILE = { width: 1672, height: 851 } as const
+
+/*
+ * On a phone the whole tile would be too small to tap, so it is enlarged and cropped at the
+ * sides instead: just enough that the outermost clearings, plus `PHONE_MARGIN` on each side,
+ * fill the width. The picture's edges are only scenery.
+ */
+const CLEARINGS = {
+  left: Math.min(...SLOTS.map(([x]) => x)),
+  right: Math.max(...SLOTS.map(([x]) => x)),
+}
+const PHONE_MARGIN = 32
+/** Room under the last row for the bottom missions' titles. */
+const BOTTOM_PAD = 48
+/** The coins land one after another when the map opens; ones far up the road land with the last. */
+const LANDING_START = 1.0
+const LANDING_STEP = 0.09
 
 type Layout = {
-  cols: number
-  node: number
-  pad: number
-  roomy: boolean
-  labelWidth: number
   width: number
   height: number
-  rowOf: (index: number) => number
-  colOf: (index: number) => number
+  tileWidth: number
+  tileHeight: number
+  tileTop: number
+  /** Top of the copy of the picture holding missions 1–7. */
+  firstTileTop: number
+  offset: number
+  /** The width of the clearing a mission stands on. */
+  clearing: number
+  /** The coin's base width. */
+  coin: number
+  roomy: boolean
   x: (index: number) => number
   y: (index: number) => number
 }
 
 function layoutFor(width: number, count: number): Layout {
-  const size = width >= 640 ? ROOMY : COMPACT
-  // At least three across even on the narrowest phone, so the road still winds.
-  const fit = Math.floor((width - size.pad * 2) / size.minStep) + 1
-  const cols = Math.max(1, Math.min(count, size.maxCols, Math.max(3, fit)))
-  const step = cols > 1 ? (width - size.pad * 2) / (cols - 1) : 0
-  const rows = Math.ceil(count / cols)
-  const rowOf = (index: number) => Math.floor(index / cols)
-  // Odd rows run right to left: the road turns at the edge instead of jumping back.
-  const colOf = (index: number) => {
-    const c = index % cols
-    return rowOf(index) % 2 === 0 ? c : cols - 1 - c
-  }
-  const x = (index: number) => (cols > 1 ? size.pad + colOf(index) * step : width / 2)
-  const y = (index: number) =>
-    size.top + size.node / 2 + rowOf(index) * size.row + size.wave * Math.sin(colOf(index) * 1.1)
+  const roomy = width >= 640
+  const span = CLEARINGS.right - CLEARINGS.left
+  const tileWidth = roomy ? width : Math.max(width, (width - PHONE_MARGIN * 2) / span)
+  const tileHeight = (tileWidth * TILE.height) / TILE.width
+  // Centred on the clearings, not on the picture.
+  const offset = roomy ? 0 : width / 2 - tileWidth * ((CLEARINGS.left + CLEARINGS.right) / 2)
+  const tiles = Math.max(1, Math.ceil(count / SLOTS.length))
+  const height = tiles * tileHeight + BOTTOM_PAD
+  const clearing = roomy ? Math.round(Math.min(96, tileWidth * 0.07)) : 54
+  // The tile holding mission `index`, counted from the bottom.
+  const tileOf = (index: number) => Math.floor(index / SLOTS.length)
+  const slotTop = (index: number) => height - BOTTOM_PAD - (tileOf(index) + 1) * tileHeight
 
   return {
-    cols,
-    node: size.node,
-    pad: size.pad,
-    roomy: size.roomy,
-    labelWidth: cols > 1 ? Math.min(size.label, step - 8) : size.label,
     width,
-    height: size.top + (rows - 1) * size.row + size.node + size.wave + 64,
-    rowOf,
-    colOf,
-    x,
-    y,
+    height,
+    tileWidth,
+    tileHeight,
+    tileTop: height - BOTTOM_PAD - tiles * tileHeight,
+    firstTileTop: height - BOTTOM_PAD - tileHeight,
+    offset,
+    clearing,
+    coin: Math.round(clearing * 0.62),
+    roomy,
+    x: (index) => offset + SLOTS[index % SLOTS.length][0] * tileWidth,
+    y: (index) => slotTop(index) + SLOTS[index % SLOTS.length][1] * tileHeight,
   }
 }
 
-/** The road between two missions: level along a row, bowing out past the edge at a turn. */
-function segmentPath(layout: Layout, i: number) {
-  const x0 = layout.x(i)
-  const y0 = layout.y(i)
-  const x1 = layout.x(i + 1)
-  const y1 = layout.y(i + 1)
-  if (layout.rowOf(i) !== layout.rowOf(i + 1)) {
-    const outward = (x0 > layout.width / 2 ? 1 : -1) * layout.pad * BEND
-    return `M ${x0} ${y0} C ${x0 + outward} ${y0}, ${x1 + outward} ${y1}, ${x1} ${y1}`
-  }
-  return `M ${x0} ${y0} C ${(x0 + x1) / 2} ${y0}, ${(x0 + x1) / 2} ${y1}, ${x1} ${y1}`
+function toneOf(row: MissionRow, current: boolean): CoinTone {
+  if (row.locked) return row.isProLock ? 'pro' : 'locked'
+  if (row.status === 'done') return 'done'
+  return current ? 'current' : 'open'
+}
+
+function badgeOf(row: MissionRow): CoinBadge {
+  if (row.locked) return row.isProLock ? 'pro' : 'locked'
+  if (row.status === 'done') return 'done'
+  return row.status === 'inProgress' ? 'tried' : null
 }
 
 /**
- * Every mission on one road, in the usual order, folded to fit the width it is given — the
- * whole road is visible, nothing scrolls sideways, and a phone simply gets more, narrower rows.
+ * On a phone the road is tight: a title that would cover another mission's coin or title is
+ * left off (the mission's name is still in its button and in the panel). The next mission and
+ * the open one always keep theirs; the others keep theirs in road order.
+ */
+function hiddenTitles(layout: Layout, rows: MissionRow[], currentId: string | undefined, openId: string | null) {
+  const hidden = new Set<number>()
+  if (layout.roomy) return hidden
+  const labelWidth = 112
+  const boxes = rows.map((row, index) => {
+    const current = row.mission.id === currentId
+    const tone = toneOf(row, current)
+    const d = Math.round(layout.coin * (tone === 'current' ? 1.22 : 1.05))
+    const x = layout.x(index)
+    const top = layout.y(index) - coinHeight(layout.coin, tone)
+    const bottom = top + d + Math.max(4, Math.round(d * 0.1))
+    const textWidth = Math.min(labelWidth, row.title.length * 11 * 0.56 + 16)
+    const shift = Math.min(layout.width - 4 - labelWidth / 2, Math.max(4 + labelWidth / 2, x)) - x
+    const labelTop = bottom + Math.round(layout.coin * 0.2)
+    return {
+      coin: [x - d / 2, top - (current ? d * 0.42 : 0), x + d / 2, bottom] as const,
+      label: [x + shift - textWidth / 2, labelTop, x + shift + textWidth / 2, labelTop + 18] as const,
+      keep: current || row.mission.id === openId,
+    }
+  })
+  const hits = (a: readonly number[], b: readonly number[]) =>
+    a[0] < b[2] + 2 && b[0] < a[2] + 2 && a[1] < b[3] + 2 && b[1] < a[3] + 2
+  const order = boxes.map((_, i) => i).sort((a, b) => Number(boxes[b].keep) - Number(boxes[a].keep) || a - b)
+  const kept: Array<readonly number[]> = []
+  for (const i of order) {
+    const box = boxes[i]
+    const blocked = boxes.some((other, j) => j !== i && hits(box.label, other.coin)) || kept.some((k) => hits(box.label, k))
+    if (blocked && !box.keep) hidden.add(i)
+    else kept.push(box.label)
+  }
+  return hidden
+}
+
+/**
+ * Every mission on one road through town, from the bottom of the map up.
  *
- * The road runs through town: the page puts the town illustration behind it (see `TownBackdrop`), and
- * each mission belongs to a part of town (see `zones.ts`) whose name is written above the
- * first mission there. The picture is decoration only — `aria-hidden`, under the road — so
- * every title and the road itself sit on something solid enough to read against it.
+ * The map is its own rounded box that fills the screen under the heading and scrolls inside,
+ * with no visible scrollbar. It opens with the mission that is up next in view. Each mission is
+ * a coin standing in one of the picture's clearings, with its title under it: gold once
+ * finished, blue and a little larger for the next one, white while open, lilac with a crown for
+ * Pro, grey with a lock while progress has not reached it.
  *
- * Nothing starts selected. Choosing a mission opens its panel (see `MissionDetailsSheet`); the
- * map only reports which one.
+ * The first time in a visit the road opens out of the clouds and the coins land one by one
+ * (see `CloudCurtain`); cars drive the road, butterflies cross the clearings and cloud shadows
+ * slide over the land (see `road-life`). All of that is decoration, under the coins.
  *
- * The nodes are one roving-tabindex group: Tab enters at the mission that is up next, and the
- * arrow keys move the way they look — left and right along a row, up and down between rows.
+ * Choosing a mission opens its panel (see `MissionDetailsSheet`); the map only reports which
+ * one, and keeps the chosen coin in view above the panel.
+ *
+ * The coins are one roving-tabindex group in road order: Tab enters at the mission that is up
+ * next; up and right go on along the road, down and left go back, Home and End jump to its ends.
  */
 export function MissionMap({
   rows,
   openId,
   currentId,
   onOpen,
+  panelRef,
 }: {
   rows: MissionRow[]
   /** The mission whose details are open, if any. */
   openId: string | null
   currentId: string | undefined
-  /** Called with the node that was chosen, so the caller can keep it clear of the panel. */
+  /** Called with the node that was chosen, so the caller can give focus back to it. */
   onOpen: (id: string, node: HTMLElement) => void
+  /** The details panel, so the chosen coin can be kept above it. */
+  panelRef: RefObject<HTMLElement | null>
 }) {
   const t = useT()
   const copy = t.practice
   const frame = useRef<HTMLDivElement>(null)
+  const scroller = useRef<HTMLDivElement>(null)
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
+  const placed = useRef(false)
   const [width, setWidth] = useState(0)
+  const [boxHeight, setBoxHeight] = useState(0)
+  const [underPanel, setUnderPanel] = useState(0)
   const [focusId, setFocusId] = useState<string | null>(null)
+  const intro = useMapIntro('missions')
+  const [curtain, setCurtain] = useState(intro)
 
+  /*
+   * The box fills the screen from where it starts down to the bottom edge — above the tab bar
+   * on a phone — so the page itself does not have to scroll to show the road.
+   */
   useLayoutEffect(() => {
     const el = frame.current
     if (!el) return
-    setWidth(el.clientWidth)
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    const measure = () => {
+      setWidth(el.clientWidth)
+      const phone = window.innerWidth < 768
+      const top = el.getBoundingClientRect().top + window.scrollY
+      setBoxHeight(Math.max(360, Math.round(window.innerHeight - top - (phone ? 84 : 24))))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
     observer.observe(el)
-    return () => observer.disconnect()
+    window.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
   }, [])
+
+  // The curtain has parted: take it out of the page.
+  useEffect(() => {
+    if (!curtain) return
+    const gone = window.setTimeout(() => setCurtain(false), 2400)
+    return () => window.clearTimeout(gone)
+  }, [curtain])
 
   const done = rows.filter((row) => row.status === 'done').length
   const layout = width > 0 ? layoutFor(width, rows.length) : null
-  const zones = rows.map((row) => zoneOf(row.mission))
-  // Each part of town is named once, where the road first enters it; coming back to a part
-  // later does not repeat the label.
-  const zoneLabels = zones.flatMap((zone, i) => (zones.indexOf(zone) === i ? [i] : []))
   const tabbableId =
     (focusId && rows.some((row) => row.mission.id === focusId) ? focusId : null) ?? currentId ?? rows[0]?.mission.id
+  const hidden = layout ? hiddenTitles(layout, rows, currentId, openId) : new Set<number>()
+
+  // Open where the learner is: the next mission a little below the middle of the box.
+  const ready = layout !== null && boxHeight > 0
+  useLayoutEffect(() => {
+    if (!ready || placed.current || !layout || !scroller.current) return
+    placed.current = true
+    const index = Math.max(0, rows.findIndex((row) => row.mission.id === currentId))
+    scroller.current.scrollTop = Math.max(0, Math.min(layout.height - boxHeight, layout.y(index) - boxHeight * 0.62))
+  }, [ready, layout, rows, currentId, boxHeight])
+
+  /*
+   * The panel rises over the bottom of the box. While it is open the road gets that much room
+   * at its foot, and the chosen coin moves up just enough to stay in view above it.
+   */
+  // Where the panel's top edge comes to rest (it is still rising when this runs).
+  const panelTop = () => {
+    const sheet = panelRef.current
+    if (!sheet) return null
+    return window.innerHeight - (parseFloat(getComputedStyle(sheet).bottom) || 0) - sheet.offsetHeight
+  }
+  useEffect(() => {
+    if (!openId) {
+      setUnderPanel(0)
+      return
+    }
+    const raf = requestAnimationFrame(() => {
+      const top = panelTop()
+      const box = scroller.current
+      if (top === null || !box) return
+      setUnderPanel(Math.max(0, Math.round(box.getBoundingClientRect().bottom - top + 16)))
+    })
+    return () => cancelAnimationFrame(raf)
+    // `panelTop` only reads refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId])
+  // Once the road has its room at the foot, lift the chosen coin above the panel.
+  useEffect(() => {
+    if (!openId) return
+    const raf = requestAnimationFrame(() => {
+      const top = panelTop()
+      const box = scroller.current
+      const node = buttons.current[rows.findIndex((row) => row.mission.id === openId)]
+      if (top === null || !box || !node) return
+      const overlap = node.getBoundingClientRect().bottom + 16 - top
+      if (overlap > 0) box.scrollBy({ top: overlap, behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, underPanel, rows])
 
   const move = (event: KeyboardEvent<HTMLOListElement>) => {
-    if (!layout) return
     const index = rows.findIndex((row) => row.mission.id === tabbableId)
     if (index < 0) return
-
-    const row = layout.rowOf(index)
-    const col = layout.colOf(index)
-    const at = (r: number, c: number) => {
-      if (r < 0 || c < 0 || c >= layout.cols) return null
-      const i = r * layout.cols + (r % 2 === 0 ? c : layout.cols - 1 - c)
-      return i < rows.length ? i : null
-    }
     const next =
-      event.key === 'ArrowRight'
-        ? at(row, col + 1)
-        : event.key === 'ArrowLeft'
-          ? at(row, col - 1)
-          : event.key === 'ArrowDown'
-            ? (at(row + 1, col) ?? (row + 1 <= layout.rowOf(rows.length - 1) ? rows.length - 1 : null))
-            : event.key === 'ArrowUp'
-              ? at(row - 1, col)
-              : event.key === 'Home'
-                ? 0
-                : event.key === 'End'
-                  ? rows.length - 1
-                  : undefined
+      event.key === 'ArrowUp' || event.key === 'ArrowRight'
+        ? index + 1
+        : event.key === 'ArrowDown' || event.key === 'ArrowLeft'
+          ? index - 1
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? rows.length - 1
+              : undefined
     if (next === undefined) return
 
     event.preventDefault()
-    if (next === null) return
+    if (next < 0 || next >= rows.length) return
     buttons.current[next]?.focus()
   }
 
@@ -180,236 +312,105 @@ export function MissionMap({
         />
       </div>
 
-      <div ref={frame} className="relative mt-3">
-        {layout && (
-          <div className="relative" style={{ height: layout.height }}>
-            {/*
-              Contrast only where it is needed: a soft pool of light under each mission and its
-              title, so the picture stays a picture everywhere else.
-            */}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-              {rows.map((row, index) => (
-                <span
-                  key={`glow-${row.mission.id}`}
-                  className="absolute"
-                  style={{
-                    left: layout.x(index) - layout.labelWidth / 2 - 24,
-                    top: layout.y(index) - layout.node / 2 - 20,
-                    width: layout.labelWidth + 48,
-                    height: layout.node + (layout.roomy ? 96 : 84),
-                    backgroundImage:
-                      'radial-gradient(closest-side, color-mix(in oklab, var(--color-ground-sunken) 78%, transparent), transparent)',
-                  }}
-                />
-              ))}
+      <div
+        ref={frame}
+        className="relative isolate mt-3 overflow-hidden rounded-[28px] bg-[#9fcf6a] shadow-[0_18px_40px_rgb(40_80_30/0.25)]"
+        style={{ height: boxHeight || undefined }}
+      >
+        <div ref={scroller} className="map-scroll h-full overflow-y-auto">
+          {layout && (
+            <div className="relative isolate overflow-hidden" style={{ height: layout.height }}>
+              <div
+                aria-hidden="true"
+                className={cx('pointer-events-none absolute inset-0 bg-repeat-y select-none', intro && 'ground-in')}
+                style={{
+                  backgroundImage: `url(${roadArt})`,
+                  backgroundSize: `${layout.tileWidth}px ${layout.tileHeight}px`,
+                  backgroundPosition: `${layout.offset}px ${layout.tileTop}px`,
+                }}
+              />
+              <RoadLife
+                tileWidth={layout.tileWidth}
+                tileHeight={layout.tileHeight}
+                offset={layout.offset}
+                tileTop={layout.firstTileTop}
+                roomy={layout.roomy}
+                clearings={SLOTS}
+              />
+
+              <ol onKeyDown={move} className="contents">
+                {rows.map((row, index) => {
+                  const x = layout.x(index)
+                  const labelWidth = layout.roomy ? 172 : 112
+                  // A coin near the edge stays on its clearing; only its title slides inwards.
+                  const labelShift = Math.min(layout.width - 4 - labelWidth / 2, Math.max(4 + labelWidth / 2, x)) - x
+                  const current = row.mission.id === currentId
+                  const open = row.mission.id === openId
+                  const tone = toneOf(row, current)
+                  return (
+                    <li
+                      key={row.mission.id}
+                      className={cx('absolute -translate-x-1/2', intro && 'coin-pop')}
+                      style={{
+                        left: x,
+                        top: layout.y(index) - coinHeight(layout.coin, tone),
+                        width: labelWidth,
+                        // A coin lower on the screen is nearer the viewer and drawn over the ones
+                        // behind it; the next and the open one are drawn over everything.
+                        zIndex: current || open ? 100000 : Math.round(layout.y(index)),
+                        animationDelay: intro ? `${LANDING_START + Math.min(index, 16) * LANDING_STEP}s` : undefined,
+                      }}
+                    >
+                      <button
+                        ref={(el) => {
+                          buttons.current[index] = el
+                        }}
+                        type="button"
+                        tabIndex={row.mission.id === tabbableId ? 0 : -1}
+                        aria-expanded={open}
+                        aria-controls={open ? 'mission-details' : undefined}
+                        aria-label={fill(copy.nodeLabel, {
+                          number: row.number,
+                          title: row.title,
+                          status: current ? `${missionStatusLabel(row, t)}, ${copy.current}` : missionStatusLabel(row, t),
+                        })}
+                        onFocus={() => setFocusId(row.mission.id)}
+                        onClick={(event) => onOpen(row.mission.id, event.currentTarget)}
+                        data-ui-sound="select"
+                        className="group relative flex w-full flex-col items-center focus-visible:outline-none"
+                      >
+                        <CoinFace
+                          number={row.number}
+                          tone={tone}
+                          badge={badgeOf(row)}
+                          palette="missions"
+                          size={layout.coin}
+                          ground={layout.clearing}
+                          roomy={layout.roomy}
+                          title={row.title}
+                          showTitle={!hidden.has(index)}
+                          titleShift={labelShift}
+                          active={open}
+                          startLabel={copy.coinStart}
+                          afterIntro={intro ? INTRO_SECONDS : 0}
+                        />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ol>
             </div>
-
-            <svg
-              aria-hidden="true"
-              width={layout.width}
-              height={layout.height}
-              viewBox={`0 0 ${layout.width} ${layout.height}`}
-              className="pointer-events-none absolute inset-0"
-              fill="none"
-            >
-              {/* A soft light halo under the dots, so the road reads on any part of the picture. */}
-              {rows.slice(1).map((row, i) => (
-                <path
-                  key={`halo-${row.mission.id}`}
-                  d={segmentPath(layout, i)}
-                  strokeWidth={layout.roomy ? 11 : 9}
-                  strokeLinecap="round"
-                  className="stroke-ground-raised/75"
-                />
-              ))}
-              {rows.slice(1).map((row, i) => {
-                const walked = rows[i].status === 'done' && row.status === 'done'
-                return (
-                  <path
-                    key={row.mission.id}
-                    d={segmentPath(layout, i)}
-                    strokeWidth={layout.roomy ? 5 : 4}
-                    strokeLinecap="round"
-                    strokeDasharray="0.5 11"
-                    className={walked ? 'stroke-milestone' : 'stroke-signal/85'}
-                  />
-                )
-              })}
-            </svg>
-
-            {/* Where the road enters a new part of town. */}
-            {zoneLabels.map((index, n, starts) => {
-              // Two parts of town can begin on neighbouring missions; the second label then
-              // steps up a line instead of sitting on top of the first.
-              const previous = starts[n - 1]
-              const crowded =
-                previous !== undefined &&
-                layout.rowOf(previous) === layout.rowOf(index) &&
-                Math.abs(layout.x(previous) - layout.x(index)) < (layout.roomy ? 200 : 150)
-              const lift = (layout.roomy ? 40 : 32) + (crowded ? 28 : 0)
-              return (
-                <ZoneLabel
-                  key={`zone-${index}`}
-                  zone={zones[index]}
-                  label={copy.zones[zones[index]]}
-                  style={{ left: layout.x(index), top: layout.y(index) - layout.node / 2 - lift }}
-                />
-              )
-            })}
-
-            <ol onKeyDown={move} className="contents">
-              {rows.map((row, index) => (
-                <li
-                  key={row.mission.id}
-                  className="absolute"
-                  style={{
-                    left: layout.x(index) - layout.labelWidth / 2,
-                    top: layout.y(index) - layout.node / 2,
-                    width: layout.labelWidth,
-                  }}
-                >
-                  <MissionNode
-                    row={row}
-                    open={row.mission.id === openId}
-                    current={row.mission.id === currentId}
-                    size={layout.node}
-                    tabbable={row.mission.id === tabbableId}
-                    buttonRef={(el) => {
-                      buttons.current[index] = el
-                    }}
-                    onFocus={() => setFocusId(row.mission.id)}
-                    onOpen={(node) => onOpen(row.mission.id, node)}
-                  />
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+          )}
+          {underPanel > 0 && <div aria-hidden="true" style={{ height: underPanel }} />}
+        </div>
+        {/* A soft shade at the top edge, so the road seems to go on beyond the box. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-[4000] h-14 bg-gradient-to-b from-[rgb(20_40_10/0.28)] to-transparent"
+        />
+        <CloudShadows />
+        {curtain && layout && <CloudCurtain roomy={layout.roomy} />}
       </div>
     </section>
-  )
-}
-
-/**
- * One mission on the road, in one system for every state: a numbered disc, the number always
- * the strongest thing on it, and at most one status badge in one place — a lock when closed,
- * a tick when finished, a clock when tried. Its title sits on a small surface of its own under
- * it. The state is spelled out in the button's name for a screen reader, so it is never told by
- * colour alone.
- */
-function MissionNode({
-  row,
-  open,
-  current,
-  size,
-  tabbable,
-  buttonRef,
-  onFocus,
-  onOpen,
-}: {
-  row: MissionRow
-  open: boolean
-  current: boolean
-  /** The node's diameter in pixels, from the layout. */
-  size: number
-  tabbable: boolean
-  buttonRef: (el: HTMLButtonElement | null) => void
-  onFocus: () => void
-  onOpen: (node: HTMLElement) => void
-}) {
-  const t = useT()
-  const { number, title, status, locked } = row
-  const done = status === 'done' && !locked
-  const roomy = size >= 64
-  const badge = locked
-    ? { Icon: Lock, tone: 'bg-ink-muted text-ground-raised' }
-    : done
-      ? { Icon: Check, tone: 'bg-milestone text-on-signal' }
-      : status === 'inProgress'
-        ? { Icon: Timer, tone: 'bg-caution text-ground-raised' }
-        : null
-
-  return (
-    <button
-      ref={buttonRef}
-      type="button"
-      tabIndex={tabbable ? 0 : -1}
-      aria-expanded={open}
-      aria-controls={open ? 'mission-details' : undefined}
-      aria-label={fill(t.practice.nodeLabel, {
-        number,
-        title,
-        status: current ? `${missionStatusLabel(row, t)}, ${t.practice.current}` : missionStatusLabel(row, t),
-      })}
-      onFocus={onFocus}
-      onClick={(event) => onOpen(event.currentTarget)}
-      data-ui-sound="select"
-      className="group flex w-full flex-col items-center focus-visible:outline-none"
-    >
-      <span
-        className={cx(
-          // The white rim is the disc's own edge, not a ring around it; the only ring is the
-          // one that says "this one is open".
-          'relative flex shrink-0 items-center justify-center rounded-full border-[3px] border-ground-raised font-black tabular-nums',
-          'shadow-[0_6px_16px_rgb(22_24_29/0.22)]',
-          roomy ? 'text-[1.75rem]' : 'text-lg',
-          'motion-safe:transition-[scale,translate,box-shadow] motion-safe:duration-150',
-          'group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-signal',
-          locked
-            ? 'bg-linear-to-b from-ground-raised to-ground-sunken text-ink-muted'
-            : done
-              ? 'bg-milestone text-on-signal'
-              : current
-                ? 'bg-signal text-on-signal shadow-[0_8px_22px_rgb(52_122_223/0.45)]'
-                : 'bg-ground-raised text-signal-ink',
-          open ? 'scale-110 ring-4 ring-signal/40' : 'group-hover:-translate-y-0.5',
-        )}
-        style={{ width: size, height: size }}
-      >
-        {number}
-
-        {badge && (
-          <span
-            className={cx(
-              'absolute -right-1 -bottom-1 flex items-center justify-center rounded-full border-2 border-ground-raised',
-              roomy ? 'size-7' : 'size-6',
-              badge.tone,
-            )}
-          >
-            <badge.Icon aria-hidden="true" strokeWidth={2.6} className={roomy ? 'size-3.5' : 'size-3'} />
-          </span>
-        )}
-      </span>
-
-      <span
-        className={cx(
-          // A compact surface: the picture behind is busy, and a title must read on any part
-          // of it — but it is a caption, not a card.
-          'mt-2.5 line-clamp-2 max-w-full rounded-lg border px-2 py-0.5 text-center leading-snug font-bold wrap-break-word',
-          'shadow-[0_1px_3px_rgb(22_24_29/0.12)]',
-          roomy ? 'text-[13px]' : 'text-xs',
-          open
-            ? 'border-signal bg-signal text-on-signal'
-            : locked
-              ? 'border-ink/5 bg-ground-raised/90 text-ink-muted'
-              : 'border-ink/5 bg-ground-raised/95 text-ink group-hover:text-signal-ink',
-        )}
-      >
-        {title}
-      </span>
-    </button>
-  )
-}
-
-function ZoneLabel({ zone, label, style }: { zone: MissionZone; label: string; style: CSSProperties }) {
-  const Icon = ZONE_ICON[zone]
-  return (
-    <span
-      className="pointer-events-none absolute flex max-w-48 -translate-x-1/2 items-center gap-1.5 rounded-md border border-ink/10 bg-ground-raised/90 px-2 py-0.5 text-[11px] font-extrabold tracking-[.06em] whitespace-nowrap text-ink uppercase shadow-[0_1px_2px_rgb(22_24_29/0.10)]"
-      style={style}
-    >
-      <Icon aria-hidden="true" strokeWidth={2.2} className="size-3.5 shrink-0 text-signal-ink" />
-      <span className="truncate">{label}</span>
-    </span>
   )
 }
