@@ -4,8 +4,8 @@ import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { Meter } from '../motion'
 import { CloudCurtain } from '../map/CloudCurtain'
-import { CoinFace } from '../map/Coin'
-import { coinHeight, type CoinBadge, type CoinTone } from '../map/coin-geometry'
+import { discFace, discThickness, type DiscTone } from './disc-geometry'
+import { MissionDisc, type DiscBadge } from './MissionDisc'
 import { INTRO_SECONDS, useMapIntro } from '../map/map-intro'
 import { missionStatusLabel, type MissionRow } from './mission-row'
 import { CloudShadows, RoadLife } from './road-life'
@@ -55,10 +55,8 @@ type Layout = {
   /** Top of the copy of the picture holding missions 1–7. */
   firstTileTop: number
   offset: number
-  /** The width of the clearing a mission stands on. */
-  clearing: number
-  /** The coin's base width. */
-  coin: number
+  /** The disc's width; its height follows from the angle it lies at. */
+  disc: number
   roomy: boolean
   x: (index: number) => number
   y: (index: number) => number
@@ -73,7 +71,7 @@ function layoutFor(width: number, count: number): Layout {
   const offset = roomy ? 0 : width / 2 - tileWidth * ((CLEARINGS.left + CLEARINGS.right) / 2)
   const tiles = Math.max(1, Math.ceil(count / SLOTS.length))
   const height = tiles * tileHeight + BOTTOM_PAD
-  const clearing = roomy ? Math.round(Math.min(96, tileWidth * 0.07)) : 54
+  const disc = roomy ? Math.round(Math.min(96, tileWidth * 0.07)) : 54
   // The tile holding mission `index`, counted from the bottom.
   const tileOf = (index: number) => Math.floor(index / SLOTS.length)
   const slotTop = (index: number) => height - BOTTOM_PAD - (tileOf(index) + 1) * tileHeight
@@ -86,28 +84,27 @@ function layoutFor(width: number, count: number): Layout {
     tileTop: height - BOTTOM_PAD - tiles * tileHeight,
     firstTileTop: height - BOTTOM_PAD - tileHeight,
     offset,
-    clearing,
-    coin: Math.round(clearing * 0.62),
+    disc,
     roomy,
     x: (index) => offset + SLOTS[index % SLOTS.length][0] * tileWidth,
     y: (index) => slotTop(index) + SLOTS[index % SLOTS.length][1] * tileHeight,
   }
 }
 
-function toneOf(row: MissionRow, current: boolean): CoinTone {
-  if (row.locked) return row.isProLock ? 'pro' : 'locked'
+function toneOf(row: MissionRow, current: boolean): DiscTone {
+  if (row.locked) return 'locked'
   if (row.status === 'done') return 'done'
   return current ? 'current' : 'open'
 }
 
-function badgeOf(row: MissionRow): CoinBadge {
+function badgeOf(row: MissionRow): DiscBadge {
   if (row.locked) return row.isProLock ? 'pro' : 'locked'
   if (row.status === 'done') return 'done'
   return row.status === 'inProgress' ? 'tried' : null
 }
 
 /**
- * On a phone the road is tight: a title that would cover another mission's coin or title is
+ * On a phone the road is tight: a title that would cover another mission's disc or title is
  * left off (the mission's name is still in its button and in the panel). The next mission and
  * the open one always keep theirs; the others keep theirs in road order.
  */
@@ -115,18 +112,18 @@ function hiddenTitles(layout: Layout, rows: MissionRow[], currentId: string | un
   const hidden = new Set<number>()
   if (layout.roomy) return hidden
   const labelWidth = 112
+  const face = discFace(layout.disc)
+  const depth = discThickness(layout.disc)
   const boxes = rows.map((row, index) => {
     const current = row.mission.id === currentId
-    const tone = toneOf(row, current)
-    const d = Math.round(layout.coin * (tone === 'current' ? 1.22 : 1.05))
     const x = layout.x(index)
-    const top = layout.y(index) - coinHeight(layout.coin, tone)
-    const bottom = top + d + Math.max(4, Math.round(d * 0.1))
+    const top = layout.y(index) - face / 2
+    const bottom = top + face + depth
     const textWidth = Math.min(labelWidth, row.title.length * 11 * 0.56 + 16)
     const shift = Math.min(layout.width - 4 - labelWidth / 2, Math.max(4 + labelWidth / 2, x)) - x
-    const labelTop = bottom + Math.round(layout.coin * 0.2)
+    const labelTop = bottom + 6
     return {
-      coin: [x - d / 2, top - (current ? d * 0.42 : 0), x + d / 2, bottom] as const,
+      disc: [x - layout.disc / 2, top - (current ? 22 : 0), x + layout.disc / 2, bottom] as const,
       label: [x + shift - textWidth / 2, labelTop, x + shift + textWidth / 2, labelTop + 18] as const,
       keep: current || row.mission.id === openId,
     }
@@ -137,7 +134,7 @@ function hiddenTitles(layout: Layout, rows: MissionRow[], currentId: string | un
   const kept: Array<readonly number[]> = []
   for (const i of order) {
     const box = boxes[i]
-    const blocked = boxes.some((other, j) => j !== i && hits(box.label, other.coin)) || kept.some((k) => hits(box.label, k))
+    const blocked = boxes.some((other, j) => j !== i && hits(box.label, other.disc)) || kept.some((k) => hits(box.label, k))
     if (blocked && !box.keep) hidden.add(i)
     else kept.push(box.label)
   }
@@ -149,16 +146,16 @@ function hiddenTitles(layout: Layout, rows: MissionRow[], currentId: string | un
  *
  * The map is its own rounded box that fills the screen under the heading and scrolls inside,
  * with no visible scrollbar. It opens with the mission that is up next in view. Each mission is
- * a coin standing in one of the picture's clearings, with its title under it: gold once
- * finished, blue and a little larger for the next one, white while open, lilac with a crown for
- * Pro, grey with a lock while progress has not reached it.
+ * a numbered disc laid down in one of the picture's clearings, with its title under it: green
+ * once finished, blue with a «Start» tag for the next one, white while open, lilac with a crown
+ * or a lock while shut.
  *
  * The first time in a visit the road opens out of the clouds and the coins land one by one
  * (see `CloudCurtain`); cars drive the road, butterflies cross the clearings and cloud shadows
  * slide over the land (see `road-life`). All of that is decoration, under the coins.
  *
  * Choosing a mission opens its panel (see `MissionDetailsSheet`); the map only reports which
- * one, and keeps the chosen coin in view above the panel.
+ * one, and keeps the chosen disc in view above the panel.
  *
  * The coins are one roving-tabindex group in road order: Tab enters at the mission that is up
  * next; up and right go on along the road, down and left go back, Home and End jump to its ends.
@@ -228,13 +225,22 @@ export function MissionMap({
     (focusId && rows.some((row) => row.mission.id === focusId) ? focusId : null) ?? currentId ?? rows[0]?.mission.id
   const hidden = layout ? hiddenTitles(layout, rows, currentId, openId) : new Set<number>()
 
-  // Open where the learner is: the next mission a little below the middle of the box.
   const ready = layout !== null && boxHeight > 0
   useLayoutEffect(() => {
     if (!ready || placed.current || !layout || !scroller.current) return
     placed.current = true
     const index = Math.max(0, rows.findIndex((row) => row.mission.id === currentId))
-    scroller.current.scrollTop = Math.max(0, Math.min(layout.height - boxHeight, layout.y(index) - boxHeight * 0.62))
+    // The map opens at its start, the bottom of the trail. Only when the learner is further up
+    // than that view reaches does it open higher, with where they are in the upper part.
+    const box = scroller.current
+    const y = layout.y(index)
+    const place = () => {
+      const bottom = Math.max(0, box.scrollHeight - box.clientHeight)
+      box.scrollTop = y - 110 >= bottom ? bottom : Math.max(0, Math.min(bottom, y - box.clientHeight * 0.62))
+    }
+    place()
+    // The box settles its height a moment after the page's entrance; place it again then.
+    window.setTimeout(place, 750)
   }, [ready, layout, rows, currentId, boxHeight])
 
   /*
@@ -244,8 +250,9 @@ export function MissionMap({
   // Where the panel's top edge comes to rest (it is still rising when this runs).
   const panelTop = () => {
     const sheet = panelRef.current
-    if (!sheet) return null
-    return window.innerHeight - (parseFloat(getComputedStyle(sheet).bottom) || 0) - sheet.offsetHeight
+    const holder = sheet?.offsetParent
+    if (!sheet || !holder) return null
+    return holder.getBoundingClientRect().top + sheet.offsetTop
   }
   useEffect(() => {
     if (!openId) {
@@ -256,7 +263,8 @@ export function MissionMap({
       const top = panelTop()
       const box = scroller.current
       if (top === null || !box) return
-      setUnderPanel(Math.max(0, Math.round(box.getBoundingClientRect().bottom - top + 16)))
+      // The map's view ends just under the card's rounded top edge, so no gap shows between them.
+      setUnderPanel(Math.max(0, Math.round(box.getBoundingClientRect().bottom - top - 20)))
     })
     return () => cancelAnimationFrame(raf)
     // `panelTop` only reads refs.
@@ -265,15 +273,16 @@ export function MissionMap({
   // Once the road has its room at the foot, lift the chosen coin above the panel.
   useEffect(() => {
     if (!openId) return
-    const raf = requestAnimationFrame(() => {
+    // After the map has finished shrinking (its height eases over 300ms), so the scroll is not cut short.
+    const timer = window.setTimeout(() => {
       const top = panelTop()
       const box = scroller.current
       const node = buttons.current[rows.findIndex((row) => row.mission.id === openId)]
       if (top === null || !box || !node) return
       const overlap = node.getBoundingClientRect().bottom + 16 - top
       if (overlap > 0) box.scrollBy({ top: overlap, behavior: 'smooth' })
-    })
-    return () => cancelAnimationFrame(raf)
+    }, 340)
+    return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId, underPanel, rows])
 
@@ -317,7 +326,9 @@ export function MissionMap({
         className="relative isolate mt-3 overflow-hidden rounded-[28px] bg-[#9fcf6a] shadow-[0_18px_40px_rgb(40_80_30/0.25)]"
         style={{ height: boxHeight || undefined }}
       >
-        <div ref={scroller} className="map-scroll h-full overflow-y-auto">
+        <div ref={scroller} className="map-scroll overflow-y-auto motion-safe:transition-[height] motion-safe:duration-300"
+        style={{ height: underPanel ? `calc(100% - ${underPanel}px)` : '100%' }}
+      >
           {layout && (
             <div className="relative isolate overflow-hidden" style={{ height: layout.height }}>
               <div
@@ -353,7 +364,8 @@ export function MissionMap({
                       className={cx('absolute -translate-x-1/2', intro && 'coin-pop')}
                       style={{
                         left: x,
-                        top: layout.y(index) - coinHeight(layout.coin, tone),
+                        // The disc's face is centred on the clearing; its thickness hangs below.
+                        top: layout.y(index) - discFace(layout.disc) / 2,
                         width: labelWidth,
                         // A coin lower on the screen is nearer the viewer and drawn over the ones
                         // behind it; the next and the open one are drawn over everything.
@@ -379,13 +391,11 @@ export function MissionMap({
                         data-ui-sound="select"
                         className="group relative flex w-full flex-col items-center focus-visible:outline-none"
                       >
-                        <CoinFace
+                        <MissionDisc
                           number={row.number}
                           tone={tone}
                           badge={badgeOf(row)}
-                          palette="missions"
-                          size={layout.coin}
-                          ground={layout.clearing}
+                          size={layout.disc}
                           roomy={layout.roomy}
                           title={row.title}
                           showTitle={!hidden.has(index)}
@@ -401,7 +411,6 @@ export function MissionMap({
               </ol>
             </div>
           )}
-          {underPanel > 0 && <div aria-hidden="true" style={{ height: underPanel }} />}
         </div>
         {/* A soft shade at the top edge, so the road seems to go on beyond the box. */}
         <div

@@ -84,7 +84,8 @@ export function Practice() {
         )}
 
         {rows.length > 0 && (
-          <Reveal className="min-w-0">
+          // The panel floats over the bottom of the map box, inside the same frame.
+          <Reveal className="relative min-w-0">
             <MissionMap
               rows={rows}
               openId={open ? selectedId : null}
@@ -92,16 +93,15 @@ export function Practice() {
               onOpen={openMission}
               panelRef={panel}
             />
+            <MissionDetailsSheet
+              ref={panel}
+              row={selected}
+              open={open}
+              showFreeLabel={entitlement?.hasProAccess === false}
+              onDismiss={dismiss}
+            />
           </Reveal>
         )}
-
-        <MissionDetailsSheet
-          ref={panel}
-          row={selected}
-          open={open}
-          showFreeLabel={entitlement?.hasProAccess === false}
-          onDismiss={dismiss}
-        />
       </Sequence>
     </>
   )

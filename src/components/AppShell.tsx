@@ -31,6 +31,7 @@ import { Link, NavLink, useLocation, useNavigate, useOutlet } from 'react-router
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useAuth } from '../lib/auth-context'
+import { cx } from '../lib/cx'
 import {
   readAudioPreferences,
   storeAudioPreferences,
@@ -62,6 +63,13 @@ export function AppShell() {
   const t = useT()
   const mainRef = useRef<HTMLElement>(null)
   useRouteChange(mainRef)
+  /*
+   * The two map screens (the 90 days and the missions) are pictures to look around in, so they
+   * take the whole width beside the rail and a little less padding above and below, instead of
+   * the reading width every other screen keeps.
+   */
+  const { pathname } = useLocation()
+  const mapScreen = pathname === '/path' || pathname === '/practice'
   /*
    * The games row exists only when the panel has opened at least one. Everything is off by
    * default, so the ordinary state is no row at all — and a menu item leading to an empty
@@ -179,7 +187,10 @@ export function AppShell() {
         ref={mainRef}
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full min-w-0 max-w-[96rem] px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-24 lg:px-10 2xl:px-12"
+        className={cx(
+          'mx-auto w-full min-w-0 px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8',
+          mapScreen ? 'md:pt-6 md:pb-6 lg:px-8 2xl:px-10' : 'max-w-[96rem] md:py-10 md:pb-24 lg:px-10 2xl:px-12',
+        )}
       >
         <PageTransition />
       </main>

@@ -190,13 +190,22 @@ export function DaySkyMap({
   const layout = width > 0 ? layoutFor(width, days.length) : null
   const tabbable = (focusDay && days.some((d) => d.day === focusDay) ? focusDay : null) ?? currentDay ?? days[0]?.day
 
-  // Open where the learner is: today a little below the middle of the box.
   const ready = layout !== null && boxHeight > 0
   useLayoutEffect(() => {
     if (!ready || placed.current || !layout || !scroller.current) return
     placed.current = true
     const index = Math.max(0, days.findIndex((d) => d.day === currentDay))
-    scroller.current.scrollTop = Math.max(0, Math.min(layout.height - boxHeight, layout.points[index].y - boxHeight * 0.62))
+    // The map opens at its start, the bottom of the trail. Only when the learner is further up
+    // than that view reaches does it open higher, with where they are in the upper part.
+    const box = scroller.current
+    const y = layout.points[index].y
+    const place = () => {
+      const bottom = Math.max(0, box.scrollHeight - box.clientHeight)
+      box.scrollTop = y - 110 >= bottom ? bottom : Math.max(0, Math.min(bottom, y - box.clientHeight * 0.62))
+    }
+    place()
+    // The box settles its height a moment after the page's entrance; place it again then.
+    window.setTimeout(place, 750)
   }, [ready, layout, days, currentDay, boxHeight])
 
   /*
@@ -205,34 +214,44 @@ export function DaySkyMap({
    */
   const panelTop = () => {
     const sheet = document.getElementById('lesson-details')
-    if (!sheet) return null
-    return window.innerHeight - (parseFloat(getComputedStyle(sheet).bottom) || 0) - sheet.offsetHeight
+    const holder = sheet?.offsetParent
+    if (!sheet || !holder) return null
+    return holder.getBoundingClientRect().top + sheet.offsetTop
   }
   useEffect(() => {
     if (openDay === null) {
       setUnderPanel(0)
       return
     }
-    // The card loads on first use; give it a moment to be there.
-    const timer = window.setTimeout(() => {
+    // The card's code loads the first time it is used: wait (up to a few seconds) for it to be there.
+    let raf = 0
+    let tries = 0
+    const measure = () => {
       const top = panelTop()
       const box = scroller.current
+      if ((top === null || !box) && tries++ < 240) {
+        raf = requestAnimationFrame(measure)
+        return
+      }
       if (top === null || !box) return
-      setUnderPanel(Math.max(0, Math.round(box.getBoundingClientRect().bottom - top + 16)))
-    }, 120)
-    return () => window.clearTimeout(timer)
+      // The map's view ends just under the card's rounded top edge, so no gap shows between them.
+      setUnderPanel(Math.max(0, Math.round(box.getBoundingClientRect().bottom - top - 20)))
+    }
+    raf = requestAnimationFrame(measure)
+    return () => cancelAnimationFrame(raf)
   }, [openDay])
   useEffect(() => {
     if (openDay === null) return
-    const raf = requestAnimationFrame(() => {
+    // After the map has finished shrinking (its height eases over 300ms), so the scroll is not cut short.
+    const timer = window.setTimeout(() => {
       const top = panelTop()
       const box = scroller.current
       const node = buttons.current[days.findIndex((d) => d.day === openDay)]
       if (top === null || !box || !node) return
       const overlap = node.getBoundingClientRect().bottom + 16 - top
       if (overlap > 0) box.scrollBy({ top: overlap, behavior: 'smooth' })
-    })
-    return () => cancelAnimationFrame(raf)
+    }, 340)
+    return () => window.clearTimeout(timer)
   }, [openDay, underPanel, days])
 
   const move = (event: KeyboardEvent<HTMLOListElement>) => {
@@ -260,7 +279,9 @@ export function DaySkyMap({
       className="relative isolate overflow-hidden rounded-[28px] bg-[linear-gradient(#c9c3f0,#e9c9e6)] shadow-[0_18px_40px_rgb(80_60_140/0.25)]"
       style={{ height: boxHeight || undefined }}
     >
-      <div ref={scroller} className="map-scroll h-full overflow-y-auto">
+      <div ref={scroller} className="map-scroll overflow-y-auto motion-safe:transition-[height] motion-safe:duration-300"
+        style={{ height: underPanel ? `calc(100% - ${underPanel}px)` : '100%' }}
+      >
         {layout && (
           <div className="relative isolate overflow-hidden" style={{ height: layout.height }}>
             <div aria-hidden="true" className={cx('pointer-events-none absolute inset-0', intro && 'ground-in')}>
@@ -372,7 +393,6 @@ export function DaySkyMap({
             </ol>
           </div>
         )}
-        {underPanel > 0 && <div aria-hidden="true" style={{ height: underPanel }} />}
       </div>
       <div
         aria-hidden="true"

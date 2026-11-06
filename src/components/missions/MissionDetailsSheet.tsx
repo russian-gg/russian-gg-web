@@ -73,10 +73,10 @@ export function MissionDetailsSheet({
           animate="shown"
           exit="exit"
           className={cx(
-            // Clears the phone's tab bar; from `md` up there is none. One layer above the
-            // floating Telegram button, which would otherwise sit on the panel's action.
-            'sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[45] md:bottom-6',
-            'max-h-[min(56dvh,30rem)] overflow-y-auto md:max-h-[70dvh] rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4 sm:p-5',
+            // Floats over the bottom of the map box, so the road stays in view above it and the
+            // page itself never grows or scrolls when it opens. Above everything on the map.
+            'absolute inset-x-0 bottom-0 z-[4600]',
+            'max-h-[min(62%,30rem)] overflow-y-auto rounded-t-[var(--radius-card)] rounded-b-[28px] border-t border-hairline bg-ground-raised p-4 sm:p-5',
             'shadow-[0_-8px_40px_rgb(22_24_29/0.14)]',
           )}
         >

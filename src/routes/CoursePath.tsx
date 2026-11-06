@@ -321,13 +321,32 @@ export function CoursePath() {
         </p>
       )}
 
-      <Reveal delay={0.1}>
+      {/* The lesson card floats over the bottom of the map box, inside the same frame. */}
+      <Reveal delay={0.1} className="relative">
         <DaySkyMap
           days={skyDays}
           currentDay={todayDay}
           openDay={selectedDay && previewOpen ? selectedDay.day.day : null}
           onOpen={openSkyDay}
         />
+        {selectedDay && hasFoundationLesson(selectedDay.day.day) && (
+          <Suspense fallback={null}>
+          <LessonDetailsSheet
+            day={selectedDay.day.day}
+            open={previewOpen}
+            status={
+              isDayDone(selectedDay.day)
+                ? 'done'
+                : (foundationProgress[selectedDay.day.day]?.completed.length ?? 0) > 0 ? 'inProgress' : 'new'
+            }
+            completed={foundationProgress[selectedDay.day.day]?.completed.length ?? 0}
+            total={LESSON_ONE_SECTIONS.length}
+            isOpening={openingDay === selectedDay.day.day}
+            onDismiss={() => setPreviewOpen(false)}
+            onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
+          />
+          </Suspense>
+        )}
       </Reveal>
 
       {/*
@@ -365,24 +384,6 @@ export function CoursePath() {
         the lesson teaches, how much is in it, and the button that starts it. The dialog stays
         for the few days without a lesson, where there is nothing of the lesson's own to show.
       */}
-      {selectedDay && hasFoundationLesson(selectedDay.day.day) && (
-        <Suspense fallback={null}>
-        <LessonDetailsSheet
-          day={selectedDay.day.day}
-          open={previewOpen}
-          status={
-            isDayDone(selectedDay.day)
-              ? 'done'
-              : (foundationProgress[selectedDay.day.day]?.completed.length ?? 0) > 0 ? 'inProgress' : 'new'
-          }
-          completed={foundationProgress[selectedDay.day.day]?.completed.length ?? 0}
-          total={LESSON_ONE_SECTIONS.length}
-          isOpening={openingDay === selectedDay.day.day}
-          onDismiss={() => setPreviewOpen(false)}
-          onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
-        />
-        </Suspense>
-      )}
       {selectedDay && !hasFoundationLesson(selectedDay.day.day) && (
         <DayPreviewDialog
           open={previewOpen}
