@@ -1079,6 +1079,9 @@ export const ru: Dictionary = {
     nodeLabel: '{number}. {title}: {status}',
     current: 'Следующее',
     /** On the tag above the mission that is up next, on the map. */
+    /** In the heading's progress card: missions open now, and those Pro opens. */
+    freeMissions: 'Открыто: {count}',
+    proMissions: 'С Pro: {count}',
     coinStart: 'Начать',
     bestLabel: 'Лучший результат',
     lockedProBody: 'Это задание открывается в тарифе Pro.',

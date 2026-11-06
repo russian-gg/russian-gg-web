@@ -1097,6 +1097,9 @@ export const uz = {
     nodeLabel: '{number}. {title}: {status}',
     current: 'Navbatdagi',
     /** On the tag above the mission that is up next, on the map. */
+    /** In the heading's progress card: missions open now, and those Pro opens. */
+    freeMissions: '{count} ta ochiq',
+    proMissions: '{count} ta Pro bilan',
     coinStart: 'Boshlash',
     bestLabel: 'Eng yaxshi natija',
     lockedProBody: 'Bu topshiriq Pro tarifida ochiladi.',

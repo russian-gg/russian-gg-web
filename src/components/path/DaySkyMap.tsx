@@ -204,8 +204,15 @@ export function DaySkyMap({
       box.scrollTop = y - 110 >= bottom ? bottom : Math.max(0, Math.min(bottom, y - box.clientHeight * 0.62))
     }
     place()
-    // The box settles its height a moment after the page's entrance; place it again then.
-    window.setTimeout(place, 750)
+    // The box settles its height over the page's entrance: keep it placed while it does, until
+    // the learner scrolls it themselves or a couple of seconds have passed.
+    const follow = new ResizeObserver(place)
+    follow.observe(box)
+    const stop = () => follow.disconnect()
+    box.addEventListener('wheel', stop, { once: true, passive: true })
+    box.addEventListener('touchstart', stop, { once: true, passive: true })
+    box.addEventListener('keydown', stop, { once: true })
+    window.setTimeout(stop, 2500)
   }, [ready, layout, days, currentDay, boxHeight])
 
   /*

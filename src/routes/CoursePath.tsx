@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Crown } from 'lucide-react'
+import { Compass, Crown, Gift } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
@@ -285,34 +285,57 @@ export function CoursePath() {
         how much is behind them, and — on the free plan — which days are free and which open
         with Pro. The rest of the screen is the map.
       */}
-      <Reveal className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <p className="text-xs font-black tracking-[0.12em] text-signal-ink uppercase">{t.path.title}</p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-ink sm:text-3xl">
-            {fill(t.path.hero.subtitle, { day: todayDay ?? progress?.currentDay ?? 1 })}
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-sm font-extrabold text-ink tabular-nums">
+      <Reveal className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="hidden size-14 shrink-0 items-center justify-center rounded-2xl bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)] sm:flex">
+            <Compass aria-hidden="true" strokeWidth={1.8} className="size-7" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black tracking-[0.12em] text-signal-ink uppercase">{t.path.title}</p>
+            <h1 className="mt-0.5 text-2xl font-black tracking-tight text-ink sm:text-3xl">
+              {fill(t.path.hero.subtitle, { day: todayDay ?? progress?.currentDay ?? 1 })}
+            </h1>
+          </div>
+        </div>
+
+        {/* How far along, and on the free plan which days are free and which open with Pro. */}
+        <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-hairline bg-ground-raised px-4 py-3 shadow-[0_4px_16px_rgb(22_24_29/0.05)] sm:w-auto">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none">
+            <span className="shrink-0 text-sm font-extrabold text-ink tabular-nums">
               {fill(t.path.sky.progress, { done: completedDays, total: days.length })}
             </span>
             <Meter
               value={completedDays}
               max={days.length}
               label={t.path.sky.mapLabel}
-              className="h-2 w-40 max-w-full min-w-16 overflow-hidden rounded-full bg-ground-sunken"
+              className="h-2.5 w-full min-w-24 overflow-hidden rounded-full bg-hairline sm:w-44"
               fillClassName="rounded-full bg-milestone"
             />
-            {entitlement?.hasProAccess === false && maxUnlockedDay > 0 && (
-              <span className="text-xs font-bold text-ink-muted">{fill(t.path.sky.freeDays, { last: maxUnlockedDay })}</span>
-            )}
+            <span className="shrink-0 text-xs font-extrabold text-milestone tabular-nums">
+              {Math.round((completedDays / Math.max(1, days.length)) * 100)}%
+            </span>
           </div>
+          {entitlement?.hasProAccess === false && (
+            <>
+              <span aria-hidden="true" className="hidden h-8 w-px bg-hairline sm:block" />
+              {maxUnlockedDay > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1.5 text-xs font-extrabold text-milestone">
+                  <Gift aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
+                  {fill(t.path.sky.freeDays, { last: maxUnlockedDay })}
+                </span>
+              )}
+              <Link
+                to="/paywall"
+                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-coin-border bg-coin-soft pr-4 pl-1.5 text-sm font-extrabold text-coin-ink shadow-[0_2px_0_var(--color-coin-border)] transition hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal active:translate-y-px"
+              >
+                <span className="flex size-6 items-center justify-center rounded-full bg-coin">
+                  <Crown aria-hidden="true" strokeWidth={2.4} className="size-3.5 text-coin-ink" />
+                </span>
+                {fill(t.path.sky.proDays, { from: maxUnlockedDay + 1, total: days.length })}
+              </Link>
+            </>
+          )}
         </div>
-        {entitlement?.hasProAccess === false && (
-          <LinkButton to="/paywall" variant="secondary" size="sm" className="shrink-0">
-            <Crown aria-hidden="true" strokeWidth={2.2} className="size-4 text-coin-strong" />
-            {fill(t.path.sky.proDays, { from: maxUnlockedDay + 1, total: days.length })}
-          </LinkButton>
-        )}
       </Reveal>
 
       {notice && (

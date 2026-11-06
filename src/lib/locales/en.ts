@@ -1073,6 +1073,9 @@ export const en: Dictionary = {
     nodeLabel: '{number}. {title}: {status}',
     current: 'Up next',
     /** On the tag above the mission that is up next, on the map. */
+    /** In the heading's progress card: missions open now, and those Pro opens. */
+    freeMissions: '{count} open',
+    proMissions: '{count} with Pro',
     coinStart: 'Start',
     bestLabel: 'Best score',
     lockedProBody: 'This mission opens with Pro.',

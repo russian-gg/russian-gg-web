@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type 
 import roadArt from '../../assets/images/mission-road.webp'
 import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
-import { Meter } from '../motion'
 import { CloudCurtain } from '../map/CloudCurtain'
 import { discFace, discThickness, type DiscTone } from './disc-geometry'
 import { MissionDisc, type DiscBadge } from './MissionDisc'
@@ -219,7 +218,6 @@ export function MissionMap({
     return () => window.clearTimeout(gone)
   }, [curtain])
 
-  const done = rows.filter((row) => row.status === 'done').length
   const layout = width > 0 ? layoutFor(width, rows.length) : null
   const tabbableId =
     (focusId && rows.some((row) => row.mission.id === focusId) ? focusId : null) ?? currentId ?? rows[0]?.mission.id
@@ -239,8 +237,15 @@ export function MissionMap({
       box.scrollTop = y - 110 >= bottom ? bottom : Math.max(0, Math.min(bottom, y - box.clientHeight * 0.62))
     }
     place()
-    // The box settles its height a moment after the page's entrance; place it again then.
-    window.setTimeout(place, 750)
+    // The box settles its height over the page's entrance: keep it placed while it does, until
+    // the learner scrolls it themselves or a couple of seconds have passed.
+    const follow = new ResizeObserver(place)
+    follow.observe(box)
+    const stop = () => follow.disconnect()
+    box.addEventListener('wheel', stop, { once: true, passive: true })
+    box.addEventListener('touchstart', stop, { once: true, passive: true })
+    box.addEventListener('keydown', stop, { once: true })
+    window.setTimeout(stop, 2500)
   }, [ready, layout, rows, currentId, boxHeight])
 
   /*
@@ -308,22 +313,9 @@ export function MissionMap({
 
   return (
     <section aria-label={copy.mapLabel}>
-      <div className="flex items-center gap-3">
-        <span className="shrink-0 text-sm font-extrabold text-ink tabular-nums">
-          {fill(copy.progress, { done, total: rows.length })}
-        </span>
-        <Meter
-          value={done}
-          max={rows.length}
-          label={copy.mapLabel}
-          className="h-2 w-40 max-w-full min-w-16 overflow-hidden rounded-full bg-ground-sunken"
-          fillClassName="rounded-full bg-milestone"
-        />
-      </div>
-
       <div
         ref={frame}
-        className="relative isolate mt-3 overflow-hidden rounded-[28px] bg-[#9fcf6a] shadow-[0_18px_40px_rgb(40_80_30/0.25)]"
+        className="relative isolate overflow-hidden rounded-[28px] bg-[#9fcf6a] shadow-[0_18px_40px_rgb(40_80_30/0.25)]"
         style={{ height: boxHeight || undefined }}
       >
         <div ref={scroller} className="map-scroll overflow-y-auto motion-safe:transition-[height] motion-safe:duration-300"
