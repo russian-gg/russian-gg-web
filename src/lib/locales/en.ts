@@ -3,6 +3,8 @@ import type { Dictionary } from '../i18n'
 /** English interface, for learners who read it more comfortably than Uzbek or Russian. */
 export const en: Dictionary = {
   common: {
+    scrollUpTitle: 'Scroll up',
+    scrollUpBody: 'The path goes on',
     loading: 'Loading',
     retry: 'Please try again',
     cancel: 'Cancel',

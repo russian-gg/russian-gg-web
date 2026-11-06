@@ -7,6 +7,8 @@
  */
 export const uz = {
   common: {
+    scrollUpTitle: 'Yuqoriga suring',
+    scrollUpBody: "Yo'l davom etadi",
     loading: 'Yuklanmoqda',
     retry: "Qayta urinib ko'ring",
     cancel: 'Bekor qilish',

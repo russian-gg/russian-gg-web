@@ -6,6 +6,8 @@
  */
 export const ru: Dictionary = {
   common: {
+    scrollUpTitle: 'Листайте вверх',
+    scrollUpBody: 'Путь продолжается',
     loading: 'Загрузка',
     retry: 'Попробуйте ещё раз',
     cancel: 'Отмена',

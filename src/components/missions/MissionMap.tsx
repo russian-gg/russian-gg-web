@@ -3,6 +3,8 @@ import roadArt from '../../assets/images/mission-road.webp'
 import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { CloudCurtain } from '../map/CloudCurtain'
+import { ScrollToTop } from '../map/ScrollToTop'
+import { useDragScroll } from '../map/drag-scroll'
 import { discFace, discThickness, type DiscTone } from './disc-geometry'
 import { MissionDisc, type DiscBadge } from './MissionDisc'
 import { INTRO_SECONDS, useMapIntro } from '../map/map-intro'
@@ -149,7 +151,7 @@ function hiddenTitles(layout: Layout, rows: MissionRow[], currentId: string | un
  * once finished, blue with a «Start» tag for the next one, white while open, lilac with a crown
  * or a lock while shut.
  *
- * The first time in a visit the road opens out of the clouds and the coins land one by one
+ * Every time the road opens it comes out of the clouds and the coins land one by one
  * (see `CloudCurtain`); cars drive the road, butterflies cross the clearings and cloud shadows
  * slide over the land (see `road-life`). All of that is decoration, under the coins.
  *
@@ -179,13 +181,14 @@ export function MissionMap({
   const copy = t.practice
   const frame = useRef<HTMLDivElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
+  useDragScroll(scroller)
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
   const placed = useRef(false)
   const [width, setWidth] = useState(0)
   const [boxHeight, setBoxHeight] = useState(0)
   const [underPanel, setUnderPanel] = useState(0)
   const [focusId, setFocusId] = useState<string | null>(null)
-  const intro = useMapIntro('missions')
+  const intro = useMapIntro()
   const [curtain, setCurtain] = useState(intro)
 
   /*
@@ -237,15 +240,16 @@ export function MissionMap({
       box.scrollTop = y - 110 >= bottom ? bottom : Math.max(0, Math.min(bottom, y - box.clientHeight * 0.62))
     }
     place()
-    // The box settles its height over the page's entrance: keep it placed while it does, until
-    // the learner scrolls it themselves or a couple of seconds have passed.
+    // The box settles its height over the page's entrance, and changes with the window: keep it
+    // at the start through all of that, until the learner scrolls it themselves.
     const follow = new ResizeObserver(place)
     follow.observe(box)
     const stop = () => follow.disconnect()
     box.addEventListener('wheel', stop, { once: true, passive: true })
     box.addEventListener('touchstart', stop, { once: true, passive: true })
     box.addEventListener('keydown', stop, { once: true })
-    window.setTimeout(stop, 2500)
+    // A tap on a coin opens its card, which moves the map itself: that is the learner's too.
+    box.addEventListener('pointerdown', stop, { once: true, passive: true })
   }, [ready, layout, rows, currentId, boxHeight])
 
   /*
@@ -410,6 +414,7 @@ export function MissionMap({
           className="pointer-events-none absolute inset-x-0 top-0 z-[4000] h-14 bg-gradient-to-b from-[rgb(20_40_10/0.28)] to-transparent"
         />
         <CloudShadows />
+        <ScrollToTop scroller={scroller} delay={intro ? INTRO_SECONDS : 0} />
         {curtain && layout && <CloudCurtain roomy={layout.roomy} />}
       </div>
     </section>
