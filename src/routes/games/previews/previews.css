@@ -1,0 +1,30 @@
+/*
+  The games page previews: each game's own screen, drawn at its own size and scaled into the
+  card. The game stylesheets assume a whole page (100dvh, page padding); inside a preview the
+  screen is as tall as its content and nothing more.
+*/
+.game-preview{position:relative;display:block;overflow:hidden;aspect-ratio:16/9;width:100%;isolation:isolate}
+.game-preview__stage{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;user-select:none}
+.game-preview__stage > *{min-height:0 !important}
+.game-preview__stage .sg{padding:28px 36px 32px}
+.game-preview__stage .sg-content{animation:none}
+.game-preview__stage .life-game{padding:8px 36px 28px}
+.game-preview__stage .life-wrap{max-width:none}
+.game-preview canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* Featured banner */
+.games-hero{position:relative;display:block;overflow:hidden;border-radius:28px;min-height:420px;box-shadow:0 24px 48px -24px rgb(4 32 52 / .45);color:#fff;isolation:isolate}
+.games-hero__slide{position:absolute;inset:0;transition:opacity 1.2s cubic-bezier(.4,0,.2,1),visibility 1.2s}
+.games-hero__slide[data-active="false"]{opacity:0;visibility:hidden}
+.games-hero__slide .game-preview{height:100%;aspect-ratio:auto}
+.games-hero__bar{position:absolute;inset:0;transform-origin:left;background:#fff;box-shadow:0 0 8px rgb(255 255 255 / .6);animation:games-hero-bar var(--hero-slide-ms,8000ms) linear forwards}
+@keyframes games-hero-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (max-width:767px){
+  .games-hero{min-height:0;aspect-ratio:auto}
+  .games-hero__slide{position:relative}
+  .games-hero__slide[data-active="false"]{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .games-hero__slide{transition:none}
+  .games-hero__bar{animation:none;transform:scaleX(1)}
+}
