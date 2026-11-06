@@ -5,7 +5,8 @@
 */
 .game-preview{position:relative;display:block;overflow:hidden;aspect-ratio:16/9;width:100%;isolation:isolate}
 .game-preview__stage{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;user-select:none}
-.game-preview__stage > *{min-height:0 !important}
+.game-preview__stage{display:flex;flex-direction:column}
+.game-preview__stage > *{min-height:0 !important;flex:1 0 auto}
 .game-preview__stage .sg{padding:28px 36px 32px}
 .game-preview__stage .sg-content{animation:none}
 .game-preview__stage .life-game{padding:8px 36px 28px}

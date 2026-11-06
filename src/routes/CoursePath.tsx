@@ -287,8 +287,8 @@ export function CoursePath() {
       */}
       <Reveal className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         <div className="flex min-w-0 items-center gap-4">
-          <span className="hidden size-14 shrink-0 items-center justify-center rounded-2xl bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)] sm:flex">
-            <Compass aria-hidden="true" strokeWidth={1.8} className="size-7" />
+          <span className="hidden size-14 shrink-0 items-center justify-center rounded-2xl border-2 border-signal/30 bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)] sm:flex">
+            <Compass aria-hidden="true" strokeWidth={2} className="size-7" />
           </span>
           <div className="min-w-0">
             <p className="text-xs font-black tracking-[0.12em] text-signal-ink uppercase">{t.path.title}</p>
