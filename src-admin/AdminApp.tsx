@@ -27,6 +27,7 @@ import { Clicks } from './screens/Clicks'
 import { AiUsage } from './screens/AiUsage'
 import { Feedbacks } from './screens/Feedbacks'
 import { LessonFeedbacks } from './screens/LessonFeedbacks'
+import { Recordings } from './screens/Recordings'
 import { PromoCodes } from './screens/PromoCodes'
 import { Marketing } from './screens/Marketing'
 import { Sales } from './screens/Sales'
@@ -45,6 +46,7 @@ type Section =
   | 'promo-codes'
   | 'feedbacks'
   | 'lesson-feedbacks'
+  | 'recordings'
   | 'portal-users'
   | 'games'
   | 'tests'
@@ -58,6 +60,7 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
   { id: 'users', label: 'Foydalanuvchilar', group: 'Sharh', sales: true },
   { id: 'clicks', label: 'Tugma bosishlari', group: 'Sharh' },
   { id: 'lesson-feedbacks', label: 'Dars fikrlari', group: 'Sharh' },
+  { id: 'recordings', label: 'Ovoz yozuvlari', group: 'Sharh' },
   /*
    * The two agents live together. They were split across "Sharh" and "Pul va AI" because one
    * writes plans and the other writes to customers — but what an operator looks for is "the
@@ -86,6 +89,7 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   'promo-codes': PromoGlyph,
   feedbacks: FeedbackGlyph,
   'lesson-feedbacks': StarGlyph,
+  recordings: ClicksGlyph,
   'portal-users': UsersGlyph,
   games: GamesGlyph,
   tests: TestsGlyph,
@@ -300,6 +304,7 @@ export function AdminApp() {
         {active === 'promo-codes' && <PromoCodes />}
         {active === 'feedbacks' && <Feedbacks />}
         {active === 'lesson-feedbacks' && <LessonFeedbacks />}
+        {active === 'recordings' && <Recordings />}
         {active === 'portal-users' && <PortalUsers />}
         {active === 'games' && <Games />}
         {active === 'tests' && <Tests />}

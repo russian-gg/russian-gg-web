@@ -237,6 +237,16 @@ export function MissionResult() {
 
                 <p className="mt-2 text-base text-ink">{turn.learnerTranscript || '—'}</p>
 
+                {turn.learnerAudioUrl && (
+                  <audio
+                    controls
+                    preload="none"
+                    src={turn.learnerAudioUrl}
+                    aria-label={t.result.yourRecording}
+                    className="mt-2 h-10 w-full"
+                  />
+                )}
+
                 {turn.tutorTranscript ? (
                   <div className="mt-3 rounded-lg bg-ground-sunken px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">

@@ -1372,6 +1372,7 @@ export const uz = {
     hide: 'Yopish',
     step: 'Qadam {index}',
     retryTag: 'takror',
+    yourRecording: 'Yozuvingiz',
     turnsRecorded: '{count} ta javob yozib olindi.',
     pronunciation: 'Talaffuz',
     wordChoice: "So'z tanlash",
@@ -1592,14 +1593,16 @@ export const uz = {
     consents: {
       audioRetention: 'Ovoz yozuvlarini saqlash',
       audioRetentionBody:
-        "Mashq tugagach ovozingiz saqlanadi, shunda keyin qayta tinglashingiz mumkin. Ruxsat " +
-        "bermasangiz, ovoz faqat izoh uchun ishlatiladi va saqlanmaydi.",
+        "Ovozli javoblaringiz saqlanadi va mashq natijasida ularni qayta tinglashingiz mumkin. " +
+        "O'chirsangiz, saqlanganlari ham o'chiriladi.",
       audioHumanReview: 'Sifat nazorati uchun tinglash',
       audioHumanReviewBody:
-        'Muharrir tanlangan yozuvlarni izoh sifatini tekshirish uchun tinglashi mumkin.',
+        'Muharrir saqlangan yozuvlaringizni izoh sifatini tekshirish uchun tinglashi mumkin.',
       productReminders: 'Eslatmalar',
       productRemindersBody:
-        "Mashqni o'tkazib yuborsangiz, o'z vaqt mintaqangizda eslatma yuboramiz.",
+        "Bir necha kun mashq qilmasangiz, Telegram bot orqali kunduzi eslatma yuboramiz.",
+      audioHumanReviewNeedsRetention: 'Avval ovoz yozuvlarini saqlashni yoqing.',
+      productRemindersConnect: "Telegram'ni ulash",
       productAnalytics: 'Mahsulot statistikasi',
       productAnalyticsBody:
         "Qaysi mashqlar foydali ekanini tushunish uchun anonim foydalanish ma'lumotlari.",
