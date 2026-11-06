@@ -66,7 +66,7 @@ function NewRequestCard() {
       form.set('issueType', kind)
       form.set('title', title.trim())
       form.set('message', message.trim())
-      form.set('contextPath', '/settings/help')
+      form.set('contextPath', '/feedback')
       if (file) form.set('attachment', file)
 
       await api.postForm<FeedbackFormResponse>('/auth/feedback-form', form)

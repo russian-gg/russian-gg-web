@@ -161,7 +161,7 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
           <Button type="button" block onClick={onClose} className="mt-1">
             {copy.continue}
           </Button>
-          <Link to="/settings/help" onClick={onClose} className="text-sm font-extrabold text-signal-ink hover:underline">
+          <Link to="/feedback" onClick={onClose} className="text-sm font-extrabold text-signal-ink hover:underline">
             {copy.seeMine}
           </Link>
         </div>
