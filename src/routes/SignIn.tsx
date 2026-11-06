@@ -21,6 +21,7 @@ import {
 import { fill, useT } from '../lib/i18n'
 import { onboardingDraft } from '../lib/onboardingDraft'
 import { SUPPORT_TELEGRAM_URL } from '../lib/support'
+import { useReportProblem } from '../lib/report-problem'
 import type { UserProfile } from '../lib/types'
 
 const DEFAULT_GOOGLE_CLIENT_ID =
@@ -390,6 +391,7 @@ function PhoneCredentialSetupFlow({
 }) {
   const t = useT()
   const tp = t.auth.phone
+  const report = useReportProblem()
   const [step, setStep] = useState<'phone' | 'code' | 'credentials'>('phone')
   const [local, setLocal] = useState('')
   const [code, setCode] = useState('')
@@ -540,7 +542,16 @@ function PhoneCredentialSetupFlow({
           {tp.noSms}{' '}
           <a href={SUPPORT_TELEGRAM_URL} target="_blank" rel="noreferrer" className="font-semibold text-signal-ink">
             {tp.noSmsTelegram}
-          </a>
+          </a>{' '}
+          <button
+            type="button"
+            onClick={() =>
+              report.open({ label: tp.codeTitle, detail: `+998 ${formatUzPhone(local)}`, kind: 'bug' })
+            }
+            className="font-semibold text-signal-ink"
+          >
+            {tp.noSmsReport}
+          </button>
         </p>
       </form>
     )
@@ -629,6 +640,8 @@ function AuthLayout({
   children: ReactNode
   footer?: ReactNode
 }) {
+  const t = useT().auth
+  const report = useReportProblem()
   return (
     <div className="auth-page min-h-dvh px-4 py-8 sm:px-6 sm:py-12">
       <Sequence
@@ -648,6 +661,20 @@ function AuthLayout({
 
             {footer && <p className="text-support mt-7 text-sm">{footer}</p>}
           </div>
+          {/*
+            Under the card, on every auth screen: whoever is stuck here has no account yet to
+            send a request from, and the sheet takes a phone or Telegram instead.
+          */}
+          <p className="text-support mt-5 text-center text-sm">
+            {t.helpPrompt}{' '}
+            <button
+              type="button"
+              onClick={() => report.open({ label: title, kind: 'bug' })}
+              className="font-semibold text-signal-ink"
+            >
+              {t.helpLink}
+            </button>
+          </p>
         </Reveal>
       </Sequence>
     </div>

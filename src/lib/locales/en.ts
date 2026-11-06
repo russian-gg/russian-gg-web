@@ -3,6 +3,8 @@ import type { Dictionary } from '../i18n'
 /** English interface, for learners who read it more comfortably than Uzbek or Russian. */
 export const en: Dictionary = {
   common: {
+    scrollUpTitle: 'Scroll up',
+    scrollUpBody: 'The path goes on',
     loading: 'Loading',
     retry: 'Please try again',
     cancel: 'Cancel',
@@ -663,6 +665,8 @@ export const en: Dictionary = {
       proAlt: "or all 90 days — 299,000 so‘m",
       proCta: 'Choose Pro',
       payNote: 'Uzcard and Humo — secure payment via Click or Payme.',
+      questionPrompt: 'A question about payment or plans?',
+      questionLink: 'Write to us',
     },
 
     characters: {
@@ -718,6 +722,7 @@ export const en: Dictionary = {
       grammar: 'Grammar',
       about: 'About us',
       contact: 'Contact',
+      feedback: 'Send feedback',
       privacyPolicy: 'Privacy policy',
       terms: 'Terms of use',
     },
@@ -735,6 +740,8 @@ export const en: Dictionary = {
       backToSignIn: "Back to sign in",
     },
     signInTitle: 'Sign in',
+    helpPrompt: 'Can’t sign in?',
+    helpLink: 'Write to us',
     signUpTitle: 'Create an account',
     signInSubtitle: "Sign in to your account and carry on.",
     email: 'Email',
@@ -822,6 +829,7 @@ export const en: Dictionary = {
       },
       noSms: "No SMS? Check the number or",
       noSmsTelegram: "message us on Telegram",
+      noSmsReport: 'or leave us a message here',
     },
   },
 
@@ -1664,6 +1672,15 @@ export const en: Dictionary = {
     quickTitle: 'Quick question?',
     quickBody: 'Message us on Telegram.',
     quickOpen: 'Open Telegram',
+    guestTitle: 'Send feedback',
+    guestMenuBody: 'A question, idea or problem — no account needed',
+    guestBody: 'A question, an idea or a problem — write to us. No account needed.',
+    guestName: 'Your name',
+    guestContact: 'Phone or Telegram',
+    guestContactPlaceholder: '+998 90 123 45 67',
+    guestContactMissing: 'Leave a phone number or Telegram so we can reply.',
+    guestSentBody: 'Thank you! We will reply to the phone or Telegram you left.',
+    guestPrivacy: 'Your contact is used only to reply to you.',
     menuOpen: 'Help',
     menuTitle: 'Need help?',
     menuTelegram: 'Message on Telegram',

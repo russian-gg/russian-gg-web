@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, Flag, MapPin, X } from 'lucide-react'
 import { api, RequestError } from '../lib/api'
+import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useT } from '../lib/i18n'
@@ -83,8 +84,16 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
   const dialogRef = useFocusTrap<HTMLFormElement>()
   const queryClient = useQueryClient()
   const { pathname, search } = useLocation()
+  /*
+    A visitor who is not signed in can write too — from the landing page, or stuck at sign-in.
+    With no account there is no "my requests" list to answer into, so they leave a phone or
+    Telegram for the reply, and the server takes no file from them.
+  */
+  const guest = !useAuth().user
   const [kind, setKind] = useState<IssueKind>(context.kind ?? 'bug')
   const [message, setMessage] = useState('')
+  const [name, setName] = useState('')
+  const [contact, setContact] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -105,7 +114,11 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
       setError(copy.detailsTooShort)
       return
     }
-    if (file && file.size > ATTACHMENT_MAX_BYTES) {
+    if (guest && contact.trim().length < 5) {
+      setError(copy.guestContactMissing)
+      return
+    }
+    if (!guest && file && file.size > ATTACHMENT_MAX_BYTES) {
       setError(copy.fileTooBig)
       return
     }
@@ -118,10 +131,17 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
       form.set('message', message.trim())
       form.set('context', [context.label, context.detail].filter(Boolean).join(' · '))
       form.set('contextPath', openedOn.current)
-      if (file) form.set('attachment', file)
 
-      const result = await api.postForm<FeedbackFormResponse>('/auth/feedback-form', form)
-      void queryClient.invalidateQueries({ queryKey: MY_FEEDBACK_QUERY_KEY })
+      let result: FeedbackFormResponse | undefined
+      if (guest) {
+        form.set('name', name.trim())
+        form.set('contact', contact.trim())
+        result = await api.postForm<FeedbackFormResponse>('/auth/feedback-form/guest', form)
+      } else {
+        if (file) form.set('attachment', file)
+        result = await api.postForm<FeedbackFormResponse>('/auth/feedback-form', form)
+        void queryClient.invalidateQueries({ queryKey: MY_FEEDBACK_QUERY_KEY })
+      }
       setReference(result?.reference ?? '')
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : copy.failed)
@@ -151,7 +171,7 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
           <h2 id={titleId} className="text-xl font-extrabold tracking-tight text-ink">
             {copy.sentTitle}
           </h2>
-          <p className="max-w-xs text-sm leading-relaxed text-ink-muted">{copy.sentBody}</p>
+          <p className="max-w-xs text-sm leading-relaxed text-ink-muted">{guest ? copy.guestSentBody : copy.sentBody}</p>
           {reference && (
             <p className="flex w-full justify-between gap-3 rounded-xl bg-ground-sunken px-3 py-2.5 text-sm">
               <span className="text-ink-muted">{copy.reference}</span>
@@ -161,18 +181,20 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
           <Button type="button" block onClick={onClose} className="mt-1">
             {copy.continue}
           </Button>
-          <Link to="/feedback" onClick={onClose} className="text-sm font-extrabold text-signal-ink hover:underline">
-            {copy.seeMine}
-          </Link>
+          {!guest && (
+            <Link to="/feedback" onClick={onClose} className="text-sm font-extrabold text-signal-ink hover:underline">
+              {copy.seeMine}
+            </Link>
+          )}
         </div>
       ) : (
         <>
           <header className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
             <div className="min-w-0">
               <h2 id={titleId} className="text-xl font-extrabold tracking-tight text-ink">
-                {copy.sheetTitle}
+                {guest ? copy.guestTitle : copy.sheetTitle}
               </h2>
-              <p className="mt-1 text-sm text-ink-muted">{copy.sheetBody}</p>
+              <p className="mt-1 text-sm text-ink-muted">{guest ? copy.guestBody : copy.sheetBody}</p>
             </div>
             <button
               type="button"
@@ -186,15 +208,17 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
           </header>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
-            <div className="flex items-center gap-2.5 rounded-xl bg-ground-sunken px-3 py-2.5">
-              <MapPin aria-hidden="true" className="size-4.5 shrink-0 text-ink-faint" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold text-ink">{context.label}</p>
-                <p className="truncate text-xs text-ink-muted">
-                  {context.detail ? `${context.detail} · ${copy.contextAuto}` : copy.contextAuto}
-                </p>
+            {!guest && (
+              <div className="flex items-center gap-2.5 rounded-xl bg-ground-sunken px-3 py-2.5">
+                <MapPin aria-hidden="true" className="size-4.5 shrink-0 text-ink-faint" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-extrabold text-ink">{context.label}</p>
+                  <p className="truncate text-xs text-ink-muted">
+                    {context.detail ? `${context.detail} · ${copy.contextAuto}` : copy.contextAuto}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             <KindPicker value={kind} onChange={setKind} />
 
@@ -210,20 +234,47 @@ function ReportSheet({ context, onClose }: { context: ReportContext; onClose: ()
               />
             </label>
 
-            <FileInput
-              file={file}
-              onChange={setFile}
-              accept="image/*,.pdf"
-              chooseLabel={copy.screenshot}
-              emptyLabel={copy.attachLimit}
-              clearLabel={copy.attachRemove}
-            />
+            {guest ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="block text-sm font-extrabold text-ink">{copy.guestName}</span>
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    maxLength={80}
+                    autoComplete="name"
+                    className="mt-2 h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-3.5 text-base text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-sm font-extrabold text-ink">{copy.guestContact}</span>
+                  <input
+                    value={contact}
+                    onChange={(event) => setContact(event.target.value)}
+                    maxLength={120}
+                    required
+                    autoComplete="tel"
+                    placeholder={copy.guestContactPlaceholder}
+                    className="mt-2 h-12 w-full rounded-xl border-2 border-hairline bg-ground-raised px-3.5 text-base text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none"
+                  />
+                </label>
+              </div>
+            ) : (
+              <FileInput
+                file={file}
+                onChange={setFile}
+                accept="image/*,.pdf"
+                chooseLabel={copy.screenshot}
+                emptyLabel={copy.attachLimit}
+                clearLabel={copy.attachRemove}
+              />
+            )}
 
             {error && <ErrorNote>{error}</ErrorNote>}
           </div>
 
           <footer className="flex flex-col gap-3 border-t border-hairline px-5 py-4 sm:flex-row sm:items-center sm:px-6">
-            <p className="text-xs text-ink-muted sm:flex-1">{copy.placeKept}</p>
+            <p className="text-xs text-ink-muted sm:flex-1">{guest ? copy.guestPrivacy : copy.placeKept}</p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
                 {t.common.cancel}

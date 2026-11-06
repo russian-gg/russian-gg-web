@@ -6,6 +6,8 @@
  */
 export const ru: Dictionary = {
   common: {
+    scrollUpTitle: 'Листайте вверх',
+    scrollUpBody: 'Путь продолжается',
     loading: 'Загрузка',
     retry: 'Попробуйте ещё раз',
     cancel: 'Отмена',
@@ -669,6 +671,8 @@ export const ru: Dictionary = {
       proAlt: "или все 90 дней — 299 000 сум",
       proCta: 'Выбрать Pro',
       payNote: 'Uzcard и Humo — безопасная оплата через Click или Payme.',
+      questionPrompt: 'Вопрос об оплате или тарифах?',
+      questionLink: 'Напишите нам',
     },
 
     characters: {
@@ -724,6 +728,7 @@ export const ru: Dictionary = {
       grammar: 'Грамматика',
       about: 'О нас',
       contact: 'Контакты',
+      feedback: 'Оставить отзыв',
       privacyPolicy: 'Политика конфиденциальности',
       terms: 'Условия использования',
     },
@@ -741,6 +746,8 @@ export const ru: Dictionary = {
       backToSignIn: "Вернуться ко входу",
     },
     signInTitle: 'Вход',
+    helpPrompt: 'Не получается войти?',
+    helpLink: 'Напишите нам',
     signUpTitle: 'Регистрация',
     signInSubtitle: "Войдите в аккаунт и продолжайте.",
     email: 'Email',
@@ -828,6 +835,7 @@ export const ru: Dictionary = {
       },
       noSms: "SMS не пришло? Проверьте номер или",
       noSmsTelegram: "напишите нам в Telegram",
+      noSmsReport: 'или оставьте сообщение здесь',
     },
   },
 
@@ -1673,6 +1681,15 @@ export const ru: Dictionary = {
     quickTitle: 'Быстрый вопрос?',
     quickBody: 'Напишите нам в Telegram.',
     quickOpen: 'Открыть Telegram',
+    guestTitle: 'Оставить отзыв',
+    guestMenuBody: 'Вопрос, идея или проблема — без регистрации',
+    guestBody: 'Вопрос, идея или проблема — напишите нам. Регистрация не нужна.',
+    guestName: 'Ваше имя',
+    guestContact: 'Телефон или Telegram',
+    guestContactPlaceholder: '+998 90 123 45 67',
+    guestContactMissing: 'Оставьте телефон или Telegram, чтобы мы могли ответить.',
+    guestSentBody: 'Спасибо! Ответим на телефон или в Telegram, который вы оставили.',
+    guestPrivacy: 'Контакт используется только для ответа вам.',
     menuOpen: 'Помощь',
     menuTitle: 'Нужна помощь?',
     menuTelegram: 'Написать в Telegram',

@@ -7,6 +7,8 @@
  */
 export const uz = {
   common: {
+    scrollUpTitle: 'Yuqoriga suring',
+    scrollUpBody: "Yo'l davom etadi",
     loading: 'Yuklanmoqda',
     retry: "Qayta urinib ko'ring",
     cancel: 'Bekor qilish',
@@ -688,6 +690,8 @@ export const uz = {
       proAlt: "yoki butun 90 kun — 299 000 so‘m",
       proCta: "Pro'ni tanlash",
       payNote: "Uzcard va Humo — Click yoki Payme orqali xavfsiz to'lov.",
+      questionPrompt: 'Toʻlov yoki tariflar boʻyicha savolingiz bormi?',
+      questionLink: 'Bizga yozing',
     },
 
     characters: {
@@ -743,6 +747,7 @@ export const uz = {
       grammar: 'Grammatika',
       about: 'Biz haqimizda',
       contact: 'Aloqa',
+      feedback: 'Fikr bildirish',
       privacyPolicy: 'Maxfiylik siyosati',
       terms: 'Foydalanish shartlari',
     },
@@ -760,6 +765,8 @@ export const uz = {
       backToSignIn: "Kirish sahifasiga qaytish",
     },
     signInTitle: 'Kirish',
+    helpPrompt: 'Kira olmayapsizmi?',
+    helpLink: 'Bizga yozing',
     signUpTitle: "Ro'yxatdan o'tish",
     signInSubtitle: "Hisobingizga kiring va davom eting.",
     email: 'Email',
@@ -847,6 +854,7 @@ export const uz = {
       },
       noSms: "SMS kelmadimi? Raqamni tekshiring yoki",
       noSmsTelegram: "Telegram orqali yozing",
+      noSmsReport: 'yoki shu yerda xabar qoldiring',
     },
   },
 
@@ -1693,6 +1701,15 @@ export const uz = {
     quickTitle: 'Tezkor savol bormi?',
     quickBody: 'Telegramʼda bizga yozing.',
     quickOpen: 'Telegramʼni ochish',
+    guestTitle: 'Fikr bildirish',
+    guestMenuBody: 'Savol, taklif yoki muammo — roʻyxatdan oʻtmasdan',
+    guestBody: 'Savol, taklif yoki muammo — yozing. Roʻyxatdan oʻtish shart emas.',
+    guestName: 'Ismingiz',
+    guestContact: 'Telefon yoki Telegram',
+    guestContactPlaceholder: '+998 90 123 45 67',
+    guestContactMissing: 'Javob yuborishimiz uchun telefon raqami yoki Telegram yozing.',
+    guestSentBody: 'Rahmat! Javobni siz qoldirgan telefon yoki Telegram orqali yuboramiz.',
+    guestPrivacy: 'Kontaktingiz faqat sizga javob berish uchun ishlatiladi.',
     menuOpen: 'Yordam',
     menuTitle: 'Yordam kerakmi?',
     menuTelegram: 'Telegramʼda yozish',

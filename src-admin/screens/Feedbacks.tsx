@@ -6,6 +6,14 @@ import { Badge, Button, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Pag
 const PAGE_SIZE = 20
 
 /**
+ * A request from someone who was not signed in (the landing page's feedback link). It has no
+ * account, so a reply written here never reaches them: they are answered at the phone or
+ * Telegram they left, which arrives in the email field.
+ */
+const GUEST_USER_ID = '00000000-0000-0000-0000-000000000000'
+const isGuest = (item: FeedbackItem) => item.userId === GUEST_USER_ID
+
+/**
  * The learner app sends stable keys (`bug`, `voice`…); older entries carry the Uzbek label the
  * form used to send. Both read the same here.
  */
@@ -112,6 +120,11 @@ export function Feedbacks() {
             <Cell>
               <span className="block font-bold text-ink">{item.displayName || 'Ismsiz'}</span>
               <span className="block text-xs text-ink-faint">{item.email}</span>
+              {isGuest(item) && (
+                <span className="mt-1 block">
+                  <Badge tone="caution">Mehmon · kontakt orqali javob bering</Badge>
+                </span>
+              )}
             </Cell>
             <Cell muted>{kindLabel(item.issueType) || '—'}</Cell>
             <Cell wrap>
@@ -234,6 +247,11 @@ function ReplyDialog({ item, onClose, onSaved }: { item: FeedbackItem; onClose: 
             {item.displayName || item.email} · {kindLabel(item.issueType)}
             {item.context ? ` · ${item.context}` : ''}
           </p>
+          {isGuest(item) && (
+            <p className="mt-2 rounded-lg bg-caution-soft px-3 py-2 text-sm text-caution">
+              Bu mehmon murojaati: javob ilovada koʻrinmaydi. Unga {item.email} orqali yozing.
+            </p>
+          )}
           <p className="mt-3 rounded-lg bg-ground-sunken px-3 py-2 text-sm whitespace-pre-wrap text-ink">{item.message}</p>
         </div>
 

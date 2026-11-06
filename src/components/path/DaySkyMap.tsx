@@ -6,6 +6,8 @@ import cSky from '../../assets/images/sky/c-sky.webp'
 import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { CloudCurtain } from '../map/CloudCurtain'
+import { ScrollToTop } from '../map/ScrollToTop'
+import { useDragScroll } from '../map/drag-scroll'
 import { CoinFace } from '../map/Coin'
 import { coinHeight, type CoinBadge, type CoinTone } from '../map/coin-geometry'
 import { INTRO_SECONDS, useMapIntro } from '../map/map-intro'
@@ -131,8 +133,8 @@ function islandMotion(layout: Layout, tile: Tile, index: number, roomy: boolean)
  * the day's button and its card.
  *
  * The islands are cut out of the picture and float on their own beats, each day's coin with its
- * island. Gulls, cumulus, petals and gusts move around them (see `sky-life`), and the first time
- * in a visit the map opens out of a cloud curtain. All of it is decoration.
+ * island. Gulls, cumulus, petals and gusts move around them (see `sky-life`), and the map
+ * opens out of a cloud curtain. All of it is decoration.
  *
  * The coins are one roving-tabindex group in trail order: up and right go on, down and left go
  * back, Home and End jump to the ends.
@@ -152,13 +154,14 @@ export function DaySkyMap({
   const copy = t.path.sky
   const frame = useRef<HTMLDivElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
+  useDragScroll(scroller)
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
   const placed = useRef(false)
   const [width, setWidth] = useState(0)
   const [boxHeight, setBoxHeight] = useState(0)
   const [underPanel, setUnderPanel] = useState(0)
   const [focusDay, setFocusDay] = useState<number | null>(null)
-  const intro = useMapIntro('days')
+  const intro = useMapIntro()
   const [curtain, setCurtain] = useState(intro)
 
   // The box fills the screen from where it starts down to the bottom edge (above the tab bar).
@@ -204,15 +207,16 @@ export function DaySkyMap({
       box.scrollTop = y - 110 >= bottom ? bottom : Math.max(0, Math.min(bottom, y - box.clientHeight * 0.62))
     }
     place()
-    // The box settles its height over the page's entrance: keep it placed while it does, until
-    // the learner scrolls it themselves or a couple of seconds have passed.
+    // The box settles its height over the page's entrance, and changes with the window: keep it
+    // at the start through all of that, until the learner scrolls it themselves.
     const follow = new ResizeObserver(place)
     follow.observe(box)
     const stop = () => follow.disconnect()
     box.addEventListener('wheel', stop, { once: true, passive: true })
     box.addEventListener('touchstart', stop, { once: true, passive: true })
     box.addEventListener('keydown', stop, { once: true })
-    window.setTimeout(stop, 2500)
+    // A tap on a coin opens its card, which moves the map itself: that is the learner's too.
+    box.addEventListener('pointerdown', stop, { once: true, passive: true })
   }, [ready, layout, days, currentDay, boxHeight])
 
   /*
@@ -406,6 +410,7 @@ export function DaySkyMap({
         className="pointer-events-none absolute inset-x-0 top-0 z-[4000] h-14 bg-gradient-to-b from-[rgb(70_50_130/0.22)] to-transparent"
       />
       {layout && <SkyWeather width={layout.width} height={boxHeight} roomy={layout.roomy} />}
+      <ScrollToTop scroller={scroller} delay={intro ? INTRO_SECONDS : 0} />
       {curtain && layout && <CloudCurtain roomy={layout.roomy} />}
     </div>
   )

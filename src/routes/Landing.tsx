@@ -12,6 +12,7 @@ import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
 import { playLandingCharacterVoice } from '../lib/liveVoice'
 import { trackLandingVisit } from '../lib/meta-pixel'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
+import { useReportProblem } from '../lib/report-problem'
 
 /**
  * The public face of Russian.gg. Two audiences read this page: a learner deciding whether to
@@ -649,6 +650,7 @@ function Mobile() {
 
 function Pricing() {
   const t = useT().landing
+  const report = useReportProblem()
   return (
     <section id="pricing" className="border-t border-hairline bg-ground-sunken/40">
       <div className="mx-auto max-w-5xl px-5 py-20">
@@ -706,6 +708,17 @@ function Pricing() {
         >
           {t.pricing.payNote}
         </m.p>
+        {/* The question someone asks right before paying; it opens the sheet on the payment topic. */}
+        <p className="mt-3 text-center text-sm text-ink-muted">
+          {t.pricing.questionPrompt}{' '}
+          <button
+            type="button"
+            onClick={() => report.open({ label: t.pricing.title, kind: 'payment' })}
+            className="font-extrabold text-signal-ink underline-offset-2 hover:underline"
+          >
+            {t.pricing.questionLink}
+          </button>
+        </p>
       </div>
     </section>
   )
@@ -891,6 +904,8 @@ function OnionDomes() {
 
 function Footer() {
   const t = useT().landing
+  // A visitor can write to the team without an account; the sheet asks them for a contact.
+  const { open: openFeedback } = useReportProblem()
   const columns = [
     {
       title: t.footer.platform,
@@ -915,6 +930,7 @@ function Footer() {
       links: [
         { label: t.footer.about, href: '#' },
         { label: t.footer.contact, href: SUPPORT_TELEGRAM_URL },
+        { label: t.footer.feedback, href: '#feedback', onClick: () => openFeedback() },
         { label: t.footer.privacyPolicy, href: '/privacy.html' },
         { label: t.footer.terms, href: '#' },
       ],
@@ -954,6 +970,14 @@ function Footer() {
                       <a
                         href={link.href}
                         {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                        onClick={
+                          link.onClick
+                            ? (event) => {
+                                event.preventDefault()
+                                link.onClick()
+                              }
+                            : undefined
+                        }
                         className="text-ink-muted transition-colors hover:text-ink"
                       >
                         {link.label}

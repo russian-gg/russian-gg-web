@@ -16,6 +16,19 @@
 .map-scroll::-webkit-scrollbar {
   display: none;
 }
+/* It can be dragged with the mouse too (see `drag-scroll.ts`). */
+@media (pointer: fine) {
+  .map-scroll {
+    cursor: grab;
+  }
+}
+.map-scroll.map-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+.map-scroll.map-dragging * {
+  cursor: grabbing !important;
+}
 
 /* ------------------------------------------------------------------ coins */
 
@@ -66,6 +79,78 @@
 }
 .coin-pop {
   animation: coin-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* The "scroll up" hint: slides in from the right, its two arrows climb in turn, and it slides
+   up and away once the learner has scrolled. */
+@keyframes map-hint-in {
+  from {
+    opacity: 0;
+    translate: 24px -50%;
+  }
+  to {
+    opacity: 1;
+    translate: 0 -50%;
+  }
+}
+@keyframes map-hint-out {
+  from {
+    opacity: 1;
+    translate: 0 -50%;
+  }
+  to {
+    opacity: 0;
+    translate: 0 calc(-50% - 32px);
+  }
+}
+@keyframes map-hint-climb {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@keyframes map-hint-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.map-hint {
+  translate: 0 -50%;
+  animation: map-hint-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.map-hint-card {
+  animation: map-hint-float 2.4s ease-in-out 0.6s infinite;
+}
+@keyframes map-hint-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.map-hint-ring {
+  animation: map-hint-ring 1.6s ease-out infinite;
+}
+.map-hint-gone {
+  animation: map-hint-out 0.45s ease-in both;
+}
+.map-hint-arrow {
+  animation: map-hint-climb 1.2s ease-in-out infinite;
+}
+.map-hint-arrow-2 {
+  animation-delay: 0.2s;
 }
 
 /* ------------------------------------------------------------------ the cloud curtain */
