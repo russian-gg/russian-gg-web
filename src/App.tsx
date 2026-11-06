@@ -108,10 +108,12 @@ export function App() {
               <Route path="/tests/blocks/:blockId/review" element={<TestReview />} />
               <Route path="/games" element={<Games />} />
               <Route path="/progress" element={<Progress />} />
-              {/* The old standalone form. Its job is the Help tab in Settings now; old links land there. */}
-              {/* Short, shareable ways in to Help, for links posted on social media. */}
-              {['/murojaat', '/feedback', '/help', '/feedbacks'].map((path) => (
-                <Route key={path} path={path} element={<Navigate to="/settings/help" replace />} />
+              {/* Help's shareable addresses render it in place; the old addresses move to /feedback. */}
+              {['/feedback', '/help', '/murojaat'].map((path) => (
+                <Route key={path} path={path} element={<Settings />} />
+              ))}
+              {['/settings/help', '/feedbacks'].map((path) => (
+                <Route key={path} path={path} element={<Navigate to="/feedback" replace />} />
               ))}
               <Route path="/lessons/:day/:missionId" element={<FoundationLesson />} />
               {/* A converted mission shows its brief here; every other mission opens the player. */}
@@ -124,7 +126,6 @@ export function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/general" element={<Settings />} />
               <Route path="/settings/billing" element={<Settings />} />
-              <Route path="/settings/help" element={<Settings />} />
               <Route path="/admin" element={<RequireStaff><AdminContent /></RequireStaff>} />
             </Route>
 

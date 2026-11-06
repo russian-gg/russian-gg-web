@@ -1,35 +1,23 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError } from '../../lib/api'
-import { useAuth } from '../../lib/auth-context'
 import { useTheme, type Theme } from '../../lib/theme'
 import { LOCALES, LOCALE_NAMES, useLocale, useT, type Dictionary } from '../../lib/i18n'
-import type { ConsentKind, ConsentState, VoiceGender, VoiceMood } from '../../lib/types'
-import {
-  AudioLines,
-  BarChart3,
-  Bell,
-  Heart,
-  Mic,
-  Moon,
-  PlayCircle,
-  ShieldCheck,
-  Smile,
-  Sun,
-  User,
-  type LucideIcon,
-} from 'lucide-react'
+import type { ConsentKind, ConsentState } from '../../lib/types'
+import { BarChart3, Bell, Mic, Moon, ShieldCheck, Sun, type LucideIcon } from 'lucide-react'
+import { linkedTelegramUrl } from '../../lib/support'
+import { cx } from '../../lib/cx'
 import { ErrorNote, QueryError, Spinner, Switch } from '../../components/ui'
 import { ChoiceRow, ChoiceTile, FlagEn, FlagRu, FlagUz } from './choices'
 import { InfoNote, SectionCard } from './stats'
 
 /**
- * How the app behaves: what it looks like, what language it speaks, who the tutor sounds
- * like, and what it is allowed to keep.
+ * How the app behaves: what it looks like, what language it speaks, and what it is allowed
+ * to keep.
  *
  * Two columns from `xl`, and the split is by *kind* rather than by whatever fits. The left
- * column is preference — four choices the learner makes because they prefer them. The right
- * is permission — four things the product is asking to be allowed to do. They were
+ * column is preference — choices the learner makes because they prefer them. The right is
+ * permission — four things the product is asking to be allowed to do. They were
  * interleaved in one flowing grid, so a privacy toggle sat directly under a theme picker and
  * the page had no argument to it.
  */
@@ -43,12 +31,22 @@ export function GeneralSettings() {
     queryFn: () => api.get<ConsentState[]>('/auth/consents'),
   })
 
+  /*
+    The switch moves on the press and the server is told afterwards. Waiting for the round
+    trip meant a press did nothing visible for as long as the network took, which reads as a
+    dead control. A refusal puts it back and says why.
+  */
   async function toggle(kind: ConsentKind, granted: boolean) {
     setError(null)
+    const previous = queryClient.getQueryData<ConsentState[]>(['consents'])
+    queryClient.setQueryData<ConsentState[]>(['consents'], (current) =>
+      current?.map((consent) => (consent.kind === kind ? { ...consent, granted } : consent)),
+    )
     try {
-      await api.put<ConsentState[]>('/auth/consents', { kind, granted })
-      await queryClient.invalidateQueries({ queryKey: ['consents'] })
+      const saved = await api.put<ConsentState[]>('/auth/consents', { kind, granted })
+      queryClient.setQueryData(['consents'], saved)
     } catch (caught) {
+      queryClient.setQueryData(['consents'], previous)
       setError(caught instanceof RequestError ? caught.message : t.settings.saveFailed)
     }
   }
@@ -69,7 +67,6 @@ export function GeneralSettings() {
       <div className="space-y-6">
         <AppearanceSettings />
         <LanguageSettings />
-        <VoiceSettings onError={setError} />
       </div>
 
       <PrivacySettings consents={consents} onToggle={toggle} />
@@ -148,87 +145,6 @@ function LanguageSettings() {
   )
 }
 
-/* --------------------------------------------------------------------------- voice */
-
-/**
- * Who the tutor is. Two independent choices: the voice it speaks with, and the manner it
- * carries itself in.
- *
- * The manner is the only thing that moves. The lesson, the corrections and the rule that a
- * learner is never told their Russian is bad are fixed on the server and are not reachable
- * from this screen — which is why "blunt" can exist at all: it is a harder scene to rehearse,
- * not a worse teacher. The note under the options says so, because a learner choosing it
- * deserves to know what they are and are not agreeing to.
- */
-function VoiceSettings({ onError }: { onError: (message: string | null) => void }) {
-  const t = useT()
-  const { user, refreshUser } = useAuth()
-  /*
-   * The choice moves at once and is reconciled afterwards. Drawing it straight from the
-   * account meant a press did nothing visible until the round trip came back — and nothing
-   * at all if it failed, which is indistinguishable from a dead control.
-   */
-  const [pending, setPending] = useState<{ gender?: VoiceGender; mood?: VoiceMood }>({})
-
-  const gender = pending.gender ?? user?.voiceGender ?? 'Female'
-  const mood = pending.mood ?? user?.voiceMood ?? 'Gentle'
-
-  async function save(next: { voiceGender?: VoiceGender; voiceMood?: VoiceMood }) {
-    setPending({ gender: next.voiceGender ?? gender, mood: next.voiceMood ?? mood })
-    onError(null)
-    try {
-      await api.patch('/auth/me', next)
-      await refreshUser()
-    } catch (caught) {
-      // Put it back where it was. A control that keeps a change the server refused is lying.
-      setPending({})
-      onError(caught instanceof RequestError ? caught.message : t.settings.saveFailed)
-      return
-    }
-
-    setPending({})
-  }
-
-  const genderIcon: Record<VoiceGender, LucideIcon> = { Female: PlayCircle, Male: User }
-  const moodIcon: Record<VoiceMood, LucideIcon> = { Gentle: Heart, Playful: Smile, Blunt: AudioLines }
-
-  return (
-    <SectionCard title={t.settings.voice} subtitle={t.settings.voiceHint}>
-      <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t.settings.voiceGenderLabel}>
-          {(['Female', 'Male'] as const).map((option) => (
-            <ChoiceTile
-              key={option}
-              name="voice-gender"
-              checked={gender === option}
-              onChange={() => void save({ voiceGender: option })}
-              icon={genderIcon[option]}
-              title={t.settings.voiceGender[option]}
-              hint={t.settings.voiceGenderHint[option]}
-            />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3" role="radiogroup" aria-label={t.settings.voiceMoodLabel}>
-          {(['Gentle', 'Playful', 'Blunt'] as const).map((option) => (
-            <ChoiceTile
-              key={option}
-              name="voice-mood"
-              checked={mood === option}
-              onChange={() => void save({ voiceMood: option })}
-              icon={moodIcon[option]}
-              title={t.settings.voiceMood[option]}
-              hint={t.settings.voiceMoodHint[option]}
-            />
-          ))}
-        </div>
-
-        <p className="text-support text-sm">{t.settings.voiceNote}</p>
-      </div>
-    </SectionCard>
-  )
-}
-
 /* ------------------------------------------------------------------------- privacy */
 
 const consentList = (t: Dictionary): Array<{ kind: ConsentKind; title: string; body: string }> => [
@@ -277,6 +193,21 @@ function PrivacySettings({
 }) {
   const t = useT()
   const granted = new Map(consents.map((consent) => [consent.kind, consent.granted]))
+  const keepsRecordings = granted.get('AudioRetention') ?? false
+
+  /*
+    Reminders arrive through the Telegram bot, so they only reach a learner whose chat is tied
+    to the account. The link is minted on press: it is single-use, and the tab is opened inside
+    the click so the browser does not treat it as a popup.
+  */
+  function connectTelegram() {
+    const tab = window.open('', '_blank')
+    if (tab) tab.opener = null
+    void linkedTelegramUrl().then((url) => {
+      if (tab) tab.location.href = url
+      else window.location.assign(url)
+    })
+  }
 
   return (
     <SectionCard title={t.settings.privacy} subtitle={t.settings.privacyHint}>
@@ -284,11 +215,16 @@ function PrivacySettings({
         {consentList(t).map((consent) => {
           const isGranted = granted.get(consent.kind) ?? false
           const Icon = consentIcon[consent.kind]
+          /* Review listens to kept recordings; with nothing kept there is nothing to allow. */
+          const blocked = consent.kind === 'AudioHumanReview' && !keepsRecordings
 
           return (
             <div
               key={consent.kind}
-              className="flex items-start gap-3 rounded-2xl border border-hairline bg-ground-raised p-4"
+              className={cx(
+                'flex items-start gap-3 rounded-2xl border border-hairline bg-ground-raised p-4',
+                blocked && 'opacity-60',
+              )}
             >
               <span
                 aria-hidden="true"
@@ -300,6 +236,18 @@ function PrivacySettings({
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-extrabold text-ink">{consent.title}</h3>
                 <p className="text-support mt-0.5 text-sm leading-snug">{consent.body}</p>
+                {blocked && (
+                  <p className="mt-1 text-xs font-bold text-ink-muted">{t.settings.consents.audioHumanReviewNeedsRetention}</p>
+                )}
+                {consent.kind === 'ProductReminders' && isGranted && (
+                  <button
+                    type="button"
+                    onClick={connectTelegram}
+                    className="mt-1.5 text-sm font-extrabold text-signal-ink hover:underline"
+                  >
+                    {t.settings.consents.productRemindersConnect}
+                  </button>
+                )}
               </div>
 
               {/*
@@ -314,12 +262,13 @@ function PrivacySettings({
               <button
                 type="button"
                 role="switch"
-                aria-checked={isGranted}
+                aria-checked={isGranted && !blocked}
                 aria-label={consent.title}
+                disabled={blocked}
                 onClick={() => onToggle(consent.kind, !isGranted)}
-                className="mt-0.5 shrink-0"
+                className="mt-0.5 shrink-0 disabled:cursor-not-allowed"
               >
-                <Switch checked={isGranted} />
+                <Switch checked={isGranted && !blocked} />
               </button>
             </div>
           )

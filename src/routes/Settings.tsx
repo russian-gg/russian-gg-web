@@ -24,11 +24,18 @@ import { HelpSettings } from './settings/HelpSettings'
 const TAB_PROFILE = '/settings'
 const TAB_GENERAL = '/settings/general'
 const TAB_BILLING = '/settings/billing'
-const TAB_HELP = '/settings/help'
+/*
+  Help lives at /feedback rather than under /settings: it is the address posted on social
+  media, so it has to be short and say what it is. /help and /murojaat open the same tab
+  without redirecting, so whichever one was shared stays in the address bar.
+*/
+const TAB_HELP = '/feedback'
+const HELP_ALIASES = ['/help', '/murojaat']
 
 export function Settings() {
   const t = useT()
-  const { pathname } = useLocation()
+  const { pathname: rawPath } = useLocation()
+  const pathname = HELP_ALIASES.includes(rawPath) ? TAB_HELP : rawPath
 
   const tabs = [
     { to: TAB_PROFILE, label: t.settings.tabProfile },

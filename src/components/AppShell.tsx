@@ -419,7 +419,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
 
           <div className="my-2 border-t border-hairline" />
 
-          <MenuItem label={t.account.feedback} icon={<ChatGlyph />} onClick={() => go('/settings/help')} />
+          <MenuItem label={t.account.feedback} icon={<ChatGlyph />} onClick={() => go('/feedback')} />
           <MenuItem label={t.account.signOut} icon={<ExitGlyph />} onClick={() => void logout()} danger />
           </ProfilePopover>
         )}

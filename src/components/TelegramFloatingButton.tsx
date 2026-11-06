@@ -130,7 +130,7 @@ function HelpMenuButton() {
             </span>
           </button>
           <Link
-            to="/settings/help"
+            to="/feedback"
             onClick={() => setOpen(false)}
             className="px-1 pt-1 pb-0.5 text-center text-sm font-extrabold text-signal-ink hover:underline"
           >

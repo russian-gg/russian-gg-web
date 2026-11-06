@@ -106,7 +106,8 @@ export interface PhoneVerificationChallenge {
 export interface ConsentState {
   kind: ConsentKind
   granted: boolean
-  recordedAt: string
+  /** Null when the learner never chose and `granted` is the default. */
+  recordedAt: string | null
   policyVersion: string
 }
 
@@ -291,6 +292,8 @@ export interface TurnDetail {
   wordChoiceNote?: string | null
   grammarNote?: string | null
   wasRetry: boolean
+  /** The learner's own recording, playable for a short while. Present only while they keep recordings. */
+  learnerAudioUrl?: string | null
 }
 
 export interface MilestoneView {

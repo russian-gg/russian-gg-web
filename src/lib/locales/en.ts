@@ -1344,6 +1344,7 @@ export const en: Dictionary = {
     hide: 'Hide',
     step: 'Step {index}',
     retryTag: 'retry',
+    yourRecording: 'Your recording',
     turnsRecorded: '{count} answers recorded.',
     pronunciation: 'Pronunciation',
     wordChoice: 'Word choice',
@@ -1563,14 +1564,16 @@ export const en: Dictionary = {
     consents: {
       audioRetention: 'Keep voice recordings',
       audioRetentionBody:
-        'Your recording is kept after the lesson so you can listen back later. Without this, ' +
-        'your voice is used only for feedback and is not stored.',
+        'Your spoken answers are kept so you can listen back on the lesson result. ' +
+        'Turning this off deletes what was kept too.',
       audioHumanReview: 'Listening for quality checks',
       audioHumanReviewBody:
-        'An editor may listen to selected recordings to check the quality of the feedback.',
+        'An editor may listen to your kept recordings to check the quality of the feedback.',
       productReminders: 'Reminders',
       productRemindersBody:
-        'If you miss a lesson, we send a reminder in your own time zone.',
+        'If you skip practice for a few days, the Telegram bot sends a reminder during the day.',
+      audioHumanReviewNeedsRetention: 'Turn on keeping recordings first.',
+      productRemindersConnect: 'Connect Telegram',
       productAnalytics: 'Product analytics',
       productAnalyticsBody:
         'Anonymous usage data, so we can tell which lessons actually help.',

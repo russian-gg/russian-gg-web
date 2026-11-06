@@ -581,3 +581,17 @@ export type SmsHealth = {
   lastFailureReason: string | null
   consecutiveFailures: number
 }
+
+/** One recorded answer from a learner who allowed review. The audio address is short-lived. */
+export type RecordingItem = {
+  id: string
+  userId: string
+  displayName?: string | null
+  email?: string | null
+  missionTitle: string
+  transcript?: string | null
+  score?: number | null
+  pronunciationNote?: string | null
+  audioUrl: string
+  recordedAt: string
+}
