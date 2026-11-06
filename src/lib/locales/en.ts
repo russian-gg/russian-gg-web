@@ -972,6 +972,17 @@ export const en: Dictionary = {
   },
 
   path: {
+    /** The 90-day map (see `DaySkyMap`). */
+    sky: {
+      mapLabel: 'Day path',
+      dayLabel: 'Day {day}. {title}: {status}',
+      start: 'Start',
+      open: 'Open',
+      progress: '{done} / {total} days',
+      freeDays: 'Days 1–{last} free',
+      proDays: 'Days {from}–{total} with Pro',
+      notice: 'Day {day}: {text}',
+    },
     hero: {
       eyebrow: 'LEARN RUSSIAN',
       subtitle: 'A little every day — towards fluent Russian.',
