@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Flag, Send, X } from 'lucide-react'
+import { Flag, MessageCircle, Send, X } from 'lucide-react'
 import { useAuth } from '../lib/auth-context'
 import { useReportProblem } from '../lib/report-problem'
 import { SUPPORT_TELEGRAM_URL, linkedTelegramUrl } from '../lib/support'
@@ -15,23 +15,14 @@ const FAB_POSITION =
   'telegram-fab fixed right-4 bottom-[calc(6rem+var(--install-lift,0px))] z-40 transition-[bottom] duration-300 md:right-6 md:bottom-[calc(1.5rem+var(--install-lift,0px))]'
 
 /**
- * The corner button. Signed out it is the Telegram bot and nothing else: a visitor has no
- * account for a request to belong to. Signed in it opens a small Help menu, because Telegram
- * answers a quick question but keeps nothing — a bug report sent there never came back to the
- * app, and the admin's list of requests never saw it.
+ * The corner button opens a small Help menu, because Telegram answers a quick question but
+ * keeps nothing — a bug report sent there never came back to the app, and the admin's list of
+ * requests never saw it. A visitor who is not signed in gets the same menu: the plain bot link,
+ * and the feedback sheet, which asks them for a contact instead of an account.
  */
 export function TelegramFloatingButton() {
   const { user } = useAuth()
-  return user ? <HelpMenuButton /> : <TelegramLink />
-}
-
-function TelegramLink() {
-  const t = useT().dayPreview
-  return (
-    <a href={SUPPORT_TELEGRAM_URL} target="_blank" rel="noreferrer" aria-label={t.telegram} className={FAB_POSITION}>
-      <TelegramFace />
-    </a>
-  )
+  return <HelpMenuButton guest={!user} />
 }
 
 function TelegramFace() {
@@ -45,7 +36,7 @@ function TelegramFace() {
   )
 }
 
-function HelpMenuButton() {
+function HelpMenuButton({ guest }: { guest: boolean }) {
   const t = useT()
   const copy = t.help
   const report = useReportProblem()
@@ -75,6 +66,11 @@ function HelpMenuButton() {
     because a window opened after an await is one the browser treats as a popup and blocks.
   */
   function openLinkedTelegram(event: MouseEvent<HTMLAnchorElement>) {
+    // Linking needs an account; a guest just opens the bot.
+    if (guest) {
+      setOpen(false)
+      return
+    }
     event.preventDefault()
     setOpen(false)
     const tab = window.open('', '_blank')
@@ -122,20 +118,22 @@ function HelpMenuButton() {
             className="flex items-center gap-3 rounded-xl border border-hairline p-3 text-left transition-colors hover:border-signal"
           >
             <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ground-sunken text-ink">
-              <Flag className="size-5" strokeWidth={2} />
+              {guest ? <MessageCircle className="size-5" strokeWidth={2} /> : <Flag className="size-5" strokeWidth={2} />}
             </span>
             <span className="min-w-0">
-              <span className="block text-[15px] font-extrabold text-ink">{copy.menuReport}</span>
-              <span className="block text-xs text-ink-muted">{copy.menuReportBody}</span>
+              <span className="block text-[15px] font-extrabold text-ink">{guest ? copy.guestTitle : copy.menuReport}</span>
+              <span className="block text-xs text-ink-muted">{guest ? copy.guestMenuBody : copy.menuReportBody}</span>
             </span>
           </button>
-          <Link
-            to="/feedback"
-            onClick={() => setOpen(false)}
-            className="px-1 pt-1 pb-0.5 text-center text-sm font-extrabold text-signal-ink hover:underline"
-          >
-            {copy.menuMine}
-          </Link>
+          {!guest && (
+            <Link
+              to="/feedback"
+              onClick={() => setOpen(false)}
+              className="px-1 pt-1 pb-0.5 text-center text-sm font-extrabold text-signal-ink hover:underline"
+            >
+              {copy.menuMine}
+            </Link>
+          )}
         </div>
       </PopoverSurface>
 
