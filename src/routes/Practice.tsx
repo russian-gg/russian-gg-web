@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
 import { FileText } from 'lucide-react'
@@ -7,7 +7,6 @@ import { useLocale, useT } from '../lib/i18n'
 import type { EntitlementView, MissionSummary } from '../lib/types'
 import { MissionDetailsSheet } from '../components/missions/MissionDetailsSheet'
 import { MissionMap } from '../components/missions/MissionMap'
-import { TownBackdrop } from '../components/missions/TownBackdrop'
 import { buildMissionRows, currentMissionId } from '../components/missions/mission-row'
 import { EmptyState, LinkButton, QueryError, Spinner } from '../components/ui'
 import { Reveal, Sequence } from '../components/motion'
@@ -16,8 +15,8 @@ import { pop, stagger } from '../lib/motion'
 /**
  * The Missions tab: the whole practice library as one road.
  *
- * The road is the missions in their usual order, all of them on screen, each saying where the
- * learner stands with it. Nothing is chosen when the page opens; choosing a mission raises its
+ * The road is the missions in their usual order, climbing up through an illustrated town, each
+ * saying where the learner stands with it. Nothing is chosen when the page opens; choosing a mission raises its
  * details from the bottom of the page, with the one thing to do next. Every state shown — finished,
  * tried, locked — is the server's: the order on the road never opens or closes anything.
  */
@@ -31,8 +30,6 @@ export function Practice() {
   const [open, setOpen] = useState(false)
   const panel = useRef<HTMLElement>(null)
   const chosenNode = useRef<HTMLElement | null>(null)
-  const roadStart = useRef<HTMLDivElement>(null)
-  const [backdropTop, setBackdropTop] = useState<number | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['practice'],
@@ -59,27 +56,6 @@ export function Practice() {
   }, [])
 
   /*
-   * The town picture starts where the road does, below the heading. The heading's height
-   * depends on the width and the language, so it is measured, and again whenever the page
-   * changes size — and once more after the entrance, which arrives slightly lower than it
-   * settles.
-   */
-  const hasRoad = rows.length > 0
-  useLayoutEffect(() => {
-    const el = roadStart.current
-    if (!el) return
-    const measure = () => setBackdropTop(Math.max(0, el.getBoundingClientRect().top + window.scrollY - 48))
-    measure()
-    const settled = window.setTimeout(measure, 700)
-    const observer = new ResizeObserver(measure)
-    observer.observe(document.documentElement)
-    return () => {
-      window.clearTimeout(settled)
-      observer.disconnect()
-    }
-  }, [hasRoad])
-
-  /*
    * The panel sits on the bottom of the screen, so a mission chosen low on the road would end
    * up underneath it. Once the panel has its size, the page moves just enough to keep the
    * chosen node in view above it.
@@ -99,8 +75,6 @@ export function Practice() {
 
   return (
     <>
-      {/* The town fills the screen behind the road; the page is `relative` to paint over it. */}
-      <TownBackdrop top={hasRoad ? backdropTop : null} />
       <Sequence className="relative space-y-6" gap={stagger.base}>
         <Reveal className="flex items-start gap-4">
           <Reveal as="span" variants={pop} className="hidden shrink-0 sm:block">
@@ -130,7 +104,6 @@ export function Practice() {
 
         {rows.length > 0 && (
           <Reveal className="min-w-0">
-            <div ref={roadStart} />
             <MissionMap
               rows={rows}
               openId={open ? selectedId : null}

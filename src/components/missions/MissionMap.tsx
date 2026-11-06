@@ -1,98 +1,98 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { Check, Lock, Timer } from 'lucide-react'
+import { Check, Crown, Lock, Timer } from 'lucide-react'
+import roadArt from '../../assets/images/mission-road.webp'
 import { cx } from '../../lib/cx'
 import { fill, useT } from '../../lib/i18n'
 import { Meter } from '../motion'
 import { missionStatusLabel, type MissionRow } from './mission-row'
-import { zoneOf, ZONE_ICON, type MissionZone } from './zones'
 
 /*
- * The road's geometry, in pixels, in two sizes: roomy from a tablet up, compact on a phone.
- * Columns are as many as the width allows at `minStep` apart, up to `maxCols` — past that a
- * wider screen spreads the same row out rather than packing more in — and the road folds back
- * and forth row by row, so the whole of it is on screen at once. `pad` keeps an edge node's title
- * and the bend of the road inside the content area: the bend bows out by at most three
- * quarters of `pad * BEND`, which stays inside `pad` and clears an edge node's title.
+ * The road is one illustrated tile (`mission-road.webp`) repeated upwards, one copy per
+ * `SLOTS.length` missions. Every tile has the same empty round clearings beside the road, and a
+ * mission sits on each of them. The slots are the clearings' centres, as fractions of the tile,
+ * listed in road order from the bottom of the tile up — so mission 1 is at the bottom of the
+ * map and the road climbs from there.
  *
- * `top` is the room above the first row for its zone label.
+ * The positions were measured from the picture itself; if the tile is redrawn, measure again.
  */
-const ROOMY = { node: 80, row: 216, minStep: 184, maxCols: 6, wave: 22, pad: 120, label: 168, top: 96, roomy: true }
-const COMPACT = { node: 56, row: 156, minStep: 104, maxCols: 3, wave: 10, pad: 60, label: 104, top: 60, roomy: false }
-const BEND = 1.25
+const SLOTS: ReadonlyArray<readonly [x: number, y: number]> = [
+  [0.684, 0.915],
+  [0.379, 0.92],
+  [0.226, 0.62],
+  [0.716, 0.668],
+  [0.829, 0.308],
+  [0.317, 0.257],
+  [0.571, 0.136],
+]
+const TILE = { width: 1672, height: 851 } as const
+
+/*
+ * On a phone the whole tile would be too small to tap, so it is enlarged and cropped at the
+ * sides instead: just enough that the outermost clearings, plus `PHONE_MARGIN` on each side,
+ * fill the width. The picture's edges are only scenery.
+ */
+const CLEARINGS = {
+  left: Math.min(...SLOTS.map(([x]) => x)),
+  right: Math.max(...SLOTS.map(([x]) => x)),
+}
+const PHONE_MARGIN = 32
+/** Room under the last row for the bottom missions' titles. */
+const BOTTOM_PAD = 48
 
 type Layout = {
-  cols: number
-  node: number
-  pad: number
-  roomy: boolean
-  labelWidth: number
   width: number
   height: number
-  rowOf: (index: number) => number
-  colOf: (index: number) => number
+  tileWidth: number
+  tileHeight: number
+  tileTop: number
+  offset: number
+  /** The disc's width; its height follows from the angle it lies at. */
+  disc: number
+  roomy: boolean
   x: (index: number) => number
   y: (index: number) => number
 }
 
 function layoutFor(width: number, count: number): Layout {
-  const size = width >= 640 ? ROOMY : COMPACT
-  // At least three across even on the narrowest phone, so the road still winds.
-  const fit = Math.floor((width - size.pad * 2) / size.minStep) + 1
-  const cols = Math.max(1, Math.min(count, size.maxCols, Math.max(3, fit)))
-  const step = cols > 1 ? (width - size.pad * 2) / (cols - 1) : 0
-  const rows = Math.ceil(count / cols)
-  const rowOf = (index: number) => Math.floor(index / cols)
-  // Odd rows run right to left: the road turns at the edge instead of jumping back.
-  const colOf = (index: number) => {
-    const c = index % cols
-    return rowOf(index) % 2 === 0 ? c : cols - 1 - c
-  }
-  const x = (index: number) => (cols > 1 ? size.pad + colOf(index) * step : width / 2)
-  const y = (index: number) =>
-    size.top + size.node / 2 + rowOf(index) * size.row + size.wave * Math.sin(colOf(index) * 1.1)
+  const roomy = width >= 640
+  const span = CLEARINGS.right - CLEARINGS.left
+  const tileWidth = roomy ? width : Math.max(width, (width - PHONE_MARGIN * 2) / span)
+  const tileHeight = (tileWidth * TILE.height) / TILE.width
+  // Centred on the clearings, not on the picture.
+  const offset = roomy ? 0 : width / 2 - tileWidth * ((CLEARINGS.left + CLEARINGS.right) / 2)
+  const tiles = Math.max(1, Math.ceil(count / SLOTS.length))
+  const height = tiles * tileHeight + BOTTOM_PAD
+  const disc = roomy ? Math.round(Math.min(96, tileWidth * 0.07)) : 54
+  // The tile holding mission `index`, counted from the bottom.
+  const tileOf = (index: number) => Math.floor(index / SLOTS.length)
+  const slotTop = (index: number) => height - BOTTOM_PAD - (tileOf(index) + 1) * tileHeight
 
   return {
-    cols,
-    node: size.node,
-    pad: size.pad,
-    roomy: size.roomy,
-    labelWidth: cols > 1 ? Math.min(size.label, step - 8) : size.label,
     width,
-    height: size.top + (rows - 1) * size.row + size.node + size.wave + 64,
-    rowOf,
-    colOf,
-    x,
-    y,
+    height,
+    tileWidth,
+    tileHeight,
+    tileTop: height - BOTTOM_PAD - tiles * tileHeight,
+    offset,
+    disc,
+    roomy,
+    x: (index) => offset + SLOTS[index % SLOTS.length][0] * tileWidth,
+    y: (index) => slotTop(index) + SLOTS[index % SLOTS.length][1] * tileHeight,
   }
-}
-
-/** The road between two missions: level along a row, bowing out past the edge at a turn. */
-function segmentPath(layout: Layout, i: number) {
-  const x0 = layout.x(i)
-  const y0 = layout.y(i)
-  const x1 = layout.x(i + 1)
-  const y1 = layout.y(i + 1)
-  if (layout.rowOf(i) !== layout.rowOf(i + 1)) {
-    const outward = (x0 > layout.width / 2 ? 1 : -1) * layout.pad * BEND
-    return `M ${x0} ${y0} C ${x0 + outward} ${y0}, ${x1 + outward} ${y1}, ${x1} ${y1}`
-  }
-  return `M ${x0} ${y0} C ${(x0 + x1) / 2} ${y0}, ${(x0 + x1) / 2} ${y1}, ${x1} ${y1}`
 }
 
 /**
- * Every mission on one road, in the usual order, folded to fit the width it is given — the
- * whole road is visible, nothing scrolls sideways, and a phone simply gets more, narrower rows.
+ * Every mission on one road through town, from the bottom of the map up.
  *
- * The road runs through town: the page puts the town illustration behind it (see `TownBackdrop`), and
- * each mission belongs to a part of town (see `zones.ts`) whose name is written above the
- * first mission there. The picture is decoration only — `aria-hidden`, under the road — so
- * every title and the road itself sit on something solid enough to read against it.
+ * The road and the town are one picture, repeated as often as there are missions for. Each
+ * mission is a numbered disc lying in one of the picture's clearings, with its title under it.
+ * Choosing a mission opens its panel (see `MissionDetailsSheet`); the map only reports which one.
  *
- * Nothing starts selected. Choosing a mission opens its panel (see `MissionDetailsSheet`); the
- * map only reports which one.
+ * The road starts at the bottom, so the page brings the mission that is up next into view
+ * once, when the map first appears.
  *
- * The nodes are one roving-tabindex group: Tab enters at the mission that is up next, and the
- * arrow keys move the way they look — left and right along a row, up and down between rows.
+ * The discs are one roving-tabindex group in road order: Tab enters at the mission that is up
+ * next; up and right go on along the road, down and left go back, Home and End jump to its ends.
  */
 export function MissionMap({
   rows,
@@ -111,6 +111,7 @@ export function MissionMap({
   const copy = t.practice
   const frame = useRef<HTMLDivElement>(null)
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
+  const broughtIntoView = useRef(false)
   const [width, setWidth] = useState(0)
   const [focusId, setFocusId] = useState<string | null>(null)
 
@@ -125,43 +126,37 @@ export function MissionMap({
 
   const done = rows.filter((row) => row.status === 'done').length
   const layout = width > 0 ? layoutFor(width, rows.length) : null
-  const zones = rows.map((row) => zoneOf(row.mission))
-  // Each part of town is named once, where the road first enters it; coming back to a part
-  // later does not repeat the label.
-  const zoneLabels = zones.flatMap((zone, i) => (zones.indexOf(zone) === i ? [i] : []))
   const tabbableId =
     (focusId && rows.some((row) => row.mission.id === focusId) ? focusId : null) ?? currentId ?? rows[0]?.mission.id
 
+  // The road begins at the bottom of the map: show the learner where they are on it.
+  const ready = layout !== null
+  useLayoutEffect(() => {
+    if (!ready || broughtIntoView.current) return
+    const index = rows.findIndex((row) => row.mission.id === currentId)
+    const node = buttons.current[index >= 0 ? index : 0]
+    if (!node) return
+    broughtIntoView.current = true
+    node.scrollIntoView({ block: 'center', behavior: 'auto' })
+  }, [ready, rows, currentId])
+
   const move = (event: KeyboardEvent<HTMLOListElement>) => {
-    if (!layout) return
     const index = rows.findIndex((row) => row.mission.id === tabbableId)
     if (index < 0) return
-
-    const row = layout.rowOf(index)
-    const col = layout.colOf(index)
-    const at = (r: number, c: number) => {
-      if (r < 0 || c < 0 || c >= layout.cols) return null
-      const i = r * layout.cols + (r % 2 === 0 ? c : layout.cols - 1 - c)
-      return i < rows.length ? i : null
-    }
     const next =
-      event.key === 'ArrowRight'
-        ? at(row, col + 1)
-        : event.key === 'ArrowLeft'
-          ? at(row, col - 1)
-          : event.key === 'ArrowDown'
-            ? (at(row + 1, col) ?? (row + 1 <= layout.rowOf(rows.length - 1) ? rows.length - 1 : null))
-            : event.key === 'ArrowUp'
-              ? at(row - 1, col)
-              : event.key === 'Home'
-                ? 0
-                : event.key === 'End'
-                  ? rows.length - 1
-                  : undefined
+      event.key === 'ArrowUp' || event.key === 'ArrowRight'
+        ? index + 1
+        : event.key === 'ArrowDown' || event.key === 'ArrowLeft'
+          ? index - 1
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? rows.length - 1
+              : undefined
     if (next === undefined) return
 
     event.preventDefault()
-    if (next === null) return
+    if (next < 0 || next >= rows.length) return
     buttons.current[next]?.focus()
   }
 
@@ -180,108 +175,58 @@ export function MissionMap({
         />
       </div>
 
-      <div ref={frame} className="relative mt-3">
+      <div
+        ref={frame}
+        className="relative isolate mt-3 overflow-hidden rounded-[28px] bg-[#b9dc8c] shadow-[0_18px_40px_rgb(40_80_30/0.25)]"
+      >
         {layout && (
           <div className="relative" style={{ height: layout.height }}>
-            {/*
-              Contrast only where it is needed: a soft pool of light under each mission and its
-              title, so the picture stays a picture everywhere else.
-            */}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-              {rows.map((row, index) => (
-                <span
-                  key={`glow-${row.mission.id}`}
-                  className="absolute"
-                  style={{
-                    left: layout.x(index) - layout.labelWidth / 2 - 24,
-                    top: layout.y(index) - layout.node / 2 - 20,
-                    width: layout.labelWidth + 48,
-                    height: layout.node + (layout.roomy ? 96 : 84),
-                    backgroundImage:
-                      'radial-gradient(closest-side, color-mix(in oklab, var(--color-ground-sunken) 78%, transparent), transparent)',
-                  }}
-                />
-              ))}
-            </div>
-
-            <svg
+            <div
               aria-hidden="true"
-              width={layout.width}
-              height={layout.height}
-              viewBox={`0 0 ${layout.width} ${layout.height}`}
-              className="pointer-events-none absolute inset-0"
-              fill="none"
-            >
-              {/* A soft light halo under the dots, so the road reads on any part of the picture. */}
-              {rows.slice(1).map((row, i) => (
-                <path
-                  key={`halo-${row.mission.id}`}
-                  d={segmentPath(layout, i)}
-                  strokeWidth={layout.roomy ? 11 : 9}
-                  strokeLinecap="round"
-                  className="stroke-ground-raised/75"
-                />
-              ))}
-              {rows.slice(1).map((row, i) => {
-                const walked = rows[i].status === 'done' && row.status === 'done'
-                return (
-                  <path
-                    key={row.mission.id}
-                    d={segmentPath(layout, i)}
-                    strokeWidth={layout.roomy ? 5 : 4}
-                    strokeLinecap="round"
-                    strokeDasharray="0.5 11"
-                    className={walked ? 'stroke-milestone' : 'stroke-signal/85'}
-                  />
-                )
-              })}
-            </svg>
-
-            {/* Where the road enters a new part of town. */}
-            {zoneLabels.map((index, n, starts) => {
-              // Two parts of town can begin on neighbouring missions; the second label then
-              // steps up a line instead of sitting on top of the first.
-              const previous = starts[n - 1]
-              const crowded =
-                previous !== undefined &&
-                layout.rowOf(previous) === layout.rowOf(index) &&
-                Math.abs(layout.x(previous) - layout.x(index)) < (layout.roomy ? 200 : 150)
-              const lift = (layout.roomy ? 40 : 32) + (crowded ? 28 : 0)
-              return (
-                <ZoneLabel
-                  key={`zone-${index}`}
-                  zone={zones[index]}
-                  label={copy.zones[zones[index]]}
-                  style={{ left: layout.x(index), top: layout.y(index) - layout.node / 2 - lift }}
-                />
-              )
-            })}
+              className="pointer-events-none absolute inset-0 bg-repeat-y select-none"
+              style={{
+                backgroundImage: `url(${roadArt})`,
+                backgroundSize: `${layout.tileWidth}px ${layout.tileHeight}px`,
+                backgroundPosition: `${layout.offset}px ${layout.tileTop}px`,
+              }}
+            />
 
             <ol onKeyDown={move} className="contents">
-              {rows.map((row, index) => (
-                <li
-                  key={row.mission.id}
-                  className="absolute"
-                  style={{
-                    left: layout.x(index) - layout.labelWidth / 2,
-                    top: layout.y(index) - layout.node / 2,
-                    width: layout.labelWidth,
-                  }}
-                >
-                  <MissionNode
-                    row={row}
-                    open={row.mission.id === openId}
-                    current={row.mission.id === currentId}
-                    size={layout.node}
-                    tabbable={row.mission.id === tabbableId}
-                    buttonRef={(el) => {
-                      buttons.current[index] = el
+              {rows.map((row, index) => {
+                const x = layout.x(index)
+                const labelWidth = layout.roomy ? 172 : 112
+                // A disc near the edge stays on its clearing; only its title slides inwards.
+                const labelShift = Math.min(layout.width - 4 - labelWidth / 2, Math.max(4 + labelWidth / 2, x)) - x
+                return (
+                  <li
+                    key={row.mission.id}
+                    className="absolute -translate-x-1/2"
+                    style={{
+                      left: x,
+                      // The disc's face is centred on the clearing; its thickness hangs below.
+                      top: layout.y(index) - faceHeight(layout.disc) / 2,
+                      width: labelWidth,
+                      // A disc lower on the screen is nearer the viewer, and is drawn over the ones behind it.
+                      zIndex: Math.round(layout.y(index)),
                     }}
-                    onFocus={() => setFocusId(row.mission.id)}
-                    onOpen={(node) => onOpen(row.mission.id, node)}
-                  />
-                </li>
-              ))}
+                  >
+                    <MissionNode
+                      row={row}
+                      open={row.mission.id === openId}
+                      current={row.mission.id === currentId}
+                      size={layout.disc}
+                      roomy={layout.roomy}
+                      labelShift={labelShift}
+                      tabbable={row.mission.id === tabbableId}
+                      buttonRef={(el) => {
+                        buttons.current[index] = el
+                      }}
+                      onFocus={() => setFocusId(row.mission.id)}
+                      onOpen={(node) => onOpen(row.mission.id, node)}
+                    />
+                  </li>
+                )
+              })}
             </ol>
           </div>
         )}
@@ -290,18 +235,58 @@ export function MissionMap({
   )
 }
 
+/** The disc lies flat in the clearing, seen from above at the picture's angle. */
+const faceHeight = (size: number) => Math.round(size * 0.56)
+const thickness = (size: number) => Math.max(6, Math.round(size * 0.13))
+
+/*
+ * The disc's colours. The picture behind it is the same bright daylight in either theme, so
+ * these are fixed rather than taken from the theme: a dark-theme surface would read as a hole
+ * in the grass.
+ */
+const TONE = {
+  done: {
+    face: 'linear-gradient(#7eeab5, #22b06f)',
+    side: '#138556',
+    ink: '#ffffff',
+    shade: '#0d6a43',
+  },
+  current: {
+    face: 'linear-gradient(#7db3fa, #347adf)',
+    side: '#1f56ad',
+    ink: '#ffffff',
+    shade: '#17489a',
+  },
+  open: {
+    face: 'linear-gradient(#ffffff, #dde9fb)',
+    side: '#9db8e0',
+    ink: '#1f6fe0',
+    shade: '#ffffff',
+  },
+  locked: {
+    face: 'linear-gradient(#ffffff, #e2e0ec)',
+    side: '#a19cb8',
+    ink: '#6a6585',
+    shade: '#ffffff',
+  },
+} as const
+
 /**
- * One mission on the road, in one system for every state: a numbered disc, the number always
- * the strongest thing on it, and at most one status badge in one place — a lock when closed,
- * a tick when finished, a clock when tried. Its title sits on a small surface of its own under
- * it. The state is spelled out in the button's name for a screen reader, so it is never told by
- * colour alone.
+ * One mission on the road: a thick numbered disc lying in its clearing, like a game piece set
+ * on the ground, and the mission's title on a tag under it.
+ *
+ * The number is always the strongest thing on the disc. At most one badge sits on its edge — a
+ * crown for a Pro mission, a lock for one shut by progress, a tick when finished, a clock when
+ * tried — and the state is spelled out in the button's name, so it is never told by colour alone.
+ * Pressing it sinks the face into the disc.
  */
 function MissionNode({
   row,
   open,
   current,
   size,
+  roomy,
+  labelShift,
   tabbable,
   buttonRef,
   onFocus,
@@ -310,24 +295,39 @@ function MissionNode({
   row: MissionRow
   open: boolean
   current: boolean
-  /** The node's diameter in pixels, from the layout. */
+  /** The disc's width in pixels, from the layout. */
   size: number
+  roomy: boolean
+  /** How far the title is moved sideways to stay inside the map. */
+  labelShift: number
   tabbable: boolean
   buttonRef: (el: HTMLButtonElement | null) => void
   onFocus: () => void
   onOpen: (node: HTMLElement) => void
 }) {
   const t = useT()
-  const { number, title, status, locked } = row
+  const { number, title, status, locked, isProLock } = row
   const done = status === 'done' && !locked
-  const roomy = size >= 64
+  const tone = locked ? TONE.locked : done ? TONE.done : current ? TONE.current : TONE.open
+  const face = faceHeight(size)
+  const depth = thickness(size)
   const badge = locked
-    ? { Icon: Lock, tone: 'bg-ink-muted text-ground-raised' }
+    ? isProLock
+      ? { Icon: Crown, className: 'bg-coin text-coin-ink' }
+      : { Icon: Lock, className: 'bg-ink-muted text-white' }
     : done
-      ? { Icon: Check, tone: 'bg-milestone text-on-signal' }
+      ? { Icon: Check, className: 'bg-[#22b06f] text-white' }
       : status === 'inProgress'
-        ? { Icon: Timer, tone: 'bg-caution text-ground-raised' }
+        ? { Icon: Timer, className: 'bg-caution text-white' }
         : null
+
+  const ellipse: CSSProperties = {
+    position: 'absolute',
+    left: 0,
+    width: size,
+    height: face,
+    borderRadius: '50%',
+  }
 
   return (
     <button
@@ -348,68 +348,112 @@ function MissionNode({
     >
       <span
         className={cx(
-          // The white rim is the disc's own edge, not a ring around it; the only ring is the
-          // one that says "this one is open".
-          'relative flex shrink-0 items-center justify-center rounded-full border-[3px] border-ground-raised font-black tabular-nums',
-          'shadow-[0_6px_16px_rgb(22_24_29/0.22)]',
-          roomy ? 'text-[1.75rem]' : 'text-lg',
-          'motion-safe:transition-[scale,translate,box-shadow] motion-safe:duration-150',
-          'group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-signal',
-          locked
-            ? 'bg-linear-to-b from-ground-raised to-ground-sunken text-ink-muted'
-            : done
-              ? 'bg-milestone text-on-signal'
-              : current
-                ? 'bg-signal text-on-signal shadow-[0_8px_22px_rgb(52_122_223/0.45)]'
-                : 'bg-ground-raised text-signal-ink',
-          open ? 'scale-110 ring-4 ring-signal/40' : 'group-hover:-translate-y-0.5',
+          'relative block shrink-0 rounded-[50%]',
+          'motion-safe:transition-transform motion-safe:duration-150',
+          'group-focus-visible:outline-3 group-focus-visible:outline-offset-4 group-focus-visible:outline-signal',
+          open ? '-translate-y-1' : 'group-hover:-translate-y-1',
         )}
-        style={{ width: size, height: size }}
+        style={{ width: size, height: face + depth }}
       >
-        {number}
+        {/* Its shadow on the grass. */}
+        <span
+          aria-hidden="true"
+          className="absolute rounded-[50%] bg-[rgb(20_45_10/0.38)] blur-[3px]"
+          style={{
+            left: -size * 0.06,
+            width: size * 1.12,
+            height: face,
+            top: depth + face * 0.22,
+          }}
+        />
+
+        {/* The next mission calls for attention; the open one keeps a steady ring. */}
+        {(current || open) && (
+          <span
+            aria-hidden="true"
+            className={cx(
+              'absolute rounded-[50%] border-4',
+              open ? 'border-white' : 'border-white/90 motion-safe:animate-ping',
+            )}
+            style={{
+              left: -8,
+              top: -8 + depth / 2,
+              width: size + 16,
+              height: face + 16,
+            }}
+          />
+        )}
+
+        {/* The disc's edge: a band and the lower rim, together its thickness. */}
+        <span aria-hidden="true" style={{ ...ellipse, top: depth, background: tone.side }} />
+        <span
+          aria-hidden="true"
+          className="absolute left-0"
+          style={{
+            top: face / 2,
+            width: size,
+            height: depth,
+            background: tone.side,
+          }}
+        />
+
+        {/* The face, with the number on it. */}
+        <span
+          className={cx(
+            'flex items-center justify-center border-[3px] border-white font-black tabular-nums',
+            'motion-safe:transition-transform motion-safe:duration-100',
+            'group-active:translate-y-[var(--sink)]',
+          )}
+          style={
+            {
+              ...ellipse,
+              top: 0,
+              background: tone.face,
+              color: tone.ink,
+              fontSize: Math.round(face * 0.62),
+              lineHeight: 1,
+              // Digits sit high in their line box; this centres them on the face by eye.
+              paddingTop: Math.round(face * 0.06),
+              boxShadow: 'inset 0 3px 0 rgb(255 255 255 / 0.55), inset 0 -4px 0 rgb(0 0 0 / 0.08)',
+              textShadow: tone.ink === '#ffffff' ? `0 2px 0 ${tone.shade}` : undefined,
+              '--sink': `${Math.round(depth * 0.6)}px`,
+            } as CSSProperties
+          }
+        >
+          {number}
+        </span>
 
         {badge && (
           <span
+            aria-hidden="true"
             className={cx(
-              'absolute -right-1 -bottom-1 flex items-center justify-center rounded-full border-2 border-ground-raised',
+              'absolute flex items-center justify-center rounded-full border-2 border-white shadow-[0_2px_0_rgb(0_0_0/0.18)]',
               roomy ? 'size-7' : 'size-6',
-              badge.tone,
+              badge.className,
             )}
+            style={{ right: roomy ? -6 : -10, top: face - (roomy ? 20 : 15) }}
           >
-            <badge.Icon aria-hidden="true" strokeWidth={2.6} className={roomy ? 'size-3.5' : 'size-3'} />
+            <badge.Icon strokeWidth={2.6} className={roomy ? 'size-3.5' : 'size-3'} />
           </span>
         )}
       </span>
 
       <span
         className={cx(
-          // A compact surface: the picture behind is busy, and a title must read on any part
-          // of it — but it is a caption, not a card.
-          'mt-2.5 line-clamp-2 max-w-full rounded-lg border px-2 py-0.5 text-center leading-snug font-bold wrap-break-word',
-          'shadow-[0_1px_3px_rgb(22_24_29/0.12)]',
-          roomy ? 'text-[13px]' : 'text-xs',
-          open
-            ? 'border-signal bg-signal text-on-signal'
+          'mt-1.5 max-w-full rounded-full px-2.5 py-0.5 text-center leading-snug font-extrabold',
+          'shadow-[0_3px_0_rgb(60_90_30/0.25),0_6px_12px_rgb(30_60_20/0.2)]',
+          // A phone has room for one line between the clearings; the full title is in the panel.
+          roomy ? 'line-clamp-2 text-[13px] wrap-break-word' : 'truncate px-2 text-[11px]',
+          open || current
+            ? 'bg-[#347adf] text-white'
             : locked
-              ? 'border-ink/5 bg-ground-raised/90 text-ink-muted'
-              : 'border-ink/5 bg-ground-raised/95 text-ink group-hover:text-signal-ink',
+              ? 'bg-white/92 text-[#6a6585]'
+              : 'bg-white text-[#16181d] group-hover:text-[#1f6fe0]',
         )}
+        style={labelShift ? { transform: `translateX(${labelShift}px)` } : undefined}
       >
         {title}
       </span>
     </button>
-  )
-}
-
-function ZoneLabel({ zone, label, style }: { zone: MissionZone; label: string; style: CSSProperties }) {
-  const Icon = ZONE_ICON[zone]
-  return (
-    <span
-      className="pointer-events-none absolute flex max-w-48 -translate-x-1/2 items-center gap-1.5 rounded-md border border-ink/10 bg-ground-raised/90 px-2 py-0.5 text-[11px] font-extrabold tracking-[.06em] whitespace-nowrap text-ink uppercase shadow-[0_1px_2px_rgb(22_24_29/0.10)]"
-      style={style}
-    >
-      <Icon aria-hidden="true" strokeWidth={2.2} className="size-3.5 shrink-0 text-signal-ink" />
-      <span className="truncate">{label}</span>
-    </span>
   )
 }

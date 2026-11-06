@@ -291,19 +291,25 @@ function MissionIllustration({ mission, title }: { mission: MissionRow['mission'
       </div>
 
       {src && state !== 'failed' && (
-        <img
-          src={src}
-          alt={state === 'loaded' ? fill(t.practice.illustrationAlt, { title }) : ''}
-          width={MISSION_IMAGE_SIZE.width}
-          height={MISSION_IMAGE_SIZE.height}
-          decoding="async"
-          onLoad={() => setState('loaded')}
-          onError={() => setState('failed')}
+        // The building stands on its own little island; it is set on a garden-light ground and
+        // allowed to sink a little past the bottom edge, so it reads as standing in the scene.
+        <div
           className={cx(
-            'absolute inset-0 size-full object-cover select-none motion-safe:transition-opacity motion-safe:duration-300',
+            'absolute inset-0 flex items-end justify-center bg-[radial-gradient(120%_100%_at_50%_100%,#d6f0c4_0,#eaf6df_45%,#eef3ff_100%)] motion-safe:transition-opacity motion-safe:duration-300',
             state === 'loaded' ? 'opacity-100' : 'opacity-0',
           )}
-        />
+        >
+          <img
+            src={src}
+            alt={state === 'loaded' ? fill(t.practice.illustrationAlt, { title }) : ''}
+            width={MISSION_IMAGE_SIZE.width}
+            height={MISSION_IMAGE_SIZE.height}
+            decoding="async"
+            onLoad={() => setState('loaded')}
+            onError={() => setState('failed')}
+            className="-mb-[6%] h-[106%] w-auto max-w-none object-contain drop-shadow-[0_10px_12px_rgb(40_60_20/0.35)] select-none"
+          />
+        </div>
       )}
     </div>
   )
