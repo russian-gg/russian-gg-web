@@ -1,12 +1,11 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { CalendarDays, CircleCheck, Crown, Lock, Play, RotateCcw, Timer } from 'lucide-react'
+import { Compass, Crown, Gift } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { pickContent } from '../lib/content'
-import { cx } from '../lib/cx'
 import { LESSON_ONE_SECTIONS, readFoundationLessonProgress, type LessonOneProgress } from '../lib/demo-lesson-one'
 import { FOUNDATION_LESSON_DAYS, hasFoundationLesson } from '../lib/foundation-days'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
@@ -16,16 +15,12 @@ import { missionPath } from '../lib/mission-path'
 import { formatPrice } from '../lib/format'
 import type { CourseDayView, EntitlementView, MissionSummary, PlansView, ProgressView } from '../lib/types'
 import { MissionProgress } from '../components/MissionCard'
-import { FilterPills, SearchField, StatTile } from '../components/Catalog'
-import { CoursePathHero } from '../components/CoursePathHero'
-import { PathProStrip } from '../components/ProEntry'
+import { DaySkyMap, type SkyDay } from '../components/path/DaySkyMap'
 import { cheapestDay as cheapestPlanDay } from '../lib/pro-offer'
 import { PreviewDialog } from '../components/PreviewDialog'
-import { Button, ButtonFace, Card, LinkButton, QueryError, Spinner } from '../components/ui'
+import { Button, Card, LinkButton, QueryError, Spinner } from '../components/ui'
 import { AnimatePresence } from 'motion/react'
-import { CountUp, Meter, Overlay, Reveal, Sequence, SequenceInView } from '../components/motion'
-import { pop, rise, stagger } from '../lib/motion'
-import lockArt from '../assets/images/lock.webp'
+import { Meter, Overlay, Reveal } from '../components/motion'
 
 /*
  * Loaded on the first tap: the card reads the lesson content, the largest module in the app,
@@ -43,30 +38,11 @@ const LessonDetailsSheet = lazy(() =>
 const LAST_AUTHORED_DAY = 30
 
 /**
- * The outline every card on the map shares, whatever its state. The floor is the height of a
- * card with a two-line title, so a row of short titles and a row with a long one match; `h-full`
- * then stretches each card to its own row, which is what keeps an open day (a button in its
- * footer) and a shut one (a word) the same size side by side.
- */
-const DAY_CARD_FRAME = 'flex h-full min-h-[13.75rem] w-full rounded-[var(--radius-card)]'
-
-/**
- * What a shut or busy card ends in: a flat pill, the height of the button an open card ends in.
- * Flat on purpose — an open day's footer is a button's face, sitting on its edge, and a day
- * that will not open should not look like something to push.
- */
-const DAY_CARD_ACTION = 'inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-extrabold'
-
-/** The state pill in a card's corner, the same shape the missions shelf uses. */
-const DAY_CARD_STATE = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold'
-
-/**
  * Why a day is shut. Only `pro` can be bought out of — a `progress` lock opens by working
  * through the earlier days, so offering Pro there would sell something that does not help.
  */
 type LockedDay = { kind: 'pro' | 'progress'; day: number }
 type DayNotice = { day: number; text: string }
-type PathFilter = 'all' | 'active' | 'done' | 'pro'
 type SelectedDay = { day: CourseDayView; lockKind: LockedDay['kind'] }
 
 const NO_LOCAL_PROGRESS: LessonOneProgress = { completed: [], isComplete: false }
@@ -96,8 +72,6 @@ export function CoursePath() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [openingDay, setOpeningDay] = useState<number | null>(null)
   const [notice, setNotice] = useState<DayNotice | null>(null)
-  const [filter, setFilter] = useState<PathFilter>('all')
-  const [search, setSearch] = useState('')
   const syncStartedDays = useRef(new Set<number>())
 
   const { data: days, isLoading, isError, refetch } = useQuery({
@@ -235,38 +209,32 @@ export function CoursePath() {
   const isDayDone = (day: CourseDayView) => day.completedMissionCount >= day.requiredMissionCount
   /** The open day the learner is on: where a progress lock sends them. */
   const todayEntry = displayedDays.find(({ day }) => day.isUnlocked && !isDayDone(day))
-  const activeDays = displayedDays.filter(({ day }) => day.isUnlocked && !isDayDone(day)).length
-  const counts = {
-    all: displayedDays.length,
-    done: completedDays,
-    active: activeDays,
-    // The days Pro opens: shut because of the plan rather than because they are not reached yet.
-    pro: displayedDays.filter(({ day }) => !day.isUnlocked && !isDayDone(day) && day.day > maxUnlockedDay).length,
-    locked: displayedDays.length - completedDays - activeDays,
-  }
-  const normalizedSearch = search.trim().toLocaleLowerCase(locale === 'ru' ? 'ru-RU' : locale)
-  const visibleDays = displayedDays.filter(({ day }) => {
-    const isDone = day.completedMissionCount >= day.requiredMissionCount
-    const matchesFilter =
-      filter === 'all' ||
-      (filter === 'done' && isDone) ||
-      (filter === 'active' && day.isUnlocked && !isDone) ||
-      // The days Pro opens: shut, and shut because of the plan rather than because the learner
-      // has not reached them yet.
-      (filter === 'pro' && !day.isUnlocked && !isDone && day.day > maxUnlockedDay)
-    const matchesSearch =
-      !normalizedSearch ||
-      String(day.day).includes(normalizedSearch) ||
-      getDayFocus(day, locale).toLocaleLowerCase(locale === 'ru' ? 'ru-RU' : locale).includes(normalizedSearch)
-
-    return matchesFilter && matchesSearch
+  /*
+   * The days as the map shows them. Today is the open day the learner is on; a day past the
+   * plan is a Pro day; past the authored ones it is not ready yet.
+   */
+  const todayDay = todayEntry?.day.day
+  const skyDays: SkyDay[] = displayedDays.map(({ day, lockKind }) => {
+    const done = isDayDone(day)
+    const title = day.day > LAST_AUTHORED_DAY ? t.path.comingSoon : getDayFocus(day, locale)
+    if (done) return { day: day.day, title, tone: 'done', badge: 'done', status: t.path.done }
+    if (day.day > LAST_AUTHORED_DAY) return { day: day.day, title, tone: 'locked', badge: 'locked', status: t.path.comingSoon }
+    if (!day.isUnlocked) {
+      return lockKind === 'pro'
+        ? { day: day.day, title, tone: 'pro', badge: 'pro', status: t.path.needsPro }
+        : { day: day.day, title, tone: 'locked', badge: 'locked', status: t.path.locked }
+    }
+    const started = (foundationProgress[day.day]?.completed.length ?? 0) > 0 || day.completedMissionCount > 0
+    return day.day === todayDay
+      ? { day: day.day, title, tone: 'current', badge: started ? 'tried' : null, status: t.path.today }
+      : { day: day.day, title, tone: 'open', badge: started ? 'tried' : null, status: started ? t.path.inProgress : t.path.sky.open }
   })
-
-  const phases = [
-    { phase: 'Foundation' as const, range: '1-30' },
-    { phase: 'Bridge' as const, range: '31-60' },
-    { phase: 'Immersion' as const, range: '61-90' },
-  ]
+  const openSkyDay = (dayNumber: number) => {
+    const entry = displayedDays.find(({ day }) => day.day === dayNumber)
+    if (!entry) return
+    if (entry.day.day > LAST_AUTHORED_DAY && !entry.day.isUnlocked) return
+    handleDay(entry.day, entry.lockKind)
+  }
 
   function handleDay(day: CourseDayView, lockKind: LockedDay['kind']) {
     if (!day.isUnlocked) {
@@ -311,108 +279,98 @@ export function CoursePath() {
   }
 
   return (
-    <div className="space-y-5 sm:space-y-8">
-      <CoursePathHero completedDays={completedDays} currentDay={todayEntry?.day.day ?? progress?.currentDay} totalDays={90} />
-
+    <div className="space-y-4 sm:space-y-5">
       {/*
-        The path counted, the way the missions and tests shelves open: how long it is, how much
-        of it is behind the learner, what is open now and what is still shut.
+        The heading the approved design gives the map: where the learner is on the ninety days,
+        how much is behind them, and — on the free plan — which days are free and which open
+        with Pro. The rest of the screen is the map.
       */}
-      <Sequence className="grid grid-cols-2 gap-3 lg:grid-cols-4" gap={stagger.base} delay={0.15}>
-        <StatTile icon={CalendarDays} label={t.path.statTotal} value={counts.all} markClassName="bg-signal-soft text-signal-ink" />
-        <StatTile icon={CircleCheck} label={t.path.filterDone} value={counts.done} markClassName="bg-milestone-soft text-milestone" />
-        <StatTile icon={Timer} label={t.path.filterActive} value={counts.active} markClassName="bg-caution-soft text-caution" />
-        <StatTile icon={Lock} label={t.path.locked} value={counts.locked} markClassName="bg-ground-sunken text-ink-muted" />
-      </Sequence>
+      <Reveal className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="hidden size-14 shrink-0 items-center justify-center rounded-2xl bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)] sm:flex">
+            <Compass aria-hidden="true" strokeWidth={1.8} className="size-7" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black tracking-[0.12em] text-signal-ink uppercase">{t.path.title}</p>
+            <h1 className="mt-0.5 text-2xl font-black tracking-tight text-ink sm:text-3xl">
+              {fill(t.path.hero.subtitle, { day: todayDay ?? progress?.currentDay ?? 1 })}
+            </h1>
+          </div>
+        </div>
 
-      {entitlement?.hasProAccess === false && (
-        <Reveal delay={0.18}>
-          <PathProStrip />
-        </Reveal>
-      )}
-
-      {/*
-        The filters are pills that wrap rather than a segmented control in a tray: there are four
-        of them, and the fourth — the Pro days — is the one a learner on the free plan goes
-        looking for. A tray of four crowds the phone.
-      */}
-      <Reveal delay={0.22} className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <SearchField value={search} onChange={setSearch} placeholder={t.path.search} />
-        <FilterPills
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: 'all', label: t.path.filterAll, count: counts.all },
-            { value: 'active', label: t.path.filterActive, count: counts.active },
-            { value: 'done', label: t.path.filterDone, count: counts.done },
-            { value: 'pro', label: t.path.filterPro, count: counts.pro },
-          ]}
-        />
+        {/* How far along, and on the free plan which days are free and which open with Pro. */}
+        <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-hairline bg-ground-raised px-4 py-3 shadow-[0_4px_16px_rgb(22_24_29/0.05)] sm:w-auto">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none">
+            <span className="shrink-0 text-sm font-extrabold text-ink tabular-nums">
+              {fill(t.path.sky.progress, { done: completedDays, total: days.length })}
+            </span>
+            <Meter
+              value={completedDays}
+              max={days.length}
+              label={t.path.sky.mapLabel}
+              className="h-2.5 w-full min-w-24 overflow-hidden rounded-full bg-hairline sm:w-44"
+              fillClassName="rounded-full bg-milestone"
+            />
+            <span className="shrink-0 text-xs font-extrabold text-milestone tabular-nums">
+              {Math.round((completedDays / Math.max(1, days.length)) * 100)}%
+            </span>
+          </div>
+          {entitlement?.hasProAccess === false && (
+            <>
+              <span aria-hidden="true" className="hidden h-8 w-px bg-hairline sm:block" />
+              {maxUnlockedDay > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1.5 text-xs font-extrabold text-milestone">
+                  <Gift aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
+                  {fill(t.path.sky.freeDays, { last: maxUnlockedDay })}
+                </span>
+              )}
+              <Link
+                to="/paywall"
+                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-coin-border bg-coin-soft pr-4 pl-1.5 text-sm font-extrabold text-coin-ink shadow-[0_2px_0_var(--color-coin-border)] transition hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal active:translate-y-px"
+              >
+                <span className="flex size-6 items-center justify-center rounded-full bg-coin">
+                  <Crown aria-hidden="true" strokeWidth={2.4} className="size-3.5 text-coin-ink" />
+                </span>
+                {fill(t.path.sky.proDays, { from: maxUnlockedDay + 1, total: days.length })}
+              </Link>
+            </>
+          )}
+        </div>
       </Reveal>
 
-      {phases.map(({ phase, range }) => {
-        const phaseDays = visibleDays.filter(({ day }) => day.phase === phase)
-        if (phaseDays.length === 0) return null
-
-        return (
-          <section key={`${phase}-${range}`}>
-            {/*
-              The tightest beat in the product, and the only one that could have been.
-
-              A phase of this path is up to thirty cards. At the ordinary 60ms the last one
-              would land nearly two seconds after the first, which is not a rhythm, it is a
-              wait. At 40ms a full row washes in quickly enough to read as the grid itself
-              arriving while still making the direction of travel - left to right, top to
-              bottom - completely legible.
-
-              It is also per phase rather than over the whole list: each phase starts its own
-              count when it scrolls into view, so a learner opening Day 60 does not sit through
-              an imaginary fifty-nine-card animation above them.
-            */}
-            <SequenceInView className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" gap={stagger.tight}>
-              {phaseDays.map(({ day, lockKind }) => (
-                /*
-                  The `Reveal` is not decoration around the card — it is what makes the card a
-                  participant. A sequence reaches its children by propagating a variant label,
-                  and a plain component has no variants to receive it, so a bare `<DayCard>`
-                  here would sit outside the beat and appear instantly while its neighbours
-                  arrived in order.
-                */
-                <Reveal key={day.day} variants={rise} className="h-full">
-                {day.day > LAST_AUTHORED_DAY ? <ComingSoonCard day={day.day} /> : (
-                <DayCard
-                  day={day}
-                  maxUnlockedDay={maxUnlockedDay}
-                  currentDay={progress?.currentDay ?? 1}
-                  locale={locale}
-                  showFreeLabel={
-                    entitlement?.hasProAccess === false && day.isFreePreview && day.isUnlocked
-                  }
-                  isOpening={openingDay === day.day}
-                  notice={notice?.day === day.day ? notice.text : null}
-                  partialProgress={
-                    foundationProgress[day.day] && !foundationProgress[day.day].isComplete
-                      ? {
-                          value: foundationProgress[day.day].completed.length,
-                          max: LESSON_ONE_SECTIONS.length,
-                        }
-                      : null
-                  }
-                  onSelect={() => handleDay(day, lockKind)}
-                />
-                )}
-                </Reveal>
-              ))}
-            </SequenceInView>
-          </section>
-        )
-      })}
-
-      {visibleDays.length === 0 && (
-        <Card className="py-10 text-center text-sm font-semibold text-ink-muted">
-          {t.path.noResults}
-        </Card>
+      {notice && (
+        <p role="status" className="rounded-2xl bg-caution-soft px-4 py-3 text-sm font-semibold text-caution">
+          {fill(t.path.sky.notice, { day: notice.day, text: notice.text })}
+        </p>
       )}
+
+      {/* The lesson card floats over the bottom of the map box, inside the same frame. */}
+      <Reveal delay={0.1} className="relative">
+        <DaySkyMap
+          days={skyDays}
+          currentDay={todayDay}
+          openDay={selectedDay && previewOpen ? selectedDay.day.day : null}
+          onOpen={openSkyDay}
+        />
+        {selectedDay && hasFoundationLesson(selectedDay.day.day) && (
+          <Suspense fallback={null}>
+          <LessonDetailsSheet
+            day={selectedDay.day.day}
+            open={previewOpen}
+            status={
+              isDayDone(selectedDay.day)
+                ? 'done'
+                : (foundationProgress[selectedDay.day.day]?.completed.length ?? 0) > 0 ? 'inProgress' : 'new'
+            }
+            completed={foundationProgress[selectedDay.day.day]?.completed.length ?? 0}
+            total={LESSON_ONE_SECTIONS.length}
+            isOpening={openingDay === selectedDay.day.day}
+            onDismiss={() => setPreviewOpen(false)}
+            onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
+          />
+          </Suspense>
+        )}
+      </Reveal>
 
       {/*
         Held by `AnimatePresence` rather than rendered straight from the condition. Without it
@@ -449,24 +407,6 @@ export function CoursePath() {
         the lesson teaches, how much is in it, and the button that starts it. The dialog stays
         for the few days without a lesson, where there is nothing of the lesson's own to show.
       */}
-      {selectedDay && hasFoundationLesson(selectedDay.day.day) && (
-        <Suspense fallback={null}>
-        <LessonDetailsSheet
-          day={selectedDay.day.day}
-          open={previewOpen}
-          status={
-            isDayDone(selectedDay.day)
-              ? 'done'
-              : (foundationProgress[selectedDay.day.day]?.completed.length ?? 0) > 0 ? 'inProgress' : 'new'
-          }
-          completed={foundationProgress[selectedDay.day.day]?.completed.length ?? 0}
-          total={LESSON_ONE_SECTIONS.length}
-          isOpening={openingDay === selectedDay.day.day}
-          onDismiss={() => setPreviewOpen(false)}
-          onStart={(restart) => void startDay(selectedDay.day, selectedDay.lockKind, restart)}
-        />
-        </Suspense>
-      )}
       {selectedDay && !hasFoundationLesson(selectedDay.day.day) && (
         <DayPreviewDialog
           open={previewOpen}
@@ -656,293 +596,6 @@ function LockedDayDialog({
   )
 }
 
-function DayCard({
-  day,
-  maxUnlockedDay,
-  currentDay,
-  locale,
-  showFreeLabel,
-  isOpening,
-  notice,
-  partialProgress,
-  onSelect,
-}: {
-  day: CourseDayView
-  maxUnlockedDay: number
-  currentDay: number
-  locale: Locale
-  showFreeLabel: boolean
-  isOpening: boolean
-  notice: string | null
-  partialProgress: { value: number; max: number } | null
-  onSelect: () => void
-}) {
-  const t = useT()
-  const isDone = day.completedMissionCount >= day.requiredMissionCount
-  const isToday = day.day === currentDay
-  const isLocked = !day.isUnlocked && !isDone
-  const dayLabel = fill(t.common.day, { day: day.day })
-  const focus = getDayFocus(day, locale)
-  /*
-   * The day topic in Russian, as the second line. A course day carries one focus line per
-   * interface language and nothing else, so for a learner reading the Uzbek interface this is
-   * the only extra thing on hand — and it happens to be the day in the language being learnt.
-   */
-  const description = locale === 'ru' ? null : day.focusRu
-  const progressValue = !isDone && partialProgress
-    ? partialProgress.value
-    : day.completedMissionCount
-  const progressMax = !isDone && partialProgress
-    ? partialProgress.max
-    : day.requiredMissionCount
-
-  const inProgress = !isDone && !isLocked && progressValue > 0
-  const percent = Math.round((Math.min(progressValue, progressMax) / Math.max(1, progressMax)) * 100)
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      data-ui-sound="select"
-      aria-label={`${dayLabel}: ${focus}`}
-      aria-busy={isOpening}
-      aria-haspopup="dialog"
-      className={cx(
-        DAY_CARD_FRAME,
-        'group flex-col border p-5 text-left',
-        'transition-[border-color,box-shadow,transform] duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2',
-        // A finished day is washed green from its corner, the day under way blue: the same two
-        // tints the missions shelf uses, so "done" and "now" look alike across the product.
-        isDone
-          ? 'border-milestone/20 bg-linear-to-br from-milestone-soft/70 to-ground-raised hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(15_115_85/0.07)]'
-          : isLocked
-            ? 'border-hairline bg-ground-raised hover:border-ink-faint/40'
-            : isToday || inProgress
-              ? 'border-signal/45 bg-linear-to-bl from-signal-soft/80 to-ground-raised to-55% shadow-[0_8px_24px_rgb(31_111_224/0.07)] hover:-translate-y-0.5'
-              : 'border-hairline bg-ground-raised hover:-translate-y-0.5 hover:border-signal/40 hover:shadow-[0_8px_24px_rgb(22_24_29/0.06)]',
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <div className="flex min-w-0 grow basis-44 items-start gap-3">
-          {/*
-            The number is the card's anchor — a learner scanning ninety of these is looking for
-            a day, not a title — so it keeps its own tile and takes the colour of the state.
-            The tile says "4 kun" itself, the same tile the home screen's lesson card wears, so
-            the card needs no separate "4-kun" line above its title.
-          */}
-          <span
-            className={cx(
-              'flex size-13 shrink-0 flex-col items-center justify-center rounded-2xl',
-              'transition-transform duration-150',
-              !isLocked && 'group-hover:scale-105',
-              isDone
-                ? 'bg-milestone-soft text-milestone'
-                : isLocked
-                  ? 'bg-ground-sunken text-ink-muted'
-                  : 'bg-signal-soft text-signal-ink',
-            )}
-          >
-            <span className="text-xl leading-none font-black tabular-nums">{day.day}</span>
-            <span className="mt-0.5 text-[10px] leading-none font-extrabold tracking-wide uppercase">{t.home.dayUnit}</span>
-          </span>
-
-          <div className="min-w-0">
-            <h3 className={cx('line-clamp-2 text-base font-extrabold leading-snug', isLocked ? 'text-ink-muted' : 'text-ink')}>
-              {focus}
-            </h3>
-            {/*
-              The same topic in the language being learned. There is no separate blurb on a
-              course day — the server sends one focus line per language — and of the things we
-              do have, the Russian one is the only one that adds anything next to the title.
-            */}
-            {description && (
-              <p className="mt-1 line-clamp-1 text-sm text-ink-muted" lang="ru">{description}</p>
-            )}
-          </div>
-        </div>
-
-        {/* A shut day says so in its footer, where its button would be; it needs no second label. */}
-        <Reveal as="span" variants={pop} className="ml-auto flex shrink-0 flex-wrap justify-end gap-2">
-          {isDone && (
-            <span className={cx(DAY_CARD_STATE, 'bg-milestone-soft text-milestone')}>
-              <CircleCheck aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
-              {t.path.done}
-            </span>
-          )}
-          {!isDone && !isLocked && (isToday || inProgress) && (
-            <span className={cx(DAY_CARD_STATE, 'bg-caution-soft text-caution')}>
-              <Timer aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
-              {t.path.inProgress}
-            </span>
-          )}
-          {showFreeLabel && !isDone && (
-            <span className={cx(DAY_CARD_STATE, 'bg-ground-sunken text-ink-muted')}>{t.account.plan.free}</span>
-          )}
-        </Reveal>
-      </div>
-
-      {/* The bar and its percentage on one line; what the percentage is of goes underneath. */}
-      <div className="mt-4 flex items-center gap-3">
-        {/* Fills when the card is scrolled to: a day's progress is shown, not just reported. */}
-        <Meter
-          value={Math.min(progressValue, progressMax)}
-          max={progressMax}
-          label={`${dayLabel}: ${focus}`}
-          delay={0.15}
-          className="h-2.5 flex-1 overflow-hidden rounded-full bg-ground-sunken"
-          fillClassName={cx('rounded-full', isDone ? 'bg-milestone' : 'bg-signal')}
-        />
-        <span className={cx('min-w-10 text-right text-sm font-bold tabular-nums', isDone ? 'text-milestone' : 'text-ink-muted')}>
-          <CountUp value={percent} />%
-        </span>
-      </div>
-      <p className="mt-2 text-sm text-ink-muted tabular-nums">
-        {progressValue} / {progressMax} {t.dayPreview.sections}
-      </p>
-
-      {/*
-        Every state ends in a chip of the same height. A bare word for the shut days and a
-        button for the open one made the open card a few pixels taller than its neighbours,
-        and the row stopped reading as a row.
-      */}
-      <div className={`mt-auto flex min-h-16 items-center gap-3 pt-4 pb-1 ${notice ? 'justify-between' : 'justify-end'}`}>
-        {notice && <span className="text-sm font-semibold text-danger">{notice}</span>}
-
-        {isDone ? (
-          // A finished day offers its repeat on the quieter button; the others lead with the
-          // action. Both sit on the product's own pressed edge, moved by the card around them.
-          <ButtonFace variant="secondary">
-            <RotateCcw aria-hidden="true" strokeWidth={2.2} className="size-4" />
-            {t.dayPreview.repeat}
-          </ButtonFace>
-        ) : isLocked ? (
-          // Two different shut doors: Pro is something the learner can act on, so it keeps
-          // the warm tone; a day that opens by itself is only waiting, and stays quiet.
-          day.day > maxUnlockedDay ? (
-            <span className={cx(DAY_CARD_ACTION, 'bg-caution-soft text-caution')}>
-              <Crown aria-hidden="true" strokeWidth={1.9} className="size-4" />
-              {t.path.needsPro}
-            </span>
-          ) : (
-            <span className={cx(DAY_CARD_ACTION, 'bg-ground-sunken text-ink-muted')}>
-              <Lock aria-hidden="true" strokeWidth={1.9} className="size-4" />
-              {t.path.locked}
-            </span>
-          )
-        ) : isOpening ? (
-          <span className={cx(DAY_CARD_ACTION, 'bg-signal-soft text-signal-ink')}>{t.common.loading}…</span>
-        ) : (
-          <ButtonFace>
-            <Play aria-hidden="true" strokeWidth={2.2} className="size-4 fill-current" />
-            {inProgress ? t.dayPreview.resume : t.dayPreview.start}
-          </ButtonFace>
-        )}
-      </div>
-    </button>
-  )
-}
-
-type GhostKind = 'video' | 'document' | 'chart' | 'picture' | 'dots'
-
-// What a coming day might hold, in the order the cards cycle through: a different shape on each
-// neighbour, chosen by day number so nothing shifts between renders.
-const GHOST_KINDS: readonly GhostKind[] = ['video', 'document', 'chart', 'picture', 'dots']
-
-/**
- * The out-of-focus hint of content on the right of a coming-soon card. Drawn rather than
- * shipped as images: there are sixty of these cards, the shapes are five, and under a blur a
- * few rounded blocks in the brand blue read exactly like a thumbnail does.
- */
-function GhostArt({ kind }: { kind: GhostKind }) {
-  if (kind === 'video') {
-    return (
-      <span className="absolute top-1/2 right-4 flex h-24 w-36 -translate-y-1/2 -rotate-6 items-center justify-center rounded-2xl bg-signal/55">
-        <span className="ml-1.5 border-y-18 border-l-28 border-y-transparent border-l-white/90" />
-      </span>
-    )
-  }
-
-  if (kind === 'document') {
-    return (
-      <>
-        <span className="absolute top-5 right-6 h-28 w-36 rotate-6 rounded-2xl bg-signal/50" />
-        <span className="absolute right-10 bottom-4 flex h-20 w-28 -rotate-3 flex-col justify-center gap-2.5 rounded-xl bg-white/85 px-4">
-          <span className="h-2.5 w-full rounded-full bg-signal/60" />
-          <span className="h-2.5 w-2/3 rounded-full bg-signal/45" />
-        </span>
-      </>
-    )
-  }
-
-  if (kind === 'chart') {
-    return (
-      <>
-        <span
-          className="absolute top-1/2 right-6 size-28 -translate-y-1/2 rounded-full"
-          style={{ background: 'conic-gradient(var(--color-signal) 0 34%, #f6a8c4 34% 52%, color-mix(in srgb, var(--color-signal) 40%, white) 52% 100%)' }}
-        />
-        <span className="absolute right-4 top-6 size-14 rounded-tr-full bg-signal/70" />
-      </>
-    )
-  }
-
-  if (kind === 'picture') {
-    return (
-      <span className="absolute top-1/2 right-5 h-24 w-36 -translate-y-1/2 -rotate-6 overflow-hidden rounded-2xl bg-signal/50">
-        <span className="absolute top-4 right-9 size-5 rounded-full bg-[#f6a8c4]" />
-        <span className="absolute -bottom-7 left-3 size-16 rotate-45 rounded-md bg-white/80" />
-        <span className="absolute -bottom-9 left-16 size-16 rotate-45 rounded-md bg-white/55" />
-      </span>
-    )
-  }
-
-  return (
-    <>
-      <span className="absolute top-8 right-32 size-9 rounded-full bg-signal/55" />
-      <span className="absolute top-7 right-14 size-8 rounded-full bg-signal/40" />
-      <span className="absolute right-28 bottom-8 size-8 rounded-full bg-signal/60" />
-      <span className="absolute right-10 bottom-10 size-11 rounded-full bg-signal-depth/75" />
-    </>
-  )
-}
-
-/**
- * A day that has no lesson yet. It keeps the outline of a day card, so the grid still reads as
- * one ninety-day path, but everything a real day would say is a blurred ghost of it — two lines
- * of title on the left, a thumbnail on the right — under a lock, the day and "coming soon". It
- * is not a button, because there is nothing to open.
- */
-function ComingSoonCard({ day }: { day: number }) {
-  const t = useT()
-  const dayLabel = fill(t.common.day, { day })
-  const kind = GHOST_KINDS[(day - LAST_AUTHORED_DAY - 1) % GHOST_KINDS.length]
-
-  return (
-    <div
-      role="group"
-      aria-label={`${dayLabel}: ${t.path.comingSoon}`}
-      className={cx(DAY_CARD_FRAME, 'group relative flex-col items-center justify-center overflow-hidden border border-hairline bg-ground-raised p-5 text-center')}
-    >
-      {/*
-        One blurred layer per card. The lines stop short of the middle and the art keeps to the
-        right third, so neither runs under the text — on a phone the art is dropped for the same
-        reason: the card is too narrow for it to clear the words.
-      */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70 blur-[9px]">
-        <span className="absolute top-12 left-8 h-5 w-[26%] max-w-36 rounded-full bg-ink/20" />
-        <span className="absolute top-23 left-8 h-3.5 w-[16%] max-w-24 rounded-full bg-ink/15" />
-        <span className="hidden sm:contents">
-          <GhostArt kind={kind} />
-        </span>
-      </div>
-
-      <img src={lockArt} alt="" width={72} height={72} loading="lazy" decoding="async" className="relative size-18 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6" />
-      <p className="relative mt-1 text-base font-bold text-ink-muted">{dayLabel}</p>
-      <p className="relative text-2xl font-extrabold leading-tight text-signal-ink sm:text-[1.7rem]">{t.path.comingSoon}</p>
-    </div>
-  )
-}
 
 function getDayFocus(day: CourseDayView, locale: Locale): string {
   return pickContent(locale, {

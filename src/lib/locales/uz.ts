@@ -136,7 +136,15 @@ export const uz = {
       next: 'Keyingi savol',
       questions: ["Ismingiz nima va qayerda ishlaysiz?", "Bugun ertalab nima qildingiz? Ruscha aytishga harakat qiling.", "Do'konda non so'ramoqchisiz. Nima deysiz?", "Taksi haydovchisiga manzilingizni ayting.", "Ishdagi hamkasbingiz bilan tanishing.", "Shifokorga nima og'riyotganini tushuntiring.", "Bozorda narxni so'rang va savdolashing.", "Qo'shningiz bilan ob-havo haqida gaplashing."],
     },
-    games: {"arra": {"title": "Arra", "body": "To'xtamay gapiring — jim qolsangiz, arra yaqinlashadi."}, "rod-runner": {"title": "Лёд и род", "body": "Ruscha so'zni to'g'ri rod yo'lagiga olib boring."}, "tez-gapir": {"title": "Tez gapir", "body": "30 soniyada mavzu bo'yicha ruscha gapiring."}, "fight-for-life": {"title": "Помоги!", "body": "Ruscha gapiring — ovozingiz qahramonga kuch beradi."}, "error-hunt": {"title": "Xato ovchisi", "body": "Ruscha gapdagi xatoni toping va tuzating."}, "first-reaction": {"title": "Birinchi reaksiya", "body": "Kutilmagan vaziyatga 5 soniyada javob bering."}, "ice-mystery": {"title": "Muz shahri siri", "body": "Savollar bering, dalillarni toping va sirni oching."}, "soz-ovi": {"title": "So'z ovi", "body": "Rasm bo'yicha ruscha so'zni toping."}, "tez-javob": {"title": "Tez javob", "body": "10 soniyada javob bering."}, "dialog": {"title": "Dialog", "body": "Suhbatni to'g'ri tartibda tuzing."}, "eshitib-top": {"title": "Eshitib top", "body": "Eshitgan gapingizni tanlang."}, "xotira": {"title": "Xotira", "body": "Juftlarni toping — so'z va tarjimasi."}},
+    games: {"arra": {"title": "Arra", "body": "To'xtamay gapiring — jim qolsangiz, arra yaqinlashadi."}, "rod-runner": {"title": "Лёд и род", "body": "Ruscha so'zni to'g'ri rod yo'lagiga olib boring."}, "tez-gapir": {"title": "Tez gapir", "body": "30 soniyada mavzu bo'yicha ruscha gapiring."}, "fight-for-life": {"title": "Помоги!", "body": "Ruscha gapiring — ovozingiz qahramonga kuch beradi."}, "error-hunt": {"title": "Xato ovchisi", "body": "Ruscha gapdagi xatoni toping va tuzating."}, "first-reaction": {"title": "Birinchi reaksiya", "body": "Kutilmagan vaziyatga 20 soniyada javob bering."}, "ice-mystery": {"title": "Muz shahri siri", "body": "Savollar bering, dalillarni toping va sirni oching."}, "soz-ovi": {"title": "So'z ovi", "body": "Rasm bo'yicha ruscha so'zni toping."}, "tez-javob": {"title": "Tez javob", "body": "10 soniyada javob bering."}, "dialog": {"title": "Dialog", "body": "Suhbatni to'g'ri tartibda tuzing."}, "eshitib-top": {"title": "Eshitib top", "body": "Eshitgan gapingizni tanlang."}, "xotira": {"title": "Xotira", "body": "Juftlarni toping — so'z va tarjimasi."}},
+    today: "Bugun",
+    featured: "Kun o'yini",
+    allGames: "Barcha o'yinlar",
+    gameCount: "{count} ta o'yin",
+    live: "Jonli",
+    liveScore: "Jonli · {score} ball",
+    pro: 'Pro',
+    meta: {"rod-runner": "Tez qo'l · 3 jon", "tez-gapir": "Ovozli · 30 soniya", "fight-for-life": "Ovozli · 2 daqiqa", "error-hunt": "Ovozli · 5 raund", "first-reaction": "Ovozli · 20 soniya", "arra": "Ovozli · 60 soniya", "ice-mystery": "Ovozli · detektiv"},
     unlockWithPro: "Pro bilan ochish",
     emptyTitle: "Hozircha o‘yinlar yo‘q",
     emptyBody: "O‘yinlar tez orada shu yerda paydo bo‘ladi.",
@@ -544,7 +552,7 @@ export const uz = {
     profile: 'Profil',
     billing: "Obuna va to'lovlar",
     settings: 'Sozlamalar',
-    feedback: 'Yordam va fikr',
+    feedback: 'Fikr bildirish',
     signOut: 'Chiqish',
     darkMode: "Qorong'i rejim",
     language: 'Til',
@@ -996,6 +1004,17 @@ export const uz = {
   },
 
   path: {
+    /** The 90-day map (see `DaySkyMap`). */
+    sky: {
+      mapLabel: "Kunlar yo'li",
+      dayLabel: '{day}-kun. {title}: {status}',
+      start: 'Boshlash',
+      open: 'Ochiq',
+      progress: '{done} / {total} kun',
+      freeDays: '1–{last}-kunlar bepul',
+      proDays: '{from}–{total}-kunlar Pro bilan',
+      notice: '{day}-kun: {text}',
+    },
     hero: {
       eyebrow: "RUS TILINI O'RGANING",
       subtitle: 'Sen {day}-kundasan! Davom et!',
@@ -1077,6 +1096,11 @@ export const uz = {
     missionNumber: '{number}-topshiriq',
     nodeLabel: '{number}. {title}: {status}',
     current: 'Navbatdagi',
+    /** On the tag above the mission that is up next, on the map. */
+    /** In the heading's progress card: missions open now, and those Pro opens. */
+    freeMissions: '{count} ta ochiq',
+    proMissions: '{count} ta Pro bilan',
+    coinStart: 'Boshlash',
     bestLabel: 'Eng yaxshi natija',
     lockedProBody: 'Bu topshiriq Pro tarifida ochiladi.',
     illustrationAlt: '«{title}» vaziyati tasviri',

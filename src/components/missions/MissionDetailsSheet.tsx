@@ -73,10 +73,10 @@ export function MissionDetailsSheet({
           animate="shown"
           exit="exit"
           className={cx(
-            // Clears the phone's tab bar; from `md` up there is none. One layer above the
-            // floating Telegram button, which would otherwise sit on the panel's action.
-            'sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[45] md:bottom-6',
-            'max-h-[min(56dvh,30rem)] overflow-y-auto md:max-h-[70dvh] rounded-[var(--radius-card)] border border-hairline bg-ground-raised p-4 sm:p-5',
+            // Floats over the bottom of the map box, so the road stays in view above it and the
+            // page itself never grows or scrolls when it opens. Above everything on the map.
+            'absolute inset-x-0 bottom-0 z-[4600]',
+            'max-h-[min(62%,30rem)] overflow-y-auto rounded-t-[var(--radius-card)] rounded-b-[28px] border-t border-hairline bg-ground-raised p-4 sm:p-5',
             'shadow-[0_-8px_40px_rgb(22_24_29/0.14)]',
           )}
         >
@@ -291,19 +291,25 @@ function MissionIllustration({ mission, title }: { mission: MissionRow['mission'
       </div>
 
       {src && state !== 'failed' && (
-        <img
-          src={src}
-          alt={state === 'loaded' ? fill(t.practice.illustrationAlt, { title }) : ''}
-          width={MISSION_IMAGE_SIZE.width}
-          height={MISSION_IMAGE_SIZE.height}
-          decoding="async"
-          onLoad={() => setState('loaded')}
-          onError={() => setState('failed')}
+        // The building stands on its own little island; it is set on a garden-light ground and
+        // allowed to sink a little past the bottom edge, so it reads as standing in the scene.
+        <div
           className={cx(
-            'absolute inset-0 size-full object-cover select-none motion-safe:transition-opacity motion-safe:duration-300',
+            'absolute inset-0 flex items-end justify-center bg-[radial-gradient(120%_100%_at_50%_100%,#d6f0c4_0,#eaf6df_45%,#eef3ff_100%)] motion-safe:transition-opacity motion-safe:duration-300',
             state === 'loaded' ? 'opacity-100' : 'opacity-0',
           )}
-        />
+        >
+          <img
+            src={src}
+            alt={state === 'loaded' ? fill(t.practice.illustrationAlt, { title }) : ''}
+            width={MISSION_IMAGE_SIZE.width}
+            height={MISSION_IMAGE_SIZE.height}
+            decoding="async"
+            onLoad={() => setState('loaded')}
+            onError={() => setState('failed')}
+            className="-mb-[6%] h-[106%] w-auto max-w-none object-contain drop-shadow-[0_10px_12px_rgb(40_60_20/0.35)] select-none"
+          />
+        </div>
       )}
     </div>
   )

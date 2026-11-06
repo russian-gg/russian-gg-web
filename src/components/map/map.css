@@ -1,0 +1,206 @@
+/*
+ * The illustrated maps (the missions road and the 90-day sky): the scrolling box, the coin
+ * markers, the cloud curtain that opens them, and the small life that moves around them.
+ *
+ * The keyframes that are different for every car, bird or butterfly are not here: they are
+ * generated with the map (see `missions/road-life.ts`) and written into the page next to it.
+ * `styles.css` already stills every CSS animation under `prefers-reduced-motion: reduce`;
+ * the rules at the bottom also hide what would only make sense moving.
+ */
+
+/* The map scrolls inside its own rounded box; the box has no visible scrollbar. */
+.map-scroll {
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+.map-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ coins */
+
+@keyframes coin-ring {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 0.6;
+  }
+}
+@keyframes coin-tag {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes coin-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(-46px) scale(0.3);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.08);
+  }
+  78% {
+    transform: translateY(-2px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.coin-ring {
+  animation: coin-ring 1.8s ease-in-out infinite;
+  animation-delay: var(--after-intro, 0s);
+}
+.coin-tag {
+  animation: coin-tag 1.6s ease-in-out infinite;
+  animation-delay: var(--after-intro, 0s);
+}
+.coin-pop {
+  animation: coin-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* ------------------------------------------------------------------ the cloud curtain */
+
+@keyframes curtain-veil {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes curtain-left {
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-104%);
+    opacity: 0;
+  }
+}
+@keyframes curtain-right {
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(104%);
+    opacity: 0;
+  }
+}
+@keyframes curtain-left-front {
+  0% {
+    transform: translateX(-4%) scale(1);
+  }
+  85% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(-122%) scale(1.15);
+    opacity: 0;
+  }
+}
+@keyframes curtain-right-front {
+  0% {
+    transform: translateX(4%) scale(1);
+  }
+  85% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(122%) scale(1.15);
+    opacity: 0;
+  }
+}
+@keyframes ground-in {
+  from {
+    filter: blur(10px) saturate(0.5) brightness(1.2);
+  }
+  to {
+    filter: none;
+  }
+}
+.curtain-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(#f4f1fd, #fbf3f9);
+  animation: curtain-veil 0.9s ease 0.55s both;
+}
+.curtain-cloud {
+  position: absolute;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: cover;
+  will-change: transform;
+  animation-fill-mode: both;
+}
+.curtain-back {
+  inset: 0;
+  animation-duration: 1.75s;
+  animation-timing-function: cubic-bezier(0.62, 0, 0.3, 1);
+  animation-delay: 0.3s;
+}
+.curtain-front {
+  top: -12%;
+  width: 122%;
+  height: 124%;
+  filter: drop-shadow(0 16px 30px rgb(80 60 140 / 0.12));
+  animation-duration: 1.4s;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1);
+  animation-delay: 0.12s;
+}
+.curtain-back.curtain-l {
+  background-position: right center;
+  animation-name: curtain-left;
+}
+.curtain-back.curtain-r {
+  background-position: left center;
+  animation-name: curtain-right;
+}
+.curtain-front.curtain-l {
+  left: -22%;
+  background-position: right center;
+  animation-name: curtain-left-front;
+}
+.curtain-front.curtain-r {
+  left: 0;
+  background-position: left center;
+  animation-name: curtain-right-front;
+}
+.ground-in {
+  animation: ground-in 1.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both;
+}
+
+/* ------------------------------------------------------------------ life on the map */
+
+.amb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+@keyframes amb-shadow {
+  to {
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+.amb-shadow {
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(16 40 8 / 0.38), rgb(16 40 8 / 0.18) 55%, rgb(16 40 8 / 0));
+  animation: amb-shadow linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .amb,
+  .curtain-veil,
+  .curtain-cloud {
+    display: none;
+  }
+}

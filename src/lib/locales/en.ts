@@ -118,7 +118,15 @@ export const en: Dictionary = {
       next: 'Next question',
       questions: ["What is your name and where do you work?", "What did you do this morning? Try to say it in Russian.", "You want to ask for bread in a shop. What do you say?", "Tell the taxi driver your address.", "Introduce yourself to a colleague at work.", "Explain to the doctor what hurts.", "Ask the price at the bazaar and bargain.", "Talk to your neighbour about the weather."],
     },
-    games: {"arra": {"title": "The Saw", "body": "Keep talking — fall silent and the saw moves closer."}, "rod-runner": {"title": "Лёд и род", "body": "Steer each Russian word into the lane of its gender."}, "tez-gapir": {"title": "Speak fast", "body": "Speak Russian on one topic for 30 seconds."}, "fight-for-life": {"title": "Помоги!", "body": "Speak Russian — your voice gives the hero strength."}, "error-hunt": {"title": "Error hunter", "body": "Find and fix the mistake in a Russian sentence."}, "first-reaction": {"title": "First reaction", "body": "Answer an unexpected situation in 5 seconds."}, "ice-mystery": {"title": "Mystery of the ice city", "body": "Ask questions, find clues and solve the mystery."}, "soz-ovi": {"title": "Word hunt", "body": "Find the Russian word for the picture."}, "tez-javob": {"title": "Quick answer", "body": "Answer in 10 seconds."}, "dialog": {"title": "Dialogue", "body": "Put the conversation in the right order."}, "eshitib-top": {"title": "Hear and find", "body": "Choose the sentence you heard."}, "xotira": {"title": "Memory", "body": "Find the pairs — a word and its translation."}},
+    games: {"arra": {"title": "The Saw", "body": "Keep talking — fall silent and the saw moves closer."}, "rod-runner": {"title": "Лёд и род", "body": "Steer each Russian word into the lane of its gender."}, "tez-gapir": {"title": "Speak fast", "body": "Speak Russian on one topic for 30 seconds."}, "fight-for-life": {"title": "Помоги!", "body": "Speak Russian — your voice gives the hero strength."}, "error-hunt": {"title": "Error hunter", "body": "Find and fix the mistake in a Russian sentence."}, "first-reaction": {"title": "First reaction", "body": "Answer an unexpected situation in 20 seconds."}, "ice-mystery": {"title": "Mystery of the ice city", "body": "Ask questions, find clues and solve the mystery."}, "soz-ovi": {"title": "Word hunt", "body": "Find the Russian word for the picture."}, "tez-javob": {"title": "Quick answer", "body": "Answer in 10 seconds."}, "dialog": {"title": "Dialogue", "body": "Put the conversation in the right order."}, "eshitib-top": {"title": "Hear and find", "body": "Choose the sentence you heard."}, "xotira": {"title": "Memory", "body": "Find the pairs — a word and its translation."}},
+    today: "Today",
+    featured: "Game of the day",
+    allGames: "All games",
+    gameCount: "{count} games",
+    live: "Live",
+    liveScore: "Live · {score} pts",
+    pro: 'Pro',
+    meta: {"rod-runner": "Quick hands · 3 lives", "tez-gapir": "Voice · 30 seconds", "fight-for-life": "Voice · 2 minutes", "error-hunt": "Voice · 5 rounds", "first-reaction": "Voice · 20 seconds", "arra": "Voice · 60 seconds", "ice-mystery": "Voice · mystery"},
     unlockWithPro: "Unlock with Pro",
     emptyTitle: "No games yet",
     emptyBody: "Games will appear here soon.",
@@ -972,6 +980,17 @@ export const en: Dictionary = {
   },
 
   path: {
+    /** The 90-day map (see `DaySkyMap`). */
+    sky: {
+      mapLabel: 'Day path',
+      dayLabel: 'Day {day}. {title}: {status}',
+      start: 'Start',
+      open: 'Open',
+      progress: '{done} / {total} days',
+      freeDays: 'Days 1–{last} free',
+      proDays: 'Days {from}–{total} with Pro',
+      notice: 'Day {day}: {text}',
+    },
     hero: {
       eyebrow: 'LEARN RUSSIAN',
       subtitle: 'A little every day — towards fluent Russian.',
@@ -1053,6 +1072,11 @@ export const en: Dictionary = {
     missionNumber: 'Mission {number}',
     nodeLabel: '{number}. {title}: {status}',
     current: 'Up next',
+    /** On the tag above the mission that is up next, on the map. */
+    /** In the heading's progress card: missions open now, and those Pro opens. */
+    freeMissions: '{count} open',
+    proMissions: '{count} with Pro',
+    coinStart: 'Start',
     bestLabel: 'Best score',
     lockedProBody: 'This mission opens with Pro.',
     illustrationAlt: 'Illustration for “{title}”',

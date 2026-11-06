@@ -15,7 +15,6 @@ import {
   ChevronRight,
   ChevronUp,
   ClipboardCheck,
-  Crown,
   Clock,
   Compass,
   Gamepad2,
@@ -32,6 +31,7 @@ import { Link, NavLink, useLocation, useNavigate, useOutlet } from 'react-router
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { useAuth } from '../lib/auth-context'
+import { cx } from '../lib/cx'
 import {
   readAudioPreferences,
   storeAudioPreferences,
@@ -47,7 +47,6 @@ import { api } from '../lib/api'
 import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { HeaderProPill, RailProCard } from './ProEntry'
-import { useProOffer } from '../lib/pro-offer'
 import { useCourseDays } from '../lib/course-days'
 import { Badge, Spinner, Switch } from './ui'
 import { duration, ease } from '../lib/motion'
@@ -64,6 +63,13 @@ export function AppShell() {
   const t = useT()
   const mainRef = useRef<HTMLElement>(null)
   useRouteChange(mainRef)
+  /*
+   * The two map screens (the 90 days and the missions) are pictures to look around in, so they
+   * take the whole width beside the rail and a little less padding above and below, instead of
+   * the reading width every other screen keeps.
+   */
+  const { pathname } = useLocation()
+  const mapScreen = pathname === '/path' || pathname === '/practice'
   /*
    * The games row exists only when the panel has opened at least one. Everything is off by
    * default, so the ordinary state is no row at all — and a menu item leading to an empty
@@ -181,7 +187,10 @@ export function AppShell() {
         ref={mainRef}
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full min-w-0 max-w-[96rem] px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8 md:py-10 md:pb-24 lg:px-10 2xl:px-12"
+        className={cx(
+          'mx-auto w-full min-w-0 px-4 pt-4 pb-[calc(9.25rem+env(safe-area-inset-bottom))] outline-none sm:px-5 sm:pt-6 md:px-8',
+          mapScreen ? 'md:pt-6 md:pb-6 lg:px-8 2xl:px-10' : 'max-w-[96rem] md:py-10 md:pb-24 lg:px-10 2xl:px-12',
+        )}
       >
         <PageTransition />
       </main>
@@ -193,7 +202,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-ground/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <div className="flex items-stretch">
-          {nav.map((item) => (
+          {nav.filter((item) => item.key !== 'tests').map((item) => (
             <TabLink
               key={item.key}
               to={item.to}
@@ -317,7 +326,6 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
     user?.displayName?.trim() || user?.email?.split('@')[0] || user?.phoneNumber || t.account.learner
   // The plan, not the level: this row is the account, and the level already has a home on
   // the profile and progress screens.
-  const offer = useProOffer()
   const plan = planLabel(entitlement, t)
   // On the free plan the line under the name says where to go next, not only where they are.
   const subtitle = plan && entitlement?.hasProAccess === false ? `${plan} · ${t.pro.upgrade}` : plan
@@ -401,18 +409,6 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             was three places to look for one thing.
           */}
           <MenuItem label={t.account.settings} icon={<GearGlyph />} onClick={() => go('/settings')} />
-          <MenuItem
-            label={t.pro.menuItem}
-            icon={<Crown aria-hidden="true" strokeWidth={1.9} className="size-5 text-coin-strong" />}
-            onClick={() => go(entitlement?.hasProAccess ? '/settings/billing' : '/paywall')}
-            trailing={
-              offer.discountPercent ? (
-                <span className="rounded-full bg-coin px-2 py-0.5 text-[11px] font-black text-coin-ink">
-                  -{offer.discountPercent}%
-                </span>
-              ) : undefined
-            }
-          />
           <ThemeToggleItem />
           <SoundToggleItem />
           <LanguageItem />

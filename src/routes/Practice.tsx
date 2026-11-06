@@ -1,23 +1,22 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { FileText } from 'lucide-react'
+import { Crown, FileText, Gift } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
-import { useLocale, useT } from '../lib/i18n'
+import { fill, useLocale, useT } from '../lib/i18n'
 import type { EntitlementView, MissionSummary } from '../lib/types'
 import { MissionDetailsSheet } from '../components/missions/MissionDetailsSheet'
 import { MissionMap } from '../components/missions/MissionMap'
-import { TownBackdrop } from '../components/missions/TownBackdrop'
 import { buildMissionRows, currentMissionId } from '../components/missions/mission-row'
 import { EmptyState, LinkButton, QueryError, Spinner } from '../components/ui'
-import { Reveal, Sequence } from '../components/motion'
+import { Meter, Reveal, Sequence } from '../components/motion'
 import { pop, stagger } from '../lib/motion'
 
 /**
  * The Missions tab: the whole practice library as one road.
  *
- * The road is the missions in their usual order, all of them on screen, each saying where the
- * learner stands with it. Nothing is chosen when the page opens; choosing a mission raises its
+ * The road is the missions in their usual order, climbing up through an illustrated town, each
+ * saying where the learner stands with it. Nothing is chosen when the page opens; choosing a mission raises its
  * details from the bottom of the page, with the one thing to do next. Every state shown — finished,
  * tried, locked — is the server's: the order on the road never opens or closes anything.
  */
@@ -25,14 +24,11 @@ export function Practice() {
   const t = useT()
   const copy = t.practice
   const { locale } = useLocale()
-  const reduced = useReducedMotion()
   // Kept after the panel closes, so its content stays put while it animates away.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const panel = useRef<HTMLElement>(null)
   const chosenNode = useRef<HTMLElement | null>(null)
-  const roadStart = useRef<HTMLDivElement>(null)
-  const [backdropTop, setBackdropTop] = useState<number | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['practice'],
@@ -46,6 +42,8 @@ export function Practice() {
   const rows = useMemo(() => (data ? buildMissionRows(data, locale) : []), [data, locale])
   const currentId = currentMissionId(rows)
   const selected = rows.find((row) => row.mission.id === selectedId)
+  const doneCount = rows.filter((row) => row.status === 'done').length
+  const proCount = rows.filter((row) => row.locked && row.isProLock).length
 
   const openMission = useCallback((id: string, node: HTMLElement) => {
     chosenNode.current = node
@@ -58,60 +56,61 @@ export function Practice() {
     chosenNode.current?.focus({ preventScroll: true })
   }, [])
 
-  /*
-   * The town picture starts where the road does, below the heading. The heading's height
-   * depends on the width and the language, so it is measured, and again whenever the page
-   * changes size — and once more after the entrance, which arrives slightly lower than it
-   * settles.
-   */
-  const hasRoad = rows.length > 0
-  useLayoutEffect(() => {
-    const el = roadStart.current
-    if (!el) return
-    const measure = () => setBackdropTop(Math.max(0, el.getBoundingClientRect().top + window.scrollY - 48))
-    measure()
-    const settled = window.setTimeout(measure, 700)
-    const observer = new ResizeObserver(measure)
-    observer.observe(document.documentElement)
-    return () => {
-      window.clearTimeout(settled)
-      observer.disconnect()
-    }
-  }, [hasRoad])
-
-  /*
-   * The panel sits on the bottom of the screen, so a mission chosen low on the road would end
-   * up underneath it. Once the panel has its size, the page moves just enough to keep the
-   * chosen node in view above it.
-   */
-  useEffect(() => {
-    if (!open) return
-    const frame = requestAnimationFrame(() => {
-      const sheet = panel.current
-      const node = chosenNode.current
-      if (!sheet || !node) return
-      const sheetTop = window.innerHeight - (parseFloat(getComputedStyle(sheet).bottom) || 0) - sheet.offsetHeight
-      const overlap = node.getBoundingClientRect().bottom + 16 - sheetTop
-      if (overlap > 0) window.scrollBy({ top: overlap, behavior: reduced ? 'auto' : 'smooth' })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [open, selectedId, reduced])
 
   return (
     <>
-      {/* The town fills the screen behind the road; the page is `relative` to paint over it. */}
-      <TownBackdrop top={hasRoad ? backdropTop : null} />
-      <Sequence className="relative space-y-6" gap={stagger.base}>
-        <Reveal className="flex items-start gap-4">
-          <Reveal as="span" variants={pop} className="hidden shrink-0 sm:block">
-            <span className="flex size-16 items-center justify-center rounded-2xl bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)]">
-              <FileText aria-hidden="true" strokeWidth={1.8} className="size-8" />
-            </span>
-          </Reveal>
-          <div className="min-w-0">
-            <h1 className="text-3xl font-extrabold tracking-tight text-ink">{copy.title}</h1>
-            <p className="mt-1 max-w-3xl text-base text-ink-muted">{copy.subtitle}</p>
+      <Sequence className="relative space-y-4 sm:space-y-5" gap={stagger.base}>
+        <Reveal className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <Reveal as="span" variants={pop} className="hidden shrink-0 sm:block">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-signal-soft text-signal-ink shadow-[0_8px_24px_rgb(31_111_224/0.12)]">
+                <FileText aria-hidden="true" strokeWidth={1.8} className="size-7" />
+              </span>
+            </Reveal>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">{copy.title}</h1>
+              <p className="mt-0.5 max-w-3xl text-sm text-ink-muted sm:text-base">{copy.subtitle}</p>
+            </div>
           </div>
+
+          {/* How far along, and on the free plan how many missions are open and how many Pro opens. */}
+          {rows.length > 0 && (
+            <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-hairline bg-ground-raised px-4 py-3 shadow-[0_4px_16px_rgb(22_24_29/0.05)] sm:w-auto">
+              <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none">
+                <span className="shrink-0 text-sm font-extrabold text-ink tabular-nums">
+                  {fill(copy.progress, { done: doneCount, total: rows.length })}
+                </span>
+                <Meter
+                  value={doneCount}
+                  max={rows.length}
+                  label={copy.mapLabel}
+                  className="h-2.5 w-full min-w-24 overflow-hidden rounded-full bg-hairline sm:w-44"
+                  fillClassName="rounded-full bg-milestone"
+                />
+                <span className="shrink-0 text-xs font-extrabold text-milestone tabular-nums">
+                  {Math.round((doneCount / rows.length) * 100)}%
+                </span>
+              </div>
+              {entitlement?.hasProAccess === false && proCount > 0 && (
+                <>
+                  <span aria-hidden="true" className="hidden h-8 w-px bg-hairline sm:block" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1.5 text-xs font-extrabold text-milestone">
+                    <Gift aria-hidden="true" strokeWidth={2.2} className="size-3.5" />
+                    {fill(copy.freeMissions, { count: rows.length - proCount })}
+                  </span>
+                  <Link
+                    to="/paywall"
+                    className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-coin-border bg-coin-soft pr-4 pl-1.5 text-sm font-extrabold text-coin-ink shadow-[0_2px_0_var(--color-coin-border)] transition hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal active:translate-y-px"
+                  >
+                    <span className="flex size-6 items-center justify-center rounded-full bg-coin">
+                      <Crown aria-hidden="true" strokeWidth={2.4} className="size-3.5 text-coin-ink" />
+                    </span>
+                    {fill(copy.proMissions, { count: proCount })}
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
         </Reveal>
 
         {isLoading && <Spinner />}
@@ -129,24 +128,24 @@ export function Practice() {
         )}
 
         {rows.length > 0 && (
-          <Reveal className="min-w-0">
-            <div ref={roadStart} />
+          // The panel floats over the bottom of the map box, inside the same frame.
+          <Reveal className="relative min-w-0">
             <MissionMap
               rows={rows}
               openId={open ? selectedId : null}
               currentId={currentId}
               onOpen={openMission}
+              panelRef={panel}
+            />
+            <MissionDetailsSheet
+              ref={panel}
+              row={selected}
+              open={open}
+              showFreeLabel={entitlement?.hasProAccess === false}
+              onDismiss={dismiss}
             />
           </Reveal>
         )}
-
-        <MissionDetailsSheet
-          ref={panel}
-          row={selected}
-          open={open}
-          showFreeLabel={entitlement?.hasProAccess === false}
-          onDismiss={dismiss}
-        />
       </Sequence>
     </>
   )

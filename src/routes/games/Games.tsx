@@ -1,72 +1,32 @@
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  ArrowRight,
-  Dices,
-  Footprints,
-  Gamepad2,
-  Headphones,
-  MessageSquare,
-  Play,
-  Swords,
-  Target,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react'
-import { useOpenGames } from '../../lib/games'
-import { EmptyState, Spinner } from '../../components/ui'
-import { cx } from '../../lib/cx'
-import { useLocale, useT } from '../../lib/i18n'
-import { copies, gameLabels, isSpeakingGame } from './speaking/copy'
-import { GameMark } from './speaking/visuals'
-import { TezGapirCard } from './TezGapirCard'
-import { ErrorHuntCard } from './ErrorHuntCard'
-import { LifeCard } from './fight-for-life/LifeCard'
-import { FirstReactionCard } from './FirstReactionCard'
+import { Gamepad2, LockKeyhole, Play } from 'lucide-react'
 import * as m from 'motion/react-m'
+import { useOpenGames, type OpenGame } from '../../lib/games'
+import { EmptyState, Spinner } from '../../components/ui'
 import { Reveal, Sequence } from '../../components/motion'
-import { rise, stagger, tactile } from '../../lib/motion'
+import { cx } from '../../lib/cx'
+import { fill, useT } from '../../lib/i18n'
+import { rise, stagger } from '../../lib/motion'
+import { GamePreview } from './previews/GamePreview'
+import { prefersReducedMotion } from './previews/demo'
 
-/**
- * The card links, animated in place.
- *
- * `m.create` rather than a `<m.div>` wrapped around each `<Link>`, and the distinction is not
- * cosmetic: these links are grid items. The runner card carries `sm:col-span-2` and the others
- * rely on the grid stretching them, so putting a div between the grid and the link hands the
- * grid-item role to the div — the span stops applying, the runner card collapses to a single
- * column, and its fixed-height artwork spills out of a box half its width.
- *
- * Making the link itself the motion element keeps the DOM exactly as it was.
- */
 const MotionLink = m.create(Link)
 
-/**
- * The shelf. Built like a store rather than a menu: a grid of tiles, each with its own mark,
- * because what makes somebody try a game is recognising it at a glance and wanting that one.
- *
- * What is on it is the panel's decision, not this file's. Only the artwork lives here — a game
- * the server has not opened is not drawn at all, so nobody is shown a door that does not open.
- */
-/**
- * Everything the app can draw, keyed by the slug the server switches on.
- *
- * Drawn marks rather than emoji: this shelf is the first thing a learner sees of a game, and
- * an emoji here rendered at whatever size and colour the platform font felt like — the saw
- * (🪚) in particular is a recent addition that simply does not exist on older Android, so the
- * tile for it was an empty box.
- */
-const ART: Record<string, { icon: LucideIcon; tint: string; to?: string }> = {
-  arra: { icon: Swords, tint: 'from-signal/25 to-signal/5', to: '/games/arra' },
-  'rod-runner': { icon: Footprints, tint: 'from-caution/30 to-signal/10', to: '/games/rod-runner' },
-  'soz-ovi': { icon: Target, tint: 'from-milestone/25 to-milestone/5' },
-  'tez-javob': { icon: Zap, tint: 'from-caution/25 to-caution/5' },
-  dialog: { icon: MessageSquare, tint: 'from-signal/25 to-signal/5' },
-  'eshitib-top': { icon: Headphones, tint: 'from-milestone/25 to-milestone/5' },
-  xotira: { icon: Dices, tint: 'from-caution/25 to-caution/5' },
-}
+/** How long each game stays in the featured banner. */
+const SLIDE_MS = 8000
 
+/**
+ * The games shelf, laid out like a store: one game featured at the top, rotating through
+ * every game on a timer, then every game as a card. Both show the game itself playing — its
+ * own screen, run by a bot or a scripted round — rather than a picture of it, because what
+ * makes somebody try a game is seeing it move.
+ *
+ * What is on the shelf is the panel's decision: only the games the server says are open are
+ * drawn, so nobody is shown a door that does not open.
+ */
 export function Games() {
   const open = useOpenGames()
-  const { locale } = useLocale()
   const t = useT().arcade
 
   if (!open) {
@@ -77,125 +37,248 @@ export function Games() {
     )
   }
 
+  // The runner leads: it is the one game that needs no microphone.
+  const games = [...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner'))
+
   return (
-    <Sequence className="space-y-5" gap={stagger.base}>
+    <Sequence className="space-y-8" gap={stagger.base}>
       <Reveal>
         <header>
-          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.title}</h1>
+          <p className="text-[13px] font-black tracking-[0.12em] text-ink-faint uppercase">{t.today}</p>
+          <h1 className="text-[34px] leading-10 font-black tracking-tight text-ink">{t.title}</h1>
           <p className="mt-1 text-[15px] text-ink-muted">{t.subtitle}</p>
         </header>
       </Reveal>
 
-      {/*
-        A shelf of games, dealt out. These are the most toy-like surfaces in the product, so
-        they get the spring entrance and a press that answers a thumb - the arcade is the one
-        place where a card behaving like an object is the entire point.
-      */}
-      {/* An empty or failed list used to leave the heading over nothing. */}
-      {open.length === 0 && (
+      {games.length === 0 && (
         <Reveal>
           <EmptyState title={t.emptyTitle} body={t.emptyBody} />
         </Reveal>
       )}
 
-      <Sequence className="grid gap-4 lg:grid-cols-2" gap={stagger.base}>
-        {[...open].sort((left, right) => Number(right.slug === 'rod-runner') - Number(left.slug === 'rod-runner')).map((game) => {
-          const art = ART[game.slug]
-          // The catalogue comes from the server in Uzbek; the names are the client's to translate.
-          const label = (t.games as Record<string, { title: string; body: string } | undefined>)[game.slug]
-          // Locked for this learner, not merely a Pro game: a Pro learner used to see "Pro kerak".
-          const locked = !game.isAccessible
-          const destination = locked ? '/paywall' : art?.to ?? `/games/${game.slug}`
+      {games.length > 0 && (
+        <Reveal>
+          <FeaturedGames games={games} />
+        </Reveal>
+      )}
 
-          if (game.slug === 'rod-runner') return <RunnerCard key={game.slug} />
-          if (game.slug === 'tez-gapir') return <TezGapirCard key={game.slug} to={destination} requiresPro={locked} />
-          if (game.slug === 'error-hunt') return <ErrorHuntCard key={game.slug} to={destination} requiresPro={locked} />
-          if (game.slug === 'fight-for-life') return <LifeCard key={game.slug} to={destination} requiresPro={locked} />
-          if (game.slug === 'first-reaction') return <FirstReactionCard key={game.slug} to={destination} requiresPro={locked} />
-
-          if (isSpeakingGame(game.slug)) {
-            const label = gameLabels[game.slug][locale]
-            return <MotionLink key={game.slug} variants={rise} {...tactile} to={destination} className="group relative flex min-h-44 items-center gap-4 rounded-3xl border-2 border-hairline bg-ground-raised p-4 sm:gap-5 sm:p-6 transition-colors hover:border-signal">
-              {locked && <span className="absolute right-4 top-4 rounded-full bg-caution-soft px-2.5 py-1 text-[11px] font-black text-caution">{t.proRequired}</span>}
-              <GameMark game={game.slug} className="size-12 shrink-0 text-signal-ink sm:size-16" />
-              <span className="min-w-0"><span className="block text-lg font-black text-ink">{label.title}</span><span className="mt-2 block text-sm leading-relaxed text-ink-muted">{label.description}</span><span className="mt-4 flex items-center gap-1.5 text-sm font-extrabold text-signal-ink">{locked ? t.unlockWithPro : copies[locale].start} <ArrowRight aria-hidden="true" className="size-4" strokeWidth={2.4} /></span></span>
-            </MotionLink>
-          }
-
-          return (
-            <MotionLink
-              key={game.slug}
-              variants={rise}
-              {...tactile}
-              to={destination}
-              className="relative flex items-center gap-3.5 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-3.5 text-left transition-colors hover:border-signal"
-            >
-              {locked && <span className="absolute right-3 top-3 rounded-full bg-caution-soft px-2.5 py-1 text-[11px] font-black text-caution">{t.proRequired}</span>}
-              <span
-                className={cx(
-                  'grid size-14 shrink-0 place-items-center rounded-[var(--radius-card)] bg-gradient-to-br',
-                  art?.tint ?? 'from-signal/25 to-signal/5',
-                )}
-                aria-hidden
-              >
-                {(() => {
-                  const Icon = art?.icon ?? Gamepad2
-                  return <Icon aria-hidden="true" strokeWidth={1.7} className="size-7 text-signal-ink" />
-                })()}
-              </span>
-
-              <span className="min-w-0">
-                <span className="block truncate text-base font-black text-ink">{label?.title ?? game.titleUz}</span>
-                <span className="mt-0.5 block text-sm leading-snug text-ink-muted">{label?.body ?? game.bodyUz}</span>
-              </span>
-            </MotionLink>
-          )
-        })}
-      </Sequence>
+      {games.length > 0 && (
+        <section aria-labelledby="all-games" className="space-y-4 border-t border-hairline pt-6">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="all-games" className="text-[22px] leading-7 font-black text-ink">{t.allGames}</h2>
+            <span className="text-sm font-extrabold text-ink-muted">{fill(t.gameCount, { count: games.length })}</span>
+          </div>
+          <Sequence className="grid gap-x-6 gap-y-8 sm:grid-cols-2 xl:grid-cols-3" gap={stagger.tight}>
+            {games.map((game) => <GameCard key={game.slug} game={game} />)}
+          </Sequence>
+        </section>
+      )}
     </Sequence>
   )
 }
 
-function RunnerCard() {
+/* ------------------------------------------------------------------------ helpers */
+
+/** Pages that do not live under `/games/:slug`. */
+const ROUTES: Record<string, string> = {
+  arra: '/games/arra',
+  'rod-runner': '/games/rod-runner',
+  'fight-for-life': '/games/fight-for-life',
+}
+
+/** Locked for this learner, not merely a Pro game: a Pro learner sees the game. */
+function destinationOf(game: OpenGame) {
+  return game.isAccessible ? ROUTES[game.slug] ?? `/games/${game.slug}` : '/paywall'
+}
+
+function useGameCopy(game: OpenGame) {
   const t = useT().arcade
+  const label = (t.games as Record<string, { title: string; body: string } | undefined>)[game.slug]
+  const meta = (t.meta as Record<string, string | undefined>)[game.slug]
+  return { title: label?.title ?? game.titleUz, body: label?.body ?? game.bodyUz, meta: meta ?? '' }
+}
 
+/** Titles that are Russian on purpose, and say so to a screen reader. */
+const RUSSIAN_TITLES = new Set(['rod-runner', 'fight-for-life'])
+
+const ICONS: Record<string, { background: string; image?: string }> = {
+  'rod-runner': { background: 'linear-gradient(160deg,#00b4d8,#90e0ef 60%,#e4faff)' },
+  'tez-gapir': { background: 'linear-gradient(160deg,#141b40,#34386a)', image: '/games/characters/penguin.webp' },
+  'fight-for-life': { background: 'linear-gradient(145deg,#00b4d8,#00f5d4)', image: '/games/fight-for-life/characters/penguin.webp' },
+  'error-hunt': { background: 'linear-gradient(155deg,#1a0b2e,#2d1b4e)', image: '/games/error-hunt/characters/penguin.webp' },
+  'first-reaction': { background: 'linear-gradient(135deg,#ffd3a5,#f9a3bd)', image: '/games/first-reaction/characters/penguin.webp' },
+}
+
+function GameIcon({ slug, className }: { slug: string; className?: string }) {
+  const icon = ICONS[slug]
   return (
-    /*
-      The card is the grid item, so `sm:col-span-2` stays on it and the entrance rides on the
-      same element. No `tactile` here: this one already lifts on hover in CSS, and a second
-      hover transform would just be two rules arguing about the same pixels.
-    */
-    <MotionLink
-      variants={rise}
-      to="/games/rod-runner"
-      className="group relative overflow-hidden rounded-[32px] border border-cyan-100/80 bg-gradient-to-br from-[#007eac] via-[#209fc0] to-[#49bdbf] p-5 text-white shadow-2xl transition duration-300 hover:-translate-y-1 sm:p-7 lg:col-span-2"
+    <span
+      aria-hidden="true"
+      className={cx('grid shrink-0 place-items-center overflow-hidden rounded-[14px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.06)]', className)}
+      style={{ background: icon?.background ?? 'linear-gradient(145deg,var(--color-signal-soft),var(--color-ground-sunken))' }}
     >
-      <span className="pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-amber-500/10 blur-3xl transition group-hover:bg-amber-500/20" />
-      <span className="pointer-events-none absolute -bottom-20 -left-20 size-64 rounded-full bg-blue-500/10 blur-3xl" />
+      {slug === 'rod-runner' ? (
+        <span className="block size-[90%] bg-[url('/games/rod-runner/runner-penguin-sprites.png')] bg-[length:400%_200%] bg-left-top bg-no-repeat" />
+      ) : icon?.image ? (
+        <img src={icon.image} alt="" width="512" height="512" loading="lazy" decoding="async" className="mt-[14%] size-[82%] object-contain" />
+      ) : (
+        <Gamepad2 className="size-1/2 text-signal-ink" strokeWidth={1.8} />
+      )}
+    </span>
+  )
+}
 
-      <span className="relative grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-center">
-        <span className="relative flex h-56 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/70 bg-[url('/games/rod-runner/sunny-canyon.webp')] bg-cover bg-center">
-          <span className="absolute inset-x-[18%] bottom-0 h-32 origin-bottom bg-gradient-to-t from-cyan-100 to-sky-300/60 [clip-path:polygon(43%_0,57%_0,100%_100%,0_100%)]" />
-          <span className="relative z-10 flex flex-col items-center gap-3 transition duration-300 group-hover:scale-105">
-            <span className="rounded-xl border-2 border-amber-600 bg-amber-100 px-4 py-1.5 text-sm font-black text-amber-950 shadow-xl">«ПЕРСИК»</span>
-            <span className="flex gap-1.5 text-[9px] font-black uppercase min-[370px]:text-[10px]">
-              <span className="rounded border border-rose-400 bg-rose-600/90 px-2 py-1">ЖЕНСКИЙ</span>
-              <span className="rounded border border-blue-400 bg-blue-600/90 px-2 py-1">МУЖСКОЙ</span>
-              <span className="rounded border border-amber-300 bg-amber-500/90 px-2 py-1 text-amber-950">СРЕДНИЙ</span>
-            </span>
-            <span aria-hidden="true" className="block size-20 bg-[url('/games/rod-runner/runner-penguin-sprites.png')] bg-[length:400%_200%] bg-left-top bg-no-repeat drop-shadow-xl" />
-          </span>
-        </span>
+/** The project's own buttons: primary to play, secondary with a lock where Pro is needed. */
+function PlayButton({ game, onDark = false }: { game: OpenGame; onDark?: boolean }) {
+  const t = useT().arcade
+  if (!game.isAccessible) {
+    return (
+      <span className="raised inline-flex min-h-10 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-hairline bg-ground-raised px-4 text-sm font-black whitespace-nowrap text-ink">
+        <LockKeyhole aria-hidden="true" className="size-3.5 text-caution" strokeWidth={2.4} />
+        {t.pro}
+      </span>
+    )
+  }
+  return (
+    <span className={cx('raised raised-signal inline-flex min-h-10 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-signal px-4 text-sm font-black whitespace-nowrap text-on-signal', onDark && 'shadow-lg')}>
+      <Play aria-hidden="true" className="size-3.5 fill-current" strokeWidth={0} />
+      {t.play}
+    </span>
+  )
+}
 
-        <span>
-          <strong className="block text-2xl font-black sm:text-3xl">{t.runnerTitle}</strong>
-          <span className="mt-2 block text-xs leading-relaxed text-cyan-100/70">{t.runnerBlurb}</span>
-          <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 text-sm font-black shadow-lg shadow-rose-500/20 transition group-hover:scale-105">
-            <Play aria-hidden="true" className="size-4 fill-current" strokeWidth={0} />
-            {t.play}
-          </span>
+/* ------------------------------------------------------------------------ card */
+
+function GameCard({ game }: { game: OpenGame }) {
+  const copy = useGameCopy(game)
+  return (
+    <MotionLink variants={rise} to={destinationOf(game)} className="group flex flex-col text-ink">
+      <span className="flex items-center gap-3 px-0.5">
+        <GameIcon slug={game.slug} className="size-14" />
+        <span className="min-w-0 flex-1">
+          <strong lang={RUSSIAN_TITLES.has(game.slug) ? 'ru' : undefined} className="block truncate text-[17px] leading-[22px] font-black">{copy.title}</strong>
+          <span className="block truncate text-[13px] leading-[18px] font-bold text-ink-faint">{copy.meta}</span>
         </span>
+        <PlayButton game={game} />
+      </span>
+      <span className="mx-0.5 mt-2 mb-3.5 line-clamp-2 min-h-[2.9em] text-sm leading-[1.45] text-ink-muted">{copy.body}</span>
+      <span className="block overflow-hidden rounded-[22px] shadow-[0_0_0_1px_rgb(15_23_42/0.06),0_18px_32px_-22px_rgb(15_23_42/0.5)] transition-[translate,box-shadow] duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_0_0_1px_rgb(15_23_42/0.08),0_24px_40px_-22px_rgb(15_23_42/0.55)]">
+        <GamePreview slug={game.slug} />
       </span>
     </MotionLink>
+  )
+}
+
+/* ------------------------------------------------------------------------ featured */
+
+/** The shade each game's words sit on: its own darkest colour, so the text reads on any frame. */
+const SHADES: Record<string, string> = {
+  'rod-runner': 'rgb(4 32 52 / .85)',
+  'tez-gapir': 'rgb(8 12 36 / .9)',
+  'fight-for-life': 'rgb(3 55 66 / .88)',
+  'error-hunt': 'rgb(20 8 36 / .9)',
+  'first-reaction': 'rgb(60 20 40 / .85)',
+}
+
+const SLIDE_GROUNDS: Record<string, string> = {
+  'rod-runner': '#90e0ef',
+  'tez-gapir': '#0c122e',
+  'fight-for-life': '#12b8cf',
+  'error-hunt': '#1f0e35',
+  'first-reaction': '#ffc1ad',
+}
+
+function FeaturedGames({ games }: { games: OpenGame[] }) {
+  const [active, setActive] = useState(0)
+  const [previous, setPrevious] = useState<number | null>(null)
+  const [score, setScore] = useState(0)
+  const count = games.length
+  const current = games[active] ?? games[0]
+  const copy = useGameCopy(current)
+
+  useEffect(() => {
+    if (count < 2 || prefersReducedMotion()) return
+    const timer = window.setTimeout(() => {
+      setPrevious(active)
+      setActive((active + 1) % count)
+    }, SLIDE_MS)
+    return () => window.clearTimeout(timer)
+  }, [active, count])
+
+  return (
+    <MotionLink
+      variants={rise}
+      to={destinationOf(current)}
+      aria-label={copy.title}
+      className="games-hero block"
+      style={{ '--hero-slide-ms': `${SLIDE_MS}ms` } as CSSProperties}
+    >
+      {games.map((game, index) => (
+        <FeaturedSlide
+          key={game.slug}
+          game={game}
+          index={index}
+          count={count}
+          active={index === active}
+          // Only the slide on show and the one fading out keep a screen mounted.
+          mounted={index === active || index === previous}
+          score={score}
+          onScore={setScore}
+        />
+      ))}
+
+      <span aria-hidden="true" className="absolute bottom-[26px] left-7 z-10 flex items-center gap-1.5">
+        {games.map((game, index) => (
+          <span key={game.slug} className={cx('block h-1.5 rounded-full bg-white transition-[width,opacity] duration-500', index === active ? 'w-[22px] opacity-100' : 'w-1.5 opacity-50')} />
+        ))}
+      </span>
+      {count > 1 && (
+        <span aria-hidden="true" className="absolute inset-x-0 bottom-0 z-10 h-[5px] bg-white/30">
+          <span key={active} className="games-hero__bar" />
+        </span>
+      )}
+    </MotionLink>
+  )
+}
+
+function FeaturedSlide({ game, index, count, active, mounted, score, onScore }: {
+  game: OpenGame; index: number; count: number; active: boolean; mounted: boolean; score: number; onScore: (score: number) => void
+}) {
+  const t = useT().arcade
+  const copy = useGameCopy(game)
+  const lang = RUSSIAN_TITLES.has(game.slug) ? 'ru' : undefined
+  const eyebrow = `${t.featured} · ${index + 1}/${count}`
+  const runner = game.slug === 'rod-runner'
+
+  const appRow = (
+    <span className="flex items-center gap-3 rounded-[20px] bg-white/15 p-2.5 pr-3 backdrop-blur-md">
+      <GameIcon slug={game.slug} className="size-14 rounded-2xl" />
+      <span className="min-w-0 flex-1">
+        <strong lang={lang} className="block truncate text-[15px] font-black">{copy.title}</strong>
+        <span className="block truncate text-xs text-white/80">{copy.meta}</span>
+      </span>
+      <PlayButton game={game} onDark />
+    </span>
+  )
+
+  return (
+    <div className="games-hero__slide" data-active={active} aria-hidden={!active}>
+      <span className="absolute inset-0 block max-md:relative max-md:aspect-[16/9]" style={{ background: SLIDE_GROUNDS[game.slug] ?? '#0b1220' }}>
+        {mounted && <GamePreview slug={game.slug} running={active} onScore={runner ? onScore : undefined} cover />}
+      </span>
+      <span aria-hidden="true" className="absolute inset-0 max-md:hidden" style={{ background: `linear-gradient(to top, ${SHADES[game.slug] ?? 'rgb(4 32 52 / .85)'}, transparent 62%)` }} />
+      <span className="absolute top-5 left-7 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 text-xs font-black">
+        <span className="size-[7px] rounded-full bg-red-500" />
+        {runner ? fill(t.liveScore, { score }) : t.live}
+      </span>
+      <span className="flex flex-col gap-5 p-5 pb-14 max-md:bg-[#0b1220] md:absolute md:inset-x-7 md:bottom-14 md:flex-row md:items-end md:justify-between md:p-0">
+        <span className="min-w-0 md:max-w-[56%]">
+          <span className="block text-xs font-black tracking-[0.14em] text-cyan-200 uppercase">{eyebrow}</span>
+          <strong lang={lang} className="mt-1.5 block text-[34px] leading-none font-black tracking-tight md:text-[44px]">{copy.title}</strong>
+          <span className="mt-2 block max-w-[520px] text-base leading-normal text-white/90">{copy.body}</span>
+        </span>
+        <span className="md:w-[340px]">{appRow}</span>
+      </span>
+    </div>
   )
 }

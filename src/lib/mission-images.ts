@@ -53,8 +53,11 @@ const MISSION_IMAGES: Record<string, string> = {
   'mission-40-manicure': 'manicure',
 }
 
-/** Width and height every illustration is exported at; the panel reserves this shape. */
-export const MISSION_IMAGE_SIZE = { width: 960, height: 720 } as const
+/**
+ * Width and height every illustration is exported at: a square, one building on its own grass
+ * island on a transparent background (see `docs/mission-building-art.md`).
+ */
+export const MISSION_IMAGE_SIZE = { width: 640, height: 640 } as const
 
 export function missionImage(slug: string): string | undefined {
   const name = MISSION_IMAGES[slug]
