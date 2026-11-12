@@ -7,8 +7,9 @@ import { Reveal, Sequence, SequenceInView } from '../components/motion'
 import { fadeIn, rise, stagger } from '../lib/motion'
 import * as m from 'motion/react-m'
 import { ProductPreview, ReelThumb } from '../components/landing/visuals'
+import { LocaleSwitch, Wordmark } from '../components/landing/chrome'
 import { cx } from '../lib/cx'
-import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
+import { fill, useLocale, useT } from '../lib/i18n'
 import { playLandingCharacterVoice } from '../lib/liveVoice'
 import { trackLandingVisit } from '../lib/meta-pixel'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
@@ -50,59 +51,6 @@ export function Landing() {
 }
 
 /* -------------------------------------------------------------------------- chrome */
-
-/**
- * `onSignal` is the variant for a signal-filled surface, where the mark's own accent colour is
- * the background it sits on. The two-tone reading survives by dropping `.gg` to a lighter tint
- * of the label instead — the mark stays the mark rather than flattening to one solid word.
- */
-function Wordmark({ className, onSignal = false }: { className?: string; onSignal?: boolean }) {
-  return (
-    <span
-      className={cx('font-extrabold tracking-tight', onSignal ? 'text-on-signal' : 'text-ink', className)}
-    >
-      russian<span className={onSignal ? 'text-on-signal/70' : 'text-signal'}>.gg</span>
-    </span>
-  )
-}
-
-function LocaleSwitch({ className, onSignal = false }: { className?: string; onSignal?: boolean }) {
-  const { locale, setLocale } = useLocale()
-  return (
-    <div
-      className={cx(
-        'inline-flex items-center gap-0.5 rounded-[var(--radius-control)] border p-0.5',
-        onSignal ? 'border-on-signal/35' : 'border-hairline',
-        className,
-      )}
-      role="group"
-      aria-label="Til / Язык / Language"
-    >
-      {LOCALES.map((code) => (
-        <button
-          key={code}
-          type="button"
-          onClick={() => setLocale(code)}
-          aria-pressed={locale === code}
-          className={cx(
-            'rounded-[var(--radius-control)] px-2.5 py-1 text-xs font-extrabold uppercase transition-colors',
-            // On a signal fill the selected pill inverts: the label colour becomes the fill and
-            // the hue moves to the text, which is what `signal-ink` exists for.
-            locale === code
-              ? onSignal
-                ? 'bg-on-signal text-signal-ink'
-                : 'bg-signal text-on-signal'
-              : onSignal
-                ? 'text-on-signal/80 hover:text-on-signal'
-                : 'text-ink-muted hover:text-ink',
-          )}
-        >
-          {code}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 function TopBar() {
   const t = useT().landing
@@ -719,6 +667,13 @@ function Pricing() {
             {t.pricing.questionLink}
           </button>
         </p>
+        {/* Centers buy seats, not plans, so they are pointed at their own page rather than
+            offered a third card here. */}
+        <p className="mt-2 text-center text-sm">
+          <Link to="/markazlar" className="font-bold text-ink-muted underline-offset-2 hover:text-ink hover:underline">
+            {t.pricing.centersLink}
+          </Link>
+        </p>
       </div>
     </section>
   )
@@ -906,7 +861,11 @@ function Footer() {
   const t = useT().landing
   // A visitor can write to the team without an account; the sheet asks them for a contact.
   const { open: openFeedback } = useReportProblem()
-  const columns = [
+  const columns: Array<{
+    title: string
+    /** `route` is a page of this app, opened through the router rather than as a document. */
+    links: Array<{ label: string; href: string; route?: boolean; onClick?: () => void }>
+  }> = [
     {
       title: t.footer.platform,
       links: [
@@ -914,6 +873,8 @@ function Footer() {
         { label: t.nav.games, href: '#games' },
         { label: t.nav.pricing, href: '#pricing' },
         { label: t.footer.help, href: SUPPORT_TELEGRAM_URL },
+        // A page of this app rather than a section of this one, so it goes through the router.
+        { label: t.footer.centers, href: '/markazlar', route: true },
       ],
     },
     {
@@ -965,16 +926,26 @@ function Footer() {
               <ul className="mt-4 space-y-3 text-sm">
                 {col.links.map((link) => {
                   const external = link.href.startsWith('http')
+                  if (link.route) {
+                    return (
+                      <li key={link.label}>
+                        <Link to={link.href} className="text-ink-muted transition-colors hover:text-ink">
+                          {link.label}
+                        </Link>
+                      </li>
+                    )
+                  }
+                  const { onClick } = link
                   return (
                     <li key={link.label}>
                       <a
                         href={link.href}
                         {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
                         onClick={
-                          link.onClick
+                          onClick
                             ? (event) => {
                                 event.preventDefault()
-                                link.onClick()
+                                onClick()
                               }
                             : undefined
                         }

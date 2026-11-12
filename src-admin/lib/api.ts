@@ -4,6 +4,7 @@ const STORAGE_PREFIX = import.meta.env.VITE_ADMIN_STORAGE_PREFIX ?? 'rgg.admin'
 const TOKEN_KEY = `${STORAGE_PREFIX}.token`
 const NAME_KEY = `${STORAGE_PREFIX}.name`
 const ROLE_KEY = `${STORAGE_PREFIX}.role`
+const CENTER_KEY = `${STORAGE_PREFIX}.center`
 const SECTION_KEY = `${STORAGE_PREFIX}.section`
 const ADMIN_API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? '/api/admin-portal').replace(/\/$/, '')
 
@@ -23,16 +24,21 @@ export const session = {
    * check — the server decides on every request, and a role edited in devtools buys a
    * sidebar full of screens that answer 403.
    */
-  role: (): PortalRole => (localStorage.getItem(ROLE_KEY) === 'Sales' ? 'Sales' : 'Admin'),
-  signIn(token: string, name: string, role: string) {
+  role: (): PortalRole => readRole(localStorage.getItem(ROLE_KEY)),
+  /** The language center a center admin works for; empty for the team's own accounts. */
+  centerName: () => localStorage.getItem(CENTER_KEY) ?? '',
+  signIn(token: string, name: string, role: string, centerName?: string | null) {
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(NAME_KEY, name)
-    localStorage.setItem(ROLE_KEY, role === 'Sales' ? 'Sales' : 'Admin')
+    localStorage.setItem(ROLE_KEY, readRole(role))
+    if (centerName) localStorage.setItem(CENTER_KEY, centerName)
+    else localStorage.removeItem(CENTER_KEY)
     listeners.forEach((notify) => notify())
   },
   signOut() {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(ROLE_KEY)
+    localStorage.removeItem(CENTER_KEY)
     listeners.forEach((notify) => notify())
   },
   subscribe(listener: () => void) {
@@ -44,11 +50,22 @@ export const session = {
   },
 }
 
-export type PortalRole = 'Admin' | 'Sales'
+export type PortalRole = 'Admin' | 'Sales' | 'CenterAdmin'
+
+/** Anything unrecognised is the smallest role: a sidebar of nothing beats a sidebar of 403s. */
+function readRole(value: string | null): PortalRole {
+  if (value === 'Admin' || value === 'CenterAdmin') return value
+  return 'Sales'
+}
 
 export const adminSectionKey = SECTION_KEY
 
 export function adminApiPath(path: string) {
+  // The center portal sits beside the admin portal on the same API host.
+  if (path.startsWith('/api/center-portal')) {
+    return `${ADMIN_API_BASE.replace(/\/admin-portal$/, '')}${path.slice('/api'.length)}`
+  }
+
   if (path.startsWith('/api/admin-portal')) {
     return `${ADMIN_API_BASE}${path.slice('/api/admin-portal'.length)}`
   }
@@ -64,16 +81,18 @@ export function useSession() {
   const [token, setToken] = useState(session.token)
   const [name, setName] = useState(session.name)
   const [role, setRole] = useState(session.role)
+  const [centerName, setCenterName] = useState(session.centerName)
 
   useEffect(() =>
     session.subscribe(() => {
       setToken(session.token())
       setName(session.name())
       setRole(session.role())
+      setCenterName(session.centerName())
     }),
   [])
 
-  return { token, name, role }
+  return { token, name, role, centerName }
 }
 
 export class AdminRequestError extends Error {

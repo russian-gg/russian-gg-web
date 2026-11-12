@@ -692,6 +692,7 @@ export const uz = {
       payNote: "Uzcard va Humo — Click yoki Payme orqali xavfsiz to'lov.",
       questionPrompt: 'Toʻlov yoki tariflar boʻyicha savolingiz bormi?',
       questionLink: 'Bizga yozing',
+      centersLink: "O'quv markazlari uchun taklif",
     },
 
     characters: {
@@ -750,6 +751,7 @@ export const uz = {
       feedback: 'Fikr bildirish',
       privacyPolicy: 'Maxfiylik siyosati',
       terms: 'Foydalanish shartlari',
+      centers: "O'quv markazlari uchun",
     },
   },
 
@@ -1953,5 +1955,137 @@ export const uz = {
     lessonNumber: "{day}-dars",
     liveBlocked: "Jonli suhbat yopiq",
     budgetOk: "Tushunarli",
+  },
+
+  /**
+   * The learner's language center, in Settings → Subscription. A center either pays for its
+   * students' Pro or has them pay the center price themselves; the server says which.
+   */
+  center: {
+    title: 'Markazim',
+    joinIntro: "O'quv markazingiz kod bergan bo'lsa, uni shu yerga kiriting.",
+    codeLabel: 'Markaz kodi',
+    codePlaceholder: 'ABC123',
+    codeHint: '6 ta belgi: harflar va raqamlar',
+    join: "Qo'shilish",
+    joining: "Qo'shilmoqda",
+    joinFailed: "Qo'shilib bo'lmadi. Qayta urinib ko'ring.",
+    groupLine: 'Guruh: {group}',
+    requested: "So'rov yuborildi — markaz administratori tasdiqlashini kuting",
+    centerPaid: "{center} o'quvchisisiz, guruh {group}. Pro markaz tomonidan to'langan.",
+    centerPaidNoGroup: "{center} o'quvchisisiz. Pro markaz tomonidan to'langan.",
+    student: "{center} o'quvchisisiz, guruh {group}.",
+    studentNoGroup: "{center} o'quvchisisiz.",
+    payBody: 'Markaz narxida Pro — oyiga {price}.',
+    pay: "Markaz narxida to'lash · {price}",
+    proActive: 'Pro faol.',
+    deactivated: "Markaz kirishingizni to'xtatdi",
+    deactivatedOffer: "Pro'ni o'zingiz ham olishingiz mumkin",
+    inactive: 'Markaz hozircha faol emas',
+    leave: 'Markazdan chiqish',
+    leaveTitle: 'Markazdan chiqasizmi?',
+    leaveBody: "{center} bilan bog'lanish uziladi, markaz to'lagan Pro ham to'xtaydi. Qayta qo'shilish uchun yangi kod kerak bo'ladi.",
+    leaveFailed: "Markazdan chiqib bo'lmadi. Qayta urinib ko'ring.",
+    billingPaid: "Pro {center} tomonidan to'langan",
+    billingPaidNoName: "Pro o'quv markazingiz tomonidan to'langan",
+  },
+
+  /** The public page for language centers, at /markazlar. */
+  centers: {
+    nav: {
+      home: 'Bosh sahifa',
+      demo: "Demo so'rash",
+    },
+    hero: {
+      eyebrow: "O'quv markazlari uchun",
+      title: "O'quvchilaringiz darslar orasida har kuni ruscha gapirsin",
+      body: "Russian.gg o'quvchilaringizga darslar orasida har kuni 15–20 daqiqalik ovozli mashq beradi: ular sun'iy intellekt qahramonlari bilan ruscha gaplashadi. Siz esa kim mashq qilayotganini ko'rib turasiz.",
+      cta: "Demo so'rash",
+      secondary: 'Qanday ishlaydi',
+    },
+    steps: {
+      eyebrow: 'Qanday ishlaydi',
+      title: "To'rt qadam — va o'quvchilar har kuni mashq qiladi",
+      items: [
+        { title: 'Markazingizni ulaymiz', body: "Markaz kabinetini ochib beramiz va qanday ishlashini ko'rsatamiz." },
+        { title: "Guruhlar va o'quvchilarni qo'shasiz", body: "Telefon raqami bo'yicha yoki markaz kodi orqali — bir necha daqiqada." },
+        { title: "O'quvchilar har kuni mashq qiladi", body: 'Telefonda, darslar orasida: ovozli missiyalar va 90 kunlik kurs.' },
+        { title: "Kim mashq qilayotganini ko'rasiz", body: "Har bir o'quvchining kurs kuni va oxirgi faolligi kabinetda ko'rinadi." },
+      ],
+    },
+    admin: {
+      eyebrow: 'Markaz kabineti',
+      title: 'Kim mashq qilyapti — bir qarashda',
+      body: "Kabinetda har bir o'quvchi ko'rinadi: qaysi guruhda, kursning nechanchi kunida va oxirgi marta qachon mashq qilgan. Sust qolganlarni darsdan oldin bilasiz.",
+      mockTitle: "O'quvchilar",
+      mockCount: '4 ta',
+      name: 'Ism',
+      group: 'Guruh',
+      day: 'Kurs kuni',
+      lastActive: 'Oxirgi faollik',
+      status: 'Holat',
+      dayValue: '{day}-kun',
+      today: 'Bugun',
+      yesterday: 'Kecha',
+      daysAgo: '{days} kun oldin',
+      statusActive: 'Faol',
+      statusIdle: 'Sust',
+      statusNew: 'Yangi',
+      mockNote: "Namuna. Haqiqiy kabinetda markazingiz o'quvchilari ko'rinadi.",
+    },
+    students: {
+      eyebrow: "O'quvchilar nima oladi",
+      title: "Darsda o'rganganini har kuni ovoz chiqarib mashq qilish",
+      items: [
+        { title: 'Ovozli missiyalar', body: "Kafe, taksi, do'kon — sun'iy intellekt qahramonlari bilan haqiqiy vaziyatlarda ruscha gaplashish." },
+        { title: '90 kunlik kurs', body: "Har kuni yangi dars: so'zlar, grammatika va talaffuz bosqichma-bosqich." },
+        { title: 'Daraja testi', body: "Boshida qisqa test o'quvchining darajasini aniqlaydi va kursni shundan boshlaydi." },
+      ],
+    },
+    faq: {
+      eyebrow: 'Savollar',
+      title: "Ko'p beriladigan savollar",
+      items: [
+        {
+          q: "O'qituvchini almashtiradimi?",
+          a: "Yo'q. Russian.gg — darslar orasidagi uy vazifasi. O'quvchi darsda o'rganganini har kuni ovoz chiqarib mashq qiladi, o'qituvchi esa darsni davom ettiradi.",
+        },
+        {
+          q: "O'quvchilar qanday qo'shiladi?",
+          a: "Ikki yo'l bor: o'quvchining telefon raqamini kabinetga kiritasiz yoki markaz kodini berasiz — o'quvchi uni ilova sozlamalarida kiritadi.",
+        },
+        {
+          q: "Kim to'laydi?",
+          a: "Shartnomada kelishiladi: yoki markaz har bir faol o'quvchi uchun oyiga to'laydi, yoki har bir o'quvchi ilovada markaz narxida o'zi to'laydi. Bepul sinov kunlari berilmaydi.",
+        },
+        {
+          q: 'Narx qancha?',
+          a: 'Narxni demo paytida, markazingiz hajmiga qarab kelishamiz.',
+        },
+      ],
+    },
+    form: {
+      eyebrow: 'Demo',
+      title: "Demo so'rash",
+      body: "Formani to'ldiring — qo'ng'iroq qilib, kabinetni ko'rsatamiz.",
+      centerName: 'Markaz nomi',
+      city: 'Shahar',
+      contactName: 'Ismingiz',
+      phone: 'Telefon raqami',
+      phonePlaceholder: '+998 90 123 45 67',
+      students: "Rus tili o'quvchilari soni",
+      studentsPlaceholder: 'Tanlang',
+      bandUnder50: '50 tagacha',
+      band50to200: '50–200',
+      bandOver200: "200 dan ko'p",
+      website: 'Veb-sayt',
+      submit: "Demo so'rash",
+      sending: 'Yuborilmoqda',
+      required: "Barcha maydonlarni to'ldiring.",
+      failed: "Yuborib bo'lmadi. Qayta urinib ko'ring.",
+      rateLimited: "So'rovlar juda ko'p. Birozdan keyin qayta urinib ko'ring.",
+      successTitle: "Rahmat! 1 ish kuni ichida qo'ng'iroq qilamiz",
+      successBody: "So'rovingiz qabul qilindi.",
+    },
   },
 }

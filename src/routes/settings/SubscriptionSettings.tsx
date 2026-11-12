@@ -12,6 +12,7 @@ import freeBackdrop from '../../assets/images/subscription_container_bg.webp'
 import monthlyBackdrop from '../../assets/images/month_subscription.webp'
 import ninetyDayBackdrop from '../../assets/images/3_months_subscription.webp'
 import planArtwork from '../../assets/images/subscription_informaton.webp'
+import { CenterCard } from './CenterCard'
 
 /**
  * The plan, what it has unlocked, and what the other plan would add.
@@ -57,6 +58,8 @@ export function SubscriptionSettings() {
   return (
     <div className="space-y-4">
       <CurrentPlanBanner entitlement={entitlement} t={t} />
+      {/* Under the plan, because a center is the other answer to "who pays for this". */}
+      <CenterCard />
       <ProgressCard entitlement={entitlement} t={t} />
 
       {/*
@@ -195,10 +198,13 @@ function CurrentPlanBanner({ entitlement, t }: { entitlement: EntitlementView; t
 
         {/* Full width on a phone, hugging its label from `sm` — what this product already says
             a primary action does on a phone; see `block` on `Button`. */}
-        {/* "Manage subscription" only for somebody who has one; a free learner is offered Pro. */}
-        <Button block className="mt-6 sm:w-auto sm:px-7" onClick={() => navigate('/paywall')}>
-          {entitlement.hasProAccess ? t.profile.manage : t.pro.upgrade}
-        </Button>
+        {/* "Manage subscription" only for somebody who has one; a free learner is offered Pro.
+            Neither for a center's seat: there is nothing of the learner's to buy or cancel. */}
+        {!entitlement.centerPaid && (
+          <Button block className="mt-6 sm:w-auto sm:px-7" onClick={() => navigate('/paywall')}>
+            {entitlement.hasProAccess ? t.profile.manage : t.pro.upgrade}
+          </Button>
+        )}
       </div>
     </section>
   )
@@ -241,6 +247,12 @@ function planNote(
   locale: Parameters<typeof formatDate>[1],
 ): string {
   if (!entitlement.hasProAccess) return t.billing.planTagline
+  // A center's seat renews when the center pays, not on a date the learner controls.
+  if (entitlement.centerPaid) {
+    return entitlement.centerName
+      ? fill(t.center.billingPaid, { center: entitlement.centerName })
+      : t.center.billingPaidNoName
+  }
   if (entitlement.cancelAtPeriodEnd) return t.billing.cancelled
 
   const until = entitlement.currentPeriodEnd ?? entitlement.trialEndsAt
@@ -296,7 +308,7 @@ function ProgressCard({ entitlement, t }: { entitlement: EntitlementView; t: Dic
 
         <div className="pt-4 sm:pt-0 sm:pl-8">
           <p className="text-xs font-extrabold tracking-[0.1em] text-ink-faint uppercase">
-            {entitlement.cancelAtPeriodEnd ? t.profile.validUntil : t.profile.nextPayment}
+            {entitlement.cancelAtPeriodEnd || entitlement.centerPaid ? t.profile.validUntil : t.profile.nextPayment}
           </p>
           <p
             className={
