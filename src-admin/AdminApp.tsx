@@ -14,6 +14,7 @@ import {
   GamesGlyph,
   MarketingGlyph,
   PromoGlyph,
+  SoundGlyph,
   SalesGlyph,
   StarGlyph,
   TestsGlyph,
@@ -34,6 +35,7 @@ import { Sales } from './screens/Sales'
 import { PortalUsers } from './screens/PortalUsers'
 import { Games } from './screens/Games'
 import { Tests } from './screens/Tests'
+import { LessonAudio } from './screens/LessonAudio'
 
 type Section =
   | 'dashboard'
@@ -50,6 +52,7 @@ type Section =
   | 'portal-users'
   | 'games'
   | 'tests'
+  | 'lesson-audio'
 
 /**
  * `sales` marks the sections a sotuv account may open. It mirrors what the server allows —
@@ -74,6 +77,7 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
   { id: 'tests', label: 'Testlar', group: 'Tizim' },
   { id: 'games', label: "O'yinlar", group: 'Tizim' },
+  { id: 'lesson-audio', label: 'Dars audiolari', group: 'Tizim' },
   { id: 'portal-users', label: 'Xodimlar', group: 'Tizim' },
 ]
 
@@ -93,6 +97,7 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   'portal-users': UsersGlyph,
   games: GamesGlyph,
   tests: TestsGlyph,
+  'lesson-audio': () => <SoundGlyph on />,
 }
 
 function visibleSections(role: PortalRole) {
@@ -307,6 +312,7 @@ export function AdminApp() {
         {active === 'recordings' && <Recordings />}
         {active === 'portal-users' && <PortalUsers />}
         {active === 'games' && <Games />}
+        {active === 'lesson-audio' && <LessonAudio />}
         {active === 'tests' && <Tests />}
       </main>
     </div>

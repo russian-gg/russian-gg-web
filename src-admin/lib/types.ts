@@ -595,3 +595,35 @@ export type RecordingItem = {
   audioUrl: string
   recordedAt: string
 }
+
+/** GET /api/admin-portal/lesson-audio */
+export interface AdminLessonAudioStatus {
+  storedLines: number
+  lessonsCovered: number
+  publishedLessons: number
+  liveClips: number
+  pendingJobs: number
+  byModel: Record<string, number>
+  latestRun?: AdminLessonAudioRun | null
+}
+
+export interface AdminLessonAudioLesson {
+  missionId: string
+  courseDay: number
+  title: string
+}
+
+/** The most recent run, from a deploy or the button. */
+export interface AdminLessonAudioRun {
+  runId: string
+  trigger: 'deploy' | 'button'
+  state: 'queued' | 'running' | 'done' | 'failed'
+  startedAt: string
+  finishedAt?: string | null
+  totalLessons: number
+  doneLessons: number
+  retryingLessons: number
+  linesMade: number
+  current?: AdminLessonAudioLesson | null
+  failures: Array<AdminLessonAudioLesson & { error?: string | null; gaveUp: boolean }>
+}
