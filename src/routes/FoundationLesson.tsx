@@ -2180,7 +2180,7 @@ function MissionModes({
       const spokenFeedback = shortFeedback(result.feedback)
       setFeedback({ kind: 'note', text: spokenFeedback })
       // The server writes the feedback in the learner's language, so it is read in that voice.
-      await speak(spokenFeedback, SPEECH_TAG[locale])
+      await speak(spokenFeedback, SPEECH_TAG[locale], { personal: true })
       // An answer counts only when something was heard: any recording, silence included, used
       // to tick the question off.
       if (result.transcript?.trim()) onDone?.(spokenFeedback)
@@ -2874,13 +2874,15 @@ function recordingExtension(mimeType: string) {
   return mimeType.includes('mp4') ? 'm4a' : 'webm'
 }
 
-async function speak(text: string, lang: string) {
+/** `personal`: text written for this learner (their feedback), spoken live and never stored. */
+async function speak(text: string, lang: string, { personal = false }: { personal?: boolean } = {}) {
   if (readAudioPreferences().muted) return
   window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id: null } }))
   try {
     await new Promise<void>((resolve, reject) => {
       let started = false
       void playPromptAudio(cleanSpeechText(text), {
+        personal,
         onStateChange: (state) => {
           if (state === 'playing') started = true
           if (state === 'idle' && started) resolve()
