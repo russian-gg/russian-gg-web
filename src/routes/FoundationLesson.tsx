@@ -62,6 +62,9 @@ import { cleanSpeechText, dialogueSpeaker, dialogueSpeechText, ruleSpeechSegment
 import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
+import { isScoringPaused, LIMIT_CODES, useUsageToday } from '../lib/usage'
+import { LessonLimitScreen } from '../components/limits/LessonLimitScreen'
+import { ScoringPausedNote } from '../components/limits/ScoringPausedNote'
 import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio, stopPromptAudio, VoiceError } from '../lib/liveVoice'
 import { playUiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
@@ -394,6 +397,22 @@ export function FoundationLesson() {
   const lock = thisMission ? missionLock(thisMission) : null
 
   /*
+   * A new lesson counts toward the day's three when it is opened, so the server is asked then,
+   * not at the first spoken answer half-way through. A finished lesson is review and is never
+   * asked about. Past the limit the lesson is replaced by the screen that says what is left.
+   */
+  const opensNewLesson = Boolean(missionId && thisMission && !thisMission.isCompleted && !lock)
+  const { error: openError } = useQuery({
+    queryKey: ['lesson-open', missionId],
+    queryFn: () => api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`),
+    enabled: opensNewLesson,
+    retry: false,
+    staleTime: Infinity,
+  })
+  const { data: usage } = useUsageToday()
+  const limitsCopy = useT().limits
+
+  /*
    * The lesson is recorded when the closing card appears, not when its button is pressed: the
    * card says "done", and a learner who closed the tab on it was left at eight of nine.
    */
@@ -409,6 +428,15 @@ export function FoundationLesson() {
   if (!lesson) return <Navigate to="/path" replace />
   if (lock) return <Navigate to={`/path?locked=${day}&kind=${lock}`} replace />
   if (checkingAccess) return <Spinner />
+  if (openError instanceof RequestError && openError.code === LIMIT_CODES.lessonDailyLimit) {
+    return (
+      <LessonLimitScreen
+        usage={usage}
+        lessonNumber={lesson.day}
+        lessonTitle={<>{fill(limitsCopy.lessonNumber, { day: lesson.day })}: <span lang="ru">«{lesson.titleRu}»</span></>}
+      />
+    )
+  }
 
   async function recordCompletion() {
     // Already on the server — a finished lesson opened again — so nothing new to record.
@@ -1985,6 +2013,7 @@ function MissionModes({
   /** A question answered aloud, with what the AI said about the answer. */
   onAiAnswered: (index: number, note: string) => void
 }) {
+  const { data: usage } = useUsageToday()
   const dictionary = useT()
   const { locale } = useLocale()
   const t = dictionary.lesson.missions
@@ -2010,7 +2039,7 @@ function MissionModes({
    * What the AI said back, or what went wrong. Kept apart because they look different: a
    * refused microphone printed in success green read as praise.
    */
-  const [feedback, setFeedback] = useState<{ kind: 'note' | 'error'; text: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ kind: 'note' | 'error' | 'paused'; text: string } | null>(null)
   /**
    * The browser is asking for the microphone right now. The note explaining that prompt sat
    * under the mic from the start, as one more line nobody needed yet; it shows while the
@@ -2164,6 +2193,12 @@ function MissionModes({
       form.set('audio', audio, `foundation-answer.${recordingExtension(mimeType)}`)
       const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
       attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
+      // Past the day's scored answers: the answer still counts, the grade waits for tomorrow.
+      if (isScoringPaused(result.feedback)) {
+        setFeedback({ kind: 'paused', text: result.feedback.scoringResumesAt ?? '' })
+        if (result.transcript?.trim()) onDone?.(result.feedback.headlineCorrection)
+        return
+      }
       const spokenFeedback = shortFeedback(result.feedback)
       setFeedback({ kind: 'note', text: spokenFeedback })
       // The server writes the feedback in the learner's language, so it is read in that voice.
@@ -2317,7 +2352,9 @@ function MissionModes({
               />
             </div>
           )
-          : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={note.text} /></p>
+          : note.kind === 'paused'
+            ? <div className="mt-3"><ScoringPausedNote total={usage?.scoredAnswersPerDay ?? 30} resumesAt={note.text} /></div>
+            : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={note.text} /></p>
       )}
     </Card>
   )

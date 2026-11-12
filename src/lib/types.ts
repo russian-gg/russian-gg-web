@@ -261,6 +261,32 @@ export interface StartAttemptResponse {
   totalSteps: number
   isResumed: boolean
   requiresExplicitRestart: boolean
+  /** A run through a finished mission: free review, answers unscored. */
+  isReview?: boolean
+}
+
+/** GET /usage/today — what the learner has left today. The server enforces the same numbers. */
+export interface UsageAllowance {
+  lessonsPerDay: number
+  lessonsLeft: number
+  scoredAnswersPerDay: number
+  scoredAnswersLeft: number
+  scoringPaused: boolean
+  gameAnswersPerDay: number
+  gameAnswersLeft: number
+  liveTrialsPerDay: number
+  /** Everything usable now: today's, the carried one and streak trials. */
+  liveTrialsLeft: number
+  liveTrialsCarried: number
+  liveTrialsBonus: number
+  aiBudgetReached: boolean
+  budgetResetsAt?: string | null
+  /** The learner's next local midnight. */
+  resetsAt: string
+  courseDay: number
+  proTrialActive: boolean
+  proTrialEndsAt?: string | null
+  proTrialAvailable: boolean
 }
 
 export interface TurnFeedback {
@@ -275,6 +301,11 @@ export interface TurnFeedback {
   conversationScore?: number | null
   /** True once every beat has been answered well enough to pass. */
   goalReached?: boolean
+  /** False when the answer was not graded: today's scoring is used, or this is review. */
+  scored?: boolean
+  /** Set when grading stopped for the day: when it comes back. */
+  scoringResumesAt?: string | null
+  review?: boolean
 }
 
 export interface VoiceNoteTurnFeedback {

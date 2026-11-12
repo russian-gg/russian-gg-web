@@ -2,7 +2,8 @@ import { useCallback, useEffect, useEffectEvent, useId, useMemo, useRef, useStat
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { ChevronLeft, Clock } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { invalidateUsage, LIMIT_CODES } from '../lib/usage'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { characterColors, characterName, characterPalette } from '../lib/character'
@@ -98,6 +99,7 @@ export function MissionLive() {
   const copy = t.missionLive
   const { locale } = useLocale()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { missionId } = useParams<{ missionId: string }>()
 
   const { data: mission, isLoading, isError, refetch } = useQuery({
@@ -237,11 +239,12 @@ export function MissionLive() {
       }
 
       await api.post(`/missions/attempts/${attempt.attemptId}/complete`)
+      void invalidateUsage(queryClient)
       navigate(`/missions/attempts/${attempt.attemptId}/result`, { replace: true })
     } catch {
       navigate(`/missions/${missionId}`, { replace: true })
     }
-  }, [missionId, navigate])
+  }, [missionId, navigate, queryClient])
 
   // The session's own clock. The server caps and clamps what it bills; this is what the
   // learner sees, and it is what stops the conversation on time.
@@ -449,6 +452,14 @@ export function MissionLive() {
       const isDailyLimit = outcome.unavailable?.reason === 'daily_limit'
       // Mid-call, what was said so far can still be graded; before it, there is nothing to.
       const midCall = turnsRef.current.length > 0 || phaseRef.current === 'reconnecting'
+      const reason = outcome.unavailable?.reason
+      void invalidateUsage(queryClient)
+      // Out of live tries or budget before the call began: the brief shows what is left and
+      // offers the same mission by voice note.
+      if (!midCall && (reason === LIMIT_CODES.liveTrialsUsed || reason === LIMIT_CODES.aiBudgetReached)) {
+        navigate(`/missions/${missionId}`, { replace: true, state: { limit: reason } })
+        return
+      }
       if (isDailyLimit) {
         // The dialog says what the limit is and, for a free learner, how to lift it.
         setDailyLimit(true)
