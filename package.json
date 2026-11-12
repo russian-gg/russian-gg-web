@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
+    "export:lesson-speech": "node scripts/export-lesson-speech.mjs",
     "optimize:assets": "node scripts/optimize-assets.mjs",
     "lint": "eslint . --max-warnings 0"
   },

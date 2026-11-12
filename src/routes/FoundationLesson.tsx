@@ -58,6 +58,7 @@ import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData, type Mascot, type Phrase, type Quiz, type Vocab } from '../lib/foundation-lessons'
 import { mascotAlt, mascotImage } from '../lib/mascot-images'
+import { cleanSpeechText, dialogueSpeaker, dialogueSpeechText, ruleSpeechSegments } from '../lib/lesson-speech'
 import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
@@ -784,22 +785,8 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
 
 function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetics']; genderStory?: boolean }) {
   const t = useT().lesson.rule
-  /*
-   * One segment per speaker turn, not one flat string. A mascot's line carries its `character`
-   * so playback switches to that mascot's own Gemini voice; unattributed narration (title,
-   * plain paragraphs, tables) has none and falls back to the learner's base voice. The
-   * old version prefixed every mascot line with its name read aloud ("Пингвин: …") because one
-   * voice narrated everyone — now that the voice itself carries the character, that prefix
-   * would be redundant.
-   */
-  const speechSegments: { text: string; character?: Mascot }[] = [
-    { text: rule.title },
-    ...rule.body.map((paragraph): { text: string; character?: Mascot } => typeof paragraph === 'string'
-      ? { text: paragraph }
-      : 'speaker' in paragraph
-        ? { text: paragraph.text, character: paragraph.speaker }
-        : { text: paragraph.table.rows.map((row) => row.join(', ')).join('. ') }),
-  ]
+  // Built by the same helper as the export the server pre-makes audio from (lib/lesson-speech).
+  const speechSegments = ruleSpeechSegments(rule)
   const hasSpeakerLines = rule.body.some((paragraph) => typeof paragraph !== 'string' && 'speaker' in paragraph)
   return (
     <Card className="p-4 sm:p-6">
@@ -2349,19 +2336,6 @@ function StepBadge({ index, title, active, done, onClick }: { index: number; tit
 }
 
 /** The speaker label in front of a dialogue line is a stage direction, not something to read out. */
-function dialogueSpeechText(line: string) {
-  const separator = line.indexOf(':')
-  return separator < 0 ? line : line.slice(separator + 1).trim()
-}
-
-const DIALOGUE_SPEAKERS: Record<string, Mascot> = { Пингвин: 'penguin', Панда: 'panda', Перо: 'pero' }
-
-/** The character a dialogue line belongs to, read from its "Пингвин: …" label. */
-function dialogueSpeaker(line: string): Mascot | undefined {
-  const separator = line.indexOf(':')
-  return separator < 0 ? undefined : DIALOGUE_SPEAKERS[line.slice(0, separator).trim()]
-}
-
 /**
  * The dialogue as a chat between the characters: each line in a bubble beside the one who says
  * it, instead of a "Пингвин: …" label written in front of plain text. The line being played
@@ -3139,10 +3113,6 @@ function pickVoice(voices: SpeechSynthesisVoice[], lang: string) {
   if (sameLanguage) return sameLanguage
   if (lang === 'uz-UZ') return voices.find((voice) => voice.lang.toLocaleLowerCase().startsWith('tr')) ?? null
   return null
-}
-
-function cleanSpeechText(text: string) {
-  return text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, '').replaceAll('—', ',').trim()
 }
 
 function readState(storageKey: string | null): StoredState {
