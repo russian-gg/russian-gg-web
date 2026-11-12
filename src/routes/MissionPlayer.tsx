@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, RequestError, track } from '../lib/api'
+import { invalidateUsage, isScoringPaused, useUsageToday } from '../lib/usage'
+import { ScoringPausedNote } from '../components/limits/ScoringPausedNote'
 import { cx } from '../lib/cx'
 import { pickContent } from '../lib/content'
 import { fill, useLocale, useT, type Dictionary } from '../lib/i18n'
@@ -70,6 +72,14 @@ type MicrophoneRetryAction = 'live' | 'voice-note'
  * Built from hairlines and whitespace rather than stacked cards. Detailed scoring is
  * deliberately withheld until the mission ends.
  */
+/**
+ * An answer past the day's scoring comes back unscored with a zero that means nothing. It
+ * counts as given, so the learner moves on instead of being asked to try again.
+ */
+function turnPassed(feedback: Pick<TurnFeedback, 'score' | 'scored'>) {
+  return feedback.score >= PASSING_TURN_SCORE || feedback.scored === false
+}
+
 export function MissionPlayer() {
   const dayCopy = useT().dayPreview
   const t = useT()
@@ -501,7 +511,8 @@ export function MissionPlayer() {
   }
 
   function applyFeedbackResult(result: TurnFeedback, transcriptValue: string) {
-    const passed = result.score >= PASSING_TURN_SCORE
+    const passed = turnPassed(result)
+    void invalidateUsage(queryClient)
     setTranscript(transcriptValue)
     setAssistantReply(null)
     setFeedback(result)
@@ -1041,7 +1052,8 @@ export function MissionPlayer() {
         isRetry,
       })
 
-      const passed = result.score >= PASSING_TURN_SCORE
+      const passed = turnPassed(result)
+      void invalidateUsage(queryClient)
       // A tutor reply is not completion. The goal is checked only after the learner's answer
       // reaches the passing score, matching the persisted mission progress.
       if (passed) {
@@ -1135,7 +1147,7 @@ export function MissionPlayer() {
               role: 'feedback' as const,
               strength: feedback.strengthNote,
               correction: feedback.headlineCorrection,
-              passed: feedback.score >= PASSING_TURN_SCORE,
+              passed: turnPassed(feedback),
             },
           ]
         : []),
@@ -1206,7 +1218,7 @@ export function MissionPlayer() {
             role: 'feedback' as const,
             strength: feedback.strengthNote,
             correction: feedback.headlineCorrection,
-            passed: feedback.score >= PASSING_TURN_SCORE,
+            passed: turnPassed(feedback),
           },
         ]
       : []),
@@ -1737,13 +1749,19 @@ function MicControl({
   onAdvance: () => void
 }) {
   const t = useT()
+  const { data: usage } = useUsageToday()
 
   // Once the turn is judged, the decision replaces the microphone: retry, or move on.
   if (state === 'feedback' && feedback) {
-    const passed = feedback.score >= PASSING_TURN_SCORE
+    const passed = turnPassed(feedback)
 
     return (
       <div className="mt-8 flex flex-col items-center gap-3">
+        {isScoringPaused(feedback) && (
+          <div className="w-full max-w-xl">
+            <ScoringPausedNote total={usage?.scoredAnswersPerDay ?? 30} resumesAt={feedback.scoringResumesAt} />
+          </div>
+        )}
         {stepExhausted && !passed && (
           // Named plainly and without blame: the step is parked, not failed.
           <p className="text-support max-w-sm text-center">{t.player.parkedStep}</p>

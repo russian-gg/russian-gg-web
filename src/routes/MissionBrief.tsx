@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { characterName, characterPalette } from '../lib/character'
 import { missionPath } from '../lib/mission-path'
@@ -16,6 +16,9 @@ import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import { backdrop, sheet } from '../lib/motion'
 import { MissionPlayer } from './MissionPlayer'
+import { LiveTrialsCard } from '../components/limits/LiveTrialsCard'
+import { BudgetSheet } from '../components/limits/BudgetSheet'
+import { LIMIT_CODES, useUsageToday } from '../lib/usage'
 
 /**
  * The route every mission opens on. A converted mission gets its brief — who you are about to
@@ -69,6 +72,16 @@ export function MissionBrief({ mission }: MissionBriefProps) {
   const remaining = useCountdown(dialogue.retry.retryAvailableAt)
   const locked = !dialogue.retry.canStart
   const queryClient = useQueryClient()
+  const limits = t.limits
+  const { data: usage } = useUsageToday()
+  const location = useLocation()
+  // MissionLive sends the learner back here when the server refused a live session.
+  const refusedFor = (location.state as { limit?: string } | null)?.limit
+  const [showBudget, setShowBudget] = useState(refusedFor === LIMIT_CODES.aiBudgetReached)
+  const budgetReached = Boolean(usage?.aiBudgetReached)
+  // No live tries left today: the conversation is closed until they come back. There is no
+  // voice-note way round it.
+  const trialsUsed = Boolean(usage && !budgetReached && usage.liveTrialsLeft <= 0)
 
   // When the wait runs out the server is asked again, so the button opens without a reload.
   const waitOver = locked && remaining === '0:00'
@@ -169,25 +182,46 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         The start control sits on its own raised strip, pinned on a phone: it is the only
         action on this screen and should never be the thing a learner has to scroll for.
       */}
+      {/* What is left of today's live conversations, before the learner presses start. */}
+      {usage && !locked && (
+        <LiveTrialsCard usage={usage} minutes={Math.round(dialogue.conversationSeconds / 60)} />
+      )}
+
       <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 md:bottom-3 space-y-2 rounded-[var(--radius-card)] border border-hairline bg-ground-raised/95 p-3 shadow-[0_10px_30px_rgb(22_24_29/0.10)] backdrop-blur-sm">
         {/*
           Not `disabled`: a disabled button takes no taps at all, so the explanation below was
           never reachable. It looks unavailable and says why when pressed.
         */}
-        <Button
-          block
-          size="lg"
-          variant={locked ? 'secondary' : 'primary'}
-          aria-disabled={locked}
-          className={locked ? 'opacity-60' : undefined}
-          onClick={() =>
-            locked
-              ? setShowCooldown(true)
-              : navigate(`/missions/${mission.summary.id}/live`, { state: { autostart: true } })
-          }
-        >
-          {locked ? copy.retryLocked : copy.start}
-        </Button>
+        {trialsUsed && !locked ? (
+          // Today's live tries are used: the conversation is blocked; review is the way on.
+          <>
+            <Button block size="lg" variant="secondary" aria-disabled className="opacity-60">
+              {limits.liveBlocked}
+            </Button>
+            <Button block size="lg" onClick={() => navigate('/path')}>
+              {limits.reviewLesson}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              block
+              size="lg"
+              variant={locked || budgetReached ? 'secondary' : 'primary'}
+              aria-disabled={locked || budgetReached}
+              className={locked || budgetReached ? 'opacity-60' : undefined}
+              onClick={() =>
+                locked
+                  ? setShowCooldown(true)
+                  : budgetReached
+                    ? setShowBudget(true)
+                    : navigate(`/missions/${mission.summary.id}/live`, { state: { autostart: true } })
+              }
+            >
+              {locked ? copy.retryLocked : copy.start}
+            </Button>
+          </>
+        )}
         {/* Said before the browser asks, so the permission prompt is expected, not a surprise. */}
         {!locked && (
           <p className="text-center text-xs leading-relaxed text-ink-muted">
@@ -200,6 +234,16 @@ export function MissionBrief({ mission }: MissionBriefProps) {
             : attemptsCaption(dialogue.retry, copy)}
         </p>
       </div>
+
+      <BudgetSheet
+        open={showBudget}
+        resetsAt={usage?.budgetResetsAt}
+        onReview={() => {
+          setShowBudget(false)
+          navigate('/path')
+        }}
+        onDismiss={() => setShowBudget(false)}
+      />
 
       {/*
         The button is disabled rather than hidden, and pressing it explains why: a learner who

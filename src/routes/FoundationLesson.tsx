@@ -58,9 +58,13 @@ import { useAuth } from '../lib/auth-context'
 import { cx } from '../lib/cx'
 import { foundationLessons, type LessonData, type Mascot, type Phrase, type Quiz, type Vocab } from '../lib/foundation-lessons'
 import { mascotAlt, mascotImage } from '../lib/mascot-images'
+import { cleanSpeechText, dialogueSpeaker, dialogueSpeechText, ruleSpeechSegments } from '../lib/lesson-speech'
 import { foundationLessonStorageKey } from '../lib/demo-lesson-one'
 import { syncLessonOneCompletion } from '../lib/lesson-one-sync'
 import { api, RequestError } from '../lib/api'
+import { isScoringPaused, LIMIT_CODES, useUsageToday } from '../lib/usage'
+import { LessonLimitScreen } from '../components/limits/LessonLimitScreen'
+import { ScoringPausedNote } from '../components/limits/ScoringPausedNote'
 import { pausePromptAudio, playPromptAudio, prefetchPromptAudio, resumePromptAudio, stopPromptAudio, VoiceError } from '../lib/liveVoice'
 import { playUiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
@@ -393,6 +397,22 @@ export function FoundationLesson() {
   const lock = thisMission ? missionLock(thisMission) : null
 
   /*
+   * A new lesson counts toward the day's three when it is opened, so the server is asked then,
+   * not at the first spoken answer half-way through. A finished lesson is review and is never
+   * asked about. Past the limit the lesson is replaced by the screen that says what is left.
+   */
+  const opensNewLesson = Boolean(missionId && thisMission && !thisMission.isCompleted && !lock)
+  const { error: openError } = useQuery({
+    queryKey: ['lesson-open', missionId],
+    queryFn: () => api.post<StartAttemptResponse>(`/missions/${missionId}/attempts`),
+    enabled: opensNewLesson,
+    retry: false,
+    staleTime: Infinity,
+  })
+  const { data: usage } = useUsageToday()
+  const limitsCopy = useT().limits
+
+  /*
    * The lesson is recorded when the closing card appears, not when its button is pressed: the
    * card says "done", and a learner who closed the tab on it was left at eight of nine.
    */
@@ -408,6 +428,15 @@ export function FoundationLesson() {
   if (!lesson) return <Navigate to="/path" replace />
   if (lock) return <Navigate to={`/path?locked=${day}&kind=${lock}`} replace />
   if (checkingAccess) return <Spinner />
+  if (openError instanceof RequestError && openError.code === LIMIT_CODES.lessonDailyLimit) {
+    return (
+      <LessonLimitScreen
+        usage={usage}
+        lessonNumber={lesson.day}
+        lessonTitle={<>{fill(limitsCopy.lessonNumber, { day: lesson.day })}: <span lang="ru">«{lesson.titleRu}»</span></>}
+      />
+    )
+  }
 
   async function recordCompletion() {
     // Already on the server — a finished lesson opened again — so nothing new to record.
@@ -784,22 +813,8 @@ function QuizCard({ quiz, number, answer, onAnswer }: { quiz: Quiz; number: numb
 
 function RuleSection({ rule, genderStory = false }: { rule: LessonData['phonetics']; genderStory?: boolean }) {
   const t = useT().lesson.rule
-  /*
-   * One segment per speaker turn, not one flat string. A mascot's line carries its `character`
-   * so playback switches to that mascot's own Gemini voice; unattributed narration (title,
-   * plain paragraphs, tables) has none and falls back to the learner's base voice. The
-   * old version prefixed every mascot line with its name read aloud ("Пингвин: …") because one
-   * voice narrated everyone — now that the voice itself carries the character, that prefix
-   * would be redundant.
-   */
-  const speechSegments: { text: string; character?: Mascot }[] = [
-    { text: rule.title },
-    ...rule.body.map((paragraph): { text: string; character?: Mascot } => typeof paragraph === 'string'
-      ? { text: paragraph }
-      : 'speaker' in paragraph
-        ? { text: paragraph.text, character: paragraph.speaker }
-        : { text: paragraph.table.rows.map((row) => row.join(', ')).join('. ') }),
-  ]
+  // Built by the same helper as the export the server pre-makes audio from (lib/lesson-speech).
+  const speechSegments = ruleSpeechSegments(rule)
   const hasSpeakerLines = rule.body.some((paragraph) => typeof paragraph !== 'string' && 'speaker' in paragraph)
   return (
     <Card className="p-4 sm:p-6">
@@ -1998,6 +2013,7 @@ function MissionModes({
   /** A question answered aloud, with what the AI said about the answer. */
   onAiAnswered: (index: number, note: string) => void
 }) {
+  const { data: usage } = useUsageToday()
   const dictionary = useT()
   const { locale } = useLocale()
   const t = dictionary.lesson.missions
@@ -2023,7 +2039,7 @@ function MissionModes({
    * What the AI said back, or what went wrong. Kept apart because they look different: a
    * refused microphone printed in success green read as praise.
    */
-  const [feedback, setFeedback] = useState<{ kind: 'note' | 'error'; text: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ kind: 'note' | 'error' | 'paused'; text: string } | null>(null)
   /**
    * The browser is asking for the microphone right now. The note explaining that prompt sat
    * under the mic from the start, as one more line nobody needed yet; it shows while the
@@ -2177,10 +2193,16 @@ function MissionModes({
       form.set('audio', audio, `foundation-answer.${recordingExtension(mimeType)}`)
       const result = await api.postForm<VoiceNoteTurnFeedback>('/missions/attempts/voice-note', form)
       attemptRef.current = { ...attempt, currentStepIndex: result.feedback.nextStepIndex }
+      // Past the day's scored answers: the answer still counts, the grade waits for tomorrow.
+      if (isScoringPaused(result.feedback)) {
+        setFeedback({ kind: 'paused', text: result.feedback.scoringResumesAt ?? '' })
+        if (result.transcript?.trim()) onDone?.(result.feedback.headlineCorrection)
+        return
+      }
       const spokenFeedback = shortFeedback(result.feedback)
       setFeedback({ kind: 'note', text: spokenFeedback })
       // The server writes the feedback in the learner's language, so it is read in that voice.
-      await speak(spokenFeedback, SPEECH_TAG[locale])
+      await speak(spokenFeedback, SPEECH_TAG[locale], { personal: true })
       // An answer counts only when something was heard: any recording, silence included, used
       // to tick the question off.
       if (result.transcript?.trim()) onDone?.(spokenFeedback)
@@ -2330,7 +2352,9 @@ function MissionModes({
               />
             </div>
           )
-          : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={note.text} /></p>
+          : note.kind === 'paused'
+            ? <div className="mt-3"><ScoringPausedNote total={usage?.scoredAnswersPerDay ?? 30} resumesAt={note.text} /></div>
+            : <p role="status" className="mt-3 rounded-xl bg-milestone-soft p-3 text-sm text-milestone"><RussianText text={note.text} /></p>
       )}
     </Card>
   )
@@ -2349,19 +2373,6 @@ function StepBadge({ index, title, active, done, onClick }: { index: number; tit
 }
 
 /** The speaker label in front of a dialogue line is a stage direction, not something to read out. */
-function dialogueSpeechText(line: string) {
-  const separator = line.indexOf(':')
-  return separator < 0 ? line : line.slice(separator + 1).trim()
-}
-
-const DIALOGUE_SPEAKERS: Record<string, Mascot> = { Пингвин: 'penguin', Панда: 'panda', Перо: 'pero' }
-
-/** The character a dialogue line belongs to, read from its "Пингвин: …" label. */
-function dialogueSpeaker(line: string): Mascot | undefined {
-  const separator = line.indexOf(':')
-  return separator < 0 ? undefined : DIALOGUE_SPEAKERS[line.slice(0, separator).trim()]
-}
-
 /**
  * The dialogue as a chat between the characters: each line in a bubble beside the one who says
  * it, instead of a "Пингвин: …" label written in front of plain text. The line being played
@@ -2874,13 +2885,15 @@ function recordingExtension(mimeType: string) {
   return mimeType.includes('mp4') ? 'm4a' : 'webm'
 }
 
-async function speak(text: string, lang: string) {
+/** `personal`: text written for this learner (their feedback), spoken live and never stored. */
+async function speak(text: string, lang: string, { personal = false }: { personal?: boolean } = {}) {
   if (readAudioPreferences().muted) return
   window.dispatchEvent(new CustomEvent('rgg-speech-start', { detail: { id: null } }))
   try {
     await new Promise<void>((resolve, reject) => {
       let started = false
       void playPromptAudio(cleanSpeechText(text), {
+        personal,
         onStateChange: (state) => {
           if (state === 'playing') started = true
           if (state === 'idle' && started) resolve()
@@ -3137,10 +3150,6 @@ function pickVoice(voices: SpeechSynthesisVoice[], lang: string) {
   if (sameLanguage) return sameLanguage
   if (lang === 'uz-UZ') return voices.find((voice) => voice.lang.toLocaleLowerCase().startsWith('tr')) ?? null
   return null
-}
-
-function cleanSpeechText(text: string) {
-  return text.replace(/🐧|🐼|🪶|🎭|🎙️/gu, '').replaceAll('—', ',').trim()
 }
 
 function readState(storageKey: string | null): StoredState {

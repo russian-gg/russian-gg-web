@@ -1028,7 +1028,13 @@ function shouldRetryMicrophoneWithPlainAudio(error: unknown) {
 let promptAudio: HTMLAudioElement | null = null
 let promptAudioUrl: string | null = null
 let promptAudioText: string | null = null
-const promptAudioCache = new Map<string, Blob>()
+/**
+ * A clip is either a blob the API returned, or — for lesson lines kept in storage — the signed
+ * link to the stored file, which the audio element streams itself. Links are stable for about
+ * an hour (the server rounds their expiry), well past this cache's lifetime in a session.
+ */
+type PromptAudioSource = Blob | string
+const promptAudioCache = new Map<string, PromptAudioSource>()
 
 type PromptAudioState = 'idle' | 'loading' | 'playing'
 type PromptAudioCallbacks = {
@@ -1043,13 +1049,55 @@ type PromptAudioCallbacks = {
    * character's own voice instead of the learner's. Omit for ordinary, unattributed text.
    */
   character?: string
+  /**
+   * Text written for this learner alone — the feedback on their answer. It is spoken live and
+   * never stored on the server, since it can carry what the learner said about themselves.
+   */
+  personal?: boolean
+}
+
+type PromptAudioLink = { url: string; contentType: string; model: string }
+
+/** Safari before 17 cannot play Ogg Opus; those browsers ask the server for WAV instead. */
+let opusSupport: boolean | null = null
+function canPlayOpus() {
+  if (opusSupport === null) {
+    try {
+      opusSupport = typeof Audio !== 'undefined' && new Audio().canPlayType('audio/ogg; codecs=opus') !== ''
+    } catch {
+      opusSupport = false
+    }
+  }
+  return opusSupport
+}
+
+/**
+ * Where a line's audio comes from. Lesson content is played from storage through a signed
+ * link (made once on the server if it is not stored yet); personal feedback, and any link that
+ * fails, goes through the original endpoint that returns the audio bytes.
+ */
+async function fetchPromptAudio(text: string, character?: string, personal = false): Promise<PromptAudioSource> {
+  if (!personal) {
+    try {
+      const link = await api.post<PromptAudioLink>('/missions/voice/prompt-audio/link', {
+        text,
+        character,
+        format: canPlayOpus() ? 'ogg' : 'wav',
+      })
+      if (link?.url) return link.url
+    } catch {
+      // An older API, or storage unwell: the byte endpoint still speaks the line.
+    }
+  }
+
+  return api.postBlob('/missions/voice/prompt-audio', { text, character, use: personal ? 'feedback' : undefined })
 }
 
 function promptAudioCacheKey(text: string, character?: string) {
   return character ? `${character}::${text}` : text
 }
 
-function setCachedPromptAudio(cacheKey: string, blob: Blob) {
+function setCachedPromptAudio(cacheKey: string, blob: PromptAudioSource) {
   if (promptAudioCache.has(cacheKey)) {
     promptAudioCache.delete(cacheKey)
   }
@@ -1097,9 +1145,8 @@ export function prefetchPromptAudio(text: string, character?: string): Promise<v
     return Promise.resolve()
   }
 
-  const request = api
-    .postBlob('/missions/voice/prompt-audio', { text: normalized, character })
-    .then((blob) => setCachedPromptAudio(cacheKey, blob))
+  const request = fetchPromptAudio(normalized, character)
+    .then((source) => setCachedPromptAudio(cacheKey, source))
     .catch(() => {
       // Best-effort: playPromptAudio will fetch live when the learner actually taps play.
     })
@@ -1128,7 +1175,7 @@ export async function playPromptAudio(text: string, callbacks?: PromptAudioCallb
 
     return (
       promptAudioCache.get(cacheKey) ??
-      (await api.postBlob('/missions/voice/prompt-audio', { text: normalized, character: callbacks?.character }))
+      (await fetchPromptAudio(normalized, callbacks?.character, callbacks?.personal))
     )
   })
 }
@@ -1148,29 +1195,38 @@ export async function playLandingCharacterVoice(character: string, callbacks?: P
   )
 }
 
-/** Shared by playPromptAudio and playLandingCharacterVoice: resolve one cached audio blob, then
- * own the single module-level Audio element (start/stop/pause/resume) that plays it. */
+/** Shared by playPromptAudio and playLandingCharacterVoice: resolve one cached audio source,
+ * then own the single module-level Audio element (start/stop/pause/resume) that plays it. */
 async function playCachedAudio(
   cacheKey: string,
   callbacks: PromptAudioCallbacks | undefined,
-  resolveBlob: () => Promise<Blob>,
+  resolveSource: () => Promise<PromptAudioSource>,
 ) {
   callbacks?.onStateChange?.('loading')
   stopPromptAudio()
 
-  const audioBlob = await resolveBlob()
+  const source = await resolveSource()
   if (!promptAudioCache.has(cacheKey)) {
-    setCachedPromptAudio(cacheKey, audioBlob)
+    setCachedPromptAudio(cacheKey, source)
   }
 
-  const audioUrl = URL.createObjectURL(audioBlob)
+  // A stored lesson line is a link the element streams directly; only a blob needs an object
+  // URL, and only that object URL is ours to revoke.
+  const isLink = typeof source === 'string'
+  const audioUrl = isLink ? source : URL.createObjectURL(source)
   const audio = new Audio(audioUrl)
   const preferences = readAudioPreferences()
   audio.playbackRate = callbacks?.rate ?? 1
   audio.muted = preferences.muted
   promptAudio = audio
-  promptAudioUrl = audioUrl
+  promptAudioUrl = isLink ? null : audioUrl
   promptAudioText = cacheKey
+
+  // A link that will not load (expired, or the file is gone) must not be served again from
+  // the cache; the next tap asks the server for a fresh one.
+  const forgetLink = () => {
+    if (isLink && promptAudioCache.get(cacheKey) === source) promptAudioCache.delete(cacheKey)
+  }
 
   audio.onended = () => {
     callbacks?.onStateChange?.('idle')
@@ -1178,6 +1234,7 @@ async function playCachedAudio(
   }
 
   audio.onerror = () => {
+    forgetLink()
     callbacks?.onStateChange?.('idle')
     stopPromptAudio()
   }
@@ -1186,6 +1243,7 @@ async function playCachedAudio(
     await audio.play()
     callbacks?.onStateChange?.('playing')
   } catch (error) {
+    forgetLink()
     callbacks?.onStateChange?.('idle')
     stopPromptAudio()
     throw error
