@@ -38,6 +38,16 @@ import { Games } from './screens/Games'
 import { Tests } from './screens/Tests'
 import { LessonAudio } from './screens/LessonAudio'
 import { AiBalance } from './screens/AiBalance'
+import { Centers } from './screens/Centers'
+import {
+  CenterOverviewScreen,
+  CenterSettingsScreen,
+  CenterStudentsScreen,
+  type StudentFilter,
+} from './screens/CenterPortal'
+import { Toaster } from './components/toast'
+import { CenterPayPage } from './screens/CenterPay'
+import { payTokenFromPath } from './lib/center-format'
 
 type Section =
   | 'dashboard'
@@ -56,6 +66,11 @@ type Section =
   | 'tests'
   | 'lesson-audio'
   | 'ai-balance'
+  | 'centers'
+  | 'center-overview'
+  | 'center-groups'
+  | 'center-students'
+  | 'center-settings'
 
 /**
  * `sales` marks the sections a sotuv account may open. It mirrors what the server allows —
@@ -78,11 +93,22 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
   { id: 'ai-usage', label: 'AI ishlatilishi', group: 'Pul va AI' },
   { id: 'ai-balance', label: 'Gemini balansi', group: 'Pul va AI' },
   { id: 'promo-codes', label: 'Promo kodlar', group: 'Pul va AI' },
+  { id: 'centers', label: "O'quv markazlari", group: 'B2B' },
   { id: 'feedbacks', label: 'Murojaatlar', group: 'Murojaat' },
   { id: 'tests', label: 'Testlar', group: 'Tizim' },
   { id: 'games', label: "O'yinlar", group: 'Tizim' },
   { id: 'lesson-audio', label: 'Dars audiolari', group: 'Tizim' },
   { id: 'portal-users', label: 'Xodimlar', group: 'Tizim' },
+]
+
+/**
+ * A language center's admin gets a sidebar of its own: four screens, all scoped on the server to
+ * the center in their token. None of the team's sections are drawn for them.
+ */
+const centerSections: Array<{ id: Section; label: string; group: string }> = [
+  { id: 'center-overview', label: 'Umumiy', group: 'Markaz' },
+  { id: 'center-students', label: "O'quvchilar", group: 'Markaz' },
+  { id: 'center-settings', label: 'Sozlamalar', group: 'Markaz' },
 ]
 
 /** Paired here rather than in the icon module, because the section ids are this file's. */
@@ -103,14 +129,21 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   tests: TestsGlyph,
   'lesson-audio': () => <SoundGlyph on />,
   'ai-balance': PaymentGlyph,
+  centers: UsersGlyph,
+  'center-overview': DashboardGlyph,
+  'center-students': UsersGlyph,
+  'center-groups': TestsGlyph,
+  'center-settings': PromoGlyph,
 }
 
 function visibleSections(role: PortalRole) {
+  if (role === 'CenterAdmin') return centerSections
   return role === 'Sales' ? sections.filter((item) => item.sales) : sections
 }
 
 /** Where each role opens: the inbox is a sales account's job, not the first row of the menu. */
 function defaultSection(role: PortalRole): Section {
+  if (role === 'CenterAdmin') return 'center-overview'
   return role === 'Sales' ? 'sales' : 'dashboard'
 }
 
@@ -124,8 +157,21 @@ function readStoredSection(role: PortalRole): Section {
 
 const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
 
+/**
+ * The panel, or — on "/pay/{token}" — a language center's public pay page, which needs no
+ * session and shows nothing of the panel. Decided once from the path: nothing navigates
+ * between the two.
+ */
 export function AdminApp() {
-  const { token, name, role } = useSession()
+  const payToken = payTokenFromPath(window.location.pathname)
+  if (payToken) return <CenterPayPage token={payToken} />
+  return <Panel />
+}
+
+function Panel() {
+  const { token, name, role, centerName } = useSession()
+  /* Which slice of the student list the overview's figures open. */
+  const [studentFilter, setStudentFilter] = useState<StudentFilter>('all')
   const [section, setSection] = useState<Section>(() => readStoredSection(session.role()))
   /*
    * Bumped when the section already open is clicked again, and used as the screen's key, so
@@ -195,7 +241,7 @@ export function AdminApp() {
               russian<span className="text-signal-ink">.gg</span>
             </div>
             <div className="text-xs font-bold uppercase tracking-[0.14em] text-ink-faint">
-              {role === 'Sales' ? 'Sotuv paneli' : 'Admin panel'}
+              {role === 'CenterAdmin' ? centerName || 'Markaz paneli' : role === 'Sales' ? 'Sotuv paneli' : 'Admin panel'}
             </div>
           </div>
 
@@ -320,7 +366,19 @@ export function AdminApp() {
         {active === 'lesson-audio' && <LessonAudio />}
         {active === 'ai-balance' && <AiBalance />}
         {active === 'tests' && <Tests />}
+        {active === 'centers' && <Centers />}
+        {active === 'center-overview' && (
+          <CenterOverviewScreen
+            onOpenStudents={(filter) => {
+              setStudentFilter(filter)
+              setSection('center-students')
+            }}
+          />
+        )}
+        {active === 'center-students' && <CenterStudentsScreen key={studentFilter} initialFilter={studentFilter} />}
+        {active === 'center-settings' && <CenterSettingsScreen />}
       </main>
+      <Toaster />
     </div>
   )
 }
@@ -381,7 +439,7 @@ function LoginScreen() {
       if (!response.ok) throw new Error('Login failed')
 
       const data = await response.json()
-      session.signIn(data.token, data.name, data.role)
+      session.signIn(data.token, data.name, data.role, data.centerName)
     } catch {
       setError("Login yoki parol noto'g'ri. Qayta urinib ko'ring.")
     } finally {

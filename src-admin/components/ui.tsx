@@ -597,6 +597,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  confirmVariant = 'danger',
   busy = false,
   onConfirm,
   onCancel,
@@ -604,6 +605,8 @@ export function ConfirmDialog({
   title: string
   body: ReactNode
   confirmLabel: string
+  /** Red for what takes something away; primary for confirming something that gives it back. */
+  confirmVariant?: 'danger' | 'primary'
   busy?: boolean
   onConfirm: () => void
   onCancel: () => void
@@ -652,7 +655,7 @@ export function ConfirmDialog({
           <Button variant="secondary" size="sm" onClick={onCancel} disabled={busy}>
             Bekor qilish
           </Button>
-          <Button variant="danger" size="sm" onClick={onConfirm} disabled={busy}>
+          <Button variant={confirmVariant} size="sm" onClick={onConfirm} disabled={busy}>
             {busy ? 'Bajarilmoqda…' : confirmLabel}
           </Button>
         </div>

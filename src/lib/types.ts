@@ -524,6 +524,46 @@ export interface EntitlementView {
    * "monthly" — anything reading this has to have an answer for undefined.
    */
   period?: BillingPeriod | null
+  /**
+   * The language center the learner studies with, when there is one. Optional for the same
+   * reason `period` is: an older server does not send it.
+   */
+  centerName?: string | null
+  /** Pro is the center's seat, not the learner's purchase — nothing here for them to buy or cancel. */
+  centerPaid?: boolean
+}
+
+/* ------------------------------------------------------------------ language centers */
+
+export type CenterMembershipStatus = 'active' | 'requested' | 'deactivated'
+
+/**
+ * `/me/center`: the learner's place in a language center. The server answers 204 when there is
+ * none. The center pays for its students up front, a month at a time.
+ */
+export interface MyCenterView {
+  centerName: string
+  groupName: string | null
+  status: CenterMembershipStatus
+  /** The center gives Pro today: switched on, its contract started, and today paid for. */
+  centerActive: boolean
+  /** The last day the center has paid for ("2026-12-11"), when it has paid at all. */
+  paidThrough: string | null
+  hasPro: boolean
+  centerPaid: boolean
+}
+
+export type CenterStudentBand = 'under-50' | '50-200' | 'over-200'
+
+/** `/public/center-leads`: a demo request from the centers page. */
+export interface CenterLeadRequest {
+  centerName: string
+  city: string
+  contactName: string
+  phone: string
+  studentBand: CenterStudentBand
+  /** A honeypot. People leave it empty; a form-filling bot does not. */
+  website: string
 }
 
 export type PaymentProvider = 'click' | 'payme'

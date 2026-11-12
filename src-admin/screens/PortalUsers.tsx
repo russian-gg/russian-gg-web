@@ -26,6 +26,7 @@ function suggestPassword() {
 const roleLabel: Record<PortalRole, string> = {
   Admin: 'Administrator',
   Sales: 'Sotuv',
+  CenterAdmin: 'Markaz administratori',
 }
 
 export function PortalUsers() {
