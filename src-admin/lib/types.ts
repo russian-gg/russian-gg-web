@@ -627,3 +627,43 @@ export interface AdminLessonAudioRun {
   current?: AdminLessonAudioLesson | null
   failures: Array<AdminLessonAudioLesson & { error?: string | null; gaveUp: boolean }>
 }
+
+export type AiBalanceEntryKind = 'TopUp' | 'Correction'
+
+export interface AdminAiBalanceEntry {
+  id: string
+  kind: AiBalanceEntryKind
+  amountUsd: number
+  effectiveAt: string
+  note?: string | null
+  createdBy?: string | null
+}
+
+export interface AdminAiSpendPoint {
+  date: string
+  costUsd: number
+}
+
+/** GET /api/admin-portal/ai-balance */
+export interface AdminAiBalance {
+  /** Left out of the JSON until the first top-up or correction. */
+  estimatedBalanceUsd?: number | null
+  countedFrom?: string | null
+  spentSinceUsd: number
+  topUpsSinceUsd: number
+  dailyAverageUsd: number
+  daysLeft?: number | null
+  warnBelowUsd: number
+  low: boolean
+  estimatedByDay: AdminAiSpendPoint[]
+  depletion?: { code: 'depleted' | 'rate_limited'; lastSeenAt: string; failedCalls: number } | null
+  google: {
+    state: 'not_configured' | 'ok' | 'error'
+    currency?: string | null
+    last30DaysTotal?: number | null
+    byDay: AdminAiSpendPoint[]
+    readAt?: string | null
+    error?: string | null
+  }
+  entries: AdminAiBalanceEntry[]
+}
