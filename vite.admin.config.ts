@@ -6,7 +6,24 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   // The admin panel is built from the learner product's tokens, so it needs the same
   // Tailwind pipeline rather than a stylesheet of its own.
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      // In production nginx answers every unknown path with admin.html; the dev server would
+      // answer a center's pay link (/pay/…) with the learner app's index.html instead.
+      name: 'admin-pay-link-fallback',
+      configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+          if (request.url?.startsWith('/pay/')) request.url = '/admin.html'
+          next()
+        })
+      },
+    },
+  ],
+  // Its own dep cache: with the learner dev server on the default one, each re-optimizes the
+  // other's chunks away and the open page loads two copies of React.
+  cacheDir: 'node_modules/.vite-admin',
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src-admin', import.meta.url)) },
   },

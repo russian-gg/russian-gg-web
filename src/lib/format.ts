@@ -10,9 +10,16 @@ export function formatPrice(tiyin: number, currency = 'UZS', locale: Locale = 'u
 
 const INTL_TAG: Record<Locale, string> = { uz: 'uz-UZ', ru: 'ru-RU', en: 'en-GB' }
 
+/**
+ * A plain calendar date ("2026-12-11") is read as that day where the learner is. `new Date` would
+ * take it as midnight UTC, which west of Greenwich is the evening before — the day a center's
+ * payment runs out showed one day early.
+ */
 export function formatDate(iso: string | null | undefined, locale: Locale = 'uz'): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString(INTL_TAG[locale], {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  const date = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(iso)
+  return date.toLocaleDateString(INTL_TAG[locale], {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

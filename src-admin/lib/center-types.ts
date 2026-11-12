@@ -1,13 +1,17 @@
 /*
  * Language centers (B2B). Mirrors the records in the server's CenterDirectory and
  * AdminCentersController; tiyin everywhere money appears, so divide by 100 for so'm.
+ *
+ * A center pays up front, a month at a time, for its student limit. Its students have Pro while
+ * the center is switched on, its contract has started, and today falls in a paid month.
  */
 
 export type SeatStatus = 'active' | 'requested' | 'deactivated'
 
-export type CenterPayMode = 'center' | 'student'
-
 export type CenterStatus = 'active' | 'suspended' | 'archived'
+
+/** Why a center's students do or do not have Pro today. */
+export type CenterAccess = 'open' | 'suspended' | 'archived' | 'not_started' | 'unpaid'
 
 export type CenterStudent = {
   seatId: string
@@ -27,8 +31,6 @@ export type CenterStudent = {
   speakingMinutes7d: number
   missionsCompleted: number
   atRisk: boolean
-  /** Student pays centers only. */
-  paid: boolean | null
   addedAt: string
 }
 
@@ -45,11 +47,33 @@ export type CenterGroup = {
   atRisk: number
 }
 
+export type CenterInvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
+
+export type CenterInvoice = {
+  id: string
+  periodStart: string
+  periodEnd: string
+  seats: number
+  pricePerSeatTiyin: number
+  amountTiyin: number
+  status: CenterInvoiceStatus
+  /** The secret in the public pay link, /pay/{token}. */
+  payToken: string
+  sentAt: string | null
+  paidAt: string | null
+  /** "click", "payme", or "admin:{login}" for a bank transfer marked by hand. */
+  paidVia: string | null
+  note: string | null
+}
+
 export type CenterOverview = {
   centerId: string
   name: string
   status: CenterStatus
-  payMode: CenterPayMode
+  access: CenterAccess
+  contractStartsOn: string | null
+  paidThrough: string | null
+  maxStudents: number
   pricePerSeatTiyin: number
   joinCode: string
   activeStudents: number
@@ -59,8 +83,7 @@ export type CenterOverview = {
   weeklyActivePercent: number
   averageCourseDay: number | null
   atRisk: number
-  billableThisMonth: number
-  billSoFarTiyin: number
+  openInvoice: CenterInvoice | null
   groups: CenterGroup[]
 }
 
@@ -82,6 +105,9 @@ export type AddStudentsResult = {
   alreadyHere: string[]
   inOtherCenter: string[]
   invalid: string[]
+  /** Numbers left out because the center's limit was reached. */
+  overLimit: string[]
+  maxStudents: number
 }
 
 export type AdminCenterRow = {
@@ -89,13 +115,17 @@ export type AdminCenterRow = {
   name: string
   city: string | null
   status: CenterStatus
-  payMode: CenterPayMode
+  access: CenterAccess
   pricePerSeatTiyin: number
+  maxStudents: number
+  contractStartsOn: string | null
+  paidThrough: string | null
   joinCode: string
   activeStudents: number
   requested: number
-  billableThisMonth: number
-  billSoFarTiyin: number
+  /** What its unpaid invoices add up to. */
+  openAmountTiyin: number
+  overdue: boolean
   admins: string[]
   createdAt: string
 }
@@ -108,20 +138,10 @@ export type AdminCenterAccount = {
   lastLoginAt: string | null
 }
 
-export type CenterInvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-
 export type AdminCenterInvoice = {
-  id: string
   centerId: string
   centerName: string
-  month: string
-  activeSeats: number
-  pricePerSeatTiyin: number
-  amountTiyin: number
-  status: CenterInvoiceStatus
-  sentAt: string | null
-  paidAt: string | null
-  note: string | null
+  invoice: CenterInvoice
 }
 
 export type AdminCenterDetail = {
@@ -131,14 +151,14 @@ export type AdminCenterDetail = {
   contactName: string | null
   contactPhone: string | null
   status: CenterStatus
-  payMode: CenterPayMode
   pricePerSeatTiyin: number
+  maxStudents: number
   joinCode: string
   contractStartsOn: string | null
-  note: string | null
+  paidThrough: string | null
   createdAt: string
   admins: AdminCenterAccount[]
-  invoices: AdminCenterInvoice[]
+  invoices: CenterInvoice[]
   overview: CenterOverview
 }
 
@@ -157,6 +177,20 @@ export type AdminCenterLead = {
   createdAt: string
 }
 
+/** What a pay link shows: the month, the sum, and nothing else about the center. */
+export type CenterPayView = {
+  centerName: string
+  periodStart: string
+  periodEnd: string
+  seats: number
+  pricePerSeatTiyin: number
+  amountTiyin: number
+  status: CenterInvoiceStatus
+  paidAt: string | null
+  /** The rails that can take this payment: "click", "payme". */
+  providers: string[]
+}
+
 export const seatStatusLabel: Record<SeatStatus, string> = {
   active: 'Faol',
   requested: 'Kutilmoqda',
@@ -165,18 +199,21 @@ export const seatStatusLabel: Record<SeatStatus, string> = {
 
 export const centerStatusLabel: Record<CenterStatus, string> = {
   active: 'Faol',
-  suspended: "To'xtatilgan",
+  suspended: "O'chirilgan",
   archived: 'Arxiv',
 }
 
-export const payModeLabel: Record<CenterPayMode, string> = {
-  center: "Markaz to'laydi",
-  student: "O'quvchi to'laydi",
+export const accessLabel: Record<CenterAccess, string> = {
+  open: 'Pro ochiq',
+  suspended: "Markaz o'chirilgan",
+  archived: 'Arxivda',
+  not_started: 'Shartnoma hali boshlanmagan',
+  unpaid: "To'lanmagan",
 }
 
 export const invoiceStatusLabel: Record<CenterInvoiceStatus, string> = {
   draft: 'Qoralama',
-  sent: 'Yuborilgan',
+  sent: "To'lov kutilmoqda",
   paid: "To'langan",
   overdue: "Muddati o'tgan",
   cancelled: 'Bekor qilingan',

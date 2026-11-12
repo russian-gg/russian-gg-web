@@ -61,8 +61,8 @@ function readRole(value: string | null): PortalRole {
 export const adminSectionKey = SECTION_KEY
 
 export function adminApiPath(path: string) {
-  // The center portal sits beside the admin portal on the same API host.
-  if (path.startsWith('/api/center-portal')) {
+  // The center portal and the public pay link sit beside the admin portal on the same API host.
+  if (path.startsWith('/api/center-portal') || path.startsWith('/api/public/')) {
     return `${ADMIN_API_BASE.replace(/\/admin-portal$/, '')}${path.slice('/api'.length)}`
   }
 
@@ -205,8 +205,19 @@ export const formatMoney = (value: number, currency = 'UZS') => `${numbers.forma
 export const formatUsd = (value: number) =>
   `$${value.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
 
+/**
+ * A calendar date ("2026-11-12") is a day, not an instant. `new Date` reads it as midnight UTC,
+ * which on a computer west of Greenwich is still the evening before — so a contract that starts
+ * today showed yesterday's date. Read it as a local day instead; anything with a time stays an
+ * instant.
+ */
+function toDate(value: string) {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  return day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(value)
+}
+
 export const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  value ? toDate(value).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 export const formatDateTime = (value?: string | null) =>
   value

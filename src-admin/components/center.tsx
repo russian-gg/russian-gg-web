@@ -2,11 +2,17 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Overlay } from '../../src/components/motion'
 import { useFocusTrap } from '../../src/lib/focus-trap'
 import { cx } from '../../src/lib/cx'
-import { adminFetch, formatDate, useAdminQuery } from '../lib/api'
-import { lastActiveLabel } from '../lib/center-format'
+import { adminApiPath, adminFetch, formatDate, useAdminQuery } from '../lib/api'
+import { formatSom, lastActiveLabel, maskUzLocal, uzLocalDigits } from '../lib/center-format'
+import clickMark from '../../src/assets/images/click_mark.webp'
+import paymeMark from '../../src/assets/images/payme_mark.webp'
 import {
+  accessLabel,
+  invoiceStatusLabel,
   seatStatusLabel,
+  type CenterAccess,
   type CenterGroup,
+  type CenterInvoiceStatus,
   type CenterStudent,
   type CenterStudentProfile,
   type SeatStatus,
@@ -16,6 +22,171 @@ import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, Loading, Row, SectionH
 export function SeatBadge({ status }: { status: SeatStatus }) {
   const tone = status === 'active' ? 'milestone' : status === 'requested' ? 'signal' : 'caution'
   return <Badge tone={tone}>{seatStatusLabel[status]}</Badge>
+}
+
+/** Whether the center's students have Pro today, and if not, why. */
+export function AccessBadge({ access }: { access: CenterAccess }) {
+  const tone = access === 'open' ? 'milestone' : access === 'not_started' ? 'signal' : access === 'archived' ? 'neutral' : 'danger'
+  return <Badge tone={tone}>{accessLabel[access]}</Badge>
+}
+
+export function InvoiceBadge({ status }: { status: CenterInvoiceStatus }) {
+  const tone = status === 'paid' ? 'milestone' : status === 'overdue' ? 'danger' : status === 'sent' ? 'signal' : 'neutral'
+  return <Badge tone={tone}>{invoiceStatusLabel[status]}</Badge>
+}
+
+/**
+ * An Uzbek mobile number: "+998" fixed in front, the nine digits typed after it and grouped as
+ * they are read aloud. `value` is what the field shows ("90 123 45 67"); `toUzPhone` turns it
+ * into what the server stores. The error shows once the field has been left half-filled.
+ */
+export function PhoneField({
+  label,
+  value,
+  onChange,
+  required = false,
+  showError = false,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  required?: boolean
+  /** Show the format error now (after a submit attempt) rather than waiting for blur. */
+  showError?: boolean
+}) {
+  const [left, setLeft] = useState(false)
+  const filled = value.replace(/\D/g, '').length > 0
+  const invalid = (filled || required) && !uzLocalDigits(value)
+  const shownError = invalid && (left || showError)
+
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-bold text-ink">{label}</span>
+      <span
+        className={cx(
+          'flex h-11 items-center rounded-[var(--radius-control)] border-2 bg-ground-raised focus-within:border-signal',
+          shownError ? 'border-danger' : 'border-hairline',
+        )}
+      >
+        <span className="pr-1 pl-4 text-sm font-bold text-ink-muted">+998</span>
+        <input
+          value={value}
+          onChange={(event) => onChange(maskUzLocal(event.target.value))}
+          onBlur={() => setLeft(true)}
+          inputMode="tel"
+          autoComplete="tel-national"
+          placeholder="90 123 45 67"
+          aria-invalid={shownError}
+          pattern="\d{2} \d{3} \d{2} \d{2}"
+          className="h-full min-w-0 flex-1 rounded-r-[var(--radius-control)] bg-transparent pr-4 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+        />
+      </span>
+      {shownError && <span className="mt-1 block text-xs text-danger">9 ta raqam kiriting, masalan 90 123 45 67</span>}
+    </label>
+  )
+}
+
+/*
+ * The providers' own marks, the same files the learner paywall shows. Imported across from
+ * `src/` on purpose: they are artwork, not components bound to the learner app's router or
+ * dictionary, and a second copy of a vendor logo is a second copy to keep in step.
+ */
+const providerMarks: Record<string, { name: string; src: string; height: string }> = {
+  click: { name: 'Click', src: clickMark, height: 'h-9' },
+  payme: { name: 'Payme', src: paymeMark, height: 'h-8' },
+}
+
+/**
+ * How a center pays one invoice: pick Click or Payme, then one button that names the provider
+ * and the sum. Two equal "pay with…" buttons made choosing the provider and committing to pay
+ * the same press — the learner paywall split them for that reason, and this follows it.
+ *
+ * The provider's page opens in this tab and sends the payer back to `returnUrl`. Works without
+ * a session: the pay link is paid by whoever was sent it.
+ */
+export function PayButtons({
+  token,
+  providers,
+  returnUrl,
+  amountTiyin,
+}: {
+  token: string
+  providers: string[]
+  returnUrl: string
+  amountTiyin: number
+}) {
+  const known = providers.filter((provider) => provider in providerMarks)
+  const [provider, setProvider] = useState(known[0] ?? 'click')
+  const [busy, setBusy] = useState(false)
+  const [failure, setFailure] = useState('')
+
+  async function pay() {
+    setBusy(true)
+    setFailure('')
+    try {
+      const response = await fetch(adminApiPath(`/api/public/center-pay/${encodeURIComponent(token)}/checkout`), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ provider, returnUrl }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { checkoutUrl?: string; message?: string }
+      if (!response.ok || !payload.checkoutUrl) throw new Error(payload.message ?? "To'lovni ochib bo'lmadi.")
+      // Left disabled on purpose: a second press before the redirect lands would open a second checkout.
+      window.location.assign(payload.checkoutUrl)
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : "To'lovni ochib bo'lmadi.")
+      setBusy(false)
+    }
+  }
+
+  const chosen = providerMarks[provider]
+
+  return (
+    <div className="space-y-4">
+      <div role="radiogroup" aria-label="To'lov usuli" className="grid gap-3 sm:grid-cols-2">
+        {known.map((value) => {
+          const mark = providerMarks[value]
+          const checked = provider === value
+          return (
+            <label
+              key={value}
+              className={cx(
+                'flex cursor-pointer items-center gap-3 rounded-[var(--radius-card)] border-2 px-4 py-3 transition-colors',
+                'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-signal',
+                checked ? 'border-signal bg-signal-soft/60' : 'border-hairline bg-ground-raised hover:border-ink-faint',
+              )}
+            >
+              <input
+                type="radio"
+                name={`pay-provider-${token}`}
+                value={value}
+                checked={checked}
+                onChange={() => setProvider(value)}
+                className="sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'grid size-5 shrink-0 place-items-center rounded-full border-2 transition-colors',
+                  checked ? 'border-signal bg-signal' : 'border-hairline bg-ground',
+                )}
+              >
+                {checked && <span className="size-1.5 rounded-full bg-on-signal" />}
+              </span>
+              <img src={mark.src} alt="" aria-hidden="true" className={cx('w-auto shrink-0 object-contain', mark.height)} />
+              <span className="text-base font-extrabold text-ink">{mark.name}</span>
+            </label>
+          )
+        })}
+      </div>
+
+      <Button block disabled={busy || !chosen} onClick={pay} className="h-auto min-h-12 py-3 whitespace-normal">
+        {busy ? 'Ochilmoqda…' : `${chosen?.name ?? ''} orqali to'lash · ${formatSom(amountTiyin)}`}
+      </Button>
+
+      {failure && <ErrorNote>{failure}</ErrorNote>}
+    </div>
+  )
 }
 
 /**
@@ -75,24 +246,31 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 /**
  * The student list, as both the center admin and the team see it. Read-only unless
- * `onOpen` is given.
+ * `onOpen` is given. With `onApprove`/`onReject`, a join request is answered in its own row —
+ * opening each student to find the button was the slow part of a morning's requests.
  */
 export function StudentsTable({
   students,
   onOpen,
-  showPaid,
   showGroup = true,
+  onApprove,
+  onReject,
+  busySeat = null,
 }: {
   students: CenterStudent[]
   onOpen?: (student: CenterStudent) => void
-  showPaid: boolean
   /** Off for centers while groups are hidden. */
   showGroup?: boolean
+  onApprove?: (student: CenterStudent) => void
+  onReject?: (student: CenterStudent) => void
+  /** The seat whose approve/reject is in flight, so its buttons wait. */
+  busySeat?: string | null
 }) {
   if (students.length === 0) return <EmptyNote>Bu yerda hali o'quvchi yo'q.</EmptyNote>
 
+  const answers = Boolean(onApprove || onReject)
   const head = ['Ism', ...(showGroup ? ['Guruh'] : []), 'Holat', 'Daraja', 'Kurs kuni', 'Oxirgi faollik', 'Bu hafta, daq.']
-  if (showPaid) head.push("To'lov")
+  if (answers) head.push("So'rov")
 
   return (
     <Table head={head}>
@@ -123,9 +301,25 @@ export function StudentsTable({
               <span className="text-ink-muted"> · gapirish {student.speakingMinutes7d}</span>
             )}
           </Cell>
-          {showPaid && (
+          {answers && (
             <Cell>
-              {student.paid ? <Badge tone="milestone">To'langan</Badge> : <Badge tone="caution">To'lanmagan</Badge>}
+              {student.status === 'requested' ? (
+                // The row opens the drawer; these answer the request without opening it.
+                <span className="flex gap-2" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                  {onApprove && (
+                    <Button size="sm" disabled={busySeat === student.seatId} onClick={() => onApprove(student)}>
+                      Tasdiqlash
+                    </Button>
+                  )}
+                  {onReject && (
+                    <Button variant="ghost" size="sm" disabled={busySeat === student.seatId} onClick={() => onReject(student)}>
+                      Rad etish
+                    </Button>
+                  )}
+                </span>
+              ) : (
+                <span className="text-ink-faint">—</span>
+              )}
             </Cell>
           )}
         </Row>
@@ -248,8 +442,6 @@ export function StudentDrawer({
               <SeatBadge status={student.status} />
               {student.atRisk && <Badge tone="danger">Xavf ostida</Badge>}
               {!student.signedIn && <Badge>Ilovaga hali kirmagan</Badge>}
-              {student.paid === true && <Badge tone="milestone">To'langan</Badge>}
-              {student.paid === false && <Badge tone="caution">To'lanmagan</Badge>}
             </div>
 
             {!readOnly && (
@@ -265,7 +457,7 @@ export function StudentDrawer({
                     </Button>
                   )}
                   <Button variant="danger" size="sm" disabled={busy} onClick={() => setConfirmRemove(true)}>
-                    Ro'yxatdan olish
+                    {student.status === 'requested' ? 'Rad etish' : "Ro'yxatdan olish"}
                   </Button>
                 </div>
                 {groups.length > 0 && (
@@ -282,7 +474,7 @@ export function StudentDrawer({
                 />
                 )}
                 <p className="text-xs text-ink-muted">
-                  O'chirilgan o'quvchi Pro'dan foydalana olmaydi va hisobga kirmaydi; uning natijalari saqlanadi.
+                  O'chirilgan o'quvchi Pro'dan foydalana olmaydi va limitdan joy egallamaydi; uning natijalari saqlanadi.
                 </p>
                 {failure && <ErrorNote>{failure}</ErrorNote>}
               </Card>

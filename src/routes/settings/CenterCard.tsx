@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Building2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api, RequestError } from '../../lib/api'
-import { formatPrice } from '../../lib/format'
+import { formatDate } from '../../lib/format'
 import { fill, useLocale, useT, type Dictionary } from '../../lib/i18n'
 import type { MyCenterView } from '../../lib/types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -142,7 +141,6 @@ function JoinForm({ t }: { t: Dictionary }) {
 
 function Membership({ center, t }: { center: MyCenterView; t: Dictionary }) {
   const { locale } = useLocale()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -163,7 +161,6 @@ function Membership({ center, t }: { center: MyCenterView; t: Dictionary }) {
     }
   }
 
-  const price = formatPrice(center.pricePerSeatTiyin, 'UZS', locale)
   const group = center.groupName?.trim() || null
 
   return (
@@ -176,9 +173,8 @@ function Membership({ center, t }: { center: MyCenterView; t: Dictionary }) {
       <MembershipState
         center={center}
         group={group}
-        price={price}
+        paidThrough={center.paidThrough ? formatDate(center.paidThrough, locale) : null}
         t={t}
-        onPay={() => navigate('/paywall?period=Monthly')}
       />
 
       {error && <ErrorNote>{error}</ErrorNote>}
@@ -208,21 +204,20 @@ function Membership({ center, t }: { center: MyCenterView; t: Dictionary }) {
  * The one sentence — and, where there is one, the one action — for where the learner stands.
  *
  * In order of what overrides what: a membership the center switched off says so whatever the
- * center's own state; a center that is not running says so before an approval that cannot
- * mean anything yet; then the two ways an active membership is paid for.
+ * center's own state; a center that is not paying says so before an approval that cannot mean
+ * anything yet; then an active membership, with the day the center has paid it up to.
  */
 function MembershipState({
   center,
   group,
-  price,
+  paidThrough,
   t,
-  onPay,
 }: {
   center: MyCenterView
   group: string | null
-  price: string
+  /** The center's last paid day, already formatted for the learner's language. */
+  paidThrough: string | null
   t: Dictionary
-  onPay: () => void
 }) {
   const name = center.centerName
 
@@ -249,32 +244,14 @@ function MembershipState({
     return <p className="text-base leading-relaxed text-ink">{t.center.requested}</p>
   }
 
-  if (center.payMode === 'center') {
-    return (
+  return (
+    <div className="space-y-2">
       <p className="text-base leading-relaxed text-ink">
         {group
           ? fill(t.center.centerPaid, { center: name, group })
           : fill(t.center.centerPaidNoGroup, { center: name })}
       </p>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-base leading-relaxed text-ink">
-        {group ? fill(t.center.student, { center: name, group }) : fill(t.center.studentNoGroup, { center: name })}
-      </p>
-      {center.hasPro ? (
-        <Badge tone="milestone">{t.center.proActive}</Badge>
-      ) : (
-        <>
-          <p className="text-support text-sm">{fill(t.center.payBody, { price })}</p>
-          {/* Full width on a phone, hugging its label from `sm`, like the banner's button. */}
-          <Button block className="sm:w-auto sm:px-7" onClick={onPay}>
-            {fill(t.center.pay, { price })}
-          </Button>
-        </>
-      )}
+      {paidThrough && <Badge tone="milestone">{fill(t.center.paidThrough, { date: paidThrough })}</Badge>}
     </div>
   )
 }

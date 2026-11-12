@@ -1958,8 +1958,8 @@ export const uz = {
   },
 
   /**
-   * The learner's language center, in Settings → Subscription. A center either pays for its
-   * students' Pro or has them pay the center price themselves; the server says which.
+   * The learner's language center, in Settings → Subscription. The center pays for its
+   * students' Pro up front, a month at a time.
    */
   center: {
     title: 'Markazim',
@@ -1974,14 +1974,10 @@ export const uz = {
     requested: "So'rov yuborildi — markaz administratori tasdiqlashini kuting",
     centerPaid: "{center} o'quvchisisiz, guruh {group}. Pro markaz tomonidan to'langan.",
     centerPaidNoGroup: "{center} o'quvchisisiz. Pro markaz tomonidan to'langan.",
-    student: "{center} o'quvchisisiz, guruh {group}.",
-    studentNoGroup: "{center} o'quvchisisiz.",
-    payBody: 'Markaz narxida Pro — oyiga {price}.',
-    pay: "Markaz narxida to'lash · {price}",
-    proActive: 'Pro faol.',
+    paidThrough: 'Pro {date} gacha ochiq',
     deactivated: "Markaz kirishingizni to'xtatdi",
     deactivatedOffer: "Pro'ni o'zingiz ham olishingiz mumkin",
-    inactive: 'Markaz hozircha faol emas',
+    inactive: "Markaz hozircha faol emas yoki to'lov kutilmoqda — Pro yopiq",
     leave: 'Markazdan chiqish',
     leaveTitle: 'Markazdan chiqasizmi?',
     leaveBody: "{center} bilan bog'lanish uziladi, markaz to'lagan Pro ham to'xtaydi. Qayta qo'shilish uchun yangi kod kerak bo'ladi.",
@@ -2056,7 +2052,7 @@ export const uz = {
         },
         {
           q: "Kim to'laydi?",
-          a: "Shartnomada kelishiladi: yoki markaz har bir faol o'quvchi uchun oyiga to'laydi, yoki har bir o'quvchi ilovada markaz narxida o'zi to'laydi. Bepul sinov kunlari berilmaydi.",
+          a: "Markaz to'laydi: har oy oldindan, shartnomadagi o'quvchilar soni uchun. O'quvchilarning o'zi hech narsa to'lamaydi. Bepul sinov kunlari berilmaydi.",
         },
         {
           q: 'Narx qancha?',

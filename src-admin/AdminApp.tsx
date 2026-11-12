@@ -46,6 +46,8 @@ import {
   type StudentFilter,
 } from './screens/CenterPortal'
 import { Toaster } from './components/toast'
+import { CenterPayPage } from './screens/CenterPay'
+import { payTokenFromPath } from './lib/center-format'
 
 type Section =
   | 'dashboard'
@@ -155,7 +157,18 @@ function readStoredSection(role: PortalRole): Section {
 
 const COLLAPSED_KEY = 'rgg.admin.sidebar.collapsed'
 
+/**
+ * The panel, or — on "/pay/{token}" — a language center's public pay page, which needs no
+ * session and shows nothing of the panel. Decided once from the path: nothing navigates
+ * between the two.
+ */
 export function AdminApp() {
+  const payToken = payTokenFromPath(window.location.pathname)
+  if (payToken) return <CenterPayPage token={payToken} />
+  return <Panel />
+}
+
+function Panel() {
   const { token, name, role, centerName } = useSession()
   /* Which slice of the student list the overview's figures open. */
   const [studentFilter, setStudentFilter] = useState<StudentFilter>('all')

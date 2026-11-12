@@ -537,19 +537,18 @@ export interface EntitlementView {
 
 export type CenterMembershipStatus = 'active' | 'requested' | 'deactivated'
 
-/** Who pays for a center's students: the center per seat, or each student at the center price. */
-export type CenterPayMode = 'center' | 'student'
-
-/** `/me/center`: the learner's place in a language center. The server answers 204 when there is none. */
+/**
+ * `/me/center`: the learner's place in a language center. The server answers 204 when there is
+ * none. The center pays for its students up front, a month at a time.
+ */
 export interface MyCenterView {
   centerName: string
   groupName: string | null
   status: CenterMembershipStatus
-  payMode: CenterPayMode
-  /** The center itself is switched on. False while it is set up, paused or cut off. */
+  /** The center gives Pro today: switched on, its contract started, and today paid for. */
   centerActive: boolean
-  /** The monthly price per student, in tiyin. */
-  pricePerSeatTiyin: number
+  /** The last day the center has paid for ("2026-12-11"), when it has paid at all. */
+  paidThrough: string | null
   hasPro: boolean
   centerPaid: boolean
 }

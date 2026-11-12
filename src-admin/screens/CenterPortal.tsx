@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react'
-import { X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Download, FileSpreadsheet, X } from 'lucide-react'
 import { cx } from '../../src/lib/cx'
-import { adminApiPath, adminFetch, session, useAdminQuery } from '../lib/api'
+import { adminApiPath, adminFetch, formatDate, session, useAdminQuery } from '../lib/api'
 import {
-  payModeLabel,
   type AddStudentsResult,
   type CenterGroup,
   type CenterOverview,
+  type CenterPayView,
   type CenterStudent,
 } from '../lib/center-types'
 import {
@@ -29,8 +29,9 @@ import {
   Textarea,
   TextField,
 } from '../components/ui'
-import { Field, FormDialog, StudentDrawer, StudentsTable } from '../components/center'
-import { fieldClass, formatSom } from '../lib/center-format'
+import { Field, FormDialog, InvoiceBadge, PayButtons, StudentDrawer, StudentsTable } from '../components/center'
+import { fieldClass, formatPeriod, formatSom, maskUzLocal, payLink, uzLocalDigits } from '../lib/center-format'
+import { readStudentsFile, downloadStudentsTemplate } from '../lib/student-import'
 import { toast } from '../lib/toast'
 
 /*
@@ -58,11 +59,7 @@ export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: (filt
 
       {data && (
         <>
-          {data.status !== 'active' && (
-            <div role="status" className="rounded-[var(--radius-card)] border-2 border-caution bg-caution-soft px-4 py-3 text-sm text-caution">
-              Markaz hozircha to'xtatilgan: o'quvchilar Pro'dan foydalana olmaydi. Russian.gg jamoasi bilan bog'laning.
-            </div>
-          )}
+          <AccessBanner overview={data} />
 
           {data.requested > 0 && (
             <button
@@ -78,12 +75,25 @@ export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: (filt
             <button type="button" className="text-left" onClick={() => onOpenStudents('active')}>
               <Stat
                 label="Faol o'quvchilar"
-                value={data.activeStudents}
-                note={data.notSignedIn > 0 ? `${data.notSignedIn} tasi ilovaga hali kirmagan` : undefined}
+                value={
+                  <>
+                    {data.activeStudents}
+                    <span className="text-lg text-ink-faint"> / {data.maxStudents}</span>
+                  </>
+                }
+                note={
+                  data.notSignedIn > 0
+                    ? `${data.notSignedIn} tasi ilovaga hali kirmagan`
+                    : `${Math.max(0, data.maxStudents - data.activeStudents)} ta joy bo'sh`
+                }
               />
             </button>
+            <Stat
+              label="Pro muddati"
+              value={data.paidThrough ? formatDate(data.paidThrough) : "To'lanmagan"}
+              note={data.paidThrough ? 'gacha to\'langan' : "to'lovdan keyin ochiladi"}
+            />
             <Stat label="Bu hafta mashq qilgan" value={`${data.weeklyActivePercent}%`} note="faol o'quvchilardan" />
-            <Stat label="O'rtacha kurs kuni" value={data.averageCourseDay ?? '—'} note="90 kunlik yo'ldan" />
             <button type="button" className="text-left" onClick={() => onOpenStudents('risk')}>
               <Stat
                 label="Xavf ostida"
@@ -94,27 +104,87 @@ export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: (filt
             </button>
           </div>
 
-          <Card as="div">
-            <SectionHeading>Shu oy</SectionHeading>
-            {data.payMode === 'center' ? (
-              <p className="text-sm text-ink">
-                Hisobga kiradigan o'quvchilar: <b>{data.billableThisMonth}</b> × {formatSom(data.pricePerSeatTiyin)} ={' '}
-                <b>{formatSom(data.billSoFarTiyin)}</b>
-                <span className="block text-xs text-ink-muted">
-                  Faqat shu oy faol bo'lgan va kamida bir marta mashq qilgan o'quvchilar hisoblanadi.
-                </span>
-              </p>
-            ) : (
-              <p className="text-sm text-ink">
-                {payModeLabel.student}: har bir o'quvchi ilovada {formatSom(data.pricePerSeatTiyin)} to'laydi. Markazga hisob
-                yuborilmaydi.
-              </p>
-            )}
-          </Card>
+          <PaymentCard overview={data} />
 
         </>
       )}
     </Screen>
+  )
+}
+
+/** Says plainly, at the top, when the students have no Pro and what fixes it. */
+function AccessBanner({ overview }: { overview: CenterOverview }) {
+  const message = {
+    open: null,
+    suspended: "Markaz o'chirilgan: o'quvchilar bepul rejada. Russian.gg jamoasi bilan bog'laning.",
+    archived: "Markaz arxivda: o'quvchilar bepul rejada. Russian.gg jamoasi bilan bog'laning.",
+    not_started: `Shartnoma ${formatDate(overview.contractStartsOn)} dan boshlanadi — o'quvchilarda Pro shu kuni ochiladi.`,
+    unpaid: "To'lov qilinmagan: o'quvchilar hozir bepul rejada. Quyidagi tugma orqali to'lang — Pro darhol ochiladi.",
+  }[overview.access]
+
+  if (!message) return null
+  const tone = overview.access === 'not_started' ? 'border-signal bg-signal-soft text-signal-ink' : 'border-caution bg-caution-soft text-caution'
+  return (
+    <div role="status" className={cx('rounded-[var(--radius-card)] border-2 px-4 py-3 text-sm font-bold', tone)}>
+      {message}
+    </div>
+  )
+}
+
+/**
+ * The month the center pays next: amount, what it covers, and Click / Payme right here. The
+ * same pay link works for whoever at the center holds the money, without a login.
+ */
+function PaymentCard({ overview }: { overview: CenterOverview }) {
+  const open = overview.openInvoice
+  const pay = useAdminQuery<CenterPayView>(open ? `/api/public/center-pay/${open.payToken}` : null)
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <Card as="div" className="space-y-4">
+      <SectionHeading action={open && <InvoiceBadge status={open.status} />}>To'lov</SectionHeading>
+      {open ? (
+        <>
+          <div>
+            <div className="text-3xl font-extrabold tabular-nums text-ink">{formatSom(open.amountTiyin)}</div>
+            <p className="mt-1 text-sm text-ink-muted">
+              {formatPeriod(open.periodStart, open.periodEnd)} · {open.seats} o'quvchi × {formatSom(open.pricePerSeatTiyin)}
+            </p>
+          </div>
+          {pay.data ? (
+            <PayButtons
+              token={open.payToken}
+              providers={pay.data.providers}
+              returnUrl={payLink(open.payToken)}
+              amountTiyin={open.amountTiyin}
+            />
+          ) : (
+            pay.error && <ErrorNote onRetry={pay.refresh}>{pay.error}</ErrorNote>
+          )}
+          <p className="text-xs text-ink-muted">
+            Hisobchiga yuborish uchun havola:{' '}
+            <button
+              type="button"
+              className="font-bold text-signal-ink hover:underline"
+              onClick={async () => {
+                await navigator.clipboard?.writeText(payLink(open.payToken))
+                setCopied(true)
+                window.setTimeout(() => setCopied(false), 1500)
+              }}
+            >
+              {copied ? 'nusxa olindi' : 'nusxa olish'}
+            </button>
+            . Bank o'tkazmasi bilan to'lasangiz, Russian.gg jamoasi uni qo'lda tasdiqlaydi.
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-ink">
+          {overview.paidThrough
+            ? `${formatDate(overview.paidThrough)} gacha to'langan. Keyingi oy hisob-fakturasi muddat tugashidan 7 kun oldin shu yerda paydo bo'ladi.`
+            : "Hozircha to'lanadigan hisob-faktura yo'q. Russian.gg jamoasi bilan bog'laning."}
+        </p>
+      )}
+    </Card>
   )
 }
 
@@ -161,11 +231,14 @@ export function CenterGroupsScreen() {
     if (!activation) return
     setBusy(true)
     try {
-      const result = await adminFetch<{ changed: number }>(`${BASE}/groups/${activation.group.id}/activation`, {
+      const result = await adminFetch<{ changed: number; overLimit: number }>(`${BASE}/groups/${activation.group.id}/activation`, {
         method: 'POST',
         body: JSON.stringify({ active: activation.active }),
       })
-      toast(`${result.changed} ta o'quvchi ${activation.active ? 'faollashtirildi' : "o'chirildi"}`)
+      toast(
+        `${result.changed} ta o'quvchi ${activation.active ? 'faollashtirildi' : "o'chirildi"}` +
+          (result.overLimit > 0 ? ` · ${result.overLimit} tasi limit tufayli qoldi` : ''),
+      )
       setActivation(null)
       refresh()
     } catch (caught) {
@@ -221,19 +294,18 @@ export function CenterGroupsScreen() {
           body={
             activation.active ? (
               <>
-                “{activation.group.name}” guruhidagi o'chirilgan o'quvchilar yana faol bo'ladi.
-                {data.payMode === 'center' && ` Har biri oyiga ${formatSom(data.pricePerSeatTiyin)} hisobga qo'shiladi (agar mashq qilsa).`}
+                “{activation.group.name}” guruhidagi o'chirilgan o'quvchilar yana faol bo'ladi — limitdagi bo'sh joylar (
+                {Math.max(0, data.maxStudents - data.activeStudents)} ta) to'lguncha.
               </>
             ) : (
               <>
                 “{activation.group.name}” guruhidagi {activation.group.activeStudents} ta faol o'quvchi o'chiriladi: Pro yopiladi,
-                natijalar saqlanadi.
-                {data.payMode === 'center' &&
-                  ` Keyingi oylarda hisob ${formatSom(activation.group.activeStudents * data.pricePerSeatTiyin)} gacha kamayadi.`}
+                natijalar saqlanadi, limitda joy bo'shaydi.
               </>
             )
           }
           confirmLabel={activation.active ? 'Faollashtirish' : "O'chirish"}
+          confirmVariant={activation.active ? 'primary' : 'danger'}
           busy={busy}
           onConfirm={setGroupActive}
           onCancel={() => setActivation(null)}
@@ -397,9 +469,13 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
   const [filter, setFilter] = useState<StudentFilter>(initialFilter)
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)
-  const [adding, setAdding] = useState(false)
+  /* The add dialog, empty or filled from an Excel file. */
+  const [adding, setAdding] = useState<DraftStudent[] | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [answering, setAnswering] = useState<string | null>(null)
   const [failure, setFailure] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const all = useMemo(() => students.data ?? [], [students.data])
 
@@ -446,6 +522,46 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
     }
   }
 
+  async function importFile(file: File) {
+    setImporting(true)
+    setFailure('')
+    try {
+      const rows = await readStudentsFile(file)
+      if (rows.length === 0) throw new Error("Faylda o'quvchi topilmadi. Shablondagi ustunlarni to'ldiring.")
+      setAdding(
+        rows.map((row) => {
+          const local = uzLocalDigits(row.phone)
+          return { key: draftKey++, name: row.name, phone: local ? maskUzLocal(local) : row.phone }
+        }),
+      )
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : "Faylni o'qib bo'lmadi.")
+    } finally {
+      setImporting(false)
+      if (fileInput.current) fileInput.current.value = ''
+    }
+  }
+
+  /** A join request answered from its row: approve takes a seat under the limit, reject drops it. */
+  async function answer(student: CenterStudent, approve: boolean) {
+    setAnswering(student.seatId)
+    setFailure('')
+    try {
+      await adminFetch(`${BASE}/students/${student.seatId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: approve ? 'activate' : 'remove' }),
+      })
+      toast(approve ? `${student.name} tasdiqlandi` : `${student.name} so'rovi rad etildi`)
+      refresh()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : "O'zgartirib bo'lmadi.")
+    } finally {
+      setAnswering(null)
+    }
+  }
+
+  const free = overview.data ? Math.max(0, overview.data.maxStudents - overview.data.activeStudents) : null
+
   const count = (status: StudentFilter) =>
     status === 'all'
       ? all.length
@@ -456,12 +572,35 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
   return (
     <Screen className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader title="O'quvchilar" subtitle="Kim mashq qilyapti, kim ortda qolmoqda" />
+        <PageHeader
+          title="O'quvchilar"
+          subtitle={
+            overview.data
+              ? `Faol: ${overview.data.activeStudents} / ${overview.data.maxStudents} · bo'sh joy: ${free}`
+              : 'Kim mashq qilyapti, kim ortda qolmoqda'
+          }
+        />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={exportCsv} disabled={exporting || all.length === 0}>
             {exporting ? 'Yuklanmoqda…' : 'CSV yuklab olish'}
           </Button>
-          <Button onClick={() => setAdding(true)}>+ O'quvchi qo'shish</Button>
+          <Button variant="secondary" onClick={() => fileInput.current?.click()} disabled={importing}>
+            <span className="flex items-center gap-1.5">
+              <FileSpreadsheet aria-hidden="true" className="size-4" strokeWidth={1.8} />
+              {importing ? "O'qilmoqda…" : "Excel'dan import"}
+            </span>
+          </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) void importFile(file)
+            }}
+          />
+          <Button onClick={() => setAdding([])}>+ O'quvchi qo'shish</Button>
         </div>
       </div>
 
@@ -491,8 +630,11 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
             Ism va telefon raqamini kiriting — o'quvchi shu raqam bilan ilovaga kirishi bilan Pro avtomatik ochiladi.
             Raqami yo'q o'quvchi markaz kodini yozadi: <b className="text-ink">{overview.data?.joinCode ?? '…'}</b>
           </p>
-          <div className="mt-4">
-            <Button onClick={() => setAdding(true)}>O'quvchi qo'shish</Button>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button onClick={() => setAdding([])}>O'quvchi qo'shish</Button>
+            <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+              Excel'dan import
+            </Button>
           </div>
         </Card>
       )}
@@ -503,16 +645,18 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
         <StudentsTable
           students={shown}
           onOpen={(student) => setOpen(student.seatId)}
-          showPaid={overview.data?.payMode === 'student'}
           showGroup={false}
+          onApprove={(student) => answer(student, true)}
+          onReject={(student) => answer(student, false)}
+          busySeat={answering}
         />
       )}
 
       {adding && (
         <AddStudentsDialog
-          pricePerSeatTiyin={overview.data?.pricePerSeatTiyin ?? 0}
-          payMode={overview.data?.payMode ?? 'center'}
-          onClose={() => setAdding(false)}
+          initialRows={adding}
+          free={free}
+          onClose={() => setAdding(null)}
           onAdded={refresh}
         />
       )}
@@ -526,18 +670,8 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
 
 type DraftStudent = { key: number; name: string; phone: string }
 
-/** The nine digits after +998, or null when what was typed is not an Uzbek mobile number. */
-function localDigits(phone: string) {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 9) return digits
-  if (digits.length === 12 && digits.startsWith('998')) return digits.slice(3)
-  return null
-}
-
-/** "901234567" → "90 123 45 67", the way people read a number back. */
-function formatLocal(digits: string) {
-  return [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean).join(' ')
-}
+const localDigits = uzLocalDigits
+const formatLocal = maskUzLocal
 
 /** "Ali Valiyev, 90 123 45 67" per line, either order — a list copied out of Excel or Telegram. */
 function parseLines(text: string) {
@@ -558,17 +692,19 @@ let draftKey = 1
 const emptyDraft = (): DraftStudent => ({ key: draftKey++, name: '', phone: '' })
 
 function AddStudentsDialog({
-  pricePerSeatTiyin,
-  payMode,
+  initialRows,
+  free,
   onClose,
   onAdded,
 }: {
-  pricePerSeatTiyin: number
-  payMode: 'center' | 'student'
+  /** Rows read from an Excel file, to check and send; empty for a blank form. */
+  initialRows: DraftStudent[]
+  /** Places left under the center's limit, when known. */
+  free: number | null
   onClose: () => void
   onAdded: () => void
 }) {
-  const [rows, setRows] = useState<DraftStudent[]>(() => [emptyDraft()])
+  const [rows, setRows] = useState<DraftStudent[]>(() => (initialRows.length > 0 ? initialRows : [emptyDraft()]))
   const [pasting, setPasting] = useState(false)
   const [pasted, setPasted] = useState('')
   const [touched, setTouched] = useState(false)
@@ -635,11 +771,14 @@ function AddStudentsDialog({
       <FormDialog title="Tayyor" onClose={onClose}>
         <div className="space-y-3 text-sm">
           <p className="text-ink">
-            <b>{result.added}</b> ta o'quvchi qo'shildi.{' '}
-            {payMode === 'center'
-              ? 'Ular ilovaga shu raqam bilan kirishi bilan Pro ochiladi.'
-              : "Ular ilovada markaz narxida to'laydi."}
+            <b>{result.added}</b> ta o'quvchi qo'shildi. Ular ilovaga shu raqam bilan kirishi bilan Pro ochiladi.
           </p>
+          {result.overLimit.length > 0 && (
+            <p className="rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 font-bold text-caution">
+              Limit to'ldi ({result.maxStudents} ta): {result.overLimit.length} ta raqam qo'shilmadi. Ko'proq o'quvchi uchun
+              Russian.gg jamoasiga murojaat qiling.
+            </p>
+          )}
           {result.alreadyHere.length > 0 && (
             <p className="text-ink-muted">Allaqachon ro'yxatda: {result.alreadyHere.join(', ')}</p>
           )}
@@ -674,11 +813,20 @@ function AddStudentsDialog({
     <FormDialog title="O'quvchi qo'shish" onClose={onClose} wide>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink-muted">
-          O'quvchi shu raqam bilan ilovaga kirishi bilan{' '}
-          {payMode === 'center'
-            ? 'Pro avtomatik ochiladi.'
-            : `markazga ulanadi va Pro uchun ilovada ${formatSom(pricePerSeatTiyin)} to'laydi.`}
+          O'quvchi shu raqam bilan ilovaga kirishi bilan Pro avtomatik ochiladi.
+          {free !== null && (
+            <>
+              {' '}
+              Limitda <b className="text-ink">{free}</b> ta bo'sh joy bor.
+            </>
+          )}
         </p>
+        {free !== null && valid.length > free && (
+          <p role="status" className="rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 text-sm font-bold text-caution">
+            {valid.length} ta raqam kiritildi, lekin faqat {free} tasi qo'shiladi. Limitni oshirish uchun Russian.gg jamoasiga
+            yozing.
+          </p>
+        )}
 
         <div className="space-y-3">
           <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-sm font-bold text-ink sm:grid">
@@ -757,6 +905,12 @@ function AddStudentsDialog({
           <Button variant="ghost" size="sm" type="button" onClick={() => setPasting((value) => !value)}>
             {pasting ? "Ro'yxatni yopish" : "Ro'yxatni nusxa olib qo'yish"}
           </Button>
+          <Button variant="ghost" size="sm" type="button" onClick={() => void downloadStudentsTemplate()}>
+            <span className="flex items-center gap-1.5">
+              <Download aria-hidden="true" className="size-4" strokeWidth={1.8} />
+              Excel shablon
+            </span>
+          </Button>
         </div>
 
         {pasting && (
@@ -778,10 +932,8 @@ function AddStudentsDialog({
         {failure && <ErrorNote>{failure}</ErrorNote>}
 
         <div className="flex flex-wrap items-center justify-end gap-3 border-t-2 border-hairline pt-4">
-          {payMode === 'center' && valid.length > 0 && (
-            <p className="mr-auto text-xs text-ink-muted">
-              Oyiga {formatSom(pricePerSeatTiyin)} — faqat mashq qilgan o'quvchi uchun. Bepul kunlar yo'q.
-            </p>
+          {invalidCount > 0 && touched && (
+            <p className="mr-auto text-xs font-bold text-danger">{invalidCount} ta qatorda raqam noto'g'ri — tuzating yoki o'chiring</p>
           )}
           <Button variant="secondary" size="sm" type="button" onClick={onClose} disabled={busy}>
             Bekor qilish
@@ -803,7 +955,7 @@ export function CenterSettingsScreen() {
 
   return (
     <Screen className="space-y-6">
-      <PageHeader title="Sozlamalar" subtitle="Markaz kodi va to'lov sharti" />
+      <PageHeader title="Sozlamalar" subtitle="Markaz kodi, limit va to'lov sharti" />
       {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {data && (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -831,12 +983,13 @@ export function CenterSettingsScreen() {
           <Card as="div" className="space-y-3">
             <SectionHeading>To'lov sharti</SectionHeading>
             <p className="text-sm text-ink">
-              <b>{payModeLabel[data.payMode]}</b> · {formatSom(data.pricePerSeatTiyin)} / o'quvchi / oy
+              <b>{data.maxStudents}</b> o'quvchi × {formatSom(data.pricePerSeatTiyin)} ={' '}
+              <b>{formatSom(data.maxStudents * data.pricePerSeatTiyin)}</b> / oy
             </p>
             <p className="text-sm text-ink-muted">
-              {data.payMode === 'center'
-                ? "O'quvchi qo'shilishi bilan Pro ochiladi. Oy oxirida shu oy faol bo'lgan va mashq qilgan o'quvchilar soni bo'yicha hisob-faktura yuboriladi; 7 kun ichida to'lanadi."
-                : "O'quvchi ilovada Pro uchun markaz narxida o'zi to'laydi. Markazga hisob yuborilmaydi."}
+              Markaz oldindan, bir oyga to'laydi. O'quvchilarda Pro to'langan muddat ichida ochiq
+              {data.paidThrough ? ` — hozir ${formatDate(data.paidThrough)} gacha` : ''}. Limitdan ko'p o'quvchini faollashtirib
+              bo'lmaydi; limitni oshirish uchun Russian.gg jamoasiga yozing.
             </p>
           </Card>
         </div>
