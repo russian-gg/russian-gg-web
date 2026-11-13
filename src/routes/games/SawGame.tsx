@@ -1,235 +1,225 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useT } from '../../lib/i18n'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSpeechRecognition } from '../../lib/speech'
+import { GameSpeech } from '../../lib/game-speech'
 import { SawGameView } from './saw/SawGameView'
+import { SawAudio } from './saw/audio'
+import { getSawReply, isSawLanguageError, sawError } from './saw/dialogue'
+import type { SawMessage } from './saw/dialogue'
+import { contentWords, fillerCount, nextThreat, resultFor } from './saw/engine'
+import { CONTACT_DURATION_MS, ROUND_SECONDS, SAW_TOPICS } from './saw/model'
+import type { SawCharacter, SawEmotion, SawPhase, SawResult } from './saw/model'
 
-/**
- * Arra — the saw.
- *
- * A question sits on the screen and a blade rolls toward you from the left. Speaking pushes it
- * back; silence and hesitation let it come on. Survive a minute and the round is yours.
- *
- * The blade is driven by the same arithmetic the placement uses — how much Russian comes out,
- * and whether it comes out in runs rather than single words — because a game that rewards a
- * model's opinion of you teaches you to please a model. This one rewards speaking, measurably.
- */
-
-const ROUND_SECONDS = 60
-
-/** How far the blade travels, in percent of the track, per second of each state. */
-/** Loud enough to be a voice rather than a room. */
-const VOICE = 6
-
-const ADVANCE_IDLE = 7
-const ADVANCE_STALLED = 12
-const RETREAT_MAX = 16
-
-type Phase = 'ready' | 'playing' | 'cut' | 'won'
+type Run = {
+  audio: SawAudio; speech: GameSpeech; timer?: number; finishTimer?: number; alive: boolean; paused: boolean;
+  elapsed: number; spoken: number; threat: number; lastRussian: number; lastChange: number;
+  silence: number; reminded: boolean; current: string; previous: string[]; fillers: number;
+  history: SawMessage[];
+}
 
 export function SawGame() {
-  const t = useT().arcade.saw
   const navigate = useNavigate()
-  // Russian recognition on purpose: the blade retreats for Russian, so Russian is the thing
-  // that has to be heard well. Uzbek still registers as speech, which is what stops the stall.
-  // Continuous: the whole round is one long answer, so the mic must stay open across pauses.
-  const speech = useSpeechRecognition('ru-RU', { continuous: true })
-  // The hook returns a fresh object each render but these functions are stable. Depend on the
-  // functions, never the object — a `[speech]` dependency fires on every blade tick, and a cleanup
-  // that closes the mic on every render means the recogniser is never actually listening.
-  const { reset: resetSpeech, start: startSpeech, stop: stopSpeech } = speech
-
-  const [phase, setPhase] = useState<Phase>('ready')
-  const [round, setRound] = useState(0)
-  const [score, setScore] = useState(0)
-  /** 0 is the far left, 100 is the avatar. */
+  const [character, setCharacter] = useState<SawCharacter>('penguin')
+  const [topic, setTopic] = useState('everyday')
+  const [phase, setPhase] = useState<SawPhase>('ready')
   const [blade, setBlade] = useState(0)
   const [secondsLeft, setSecondsLeft] = useState(ROUND_SECONDS)
+  const [score, setScore] = useState(0)
+  const [round, setRound] = useState(0)
+  const [question, setQuestion] = useState('')
+  const [transcript, setTranscript] = useState('')
+  const [error, setError] = useState('')
+  const [speaking, setSpeaking] = useState(false)
+  const [busy, setBusy] = useState('')
+  const [volume, setVolume] = useState(0)
+  const [emotion, setEmotion] = useState<SawEmotion>('idle')
+  const [result, setResult] = useState<SawResult>()
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const sound = useRef(true)
+  const run = useRef<Run | null>(null)
+  const supported = typeof window !== 'undefined' && Boolean((window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition)
 
-  const heard = useRef({ text: '', at: 0, words: 0, russian: 0 })
-  /*
-   * Whether a voice is arriving at all, measured from the microphone rather than from the
-   * recogniser.
-   *
-   * The recogniser is set to Russian because Russian is what the blade retreats for — but a
-   * learner answering in Uzbek produces no Russian result at all, and the blade read that as
-   * silence and rolled straight over somebody who was talking the whole time. Loudness has no
-   * language.
-   */
-  const level = useRef({
-    loud: 0,
-    at: 0,
-    stream: null as MediaStream | null,
-    ctx: null as AudioContext | null,
-  })
-  const question = t.questions[round % t.questions.length]
+  const release = useCallback(() => {
+    const active = run.current
+    run.current = null
+    if (!active) return
+    active.alive = false
+    window.clearInterval(active.timer)
+    window.clearTimeout(active.finishTimer)
+    active.speech.abort()
+    active.audio.close()
+  }, [])
 
-  const listenForVoice = useCallback(async () => {
-    if (level.current.ctx) return
+  const finish = useCallback(async (reason: SawResult['reason']) => {
+    const active = run.current
+    if (!active?.alive) return
+    active.alive = false
+    window.clearInterval(active.timer)
+    active.audio.close()
+    const contactEndsAt = performance.now() + CONTACT_DURATION_MS
+    if (reason === 'silence') {
+      setBlade(100)
+      setEmotion('panic')
+      setPhase('impact')
+    }
+    setSpeaking(false)
+    setBusy('')
+    setVolume(0)
+    if (!active.paused) active.current = await active.speech.finish(300)
+    if (run.current !== active) return
+    setResult(resultFor([...active.previous, active.current].join(' '), active.spoken, active.elapsed, reason))
+    if (reason === 'silence') {
+      active.finishTimer = window.setTimeout(() => {
+        if (run.current !== active) return
+        setPhase('cut')
+        release()
+      }, Math.max(0, contactEndsAt - performance.now()))
+      return
+    }
+    setPhase(reason === 'complete' ? 'won' : 'cut')
+    if (reason === 'complete') setScore((value) => value + 1)
+    release()
+  }, [release])
+
+  useEffect(() => release, [release])
+  useEffect(() => {
+    const interrupt = () => {
+      if (!document.hidden || !run.current) return
+      release()
+      setPhase('ready')
+      setBusy('')
+      setError('Игра остановлена: вкладка была скрыта. Начни новый раунд, когда будешь готов.')
+    }
+    document.addEventListener('visibilitychange', interrupt)
+    return () => document.removeEventListener('visibilitychange', interrupt)
+  }, [release])
+
+  const start = async () => {
+    if (run.current || !supported) return
+    setError(''); setResult(undefined); setBlade(0); setSecondsLeft(ROUND_SECONDS)
+    setRound(0); setTranscript(''); setQuestion(''); setSpeaking(false); setPhase('starting')
+    setBusy('Подключаем собеседника…'); setEmotion('idle')
+    let audio: SawAudio
+    try { audio = new SawAudio(); audio.setEnabled(sound.current) } catch {
+      setError('Не удалось включить звук. Открой игру в современном браузере.'); setPhase('ready'); return
+    }
+    const active: Run = {
+      audio, speech: null as unknown as GameSpeech, alive: true, paused: true,
+      elapsed: 0, spoken: 0, threat: 0, lastRussian: -Infinity, lastChange: 0,
+      silence: 0, reminded: false, current: '', previous: [], fillers: 0, history: [],
+    }
+    const fail = (message: string) => {
+      if (!active.alive) return
+      release(); setPhase('ready'); setBusy(''); setSpeaking(false); setError(message)
+    }
+    active.speech = new GameSpeech((text) => {
+      if (!active.alive || active.paused) return
+      if (text !== active.current) {
+        if (contentWords(text).length > contentWords(active.current).length) {
+          active.lastRussian = performance.now(); active.silence = 0; active.reminded = false
+        }
+        active.lastChange = performance.now()
+      }
+      active.current = text
+      const count = fillerCount(text)
+      active.threat = nextThreat(active.threat, 0, false, Math.max(0, count - active.fillers))
+      active.fillers = Math.max(active.fillers, count)
+      setTranscript(text)
+      if (active.threat >= 100) void finish('silence')
+    }, (status) => {
+      if (!active.alive) return
+      if (status === 'denied') fail('Разреши доступ к микрофону в настройках браузера и попробуй ещё раз.')
+      else if (status === 'failed' || status === 'unavailable') fail('Распознавание речи недоступно. Проверь соединение и доступ к микрофону.')
+    })
+    run.current = active
+    const selectedTopic = SAW_TOPICS.find((item) => item.id === topic)?.label ?? SAW_TOPICS[0].label
+
+    const resumeListening = async () => {
+      await active.speech.start()
+      if (!active.alive) return
+      active.lastRussian = -Infinity
+      active.lastChange = performance.now()
+      active.paused = false
+      setBusy(''); setPhase('playing')
+    }
+
+    const converse = async (event: 'opening' | 'answer' | 'silence') => {
+      if (!active.alive) return
+      active.paused = true
+      setSpeaking(false); setBusy('Собеседник готовит вопрос…')
+      active.audio.setThreat(active.threat, false, true)
+      const text = event === 'opening' ? '' : await active.speech.finish(250)
+      if (!active.alive) return
+      active.current = event === 'answer' ? text.trim() : ''; active.fillers = 0
+      setTranscript('')
+      try {
+        const response = await getSawReply(character, selectedTopic, event === 'answer' ? text : '', active.history, event)
+        if (!active.alive) return
+        if (event === 'answer' && text.trim()) {
+          active.previous.push(text.trim())
+          active.history.push({ role: 'user', text })
+        }
+        active.current = ''
+        setError('')
+        active.history.push({ role: 'assistant', text: response.characterReply })
+        active.history = active.history.slice(-8)
+        active.threat = Math.max(0, Math.min(100, active.threat + response.threatChange))
+        setBlade(active.threat); setQuestion(response.characterReply)
+        if (active.threat >= 100) { await finish('silence'); return }
+        if (event === 'answer') setRound((value) => value + 1)
+        setEmotion(response.animation === 'happy' ? 'happy' : response.animation === 'sad' ? 'silence' : response.animation === 'angry' ? 'panic' : 'idle')
+        setBusy(sound.current ? 'Слушай собеседника — таймер на паузе' : 'Твой собеседник задал вопрос')
+        try { await active.audio.speak(response.characterReply, character) } catch {
+          if (active.alive) setError('Озвучка недоступна. Вопрос показан на экране — отвечай по-русски.')
+        }
+        if (!active.alive) return
+        await resumeListening()
+      } catch (caught) {
+        if (!active.alive) return
+        if (event === 'answer' && isSawLanguageError(caught)) {
+          active.current = ''
+          setError(sawError(caught))
+          try { await resumeListening() } catch (restartError) { fail(sawError(restartError)) }
+          return
+        }
+        fail(sawError(caught))
+      }
+    }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const ctx = new AudioContext()
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 512
-      ctx.createMediaStreamSource(stream).connect(analyser)
-
-      const samples = new Uint8Array(analyser.frequencyBinCount)
-      level.current = { loud: 0, at: Date.now(), stream, ctx }
-
-      const read = () => {
-        if (!level.current.ctx) return
-
-        analyser.getByteTimeDomainData(samples)
-        // Distance from silence, averaged. Cheap, and enough to tell talking from a room.
-        let sum = 0
-        for (const sample of samples) sum += Math.abs(sample - 128)
-        level.current.loud = sum / samples.length
-        if (level.current.loud > VOICE) level.current.at = Date.now()
-
-        requestAnimationFrame(read)
-      }
-
-      read()
+      await audio.openMicrophone()
+      if (!active.alive) return
+      await converse('opening')
+      if (!active.alive) return
+      let lastTick = performance.now()
+      active.timer = window.setInterval(() => {
+        const now = performance.now()
+        const dt = Math.min(0.3, Math.max(0, (now - lastTick) / 1000))
+        lastTick = now
+        if (!active.alive || active.paused) return
+        const isSpeaking = now - active.lastRussian < 1200
+        active.elapsed += dt
+        if (isSpeaking) active.spoken += dt
+        else active.silence += dt
+        active.threat = nextThreat(active.threat, dt, isSpeaking)
+        setBlade(active.threat); setSecondsLeft(Math.max(0, Math.ceil(ROUND_SECONDS - active.elapsed)))
+        setSpeaking(isSpeaking); setVolume(audio.level())
+        setEmotion(isSpeaking ? 'speaking' : active.threat >= 80 ? 'panic' : active.silence >= 2 ? 'silence' : 'idle')
+        audio.setThreat(active.threat, isSpeaking, false)
+        if (active.threat >= 100) { void finish('silence'); return }
+        if (active.elapsed >= ROUND_SECONDS) { void finish('complete'); return }
+        if (contentWords(active.current).length > 0 && now - active.lastChange >= 1400) void converse('answer')
+        else if (active.silence >= 3 && !active.reminded) { active.reminded = true; void converse('silence') }
+      }, 100)
     } catch {
-      // No meter, so the recogniser is the only signal — which is the behaviour it had before.
+      fail('Не удалось включить микрофон. Разреши доступ к нему и попробуй ещё раз.')
     }
-  }, [])
+  }
 
-  const releaseVoice = useCallback(() => {
-    level.current.stream?.getTracks().forEach((track) => track.stop())
-    void level.current.ctx?.close()
-    level.current = { loud: 0, at: 0, stream: null, ctx: null }
-  }, [])
-
-  const start = useCallback(() => {
-    heard.current = { text: '', at: Date.now(), words: 0, russian: 0 }
-    void listenForVoice()
-    resetSpeech()
-    startSpeech()
-    setBlade(0)
-    setSecondsLeft(ROUND_SECONDS)
-    setPhase('playing')
-  }, [listenForVoice, resetSpeech, startSpeech])
-
-  const stop = useCallback(() => {
-    stopSpeech()
-  }, [stopSpeech])
-
-  /*
-   * Every transcript update is a heartbeat: it says they are still talking, and how much of
-   * what they said was Russian. Held in a ref so the blade loop can read it without a render
-   * per syllable.
-   */
-  useEffect(() => {
-    if (phase !== 'playing') return
-
-    const text = speech.transcript.trim()
-    if (!text || text === heard.current.text) return
-
-    const words = text.split(/\s+/).filter(Boolean)
-    const russian = words.filter((word) => /[Ѐ-ӿ]/.test(word)).length
-
-    // Only Russian moves this clock. It is what the blade retreats from, and a transcript
-    // that grew without any Russian in it is somebody still speaking Uzbek.
-    heard.current = {
-      text,
-      at: russian > heard.current.russian ? Date.now() : heard.current.at,
-      words: words.length,
-      russian,
-    }
-  }, [speech.transcript, phase])
-
-  // The blade, and the clock it is racing.
-  useEffect(() => {
-    if (phase !== 'playing') return
-
-    const tick = window.setInterval(() => {
-      const now = Date.now()
-      const sinceRussian = (now - heard.current.at) / 1000
-      const sinceVoice = (now - level.current.at) / 1000
-      const { words, russian } = heard.current
-
-      setBlade((position) => {
-        /*
-         * Three states, and the middle one is the whole lesson.
-         *
-         * Russian pushes the blade away. Talking in Uzbek holds it exactly where it is —
-         * everybody here can speak Uzbek all day, so rewarding it would make the game
-         * winnable without ever attempting the language it is for. Silence lets it come on.
-         *
-         * Nothing punishes a wrong Russian word. Only stopping, and only staying in Uzbek.
-         */
-        const step =
-          sinceRussian < 1.5
-            ? -Math.min(RETREAT_MAX, 4 + russian * 3 + Math.min(words, 12) * 0.5)
-            : sinceVoice < 1.5
-              ? 0
-              : sinceVoice < 3
-                ? ADVANCE_IDLE
-                : ADVANCE_STALLED
-
-        const next = position + step / 10
-
-        if (next >= 100) {
-          setPhase('cut')
-
-          return 100
-        }
-
-        return Math.max(0, next)
-      })
-    }, 100)
-
-    return () => window.clearInterval(tick)
-  }, [phase])
-
-  useEffect(() => {
-    if (phase !== 'playing') return
-
-    const timer = window.setInterval(() => {
-      setSecondsLeft((left) => {
-        if (left <= 1) {
-          setPhase('won')
-
-          return 0
-        }
-
-        return left - 1
-      })
-    }, 1000)
-
-    return () => window.clearInterval(timer)
-  }, [phase])
-
-  // Whatever ends the round, the microphone closes with it.
-  useEffect(() => {
-    if (phase === 'cut' || phase === 'won') {
-      stop()
-      releaseVoice()
-    }
-  }, [phase, stop, releaseVoice])
-
-  useEffect(
-    () => () => {
-      stopSpeech()
-      releaseVoice()
-    },
-    [stopSpeech, releaseVoice],
-  )
-
-  useEffect(() => {
-    if (phase === 'won') setScore((current) => current + 1)
-  }, [phase])
-
-  const spoken = useMemo(() => speech.transcript.trim(), [speech.transcript])
-  const speaking = phase === 'playing' && heard.current.russian > 0 && Date.now() - heard.current.at < 1500
-
-  return <SawGameView
-    phase={phase} blade={blade} secondsLeft={secondsLeft} score={score} round={round}
-    question={question} transcript={spoken} speaking={speaking} supported={speech.supported}
-    error={speech.status === 'denied' ? t.micDenied : undefined}
-    onStart={start} onBack={() => navigate('/games')}
-    onNext={() => { setRound((current) => current + 1); setPhase('ready') }}
-  />
+  return <SawGameView phase={phase} blade={blade} secondsLeft={secondsLeft} score={score} round={round}
+    question={question} transcript={transcript} speaking={speaking} supported={supported} error={error}
+    character={character} emotion={emotion} topic={topic} volume={volume} result={result} busy={busy}
+    soundEnabled={soundEnabled} onCharacter={setCharacter} onTopic={setTopic} onStart={() => void start()}
+    onSurrender={() => void finish('surrender')} onBack={() => { release(); navigate('/games') }}
+    onNext={() => { release(); setError(''); setPhase('ready') }}
+    onToggleSound={() => { sound.current = !sound.current; setSoundEnabled(sound.current); run.current?.audio.setEnabled(sound.current) }} />
 }

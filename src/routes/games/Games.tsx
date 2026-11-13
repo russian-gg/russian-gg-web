@@ -110,16 +110,17 @@ function destinationOf(game: OpenGame, isCenterStudent: boolean) {
 
 function useGameCopy(game: OpenGame) {
   const t = useT().arcade
+  if (game.slug === 'arra') return { title: 'Пила: Детектор лжи', body: 'Три характера. Три мира. Говори по-русски, чтобы отвести пилу.', meta: 'Голосовое испытание · 60 секунд' }
   const label = (t.games as Record<string, { title: string; body: string } | undefined>)[game.slug]
   const meta = (t.meta as Record<string, string | undefined>)[game.slug]
   return { title: label?.title ?? game.titleUz, body: label?.body ?? game.bodyUz, meta: meta ?? '' }
 }
 
 /** Titles that are Russian on purpose, and say so to a screen reader. */
-const RUSSIAN_TITLES = new Set(['rod-runner', 'fight-for-life'])
+const RUSSIAN_TITLES = new Set(['rod-runner', 'fight-for-life', 'arra'])
 
 const ICONS: Record<string, { background: string; image?: string }> = {
-  arra: { background: 'linear-gradient(145deg,#3c3024,#111d20)', image: '/games/arra/penguin-foreman.webp' },
+  arra: { background: 'linear-gradient(145deg,#20384b,#13131f)', image: '/games/arra/v3/penguin-idle.webp' },
   'rod-runner': { background: 'linear-gradient(160deg,#00b4d8,#90e0ef 60%,#e4faff)' },
   'tez-gapir': { background: 'linear-gradient(160deg,#141b40,#34386a)', image: '/games/characters/penguin.webp' },
   'fight-for-life': { background: 'linear-gradient(145deg,#00b4d8,#00f5d4)', image: '/games/fight-for-life/characters/penguin.webp' },
@@ -156,14 +157,14 @@ function PlayButton({ game, onDark = false }: { game: OpenGame; onDark?: boolean
     return (
       <span className="raised inline-flex min-h-10 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-hairline bg-ground-raised px-4 text-sm font-black whitespace-nowrap text-ink">
         <LockKeyhole aria-hidden="true" className="size-3.5 text-caution" strokeWidth={2.4} />
-        {isCenterStudent ? dictionary.path.locked : t.pro}
+        {isCenterStudent ? dictionary.path.locked : game.slug === 'arra' ? 'Нужен Pro' : t.pro}
       </span>
     )
   }
   return (
     <span className={cx('raised raised-signal inline-flex min-h-10 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-signal px-4 text-sm font-black whitespace-nowrap text-on-signal', onDark && 'shadow-lg')}>
       <Play aria-hidden="true" className="size-3.5 fill-current" strokeWidth={0} />
-      {t.play}
+      {game.slug === 'arra' ? 'Играть' : t.play}
     </span>
   )
 }

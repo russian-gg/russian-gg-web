@@ -1,76 +1,74 @@
 import { useId, type CSSProperties } from 'react'
+import { sawCharacterImage, type SawCharacter, type SawEmotion, type SawPhase } from './model'
 import './scene.css'
 
 type SawSceneProps = {
   blade: number
-  phase: 'ready' | 'playing' | 'cut' | 'won'
+  phase: SawPhase
   speaking?: boolean
   animated?: boolean
+  character?: SawCharacter
+  emotion?: SawEmotion
 }
 
-const teeth = Array.from({ length: 24 }, (_, index) => {
-  const points = [[61, 0], [70, 4], [70, 9], [60, 13]]
+const teeth = Array.from({ length: 30 }, (_, index) => {
+  const points = [[61, 0], [70, 3], [70, 7], [60, 10]]
   return points.map(([radius, offset]) => {
-    const angle = (index * 15 + offset) * Math.PI / 180
+    const angle = (index * 12 + offset) * Math.PI / 180
     return `${80 + Math.cos(angle) * radius},${80 + Math.sin(angle) * radius}`
   }).join(' ')
 }).join(' ')
 
-export function SawScene({ blade, phase, speaking = false, animated = true }: SawSceneProps) {
-  const position = Math.max(0, Math.min(100, blade))
-  const danger = position > 68 && phase !== 'won'
-  const travel = position / 100
+const characterContact = {
+  penguin: { offset: .025, x: .297, y: .672 },
+  panda: { offset: -.02, x: .234, y: .509 },
+  pero: { offset: -.004, x: .267, y: .677 },
+} satisfies Record<SawCharacter, { offset: number; x: number; y: number }>
+
+export function SawScene({ blade, phase, speaking = false, animated = true, character = 'penguin', emotion }: SawSceneProps) {
+  const threat = Math.max(0, Math.min(100, blade))
+  const progress = phase === 'won' ? 0 : threat / 100
+  const reaction = phase === 'impact' ? 'panic' : emotion ?? (phase === 'won' ? 'happy' : threat >= 80 ? 'panic' : speaking ? 'speaking' : threat >= 40 ? 'silence' : 'idle')
+  const portrait = sawCharacterImage(character, reaction)
+  const contact = characterContact[character]
+  const style = {
+    '--blade-progress': progress,
+    '--blade-speed': `${Math.max(.5, 2 - progress * 1.5)}s`,
+    '--threat-opacity': progress,
+    '--contact-offset': contact.offset,
+    '--contact-local-x': contact.x,
+    '--contact-local-y': contact.y,
+  } as CSSProperties
   return (
-    <div className="arra-scene" data-phase={phase} data-danger={danger} data-speaking={speaking} data-animated={animated} aria-hidden="true">
+    <div className="arra-scene" data-character={character} data-phase={phase} data-emotion={reaction} data-critical={threat >= 80 && phase !== 'won'} data-speaking={speaking} data-animated={animated} style={style} aria-hidden="true">
       <div className="arra-scene__camera">
-        <div className="arra-scene__workshop" />
-        <div className="arra-scene__lamp"><i /><b /></div>
-        <div className="arra-scene__sunbeam" />
-        <div className="arra-scene__pipe"><i /><i /><i /></div>
-        <div className="arra-scene__gear arra-scene__gear--large"><Gear /></div>
-        <div className="arra-scene__gear arra-scene__gear--small"><Gear /></div>
-        <div className="arra-scene__steam"><i /><i /><i /></div>
-        <div className="arra-scene__dust">
-          {Array.from({ length: 12 }, (_, index) => <i key={index} style={{ '--particle': index, left: `${7 + index * 13 % 87}%`, top: `${19 + index * 17 % 62}%` } as CSSProperties} />)}
+        <div className="arra-scene__room" />
+        <div className="arra-scene__room-shade" />
+        <div className="arra-scene__light-shaft" />
+        {character === 'penguin' ? <FactoryDetails /> : character === 'panda' ? <AtticDetails /> : <TheaterDetails />}
+        <div className="arra-scene__motes">
+          {Array.from({ length: 14 }, (_, index) => <i key={index} style={{ '--particle': index, left: `${7 + index * 13 % 87}%`, top: `${12 + index * 19 % 74}%` } as CSSProperties} />)}
         </div>
-        <svg className="arra-scene__tracks" viewBox="0 0 1000 420" preserveAspectRatio="none" focusable="false">
-          <path d="M198 201 359 420h414L400 201Z" fill="#111919" opacity=".62" />
-          {Array.from({ length: 10 }, (_, index) => {
-            const depth = (index / 9) ** 1.7
-            const y = 211 + depth * 209
-            return <path key={index} d={`M${215 + depth * 152} ${y}H${397 + depth * 349}`} stroke="#586461" strokeWidth={3 + depth * 7} />
-          })}
-          <path d="m224 202 180 218m173 0L370 202" stroke="#101919" strokeWidth="17" fill="none" />
-          <path d="m224 202 180 218m173 0L370 202" stroke="#899c99" strokeWidth="8" fill="none" />
-          <path d="m220 202 180 218m173 0L366 202" stroke="#e3e3c8" strokeOpacity=".8" strokeWidth="2" fill="none" />
-          <path d="m238 202 182 218m174 0L384 202" stroke="#294244" strokeWidth="4" fill="none" />
-        </svg>
-        <div className="arra-scene__machine">
-          <div className="arra-scene__machine-base"><i /><i /><i /><i /></div>
-          <div className="arra-scene__blade-frame"><SawBlade /></div>
-          <div className="arra-scene__machine-label"><i /><i /><i /></div>
+        <div className="arra-scene__saw-shadow" />
+        <div className="arra-scene__saw">
+          <div className="arra-scene__blade-aura" />
+          <div className="arra-scene__rotor"><SawBlade /></div>
+        </div>
+        <div className="arra-scene__character-ground" />
+        <div className="arra-scene__character">
+          <div className="arra-scene__character-motion">
+            <img key={portrait} src={portrait} alt="" width="768" height="768" draggable={false} />
+          </div>
+          <div className="arra-scene__voice-halo"><i /><i /><i /></div>
+          <div className="arra-scene__reward-sparks">
+            {Array.from({ length: 5 }, (_, index) => <svg key={index} viewBox="0 0 24 24" style={{ '--star': index } as CSSProperties}><path d="m12 1 2.7 7.9L23 12l-8.3 2.5L12 23l-2.7-8.5L1 12l8.3-3.1Z" /></svg>)}
+          </div>
+        </div>
+        <div className="arra-scene__contact">
+          <div className="arra-scene__contact-flash" />
           <div className="arra-scene__sparks">
-            {Array.from({ length: 7 }, (_, index) => <i key={index} style={{ '--spark': index } as CSSProperties} />)}
+            {Array.from({ length: 9 }, (_, index) => <i key={index} style={{ '--spark': index } as CSSProperties} />)}
           </div>
-        </div>
-        <div className="arra-scene__platform" style={{ left: `${49 - travel * 19}%`, bottom: `${5 + travel * 34}%`, '--platform-scale': 1 - travel * .4 } as CSSProperties}>
-          <div className="arra-scene__platform-shadow" />
-          <div className="arra-scene__platform-wheel arra-scene__platform-wheel--left" />
-          <div className="arra-scene__platform-wheel arra-scene__platform-wheel--right" />
-          <div className="arra-scene__platform-front"><i /><i /><i /><i /></div>
-          <div className="arra-scene__platform-top">
-            <span className="arra-scene__platform-mark"><i /><i /></span>
-            <span className="arra-scene__platform-corner arra-scene__platform-corner--left" />
-            <span className="arra-scene__platform-corner arra-scene__platform-corner--right" />
-          </div>
-          <div className="arra-scene__voice-rings"><i /><i /><i /></div>
-        </div>
-        <div className="arra-scene__foreman-plinth" />
-        <div className="arra-scene__penguin">
-          <span className="arra-scene__penguin-shadow" />
-          <img src="/games/arra/penguin-foreman.webp" alt="" width="760" height="760" draggable={false} />
-          <svg className="arra-scene__celebration arra-scene__celebration--one" viewBox="0 0 24 24"><path d="m12 1 2.7 7.9L23 12l-8.3 2.5L12 23l-2.7-8.5L1 12l8.3-3.1Z" /></svg>
-          <svg className="arra-scene__celebration arra-scene__celebration--two" viewBox="0 0 24 24"><path d="m12 1 2.7 7.9L23 12l-8.3 2.5L12 23l-2.7-8.5L1 12l8.3-3.1Z" /></svg>
         </div>
       </div>
       <div className="arra-scene__vignette" />
@@ -80,16 +78,34 @@ export function SawScene({ blade, phase, speaking = false, animated = true }: Sa
   )
 }
 
-function Gear() {
-  return <svg viewBox="0 0 100 100" focusable="false">
-    {Array.from({ length: 12 }, (_, index) => <rect key={index} x="43" y="3" width="14" height="20" rx="2" transform={`rotate(${index * 30} 50 50)`} fill="#57615a" stroke="#838573" strokeWidth="1" />)}
-    <circle cx="50" cy="50" r="35" fill="#343c37" stroke="#8d8e75" strokeWidth="3" />
-    <circle cx="50" cy="50" r="24" fill="none" stroke="#181f1c" strokeWidth="13" />
-    {Array.from({ length: 6 }, (_, index) => <rect key={index} x="45" y="20" width="10" height="30" transform={`rotate(${index * 60} 50 50)`} fill="#626c5f" />)}
-    <circle cx="50" cy="50" r="11" fill="#1d2825" stroke="#a3a18a" strokeWidth="2" />
-  </svg>
+function FactoryDetails() {
+  return <div className="arra-scene__factory">
+    <div className="arra-scene__pipe"><i /><i /><i /></div>
+    <div className="arra-scene__gear"><svg viewBox="0 0 100 100">
+      {Array.from({ length: 12 }, (_, index) => <rect key={index} x="43" y="3" width="14" height="20" rx="2" transform={`rotate(${index * 30} 50 50)`} fill="#42596a" stroke="#8299a5" strokeWidth="1" />)}
+      <circle cx="50" cy="50" r="35" fill="#243842" stroke="#758f9b" strokeWidth="3" />
+      <circle cx="50" cy="50" r="22" fill="#13222b" stroke="#536b77" strokeWidth="5" />
+      <circle cx="50" cy="50" r="9" fill="#758f9b" />
+    </svg></div>
+    <div className="arra-scene__steam"><i /><i /><i /></div>
+  </div>
 }
 
+function AtticDetails() {
+  return <div className="arra-scene__attic">
+    <div className="arra-scene__hanging-lamp"><i /><b /></div>
+    <div className="arra-scene__woodbeam arra-scene__woodbeam--one" /><div className="arra-scene__woodbeam arra-scene__woodbeam--two" />
+    <div className="arra-scene__cobweb"><svg viewBox="0 0 120 100"><path d="M0 0 120 20M0 0l100 60M0 0l50 100M0 0l10 100M10 20Q24 17 25 4M16 40Q40 36 47 7M19 65Q55 53 74 12M40 40Q47 38 49 30M30 60Q47 55 57 34M42 84Q64 73 78 47" fill="none" stroke="currentColor" /></svg></div>
+  </div>
+}
+
+function TheaterDetails() {
+  return <div className="arra-scene__theater">
+    <div className="arra-scene__curtain arra-scene__curtain--left" /><div className="arra-scene__curtain arra-scene__curtain--right" />
+    <div className="arra-scene__stage-orbit" />
+    <div className="arra-scene__cards">{Array.from({ length: 5 }, (_, index) => <span key={index} style={{ '--card': index } as CSSProperties}><svg viewBox="0 0 28 40"><rect x="1" y="1" width="26" height="38" rx="3" fill="#291c41" stroke="#d0a769" /><path d="m14 10 6 10-6 10-6-10Z" fill="none" stroke="#eacb84" /><circle cx="14" cy="20" r="2" fill="#eacb84" /></svg></span>)}</div>
+  </div>
+}
 function SawBlade() {
   const id = useId()
   return (
