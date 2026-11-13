@@ -43,6 +43,7 @@ import {
   CenterOverviewScreen,
   CenterSettingsScreen,
   CenterStudentsScreen,
+  type StartAdding,
   type StudentFilter,
 } from './screens/CenterPortal'
 import { Toaster } from './components/toast'
@@ -172,6 +173,9 @@ function Panel() {
   const { token, name, role, centerName } = useSession()
   /* Which slice of the student list the overview's figures open. */
   const [studentFilter, setStudentFilter] = useState<StudentFilter>('all')
+  /* Opened from the overview's add buttons: straight into the form or the Excel picker, once. */
+  const [studentStart, setStudentStart] = useState<StartAdding | undefined>(undefined)
+  const [studentVisit, setStudentVisit] = useState(0)
   const [section, setSection] = useState<Section>(() => readStoredSection(session.role()))
   /*
    * Bumped when the section already open is clicked again, and used as the screen's key, so
@@ -300,6 +304,8 @@ function Panel() {
                         type="button"
                         onClick={() => {
                           if (item.id === active) setVisit((value) => value + 1)
+                          // The sidebar opens a screen plainly, never into the add form.
+                          setStudentStart(undefined)
                           setSection(item.id)
                         }}
                         aria-current={active === item.id ? 'page' : undefined}
@@ -369,13 +375,17 @@ function Panel() {
         {active === 'centers' && <Centers />}
         {active === 'center-overview' && (
           <CenterOverviewScreen
-            onOpenStudents={(filter) => {
+            onOpenStudents={(filter, start) => {
               setStudentFilter(filter)
+              setStudentStart(start)
+              setStudentVisit((value) => value + 1)
               setSection('center-students')
             }}
           />
         )}
-        {active === 'center-students' && <CenterStudentsScreen key={studentFilter} initialFilter={studentFilter} />}
+        {active === 'center-students' && (
+          <CenterStudentsScreen key={`${studentFilter}-${studentVisit}`} initialFilter={studentFilter} start={studentStart} />
+        )}
         {active === 'center-settings' && <CenterSettingsScreen />}
       </main>
       <Toaster />

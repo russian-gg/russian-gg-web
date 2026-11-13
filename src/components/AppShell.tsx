@@ -47,6 +47,7 @@ import { api } from '../lib/api'
 import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/types'
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { HeaderProPill, RailProCard } from './ProEntry'
+import { useCenterStudent } from '../lib/center'
 import { useCourseDays } from '../lib/course-days'
 import { Badge, Spinner, Switch } from './ui'
 import { duration, ease } from '../lib/motion'
@@ -230,9 +231,12 @@ export function AppShell() {
 function WelcomeDiscountCountdown() {
   const t = useT()
   const [now, setNow] = useState(() => Date.now())
+  // A discount on a plan a center's student cannot buy is no offer at all.
+  const { isCenterStudent } = useCenterStudent()
   const { data: welcomeGift } = useQuery({
     queryKey: ['welcome-gift'],
     queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),
+    enabled: !isCenterStudent,
     staleTime: 15_000,
     refetchOnWindowFocus: false,
   })
@@ -241,7 +245,7 @@ function WelcomeDiscountCountdown() {
     ? Math.max(0, Math.ceil((new Date(welcomeGift.expiresAt).getTime() - now) / 1000))
     : 0
   const isActive = Boolean(
-    welcomeGift?.isDiscountActive && welcomeGift.discountPercent > 0 && secondsRemaining > 0,
+    !isCenterStudent && welcomeGift?.isDiscountActive && welcomeGift.discountPercent > 0 && secondsRemaining > 0,
   )
 
   useEffect(() => {
@@ -329,9 +333,11 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
     user?.displayName?.trim() || user?.email?.split('@')[0] || user?.phoneNumber || t.account.learner
   // The plan, not the level: this row is the account, and the level already has a home on
   // the profile and progress screens.
-  const plan = planLabel(entitlement, t)
+  // A center's student has no plan of their own: the line names the center that pays for it.
+  const { centerName } = useCenterStudent()
+  const plan = centerName ? fill(t.center.profileLine, { center: centerName }) : planLabel(entitlement, t)
   // On the free plan the line under the name says where to go next, not only where they are.
-  const subtitle = plan && entitlement?.hasProAccess === false ? `${plan} · ${t.pro.upgrade}` : plan
+  const subtitle = plan && !centerName && entitlement?.hasProAccess === false ? `${plan} · ${t.pro.upgrade}` : plan
   const initials = name.trim().slice(0, 2).toUpperCase()
 
   function go(path: string) {

@@ -1,7 +1,7 @@
 /*
  * Students in and out of Excel, for a center that keeps its list there.
  *
- * The template is two columns, name and phone, with one filled-in example row. Reading is
+ * The template is three columns, name, phone and (optional) e-mail, with one filled-in example row. Reading is
  * forgiving about the shape it gets back: headers in either order, in Uzbek or Russian, or no
  * header at all — then the column whose cells look like phone numbers is the phone. Every row
  * goes into the add dialog to be checked before anything is sent, so a bad cell is something
@@ -11,10 +11,11 @@
  * chunk should not carry a spreadsheet parser for everybody who never presses it.
  */
 
-export type ImportedStudent = { name: string; phone: string }
+export type ImportedStudent = { name: string; phone: string; email: string }
 
 const NAME_HEADER = 'Ism va familiya'
 const PHONE_HEADER = 'Telefon raqam'
+const EMAIL_HEADER = 'Email (ixtiyoriy)'
 
 /** Too many for one dialog, and more than any center's limit; the server takes 500 at a time. */
 const MAX_ROWS = 500
@@ -26,14 +27,16 @@ export async function downloadStudentsTemplate() {
       [
         { value: NAME_HEADER, fontWeight: 'bold' },
         { value: PHONE_HEADER, fontWeight: 'bold' },
+        { value: EMAIL_HEADER, fontWeight: 'bold' },
       ],
       // Typed as text so Excel keeps the spaces and does not turn the number into 9.01E+08.
       [
         { value: 'Ali Valiyev', type: String },
         { value: '90 123 45 67', type: String },
+        { value: 'ali@gmail.com', type: String },
       ],
     ],
-    { columns: [{ width: 32 }, { width: 20 }], sheet: "O'quvchilar" },
+    { columns: [{ width: 32 }, { width: 20 }, { width: 30 }], sheet: "O'quvchilar" },
   ).toFile('oquvchilar-shablon.xlsx')
 }
 
@@ -64,6 +67,7 @@ export async function readStudentsFile(file: File): Promise<ImportedStudent[]> {
   const find = (words: string[]) => header?.findIndex((cell) => words.some((word) => cell.includes(word))) ?? -1
   let phoneColumn = find(['telefon', 'raqam', 'phone', 'телефон', 'номер'])
   let nameColumn = find(['ism', 'name', 'fio', 'имя', 'фио'])
+  let emailColumn = find(['email', 'e-mail', 'pochta', 'почта'])
 
   // No usable header: the phone column is the one most of whose cells are phone numbers.
   if (phoneColumn < 0) {
@@ -82,9 +86,23 @@ export async function readStudentsFile(file: File): Promise<ImportedStudent[]> {
 
   if (phoneColumn < 0) throw new Error("Telefon raqamlar ustuni topilmadi. Shablondagi «Telefon raqam» ustunini to'ldiring.")
   if (nameColumn < 0 || nameColumn === phoneColumn) nameColumn = phoneColumn === 0 ? 1 : 0
+  // No e-mail header: a column whose cells hold an @ is the e-mail.
+  if (emailColumn < 0) {
+    const width = Math.max(...body.map((row) => row.length))
+    for (let column = 0; column < width; column++) {
+      if (column !== phoneColumn && column !== nameColumn && body.some((row) => (row[column] ?? '').includes('@'))) {
+        emailColumn = column
+        break
+      }
+    }
+  }
 
   const students = body
-    .map((row) => ({ name: row[nameColumn] ?? '', phone: row[phoneColumn] ?? '' }))
+    .map((row) => ({
+      name: row[nameColumn] ?? '',
+      phone: row[phoneColumn] ?? '',
+      email: emailColumn >= 0 ? (row[emailColumn] ?? '') : '',
+    }))
     .filter((student) => student.name || student.phone)
 
   if (students.length > MAX_ROWS) {

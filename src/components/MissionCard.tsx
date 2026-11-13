@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { pickContent } from '../lib/content'
 import { cx } from '../lib/cx'
 import { fill, useLocale, useT } from '../lib/i18n'
-import { missionLock, missionLockDestination, missionLockText } from '../lib/mission-lock'
+import { useCenterStudent } from '../lib/center'
+import { missionLock, missionLockDestination, missionLockLabel, missionLockText } from '../lib/mission-lock'
 import { hasFoundationLesson } from '../lib/foundation-days'
 import { missionPath } from '../lib/mission-path'
 import type { MissionSummary } from '../lib/types'
@@ -45,7 +46,8 @@ export function MissionCard({
   const navigate = useNavigate()
   const [previewOpen, setPreviewOpen] = useState(false)
   const lock = missionLock(mission)
-  const isProLock = lock === 'pro'
+  // A center's student is pointed at their center, never at the plans.
+  const { lock: centerLock } = useCenterStudent()
 
   const needsRegisterLabel =
     mission.category === 'StreetRussian' ||
@@ -58,7 +60,7 @@ export function MissionCard({
     ru: mission.titleRu,
     en: mission.titleEn,
   })
-  const destination = lock ? missionLockDestination(lock) : missionPath(mission)
+  const destination = lock ? missionLockDestination(lock, centerLock) : missionPath(mission)
 
   const cardClassName = cx(
     missionCardClass(mission.isCompleted, mission.isLocked),
@@ -93,14 +95,12 @@ export function MissionCard({
 
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           {showFreeLabel && !mission.isLocked && <Badge>{t.account.plan.free}</Badge>}
-          {mission.isLocked && (
-            <Badge tone="caution">{isProLock ? t.path.needsPro : t.path.locked}</Badge>
-          )}
+          {lock && <Badge tone="caution">{missionLockLabel(lock, t, centerLock)}</Badge>}
         </div>
       </div>
 
       {/* A locked card says what opens it, before the tap rather than after. */}
-      {lock && <p className="mt-3 text-sm leading-snug text-ink-muted">{missionLockText(mission, lock, t)}</p>}
+      {lock && <p className="mt-3 text-sm leading-snug text-ink-muted">{missionLockText(mission, lock, t, centerLock)}</p>}
 
       <MissionScore mission={mission} label={title} />
 
@@ -118,9 +118,9 @@ export function MissionCard({
           <span className="rounded-[var(--radius-control)] border border-milestone/15 bg-ground-raised px-4 py-1.5 text-sm font-extrabold text-milestone">
             {t.path.done}
           </span>
-        ) : mission.isLocked ? (
+        ) : lock ? (
           <span className="text-sm font-extrabold text-caution">
-            {isProLock ? t.path.needsPro : t.path.locked}
+            {missionLockLabel(lock, t, centerLock)}
           </span>
         ) : (
           <span

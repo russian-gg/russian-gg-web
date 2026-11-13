@@ -31,6 +31,8 @@ export type CenterStudent = {
   speakingMinutes7d: number
   missionsCompleted: number
   atRisk: boolean
+  /** Optional; lets a Google or Apple sign-in claim the seat. */
+  email?: string | null
   addedAt: string
 }
 
@@ -136,6 +138,8 @@ export type AdminCenterAccount = {
   displayName: string
   isActive: boolean
   lastLoginAt: string | null
+  /** The generated password, only while the admin has never signed in with it. */
+  pendingPassword?: string | null
 }
 
 export type AdminCenterInvoice = {

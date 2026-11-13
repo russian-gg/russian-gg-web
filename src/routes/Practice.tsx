@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Crown, FileText, Gift } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useCenterStudent } from '../lib/center'
 import { fill, useLocale, useT } from '../lib/i18n'
 import type { EntitlementView, MissionSummary } from '../lib/types'
+import { CenterLockNote } from '../components/CenterLockNote'
 import { MissionDetailsSheet } from '../components/missions/MissionDetailsSheet'
 import { MissionMap } from '../components/missions/MissionMap'
 import { buildMissionRows, currentMissionId } from '../components/missions/mission-row'
@@ -38,6 +40,9 @@ export function Practice() {
     queryKey: ['entitlement'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
+  // Free and Pro counts are a plan's terms; a center's student has no plan, only their center.
+  const { isCenterStudent, lock: centerLock } = useCenterStudent()
+  const isFree = entitlement?.hasProAccess === false && !isCenterStudent
 
   const rows = useMemo(() => (data ? buildMissionRows(data, locale) : []), [data, locale])
   const currentId = currentMissionId(rows)
@@ -91,7 +96,8 @@ export function Practice() {
                   {Math.round((doneCount / rows.length) * 100)}%
                 </span>
               </div>
-              {entitlement?.hasProAccess === false && proCount > 0 && (
+              {centerLock && proCount > 0 && <CenterLockNote lock={centerLock} className="py-2" />}
+              {isFree && proCount > 0 && (
                 <>
                   <span aria-hidden="true" className="hidden h-8 w-px bg-hairline sm:block" />
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-3 py-1.5 text-xs font-extrabold text-milestone">
@@ -141,7 +147,7 @@ export function Practice() {
               ref={panel}
               row={selected}
               open={open}
-              showFreeLabel={entitlement?.hasProAccess === false}
+              showFreeLabel={isFree}
               onDismiss={dismiss}
             />
           </Reveal>

@@ -1,7 +1,28 @@
-import { useMemo, useRef, useState } from 'react'
-import { Download, FileSpreadsheet, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  CalendarCheck,
+  Check,
+  ChevronRight,
+  Copy,
+  CreditCard,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  GraduationCap,
+  Info,
+  ShieldCheck,
+  Plus,
+  Send,
+  TrendingUp,
+  TriangleAlert,
+  Upload,
+  UserPlus,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { cx } from '../../src/lib/cx'
-import { adminApiPath, adminFetch, formatDate, session, useAdminQuery } from '../lib/api'
+import { adminApiPath, adminFetch, daysUntil, formatDayLong, session, useAdminQuery } from '../lib/api'
 import {
   type AddStudentsResult,
   type CenterGroup,
@@ -22,14 +43,13 @@ import {
   PageHeader,
   Row,
   Screen,
-  SectionHeading,
   Segmented,
-  Stat,
   Table,
   Textarea,
   TextField,
 } from '../components/ui'
-import { Field, FormDialog, InvoiceBadge, PayButtons, StudentDrawer, StudentsTable } from '../components/center'
+import { AccessBadge, Field, FormDialog, InvoiceBadge, PayButtons, StudentDrawer, StudentsTable } from '../components/center'
+import { CardTitle, IconDot, IconStat, UsageBar } from '../components/center-ui'
 import { fieldClass, formatPeriod, formatSom, maskUzLocal, payLink, uzLocalDigits } from '../lib/center-format'
 import { readStudentsFile, downloadStudentsTemplate } from '../lib/student-import'
 import { toast } from '../lib/toast'
@@ -47,68 +67,156 @@ const BASE = '/api/center-portal'
 
 // ------------------------------------------------------------------------------- overview
 
-export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: (filter: StudentFilter) => void }) {
+/** How the students screen opens: plain, straight into the add form, or into the Excel picker. */
+export type StartAdding = 'form' | 'excel'
+
+/** Opens the students screen: on a filter, or straight into adding. */
+export type OpenStudents = (filter: StudentFilter, start?: StartAdding) => void
+
+export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: OpenStudents }) {
   const { data, error, isLoading, refresh } = useAdminQuery<CenterOverview>(`${BASE}/overview`)
 
   return (
     <Screen className="space-y-6">
-      <PageHeader title={data?.name ?? session.centerName() ?? 'Markaz'} subtitle="Bu hafta o'quvchilaringiz qanday mashq qilmoqda" />
-
       {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {isLoading && !data && <LoadingStats count={4} />}
 
       {data && (
-        <>
+        <div className="flex flex-col gap-6">
+          <header className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <span
+                aria-hidden="true"
+                className="flex size-14 shrink-0 items-center justify-center rounded-[var(--radius-card)] bg-signal-soft text-signal-ink"
+              >
+                <GraduationCap className="size-7" strokeWidth={1.7} />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-extrabold tracking-tight text-ink">{data.name}</h1>
+                  <AccessBadge access={data.access} />
+                </div>
+                <p className="mt-0.5 text-sm text-ink-muted">Bu hafta o'quvchilaringiz qanday mashq qilmoqda</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => onOpenStudents('all', 'excel')}>
+                <span className="flex items-center gap-1.5">
+                  <Upload aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                  Excel'dan yuklash
+                </span>
+              </Button>
+              <Button onClick={() => onOpenStudents('all', 'form')}>
+                <span className="flex items-center gap-1.5">
+                  <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
+                  O'quvchi qo'shish
+                </span>
+              </Button>
+            </div>
+          </header>
+
           <AccessBanner overview={data} />
 
           {data.requested > 0 && (
             <button
               type="button"
               onClick={() => onOpenStudents('requested')}
-              className="w-full rounded-[var(--radius-card)] border-2 border-signal bg-signal-soft px-4 py-3 text-left text-sm font-bold text-signal-ink"
+              className="flex items-center gap-3 rounded-[var(--radius-card)] border-2 border-signal bg-signal-soft px-4 py-3 text-left"
             >
-              {data.requested} ta o'quvchi kod orqali qo'shilishni so'radi — tasdiqlash uchun bosing
+              <IconDot Icon={UserPlus} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-extrabold text-ink">
+                  {data.requested} ta o'quvchi markaz kodi bilan qo'shilishni so'radi
+                </span>
+                <span className="block text-xs text-ink-muted">Tasdiqlaganingizdan keyin ularda Pro ochiladi</span>
+              </span>
+              <span className="text-sm font-bold text-signal-ink">Ko'rish →</span>
             </button>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <button type="button" className="text-left" onClick={() => onOpenStudents('active')}>
-              <Stat
-                label="Faol o'quvchilar"
-                value={
-                  <>
-                    {data.activeStudents}
-                    <span className="text-lg text-ink-faint"> / {data.maxStudents}</span>
-                  </>
-                }
-                note={
-                  data.notSignedIn > 0
-                    ? `${data.notSignedIn} tasi ilovaga hali kirmagan`
-                    : `${Math.max(0, data.maxStudents - data.activeStudents)} ta joy bo'sh`
-                }
-              />
-            </button>
-            <Stat
-              label="Pro muddati"
-              value={data.paidThrough ? formatDate(data.paidThrough) : "To'lanmagan"}
-              note={data.paidThrough ? 'gacha to\'langan' : "to'lovdan keyin ochiladi"}
-            />
-            <Stat label="Bu hafta mashq qilgan" value={`${data.weeklyActivePercent}%`} note="faol o'quvchilardan" />
-            <button type="button" className="text-left" onClick={() => onOpenStudents('risk')}>
-              <Stat
-                label="Xavf ostida"
-                value={data.atRisk}
-                note="7+ kun kirmagan yoki ortda qolgan"
-                badge={data.atRisk > 0 ? <Badge tone="danger">Ko'rish</Badge> : undefined}
-              />
-            </button>
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="min-w-0 space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+                <IconStat
+                  Icon={Users}
+                  tone="signal"
+                  label="Faol o'quvchilar"
+                  value={
+                    <>
+                      {data.activeStudents} <span className="text-ink-faint">/ {data.maxStudents}</span>
+                    </>
+                  }
+                  note={
+                    <>
+                      <span className="mb-2 block">
+                        <UsageBar used={data.activeStudents} max={data.maxStudents} />
+                      </span>
+                      {data.notSignedIn > 0
+                        ? `${data.notSignedIn} tasi ilovaga hali kirmagan`
+                        : `${Math.max(0, data.maxStudents - data.activeStudents)} ta joy bo'sh`}
+                    </>
+                  }
+                  onClick={() => onOpenStudents('active')}
+                />
+                <ProDaysStat overview={data} />
+                <IconStat
+                  Icon={TrendingUp}
+                  tone="purple"
+                  label="Bu hafta mashq qilgan"
+                  value={`${data.weeklyActivePercent}%`}
+                  note="faol o'quvchilardan"
+                />
+                <IconStat
+                  Icon={TriangleAlert}
+                  tone={data.atRisk > 0 ? 'danger' : 'caution'}
+                  label="Xavf ostida"
+                  value={<span className={data.atRisk > 0 ? 'text-danger' : undefined}>{data.atRisk}</span>}
+                  note="7+ kun kirmagan yoki ortda qolgan"
+                  onClick={data.atRisk > 0 ? () => onOpenStudents('risk') : undefined}
+                />
+              </div>
+
+              <PaymentCard overview={data} />
+
+              {data.activeStudents + data.requested + data.deactivated === 0 && (
+                <GetStartedCard onAdd={() => onOpenStudents('all', 'form')} />
+              )}
+            </div>
+
+            <aside className="space-y-6">
+              <LinkingCard centerName={data.name} />
+              <ContractCard overview={data} />
+            </aside>
           </div>
-
-          <PaymentCard overview={data} />
-
-        </>
+        </div>
       )}
     </Screen>
+  )
+}
+
+/** Days of Pro left, the way the team's page says it: what is ahead, not counting today. */
+function ProDaysStat({ overview }: { overview: CenterOverview }) {
+  if (overview.access === 'open' && overview.paidThrough) {
+    const left = Math.max(0, daysUntil(overview.paidThrough))
+    return (
+      <IconStat
+        Icon={CalendarCheck}
+        tone={left <= 7 ? 'caution' : 'milestone'}
+        label="Pro ochiq"
+        value={<span className={left <= 7 ? 'text-caution' : undefined}>{left} kun</span>}
+        note={`${formatDayLong(overview.paidThrough)}gacha to'langan`}
+      />
+    )
+  }
+
+  return (
+    <IconStat
+      Icon={CalendarCheck}
+      tone="caution"
+      label="Pro"
+      value={<span className="text-caution">{overview.access === 'not_started' ? 'Hali emas' : 'Yopiq'}</span>}
+      note={overview.access === 'not_started' ? `${formatDayLong(overview.contractStartsOn)}dan ochiladi` : "to'lovdan keyin ochiladi"}
+    />
   )
 }
 
@@ -118,14 +226,25 @@ function AccessBanner({ overview }: { overview: CenterOverview }) {
     open: null,
     suspended: "Markaz o'chirilgan: o'quvchilar bepul rejada. Russian.gg jamoasi bilan bog'laning.",
     archived: "Markaz arxivda: o'quvchilar bepul rejada. Russian.gg jamoasi bilan bog'laning.",
-    not_started: `Shartnoma ${formatDate(overview.contractStartsOn)} dan boshlanadi — o'quvchilarda Pro shu kuni ochiladi.`,
-    unpaid: "To'lov qilinmagan: o'quvchilar hozir bepul rejada. Quyidagi tugma orqali to'lang — Pro darhol ochiladi.",
+    not_started: `Shartnoma ${formatDayLong(overview.contractStartsOn)}dan boshlanadi — o'quvchilarda Pro shu kuni ochiladi.`,
+    unpaid: "To'lov qilinmagan: o'quvchilar hozir bepul rejada. Pastdagi tugma orqali to'lang — Pro darhol ochiladi.",
   }[overview.access]
 
   if (!message) return null
-  const tone = overview.access === 'not_started' ? 'border-signal bg-signal-soft text-signal-ink' : 'border-caution bg-caution-soft text-caution'
+  const info = overview.access === 'not_started'
   return (
-    <div role="status" className={cx('rounded-[var(--radius-card)] border-2 px-4 py-3 text-sm font-bold', tone)}>
+    <div
+      role="status"
+      className={cx(
+        'flex items-center gap-3 rounded-[var(--radius-card)] border-2 px-4 py-3 text-sm font-bold',
+        info ? 'border-signal bg-signal-soft text-signal-ink' : 'border-caution bg-caution-soft text-caution',
+      )}
+    >
+      {info ? (
+        <Info aria-hidden="true" className="size-5 shrink-0" strokeWidth={1.8} />
+      ) : (
+        <TriangleAlert aria-hidden="true" className="size-5 shrink-0" strokeWidth={1.8} />
+      )}
       {message}
     </div>
   )
@@ -138,13 +257,17 @@ function AccessBanner({ overview }: { overview: CenterOverview }) {
 function PaymentCard({ overview }: { overview: CenterOverview }) {
   const open = overview.openInvoice
   const pay = useAdminQuery<CenterPayView>(open ? `/api/public/center-pay/${open.payToken}` : null)
-  const [copied, setCopied] = useState(false)
 
   return (
-    <Card as="div" className="space-y-4">
-      <SectionHeading action={open && <InvoiceBadge status={open.status} />}>To'lov</SectionHeading>
+    <Card as="section" aria-labelledby="pay-title" className={cx('space-y-4', open && 'border-signal')}>
+      <CardTitle
+        id="pay-title"
+        Icon={CreditCard}
+        title={open ? "To'lov kutilmoqda" : "To'lov"}
+        action={open && <InvoiceBadge status={open.status} />}
+      />
       {open ? (
-        <>
+        <div className="space-y-4 sm:pl-12">
           <div>
             <div className="text-3xl font-extrabold tabular-nums text-ink">{formatSom(open.amountTiyin)}</div>
             <p className="mt-1 text-sm text-ink-muted">
@@ -162,28 +285,171 @@ function PaymentCard({ overview }: { overview: CenterOverview }) {
             pay.error && <ErrorNote onRetry={pay.refresh}>{pay.error}</ErrorNote>
           )}
           <p className="text-xs text-ink-muted">
-            Hisobchiga yuborish uchun havola:{' '}
+            Hisobchi to'lashi kerakmi?{' '}
             <button
               type="button"
               className="font-bold text-signal-ink hover:underline"
-              onClick={async () => {
-                await navigator.clipboard?.writeText(payLink(open.payToken))
-                setCopied(true)
-                window.setTimeout(() => setCopied(false), 1500)
-              }}
+              onClick={() => void copyText(payLink(open.payToken), "To'lov havolasi nusxalandi")}
             >
-              {copied ? 'nusxa olindi' : 'nusxa olish'}
-            </button>
-            . Bank o'tkazmasi bilan to'lasangiz, Russian.gg jamoasi uni qo'lda tasdiqlaydi.
+              To'lov havolasini nusxalang
+            </button>{' '}
+            — login kerak emas. Bank o'tkazmasini Russian.gg jamoasi tasdiqlaydi.
           </p>
-        </>
+        </div>
       ) : (
-        <p className="text-sm text-ink">
-          {overview.paidThrough
-            ? `${formatDate(overview.paidThrough)} gacha to'langan. Keyingi oy hisob-fakturasi muddat tugashidan 7 kun oldin shu yerda paydo bo'ladi.`
-            : "Hozircha to'lanadigan hisob-faktura yo'q. Russian.gg jamoasi bilan bog'laning."}
+        <div className="sm:pl-12">
+          {overview.paidThrough ? (
+            <>
+              <p className="text-base font-bold text-ink">
+                {formatDayLong(overview.paidThrough)}gacha to'langan <span className="text-ink-faint">·</span> oyiga{' '}
+                {formatSom(overview.maxStudents * overview.pricePerSeatTiyin)}
+              </p>
+              <p className="mt-0.5 text-sm text-ink-muted">
+                Keyingi oy uchun hisob-faktura muddat tugashidan 7 kun oldin shu yerda paydo bo'ladi.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-ink-muted">Hozircha to'lanadigan hisob-faktura yo'q. Russian.gg jamoasi bilan bog'laning.</p>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/** For a center with no students yet: the two ways in, side by side. */
+function GetStartedCard({ onAdd }: { onAdd: () => void }) {
+  return (
+    <Card as="section" aria-labelledby="start-title" className="space-y-4">
+      <CardTitle
+        id="start-title"
+        Icon={Users}
+        title="Birinchi o'quvchilaringizni qo'shing"
+        subtitle="O'quvchi siz kiritgan raqam bilan kirishi bilan markazga ulanadi va Pro ochiladi"
+      />
+      <div className="grid gap-3 md:grid-cols-2">
+        <WayIn
+          Icon={UserPlus}
+          title="Qo'lda kiriting"
+          text="Ism, telefon va xohlasangiz email"
+          action={
+            <Button size="sm" onClick={onAdd}>
+              Qo'shish
+            </Button>
+          }
+        />
+        <WayIn
+          Icon={FileSpreadsheet}
+          title="Excel'dan yuklang"
+          text="Shablonni to'ldiring va faylni tanlang"
+          action={
+            <Button variant="secondary" size="sm" onClick={() => void downloadStudentsTemplate()}>
+              Shablon
+            </Button>
+          }
+        />
+      </div>
+    </Card>
+  )
+}
+
+function WayIn({ Icon, title, text, action }: { Icon: LucideIcon; title: string; text: string; action: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-[var(--radius-card)] border-2 border-dashed border-hairline p-4">
+      <IconDot Icon={Icon} size="sm" />
+      <div>
+        <div className="text-sm font-extrabold text-ink">{title}</div>
+        <div className="text-xs text-ink-muted">{text}</div>
+      </div>
+      <div className="mt-auto">{action}</div>
+    </div>
+  )
+}
+
+async function copyText(text: string, done: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast(done)
+  } catch {
+    toast("Nusxalab bo'lmadi — matnni qo'lda belgilang")
+  }
+}
+
+/** What a center sends its students: the app, and to sign in with the phone the center has. */
+function inviteText(centerName: string) {
+  return [
+    `Assalomu alaykum! ${centerName} sizga Russian.gg — har kuni ruscha gapirish mashqini ochdi.`,
+    "1. Russian.gg ilovasini o'rnating.",
+    '2. Markazga bergan telefon raqamingiz (yoki markazga bergan Google pochtangiz) bilan kiring.',
+    "Markazga ulanish va Pro o'zi ochiladi — hech qanday kod kerak emas.",
+  ].join('\n')
+}
+
+/**
+ * How a student ends up linked to the center: by the phone (or Google e-mail) the center entered,
+ * the moment they sign in. Shown instead of a join code, which anybody could pass around.
+ */
+function LinkingCard({ centerName, detailed = false }: { centerName: string; detailed?: boolean }) {
+  return (
+    <Card as="section" aria-labelledby="link-title" className="space-y-4">
+      <CardTitle id="link-title" Icon={ShieldCheck} title="O'quvchilar qanday ulanadi" />
+      <ol className="space-y-3">
+        {[
+          ['Siz kiritasiz', 'Ism, telefon raqam va xohlasangiz Google pochtasi'],
+          ["O'quvchi kiradi", "Ilovaga shu raqam (yoki shu Google pochta) bilan kiradi yoki ro'yxatdan o'tadi"],
+          ["O'zi ulanadi", 'Markazga avtomatik ulanadi va Pro ochiladi — kod kerak emas'],
+        ].map(([title, text], index) => (
+          <li key={title} className="flex gap-3">
+            <span
+              aria-hidden="true"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full bg-signal-soft text-xs font-extrabold text-signal-ink"
+            >
+              {index + 1}
+            </span>
+            <span className="text-sm">
+              <b className="block text-ink">{title}</b>
+              <span className="text-ink-muted">{text}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      {detailed && (
+        <p className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-2 text-xs text-ink-muted">
+          Raqam noto'g'ri bo'lsa, o'quvchi ulanmaydi — ro'yxatni diqqat bilan to'ldiring. O'quvchini markazdan faqat siz
+          chiqara olasiz.
         </p>
       )}
+      <Button variant="ghost" size="sm" onClick={() => void copyText(inviteText(centerName), 'Taklif matni nusxalandi')}>
+        <span className="flex items-center gap-1.5">
+          <Send aria-hidden="true" className="size-4" strokeWidth={1.8} />
+          O'quvchilarga taklif matnini nusxalash
+        </span>
+      </Button>
+    </Card>
+  )
+}
+
+function ContractCard({ overview }: { overview: CenterOverview }) {
+  const rows: Array<[string, ReactNode]> = [
+    ["O'quvchilar limiti", `${overview.maxStudents} ta`],
+    ['Narx', `${formatSom(overview.pricePerSeatTiyin)} / o'quvchi`],
+    ["Oylik to'lov", formatSom(overview.maxStudents * overview.pricePerSeatTiyin)],
+    ['Pro muddati', overview.paidThrough ? `${formatDayLong(overview.paidThrough)}gacha` : "to'lanmagan"],
+  ]
+  return (
+    <Card as="section" aria-labelledby="deal-title" className="space-y-4">
+      <CardTitle id="deal-title" Icon={FileText} title="Shartnoma" />
+      <dl className="divide-y divide-hairline text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+            <dt className="text-ink-muted">{label}</dt>
+            <dd className="text-right font-bold text-ink tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-2 text-xs text-ink-muted">
+        Oldindan, 30 kunga to'lanadi. Limitni oshirish yoki shartlarni o'zgartirish uchun Russian.gg jamoasiga yozing.
+      </p>
     </Card>
   )
 }
@@ -463,19 +729,32 @@ function FilterChips({
   )
 }
 
-export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?: StudentFilter }) {
+export function CenterStudentsScreen({
+  initialFilter = 'all',
+  start,
+}: {
+  initialFilter?: StudentFilter
+  /** Open the add form, or the Excel picker, as soon as the screen is up. */
+  start?: StartAdding
+}) {
   const students = useAdminQuery<CenterStudent[]>(`${BASE}/students`)
   const overview = useAdminQuery<CenterOverview>(`${BASE}/overview`)
   const [filter, setFilter] = useState<StudentFilter>(initialFilter)
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   /* The add dialog, empty or filled from an Excel file. */
-  const [adding, setAdding] = useState<DraftStudent[] | null>(null)
+  const [adding, setAdding] = useState<DraftStudent[] | null>(() => (start === 'form' ? [] : null))
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [answering, setAnswering] = useState<string | null>(null)
   const [failure, setFailure] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
+
+  // "Excel'dan yuklash" on the overview: the click that brought us here still counts as the
+  // user's gesture, so the browser lets the file picker open.
+  useEffect(() => {
+    if (start === 'excel') fileInput.current?.click()
+  }, [start])
 
   const all = useMemo(() => students.data ?? [], [students.data])
 
@@ -488,6 +767,7 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
       if (
         query &&
         !student.name.toLowerCase().includes(query) &&
+        !(student.email ?? '').toLowerCase().includes(query) &&
         !(digits && student.phone.replace(/\D/g, '').includes(digits))
       ) {
         return false
@@ -528,12 +808,7 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
     try {
       const rows = await readStudentsFile(file)
       if (rows.length === 0) throw new Error("Faylda o'quvchi topilmadi. Shablondagi ustunlarni to'ldiring.")
-      setAdding(
-        rows.map((row) => {
-          const local = uzLocalDigits(row.phone)
-          return { key: draftKey++, name: row.name, phone: local ? maskUzLocal(local) : row.phone }
-        }),
-      )
+      setAdding(rows.map((row) => draftFrom(row.name, row.phone, row.email)))
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : "Faylni o'qib bo'lmadi.")
     } finally {
@@ -569,27 +844,61 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
         ? all.filter((s) => s.atRisk).length
         : all.filter((s) => s.status === status).length
 
+  const excelButton = (
+    <Button variant="secondary" onClick={() => fileInput.current?.click()} disabled={importing}>
+      <span className="flex items-center gap-1.5">
+        <Upload aria-hidden="true" className="size-4" strokeWidth={1.8} />
+        {importing ? "O'qilmoqda…" : "Excel'dan yuklash"}
+      </span>
+    </Button>
+  )
+
   return (
-    <Screen className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader
-          title="O'quvchilar"
-          subtitle={
-            overview.data
-              ? `Faol: ${overview.data.activeStudents} / ${overview.data.maxStudents} · bo'sh joy: ${free}`
-              : 'Kim mashq qilyapti, kim ortda qolmoqda'
-          }
-        />
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={exportCsv} disabled={exporting || all.length === 0}>
-            {exporting ? 'Yuklanmoqda…' : 'CSV yuklab olish'}
-          </Button>
-          <Button variant="secondary" onClick={() => fileInput.current?.click()} disabled={importing}>
-            <span className="flex items-center gap-1.5">
-              <FileSpreadsheet aria-hidden="true" className="size-4" strokeWidth={1.8} />
-              {importing ? "O'qilmoqda…" : "Excel'dan import"}
-            </span>
-          </Button>
+    <Screen className="space-y-6">
+      <div className="flex flex-col gap-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">O'quvchilar</h1>
+            {overview.data ? (
+              <div className="mt-2 inline-flex items-center gap-3 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised py-1.5 pr-4 pl-3">
+                <span className="w-24">
+                  <span aria-hidden="true" className="block h-1.5 overflow-hidden rounded-full bg-hairline">
+                    <span
+                      className="block h-full rounded-full bg-signal"
+                      style={{
+                        width: `${overview.data.maxStudents ? Math.min(100, (100 * overview.data.activeStudents) / overview.data.maxStudents) : 0}%`,
+                      }}
+                    />
+                  </span>
+                </span>
+                <span className="text-sm text-ink-muted">
+                  <b className="text-ink tabular-nums">
+                    {overview.data.activeStudents} / {overview.data.maxStudents}
+                  </b>{' '}
+                  faol · {free} ta joy bo'sh
+                </span>
+              </div>
+            ) : (
+              <p className="mt-1 text-sm text-ink-muted">Kim mashq qilyapti, kim ortda qolmoqda</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {all.length > 0 && (
+              <Button variant="ghost" onClick={exportCsv} disabled={exporting}>
+                <span className="flex items-center gap-1.5">
+                  <Download aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                  {exporting ? 'Yuklanmoqda…' : 'CSV'}
+                </span>
+              </Button>
+            )}
+            {excelButton}
+            <Button onClick={() => setAdding([])}>
+              <span className="flex items-center gap-1.5">
+                <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
+                O'quvchi qo'shish
+              </span>
+            </Button>
+          </div>
           <input
             ref={fileInput}
             type="file"
@@ -600,103 +909,155 @@ export function CenterStudentsScreen({ initialFilter = 'all' }: { initialFilter?
               if (file) void importFile(file)
             }}
           />
-          <Button onClick={() => setAdding([])}>+ O'quvchi qo'shish</Button>
-        </div>
+        </header>
+
+        {failure && <ErrorNote>{failure}</ErrorNote>}
+        {students.error && <ErrorNote onRetry={refresh}>{students.error}</ErrorNote>}
+        {students.isLoading && !students.data && <LoadingRows />}
+
+        {students.data && all.length === 0 && (
+          <Card as="section" aria-labelledby="empty-title" className="py-10">
+            <div className="mx-auto flex max-w-xl flex-col items-center gap-6 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <span aria-hidden="true" className="flex size-16 items-center justify-center rounded-full bg-signal-soft text-signal-ink">
+                  <Users className="size-8" strokeWidth={1.6} />
+                </span>
+                <h2 id="empty-title" className="text-xl font-extrabold text-ink">
+                  Birinchi o'quvchilaringizni qo'shing
+                </h2>
+                <p className="text-sm text-ink-muted">
+                  O'quvchi siz kiritgan raqam (yoki Google pochta) bilan ilovaga kirishi bilan markazga o'zi ulanadi va Pro
+                  ochiladi — kod kerak emas.
+                </p>
+              </div>
+
+              <div className="grid w-full gap-3 text-left">
+                <button
+                  type="button"
+                  onClick={() => setAdding([])}
+                  className="group flex items-center gap-4 rounded-[var(--radius-card)] border-2 border-signal bg-signal-soft p-4 transition-colors hover:bg-signal-soft/70"
+                >
+                  <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-signal text-on-signal">
+                    <UserPlus className="size-5" strokeWidth={1.8} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-extrabold text-ink">Qo'lda kiritish</span>
+                    <span className="block text-sm text-ink-muted">Ism, telefon va xohlasangiz email — bittadan yoki bir nechta</span>
+                  </span>
+                  <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-signal-ink transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  disabled={importing}
+                  className="group flex items-center gap-4 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-4 transition-colors hover:border-ink-faint"
+                >
+                  <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-milestone-soft text-milestone">
+                    <FileSpreadsheet className="size-5" strokeWidth={1.8} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-extrabold text-ink">{importing ? "Fayl o'qilmoqda…" : "Excel'dan yuklash"}</span>
+                    <span className="block text-sm text-ink-muted">Ro'yxatni fayldan oling — har bir qator qo'shishdan oldin tekshiriladi</span>
+                  </span>
+                  <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void downloadStudentsTemplate()}
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-signal-ink hover:underline"
+              >
+                <Download aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                Excel shablonini yuklab olish
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {all.length > 0 && (
+          <Card as="div" className="flex flex-wrap items-center justify-between gap-3 !py-3">
+            <FilterChips
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { id: 'all', label: 'Hammasi', count: count('all') },
+                { id: 'active', label: 'Faol', count: count('active') },
+                { id: 'requested', label: 'Kutilmoqda', count: count('requested'), tone: 'signal' },
+                { id: 'deactivated', label: "O'chirilgan", count: count('deactivated') },
+                { id: 'risk', label: 'Xavf ostida', count: count('risk'), tone: 'danger' },
+              ]}
+            />
+            <TextField value={search} onChange={setSearch} placeholder="Ism, telefon yoki email" className="w-full sm:w-72" />
+          </Card>
+        )}
+
+        {all.length > 0 && shown.length === 0 && <EmptyNote>Bu filtrda o'quvchi yo'q.</EmptyNote>}
+
+        {shown.length > 0 && (
+          <StudentsTable
+            students={shown}
+            onOpen={(student) => setOpen(student.seatId)}
+            showGroup={false}
+            onApprove={(student) => answer(student, true)}
+            onReject={(student) => answer(student, false)}
+            busySeat={answering}
+          />
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <FilterChips
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { id: 'all', label: 'Hammasi', count: count('all') },
-            { id: 'active', label: 'Faol', count: count('active') },
-            { id: 'requested', label: 'Kutilmoqda', count: count('requested'), tone: 'signal' },
-            { id: 'deactivated', label: "O'chirilgan", count: count('deactivated') },
-            { id: 'risk', label: 'Xavf ostida', count: count('risk'), tone: 'danger' },
-          ]}
-        />
-        <TextField value={search} onChange={setSearch} placeholder="Ism yoki telefon" className="w-full sm:w-64" />
-      </div>
+      {adding && <AddStudentsDialog initialRows={adding} free={free} onClose={() => setAdding(null)} onAdded={refresh} />}
 
-      {students.error && <ErrorNote onRetry={refresh}>{students.error}</ErrorNote>}
-      {failure && <ErrorNote>{failure}</ErrorNote>}
-      {students.isLoading && !students.data && <LoadingRows />}
-
-      {students.data && all.length === 0 && (
-        <Card as="div" className="text-center">
-          <h2 className="text-lg font-extrabold text-ink">Birinchi o'quvchilaringizni qo'shing</h2>
-          <p className="mx-auto mt-1 max-w-xl text-sm text-ink-muted">
-            Ism va telefon raqamini kiriting — o'quvchi shu raqam bilan ilovaga kirishi bilan Pro avtomatik ochiladi.
-            Raqami yo'q o'quvchi markaz kodini yozadi: <b className="text-ink">{overview.data?.joinCode ?? '…'}</b>
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Button onClick={() => setAdding([])}>O'quvchi qo'shish</Button>
-            <Button variant="secondary" onClick={() => fileInput.current?.click()}>
-              Excel'dan import
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {all.length > 0 && shown.length === 0 && <EmptyNote>Bu filtrda o'quvchi yo'q.</EmptyNote>}
-
-      {shown.length > 0 && (
-        <StudentsTable
-          students={shown}
-          onOpen={(student) => setOpen(student.seatId)}
-          showGroup={false}
-          onApprove={(student) => answer(student, true)}
-          onReject={(student) => answer(student, false)}
-          busySeat={answering}
-        />
-      )}
-
-      {adding && (
-        <AddStudentsDialog
-          initialRows={adding}
-          free={free}
-          onClose={() => setAdding(null)}
-          onAdded={refresh}
-        />
-      )}
-
-      {open && (
-        <StudentDrawer seatId={open} groups={[]} basePath={BASE} onClose={() => setOpen(null)} onChanged={refresh} />
-      )}
+      {open && <StudentDrawer seatId={open} groups={[]} basePath={BASE} onClose={() => setOpen(null)} onChanged={refresh} />}
     </Screen>
   )
 }
 
-type DraftStudent = { key: number; name: string; phone: string }
+export type DraftStudent = { key: number; name: string; phone: string; email: string }
 
 const localDigits = uzLocalDigits
 const formatLocal = maskUzLocal
 
-/** "Ali Valiyev, 90 123 45 67" per line, either order — a list copied out of Excel or Telegram. */
+/** Empty, or a valid-looking address. The server checks again; this only marks the field. */
+const emailOk = (value: string) => !value.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.trim())
+
+/**
+ * "Ali Valiyev, 90 123 45 67, ali@gmail.com" per line, any order — a list copied out of Excel or
+ * Telegram. The token with an @ is the e-mail, the one with nine digits the phone, the rest the name.
+ */
 function parseLines(text: string) {
   return text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const phoneFirst = line.match(/^([+\d][\d\s()+-]{6,})[\s,;\t]*(.*)$/)
-      if (phoneFirst) return { phone: phoneFirst[1].trim(), name: phoneFirst[2].trim() }
-      const nameFirst = line.match(/^(.*?)[\s,;\t]+([+\d][\d\s()+-]{6,})$/)
-      if (nameFirst) return { name: nameFirst[1].trim(), phone: nameFirst[2].trim() }
-      return { name: '', phone: line }
+      const email = line.match(/[^\s,;]+@[^\s,;]+/)?.[0] ?? ''
+      const rest = email ? line.replace(email, ' ') : line
+      const phone = rest.match(/[+\d][\d\s()-]{6,}\d/)?.[0] ?? ''
+      const name = (phone ? rest.replace(phone, ' ') : rest).replace(/[,;\t]+/g, ' ').replace(/\s+/g, ' ').trim()
+      return { name, phone: phone.trim(), email }
     })
 }
 
 let draftKey = 1
-const emptyDraft = (): DraftStudent => ({ key: draftKey++, name: '', phone: '' })
+const emptyDraft = (): DraftStudent => ({ key: draftKey++, name: '', phone: '', email: '' })
 
-function AddStudentsDialog({
+/** A form row from a name, a phone as typed and an optional e-mail. */
+function draftFrom(name: string, phone: string, email: string): DraftStudent {
+  const local = localDigits(phone)
+  return { key: draftKey++, name, phone: local ? formatLocal(local) : phone, email: email.trim() }
+}
+
+export function AddStudentsDialog({
   initialRows,
   free,
   onClose,
   onAdded,
+  basePath = BASE,
 }: {
+  /** Where the students go: the center's own portal, or the team's page for one center. */
+  basePath?: string
   /** Rows read from an Excel file, to check and send; empty for a blank form. */
   initialRows: DraftStudent[]
   /** Places left under the center's limit, when known. */
@@ -704,7 +1065,9 @@ function AddStudentsDialog({
   onClose: () => void
   onAdded: () => void
 }) {
-  const [rows, setRows] = useState<DraftStudent[]>(() => (initialRows.length > 0 ? initialRows : [emptyDraft()]))
+  const [rows, setRows] = useState<DraftStudent[]>(() =>
+    initialRows.length > 0 ? initialRows.map((row) => ({ ...row, email: row.email ?? '' })) : [emptyDraft()],
+  )
   const [pasting, setPasting] = useState(false)
   const [pasted, setPasted] = useState('')
   const [touched, setTouched] = useState(false)
@@ -712,8 +1075,8 @@ function AddStudentsDialog({
   const [failure, setFailure] = useState('')
   const [result, setResult] = useState<AddStudentsResult | null>(null)
 
-  const filled = rows.filter((row) => row.phone.trim() || row.name.trim())
-  const valid = filled.filter((row) => localDigits(row.phone))
+  const filled = rows.filter((row) => row.phone.trim() || row.name.trim() || row.email.trim())
+  const valid = filled.filter((row) => row.name.trim() && localDigits(row.phone) && emailOk(row.email))
   const invalidCount = filled.length - valid.length
 
   function update(key: number, patch: Partial<DraftStudent>) {
@@ -729,12 +1092,9 @@ function AddStudentsDialog({
   }
 
   function importPasted() {
-    const parsed = parseLines(pasted).map((item) => {
-      const local = localDigits(item.phone)
-      return { key: draftKey++, name: item.name, phone: local ? formatLocal(local) : item.phone }
-    })
+    const parsed = parseLines(pasted).map((item) => draftFrom(item.name, item.phone, item.email))
     if (parsed.length === 0) return
-    setRows((current) => [...current.filter((row) => row.phone.trim() || row.name.trim()), ...parsed])
+    setRows((current) => [...current.filter((row) => row.phone.trim() || row.name.trim() || row.email.trim()), ...parsed])
     setPasted('')
     setPasting(false)
   }
@@ -747,11 +1107,15 @@ function AddStudentsDialog({
     setBusy(true)
     setFailure('')
     try {
-      const next = await adminFetch<AddStudentsResult>(`${BASE}/students`, {
+      const next = await adminFetch<AddStudentsResult>(`${basePath}/students`, {
         method: 'POST',
         body: JSON.stringify({
           groupId: null,
-          students: valid.map((row) => ({ phone: `+998${localDigits(row.phone)}`, name: row.name.trim() || null })),
+          students: valid.map((row) => ({
+            phone: `+998${localDigits(row.phone)}`,
+            name: row.name.trim() || null,
+            email: row.email.trim() || null,
+          })),
         }),
       })
       setResult(next)
@@ -770,24 +1134,27 @@ function AddStudentsDialog({
     return (
       <FormDialog title="Tayyor" onClose={onClose}>
         <div className="space-y-3 text-sm">
-          <p className="text-ink">
-            <b>{result.added}</b> ta o'quvchi qo'shildi. Ular ilovaga shu raqam bilan kirishi bilan Pro ochiladi.
-          </p>
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-milestone text-ground-raised">
+              <Check className="size-5" strokeWidth={2.5} />
+            </span>
+            <p className="text-ink">
+              <b>{result.added}</b> ta o'quvchi qo'shildi. Ular ilovaga shu raqam bilan kirishi bilan Pro ochiladi.
+            </p>
+          </div>
           {result.overLimit.length > 0 && (
             <p className="rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 font-bold text-caution">
               Limit to'ldi ({result.maxStudents} ta): {result.overLimit.length} ta raqam qo'shilmadi. Ko'proq o'quvchi uchun
               Russian.gg jamoasiga murojaat qiling.
             </p>
           )}
-          {result.alreadyHere.length > 0 && (
-            <p className="text-ink-muted">Allaqachon ro'yxatda: {result.alreadyHere.join(', ')}</p>
-          )}
+          {result.alreadyHere.length > 0 && <p className="text-ink-muted">Allaqachon ro'yxatda: {result.alreadyHere.join(', ')}</p>}
           {result.inOtherCenter.length > 0 && (
             <p className="text-caution">
               Boshqa markazda: {result.inOtherCenter.join(', ')} — o'quvchi avval u markazdan chiqishi kerak.
             </p>
           )}
-          {result.invalid.length > 0 && <p className="text-danger">Noto'g'ri raqam: {result.invalid.join(', ')}</p>}
+          {result.invalid.length > 0 && <p className="text-danger">Noto'g'ri: {result.invalid.join(', ')}</p>}
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button
@@ -809,11 +1176,15 @@ function AddStudentsDialog({
     )
   }
 
+  const grid = 'grid gap-3 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.1fr)_44px]'
+
   return (
-    <FormDialog title="O'quvchi qo'shish" onClose={onClose} wide>
+    <FormDialog title="O'quvchi qo'shish" onClose={onClose} size="xl">
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink-muted">
-          O'quvchi shu raqam bilan ilovaga kirishi bilan Pro avtomatik ochiladi.
+          Ism va telefon majburiy: o'quvchi shu raqam bilan kirishi bilan markazga o'zi ulanadi va Pro ochiladi. Email ixtiyoriy —
+          o'quvchi Google orqali kirsa, u bilan ham ulanadi. Ma'lumotlarni aniq kiriting: noto'g'ri raqam bilan o'quvchi
+          ulanmaydi.
           {free !== null && (
             <>
               {' '}
@@ -823,41 +1194,50 @@ function AddStudentsDialog({
         </p>
         {free !== null && valid.length > free && (
           <p role="status" className="rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 text-sm font-bold text-caution">
-            {valid.length} ta raqam kiritildi, lekin faqat {free} tasi qo'shiladi. Limitni oshirish uchun Russian.gg jamoasiga
+            {valid.length} ta o'quvchi kiritildi, lekin faqat {free} tasi qo'shiladi. Limitni oshirish uchun Russian.gg jamoasiga
             yozing.
           </p>
         )}
 
         <div className="space-y-3">
-          <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-sm font-bold text-ink sm:grid">
-            <span>Ism va familiya</span>
-            <span>Telefon raqam</span>
+          <div className={cx(grid, 'hidden text-sm font-bold text-ink sm:grid')}>
+            <span>
+              Ism va familiya <span className="text-danger">*</span>
+            </span>
+            <span>
+              Telefon raqam <span className="text-danger">*</span>
+            </span>
+            <span>
+              Email <span className="font-normal text-ink-faint">(ixtiyoriy)</span>
+            </span>
             <span />
           </div>
           {rows.map((row, index) => {
-            const showError = touched && Boolean(row.phone.trim() || row.name.trim()) && !localDigits(row.phone)
+            const used = Boolean(row.phone.trim() || row.name.trim() || row.email.trim())
+            const phoneError = touched && used && !localDigits(row.phone)
+            const nameError = touched && used && !row.name.trim()
+            const emailError = touched && !emailOk(row.email)
             return (
-              <div
-                key={row.key}
-                className="grid grid-cols-[minmax(0,1fr)_44px] gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px]"
-              >
-                <label className="col-span-2 sm:col-span-1">
-                  <span className="sr-only">Ism va familiya, {index + 1}-o'quvchi</span>
+              <div key={row.key} className={cx(grid, 'rounded-[var(--radius-card)] border-2 border-hairline p-3 sm:border-0 sm:p-0')}>
+                <label>
+                  <span className="mb-1 block text-xs font-bold text-ink-muted sm:sr-only">Ism va familiya, {index + 1}-o'quvchi</span>
                   <input
                     value={row.name}
                     onChange={(event) => update(row.key, { name: event.target.value })}
                     placeholder="Ali Valiyev"
                     autoComplete="off"
                     autoFocus={index === rows.length - 1}
-                    className={fieldClass}
+                    aria-invalid={nameError}
+                    className={cx(fieldClass, nameError && 'border-danger')}
                   />
+                  {nameError && <span className="mt-1 block text-xs text-danger">Ismni kiriting</span>}
                 </label>
                 <label className="min-w-0">
-                  <span className="sr-only">Telefon raqam, {index + 1}-o'quvchi</span>
+                  <span className="mb-1 block text-xs font-bold text-ink-muted sm:sr-only">Telefon raqam, {index + 1}-o'quvchi</span>
                   <span
                     className={cx(
                       'flex h-11 items-center rounded-[var(--radius-control)] border-2 bg-ground-raised focus-within:border-signal',
-                      showError ? 'border-danger' : 'border-hairline',
+                      phoneError ? 'border-danger' : 'border-hairline',
                     )}
                   >
                     <span className="pr-1 pl-4 text-sm font-bold text-ink-muted">+998</span>
@@ -868,28 +1248,39 @@ function AddStudentsDialog({
                         const local = localDigits(row.phone)
                         if (local) update(row.key, { phone: formatLocal(local) })
                       }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && index === rows.length - 1 && localDigits(row.phone)) {
-                          event.preventDefault()
-                          addRow()
-                        }
-                      }}
                       inputMode="tel"
                       placeholder="90 123 45 67"
                       autoComplete="off"
-                      aria-invalid={showError}
+                      aria-invalid={phoneError}
                       className="h-full min-w-0 flex-1 rounded-r-[var(--radius-control)] bg-transparent pr-4 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
                     />
                   </span>
-                  {showError && (
-                    <span className="mt-1 block text-xs text-danger">9 ta raqam kiriting, masalan 90 123 45 67</span>
-                  )}
+                  {phoneError && <span className="mt-1 block text-xs text-danger">9 ta raqam, masalan 90 123 45 67</span>}
+                </label>
+                <label className="min-w-0">
+                  <span className="mb-1 block text-xs font-bold text-ink-muted sm:sr-only">Email (ixtiyoriy), {index + 1}-o'quvchi</span>
+                  <input
+                    type="email"
+                    value={row.email}
+                    onChange={(event) => update(row.key, { email: event.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && index === rows.length - 1 && localDigits(row.phone)) {
+                        event.preventDefault()
+                        addRow()
+                      }
+                    }}
+                    placeholder="ali@gmail.com"
+                    autoComplete="off"
+                    aria-invalid={emailError}
+                    className={cx(fieldClass, emailError && 'border-danger')}
+                  />
+                  {emailError && <span className="mt-1 block text-xs text-danger">Email noto'g'ri</span>}
                 </label>
                 <button
                   type="button"
                   onClick={() => remove(row.key)}
                   aria-label={`${index + 1}-qatorni o'chirish`}
-                  className="flex size-11 items-center justify-center rounded-[var(--radius-control)] text-ink-faint hover:bg-ground-sunken hover:text-danger"
+                  className="flex size-11 items-center justify-center self-start rounded-[var(--radius-control)] text-ink-faint hover:bg-ground-sunken hover:text-danger sm:self-auto"
                 >
                   <X aria-hidden="true" className="size-4" strokeWidth={2} />
                 </button>
@@ -900,7 +1291,10 @@ function AddStudentsDialog({
 
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" type="button" onClick={addRow}>
-            + Yana o'quvchi
+            <span className="flex items-center gap-1.5">
+              <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
+              Yana o'quvchi
+            </span>
           </Button>
           <Button variant="ghost" size="sm" type="button" onClick={() => setPasting((value) => !value)}>
             {pasting ? "Ro'yxatni yopish" : "Ro'yxatni nusxa olib qo'yish"}
@@ -915,12 +1309,12 @@ function AddStudentsDialog({
 
         {pasting && (
           <div className="space-y-3 rounded-[var(--radius-card)] bg-ground-sunken p-4">
-            <Field label="Excel yoki Telegram'dan ro'yxat" hint="Har qatorga bitta o'quvchi: ism va raqam, istalgan tartibda.">
+            <Field label="Excel yoki Telegram'dan ro'yxat" hint="Har qatorga bitta o'quvchi: ism, raqam va email — istalgan tartibda.">
               <Textarea
                 value={pasted}
                 onChange={(event) => setPasted(event.target.value)}
                 rows={5}
-                placeholder={'Ali Valiyev, 90 123 45 67\nDilnoza Karimova  93 765 43 21'}
+                placeholder={'Ali Valiyev, 90 123 45 67, ali@gmail.com\nDilnoza Karimova  93 765 43 21'}
               />
             </Field>
             <Button size="sm" type="button" onClick={importPasted} disabled={!pasted.trim()}>
@@ -933,7 +1327,7 @@ function AddStudentsDialog({
 
         <div className="flex flex-wrap items-center justify-end gap-3 border-t-2 border-hairline pt-4">
           {invalidCount > 0 && touched && (
-            <p className="mr-auto text-xs font-bold text-danger">{invalidCount} ta qatorda raqam noto'g'ri — tuzating yoki o'chiring</p>
+            <p className="mr-auto text-xs font-bold text-danger">{invalidCount} ta qatorda xato bor — tuzating yoki o'chiring</p>
           )}
           <Button variant="secondary" size="sm" type="button" onClick={onClose} disabled={busy}>
             Bekor qilish
@@ -951,50 +1345,43 @@ function AddStudentsDialog({
 
 export function CenterSettingsScreen() {
   const { data, error, refresh } = useAdminQuery<CenterOverview>(`${BASE}/overview`)
-  const [copied, setCopied] = useState(false)
 
   return (
     <Screen className="space-y-6">
-      <PageHeader title="Sozlamalar" subtitle="Markaz kodi, limit va to'lov sharti" />
-      {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
-      {data && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card as="div" className="space-y-3">
-            <SectionHeading>Markaz kodi</SectionHeading>
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-3xl font-extrabold tracking-[0.2em] text-ink">{data.joinCode}</span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={async () => {
-                  await navigator.clipboard?.writeText(data.joinCode)
-                  setCopied(true)
-                  window.setTimeout(() => setCopied(false), 1500)
-                }}
-              >
-                {copied ? 'Nusxa olindi' : 'Nusxa olish'}
-              </Button>
+      <div className="flex flex-col gap-6">
+        <header>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Sozlamalar</h1>
+          <p className="mt-1 text-sm text-ink-muted">Markaz kodi, o'quvchilarni taklif qilish va to'lov sharti</p>
+        </header>
+        {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
+        {!data && !error && <LoadingRows />}
+        {data && (
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            <div className="space-y-6">
+              <LinkingCard centerName={data.name} detailed />
+              <p className="px-1 text-xs text-ink-muted">
+                Markaz kodi (zaxira, hozircha ishlatilmaydi):{' '}
+                <span className="font-mono font-bold tracking-[0.15em] text-ink">{data.joinCode}</span>
+              </p>
             </div>
-            <p className="text-sm text-ink-muted">
-              O'quvchi ilovada Sozlamalar → “Markazim” bo'limiga shu kodni yozadi. So'rov “Kutilmoqda” holatida keladi —
-              siz tasdiqlaganingizdan keyin faol bo'ladi. Kodni almashtirish kerak bo'lsa, Russian.gg jamoasiga yozing.
-            </p>
-          </Card>
-          <Card as="div" className="space-y-3">
-            <SectionHeading>To'lov sharti</SectionHeading>
-            <p className="text-sm text-ink">
-              <b>{data.maxStudents}</b> o'quvchi × {formatSom(data.pricePerSeatTiyin)} ={' '}
-              <b>{formatSom(data.maxStudents * data.pricePerSeatTiyin)}</b> / oy
-            </p>
-            <p className="text-sm text-ink-muted">
-              Markaz oldindan, bir oyga to'laydi. O'quvchilarda Pro to'langan muddat ichida ochiq
-              {data.paidThrough ? ` — hozir ${formatDate(data.paidThrough)} gacha` : ''}. Limitdan ko'p o'quvchini faollashtirib
-              bo'lmaydi; limitni oshirish uchun Russian.gg jamoasiga yozing.
-            </p>
-          </Card>
-        </div>
-      )}
-      {!data && !error && <EmptyNote>Yuklanmoqda…</EmptyNote>}
+            <div className="space-y-6">
+              <ContractCard overview={data} />
+              <Card as="section" aria-labelledby="invite-title" className="space-y-3">
+                <CardTitle id="invite-title" Icon={Send} title="Taklif matni" subtitle="O'quvchilarga Telegram'da yuboring" />
+                <pre className="rounded-[var(--radius-control)] bg-ground-sunken p-3 font-sans text-sm whitespace-pre-wrap text-ink">
+                  {inviteText(data.name)}
+                </pre>
+                <Button size="sm" onClick={() => void copyText(inviteText(data.name), 'Taklif matni nusxalandi')}>
+                  <span className="flex items-center gap-1.5">
+                    <Copy aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                    Matnni nusxalash
+                  </span>
+                </Button>
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>
     </Screen>
   )
 }

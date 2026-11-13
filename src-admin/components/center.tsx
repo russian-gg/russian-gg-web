@@ -198,11 +198,14 @@ export function FormDialog({
   onClose,
   children,
   wide = false,
+  size,
 }: {
   title: string
   onClose: () => void
   children: ReactNode
   wide?: boolean
+  /** "xl" for a form with three fields per row. */
+  size?: 'xl'
 }) {
   const dialogRef = useFocusTrap<HTMLDivElement>()
 
@@ -223,7 +226,7 @@ export function FormDialog({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={cx('max-h-[90vh] w-full overflow-y-auto', wide ? 'max-w-2xl' : 'max-w-lg')}
+        className={cx('max-h-[90vh] w-full overflow-y-auto', size === 'xl' ? 'max-w-4xl' : wide ? 'max-w-2xl' : 'max-w-lg')}
       >
         <Card as="div" className="w-full" onClick={(event) => event.stopPropagation()}>
           <h2 className="text-lg font-extrabold text-ink">{title}</h2>
@@ -284,6 +287,7 @@ export function StudentsTable({
               </span>
               <span className="text-xs font-normal text-ink-muted">
                 {student.phone}
+                {student.email && ` · ${student.email}`}
                 {!student.signedIn && ' · hali kirmagan'}
               </span>
             </div>
@@ -424,6 +428,7 @@ export function StudentDrawer({
             {student && (
               <p className="mt-1 text-sm text-ink-muted">
                 {student.phone}
+                {student.email && ` · ${student.email}`}
                 {groups.length > 0 && ` · ${student.groupName ?? 'guruhsiz'}`}
               </p>
             )}

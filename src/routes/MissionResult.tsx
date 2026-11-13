@@ -13,6 +13,7 @@ import type {
 } from '../lib/types'
 import { Badge, Card, LinkButton, QueryError, SectionHeading, Spinner, UzHint } from '../components/ui'
 import { missionLock } from '../lib/mission-lock'
+import { useCenterStudent } from '../lib/center'
 import { AnimatePresence } from 'motion/react'
 import { CountUp, Reveal, Sequence } from '../components/motion'
 import { pop, rise, stagger } from '../lib/motion'
@@ -37,7 +38,9 @@ export function MissionResult() {
     queryKey: ['entitlement'],
     queryFn: () => api.get<EntitlementView>('/billing/entitlement'),
   })
-  const isFree = entitlement?.hasProAccess === false
+  // A center's student is not made an offer: their center decides what is open.
+  const { isCenterStudent } = useCenterStudent()
+  const isFree = entitlement?.hasProAccess === false && !isCenterStudent
   // Only asked for a free learner: the offer names how many conversations Pro would open.
   const { data: library } = useQuery({
     queryKey: ['practice'],

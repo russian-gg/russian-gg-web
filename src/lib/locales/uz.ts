@@ -1958,30 +1958,19 @@ export const uz = {
   },
 
   /**
-   * The learner's language center, in Settings → Subscription. The center pays for its
-   * students' Pro up front, a month at a time.
+   * The learner's language center, on the Settings profile tab, and the note a center's
+   * student gets where everyone else gets an offer. The center pays for its students' Pro up
+   * front, a month at a time; there is nothing here to join, leave or buy.
    */
   center: {
-    title: 'Markazim',
-    joinIntro: "O'quv markazingiz kod bergan bo'lsa, uni shu yerga kiriting.",
-    codeLabel: 'Markaz kodi',
-    codePlaceholder: 'ABC123',
-    codeHint: '6 ta belgi: harflar va raqamlar',
-    join: "Qo'shilish",
-    joining: "Qo'shilmoqda",
-    joinFailed: "Qo'shilib bo'lmadi. Qayta urinib ko'ring.",
+    title: "O'quv markazi",
+    profileLine: "O'quv markazi: {center}",
     groupLine: 'Guruh: {group}',
-    requested: "So'rov yuborildi — markaz administratori tasdiqlashini kuting",
     centerPaid: "{center} o'quvchisisiz, guruh {group}. Pro markaz tomonidan to'langan.",
     centerPaidNoGroup: "{center} o'quvchisisiz. Pro markaz tomonidan to'langan.",
     paidThrough: 'Pro {date} gacha ochiq',
-    deactivated: "Markaz kirishingizni to'xtatdi",
-    deactivatedOffer: "Pro'ni o'zingiz ham olishingiz mumkin",
-    inactive: "Markaz hozircha faol emas yoki to'lov kutilmoqda — Pro yopiq",
-    leave: 'Markazdan chiqish',
-    leaveTitle: 'Markazdan chiqasizmi?',
-    leaveBody: "{center} bilan bog'lanish uziladi, markaz to'lagan Pro ham to'xtaydi. Qayta qo'shilish uchun yangi kod kerak bo'ladi.",
-    leaveFailed: "Markazdan chiqib bo'lmadi. Qayta urinib ko'ring.",
+    lockPending: "Markazingiz to'lovi kutilmoqda",
+    lockPaused: "Markazingiz kirishingizni to'xtatgan — markaz administratoriga murojaat qiling",
     billingPaid: "Pro {center} tomonidan to'langan",
     billingPaidNoName: "Pro o'quv markazingiz tomonidan to'langan",
   },
@@ -2004,7 +1993,7 @@ export const uz = {
       title: "To'rt qadam — va o'quvchilar har kuni mashq qiladi",
       items: [
         { title: 'Markazingizni ulaymiz', body: "Markaz kabinetini ochib beramiz va qanday ishlashini ko'rsatamiz." },
-        { title: "Guruhlar va o'quvchilarni qo'shasiz", body: "Telefon raqami bo'yicha yoki markaz kodi orqali — bir necha daqiqada." },
+        { title: "Guruhlar va o'quvchilarni qo'shasiz", body: "Telefon raqami bo'yicha — bir necha daqiqada." },
         { title: "O'quvchilar har kuni mashq qiladi", body: 'Telefonda, darslar orasida: ovozli missiyalar va 90 kunlik kurs.' },
         { title: "Kim mashq qilayotganini ko'rasiz", body: "Har bir o'quvchining kurs kuni va oxirgi faolligi kabinetda ko'rinadi." },
       ],
@@ -2048,7 +2037,7 @@ export const uz = {
         },
         {
           q: "O'quvchilar qanday qo'shiladi?",
-          a: "Ikki yo'l bor: o'quvchining telefon raqamini kabinetga kiritasiz yoki markaz kodini berasiz — o'quvchi uni ilova sozlamalarida kiritadi.",
+          a: "O'quvchining ismi va telefon raqamini kabinetga kiritasiz. O'quvchi shu raqam bilan ilovaga kirganda yoki ro'yxatdan o'tganda markazingizga avtomatik ulanadi.",
         },
         {
           q: "Kim to'laydi?",

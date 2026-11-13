@@ -11,8 +11,9 @@ import { ButtonFace } from './ui'
   The standing ways to Pro. Before these, a free learner met the plans only at a lock or deep in
   Settings; now the sidebar, the phone header and the account menu carry them on every screen,
   and Home, the path and Progress each say it once in their own terms. All of them stay away
-  from a Pro learner — the sidebar keeps a quiet status line instead — and from a learner who
-  already has the whole course open.
+  from a Pro learner — the sidebar keeps a quiet status line instead — from a learner who
+  already has the whole course open, and from a language center's student, who buys nothing
+  (`useProOffer` reads them as not free).
 
   Only the button leads anywhere — the cards are read, not clicked — and it has one verb on it
   ("See Pro"); the price rides underneath as a fact, not as the button's label: a button that
@@ -81,6 +82,9 @@ export function RailProCard() {
   const offer = useProOffer()
   const free = useFreeOffer()
 
+  // A center's student has no plan of their own to show or manage; the account menu under
+  // this card names their center instead.
+  if (offer.isCenterStudent) return null
   if (offer.ready && offer.entitlement?.hasProAccess) {
     return (
       <Link

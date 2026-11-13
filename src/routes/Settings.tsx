@@ -1,7 +1,8 @@
-import { useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Reveal, Sequence } from '../components/motion'
 import { stagger } from '../lib/motion'
 import { useAuth } from '../lib/auth-context'
+import { useCenterStudent } from '../lib/center'
 import { useT } from '../lib/i18n'
 import { TabLinks } from '../components/ui'
 import { ProfileSettings } from './settings/ProfileSettings'
@@ -37,12 +38,19 @@ export function Settings() {
   const { pathname: rawPath } = useLocation()
   const pathname = HELP_ALIASES.includes(rawPath) ? TAB_HELP : rawPath
 
+  // A language center's student has no plan of their own to read or change — the center pays
+  // — so the billing tab is not theirs. Their center is on the profile tab instead.
+  const { isCenterStudent } = useCenterStudent()
+
   const tabs = [
     { to: TAB_PROFILE, label: t.settings.tabProfile },
     { to: TAB_GENERAL, label: t.settings.tabGeneral },
-    { to: TAB_BILLING, label: t.settings.tabBilling },
+    ...(isCenterStudent ? [] : [{ to: TAB_BILLING, label: t.settings.tabBilling }]),
     { to: TAB_HELP, label: t.settings.tabHelp },
   ]
+
+  // An old link to the billing tab lands on the profile, with the address to match.
+  if (isCenterStudent && pathname === TAB_BILLING) return <Navigate to={TAB_PROFILE} replace />
 
   const active = tabs.some((tab) => tab.to === pathname) ? pathname : TAB_PROFILE
 

@@ -216,19 +216,38 @@ function toDate(value: string) {
   return day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(value)
 }
 
-export const formatDate = (value?: string | null) =>
-  value ? toDate(value).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+/*
+ * The panel speaks Uzbek, so its dates do too: "12-noy 2026", not the "12 нояб. 2026 г." the
+ * Russian locale printed. Spelled out by hand because browsers ship no reliable uz-Latn months.
+ */
+const UZ_MONTHS = ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avg', 'sen', 'okt', 'noy', 'dek']
+const UZ_MONTHS_LONG = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr']
 
-export const formatDateTime = (value?: string | null) =>
-  value
-    ? new Date(value).toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '—'
+const uzDate = (date: Date) => `${date.getDate()}-${UZ_MONTHS[date.getMonth()]} ${date.getFullYear()}`
+
+export const formatDate = (value?: string | null) => (value ? uzDate(toDate(value)) : '—')
+
+/** "30-noyabr", or "30-noyabr 2027" when it is not this year — for sentences, not tables. */
+export const formatDayLong = (value?: string | null) => {
+  if (!value) return '—'
+  const date = toDate(value)
+  const day = `${date.getDate()}-${UZ_MONTHS_LONG[date.getMonth()]}`
+  return date.getFullYear() === new Date().getFullYear() ? day : `${day} ${date.getFullYear()}`
+}
+
+/** Whole days from today to a calendar date; negative once it has passed. */
+export const daysUntil = (value: string) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((toDate(value).getTime() - today.getTime()) / 86_400_000)
+}
+
+export const formatDateTime = (value?: string | null) => {
+  if (!value) return '—'
+  const date = new Date(value)
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  return `${uzDate(date)}, ${time}`
+}
 
 /** Unmeasured is a dash, never a zero — the same rule the product applies to skills. */
 export const formatPercent = (value: number | null | undefined) =>

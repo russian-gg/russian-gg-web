@@ -8,7 +8,8 @@ import { cx } from '../../lib/cx'
 import { LESSON_ONE_SECTIONS, readFoundationLessonProgress } from '../../lib/demo-lesson-one'
 import { hasFoundationLesson } from '../../lib/foundation-days'
 import { fill, useLocale, useT } from '../../lib/i18n'
-import { missionLock, missionLockDestination } from '../../lib/mission-lock'
+import { useCenterStudent } from '../../lib/center'
+import { missionLock, missionLockDestination, missionLockLabel } from '../../lib/mission-lock'
 import { missionPath } from '../../lib/mission-path'
 import { ease, rise } from '../../lib/motion'
 import type { MissionSummary } from '../../lib/types'
@@ -48,8 +49,9 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
   // A day with an authored lesson opens the lesson; anything else is a speaking practice.
   const isLesson = !mission.isDialogue && hasFoundationLesson(mission.courseDay)
   const lock = missionLock(mission)
-  const isProLock = lock === 'pro'
-  const destination = lock ? missionLockDestination(lock) : missionPath(mission)
+  // A center's student is pointed at their center, never at the plans.
+  const { lock: centerLock } = useCenterStudent()
+  const destination = lock ? missionLockDestination(lock, centerLock) : missionPath(mission)
   const best = mission.bestScore ?? null
 
   // How far into the lesson the learner is. Read when the card appears; the home screen is
@@ -148,10 +150,10 @@ export function TodayLessonCard({ mission }: { mission: MissionSummary }) {
         </span>
 
         <span className="flex shrink-0 lg:justify-end">
-          {mission.isLocked ? (
+          {lock ? (
             <span className="inline-flex items-center gap-2 text-sm font-extrabold text-caution">
               <Lock aria-hidden="true" strokeWidth={2.2} className="size-4" />
-              {isProLock ? t.path.needsPro : t.path.locked}
+              {missionLockLabel(lock, t, centerLock)}
             </span>
           ) : (
             <span

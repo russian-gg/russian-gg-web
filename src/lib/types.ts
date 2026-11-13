@@ -82,6 +82,11 @@ export interface UserProfile {
   timeZoneId: string
   hasCompletedDiagnostic: boolean
   tier: PlanTier
+  /**
+   * The language center that registered this learner, when one has. Optional because an older
+   * server does not send it; see `lib/center.ts` for what it switches off.
+   */
+  centerName?: string | null
 }
 
 export interface AuthResponse {

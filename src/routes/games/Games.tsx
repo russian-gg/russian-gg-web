@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { Gamepad2, LockKeyhole, Play } from 'lucide-react'
 import * as m from 'motion/react-m'
+import { useCenterStudent } from '../../lib/center'
 import { useOpenGames, type OpenGame } from '../../lib/games'
 import { EmptyState, Spinner } from '../../components/ui'
 import { Reveal, Sequence } from '../../components/motion'
@@ -97,9 +98,14 @@ const ROUTES: Record<string, string> = {
   'fight-for-life': '/games/fight-for-life',
 }
 
-/** Locked for this learner, not merely a Pro game: a Pro learner sees the game. */
-function destinationOf(game: OpenGame) {
-  return game.isAccessible ? ROUTES[game.slug] ?? `/games/${game.slug}` : '/paywall'
+/**
+ * Locked for this learner, not merely a Pro game: a Pro learner sees the game. A locked one
+ * leads to the plans — or, for a language center's student, who is sold nothing, to their
+ * profile, where the center's state is spelled out.
+ */
+function destinationOf(game: OpenGame, isCenterStudent: boolean) {
+  if (game.isAccessible) return ROUTES[game.slug] ?? `/games/${game.slug}`
+  return isCenterStudent ? '/settings' : '/paywall'
 }
 
 function useGameCopy(game: OpenGame) {
@@ -143,12 +149,15 @@ function GameIcon({ slug, className }: { slug: string; className?: string }) {
 
 /** The project's own buttons: primary to play, secondary with a lock where Pro is needed. */
 function PlayButton({ game, onDark = false }: { game: OpenGame; onDark?: boolean }) {
-  const t = useT().arcade
+  const dictionary = useT()
+  const t = dictionary.arcade
+  // "Pro" on the lock is an offer; a center's student reads only that it is shut.
+  const { isCenterStudent } = useCenterStudent()
   if (!game.isAccessible) {
     return (
       <span className="raised inline-flex min-h-10 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-hairline bg-ground-raised px-4 text-sm font-black whitespace-nowrap text-ink">
         <LockKeyhole aria-hidden="true" className="size-3.5 text-caution" strokeWidth={2.4} />
-        {game.slug === 'arra' ? 'Нужен Pro' : t.pro}
+        {isCenterStudent ? dictionary.path.locked : game.slug === 'arra' ? 'Нужен Pro' : t.pro}
       </span>
     )
   }
@@ -164,8 +173,9 @@ function PlayButton({ game, onDark = false }: { game: OpenGame; onDark?: boolean
 
 function GameCard({ game }: { game: OpenGame }) {
   const copy = useGameCopy(game)
+  const { isCenterStudent } = useCenterStudent()
   return (
-    <MotionLink variants={rise} to={destinationOf(game)} className="group flex flex-col text-ink">
+    <MotionLink variants={rise} to={destinationOf(game, isCenterStudent)} className="group flex flex-col text-ink">
       <span className="flex items-center gap-3 px-0.5">
         <GameIcon slug={game.slug} className="size-14" />
         <span className="min-w-0 flex-1">
@@ -210,6 +220,7 @@ function FeaturedGames({ games }: { games: OpenGame[] }) {
   const count = games.length
   const current = games[active] ?? games[0]
   const copy = useGameCopy(current)
+  const { isCenterStudent } = useCenterStudent()
 
   useEffect(() => {
     if (count < 2 || prefersReducedMotion()) return
@@ -223,7 +234,7 @@ function FeaturedGames({ games }: { games: OpenGame[] }) {
   return (
     <MotionLink
       variants={rise}
-      to={destinationOf(current)}
+      to={destinationOf(current, isCenterStudent)}
       aria-label={copy.title}
       className="games-hero block"
       style={{ '--hero-slide-ms': `${SLIDE_MS}ms` } as CSSProperties}
