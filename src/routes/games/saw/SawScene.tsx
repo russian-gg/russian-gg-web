@@ -1,11 +1,16 @@
-import { useId, type CSSProperties } from 'react'
-import { sawCharacterImage, type SawCharacter, type SawEmotion, type SawPhase } from './model'
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import type { SawCharacter, SawEmotion, SawPhase } from './model'
+import { SawFace } from './face'
+import type { SawPose } from './face-rig'
+import { SawPuppet } from './puppet'
 import './scene.css'
 
 type SawSceneProps = {
   blade: number
   phase: SawPhase
   speaking?: boolean
+  tutorSpeaking?: boolean
+  volume?: number
   animated?: boolean
   character?: SawCharacter
   emotion?: SawEmotion
@@ -20,46 +25,122 @@ const teeth = Array.from({ length: 30 }, (_, index) => {
 }).join(' ')
 
 const characterContact = {
-  penguin: { offset: .025, x: .297, y: .672 },
-  panda: { offset: -.02, x: .234, y: .509 },
-  pero: { offset: -.004, x: .267, y: .677 },
-} satisfies Record<SawCharacter, { offset: number; x: number; y: number }>
+  penguin: { x: .297, y: .672 },
+  panda: { x: .234, y: .509 },
+  pero: { x: .267, y: .677 },
+} satisfies Record<SawCharacter, { x: number; y: number }>
 
-export function SawScene({ blade, phase, speaking = false, animated = true, character = 'penguin', emotion }: SawSceneProps) {
+// Where the head sits inside the square portrait: sweat and shock marks fly from here.
+const characterHead = {
+  penguin: { x: .53, y: .2 },
+  panda: { x: .45, y: .27 },
+  pero: { x: .47, y: .36 },
+} satisfies Record<SawCharacter, { x: number; y: number }>
+
+const sparkAngles = [-118, -95, -71, -47, -21, 6, 34, 69, 108, 149]
+const poses = ['idle', 'confident', 'danger'] as const
+
+function portraitFor(character: SawCharacter, pose: typeof poses[number]) {
+  const variant = character === 'panda' && pose !== 'idle' ? '-dry' : ''
+  return `/games/arra/v3/${character}-${pose}${variant}.webp`
+}
+
+export function SawScene({ blade, phase, speaking = false, tutorSpeaking = false, volume = 0, animated = true, character = 'penguin', emotion }: SawSceneProps) {
   const threat = Math.max(0, Math.min(100, blade))
   const progress = phase === 'won' ? 0 : threat / 100
-  const reaction = phase === 'impact' ? 'panic' : emotion ?? (phase === 'won' ? 'happy' : threat >= 80 ? 'panic' : speaking ? 'speaking' : threat >= 40 ? 'silence' : 'idle')
-  const portrait = sawCharacterImage(character, reaction)
+  const reaction = phase === 'impact' || (phase === 'playing' && threat >= 80) ? 'panic'
+    : phase === 'won' ? 'happy'
+      : tutorSpeaking ? 'speaking'
+        : emotion ?? (speaking ? 'speaking' : threat >= 40 ? 'silence' : 'idle')
+  // Fear grows in steps as the blade closes in; answering out loud takes the edge off it.
+  const closeness = phase === 'impact' ? 1 : phase === 'playing' ? Math.max(0, Math.min(1, (threat - 22) / 68)) : 0
+  const fear = speaking && phase === 'playing' ? closeness * .5 : closeness
+  const dangerStep = phase === 'impact' ? 3 : phase !== 'playing' ? 0 : threat >= 80 ? 3 : threat >= 55 ? 2 : threat >= 30 ? 1 : 0
+  const fearLevel = speaking && dangerStep < 3 ? Math.max(0, dangerStep - 1) : dangerStep
+  // The panda keeps her composure until the blade is almost on her.
+  const frightened = fearLevel >= (character === 'panda' ? 3 : 2)
+  const pose = reaction === 'panic' || frightened ? 'danger'
+    : reaction === 'happy' || reaction === 'speaking' ? 'confident' : 'idle'
+  const portrait = portraitFor(character, pose)
   const contact = characterContact[character]
+  const head = characterHead[character]
+  const rotor = useRef<HTMLDivElement>(null)
+  // The hero is drawn as a deforming mesh; browsers without WebGL fall back to the flat portrait.
+  const [puppet, setPuppet] = useState(true)
+  const portraitOf = useCallback((item: SawPose) => portraitFor(character, item), [character])
+  const dropPuppet = useCallback(() => setPuppet(false), [])
+  const pressure = Math.max(0, (progress - .3) / .7)
+  const rpm = phase === 'impact' ? 4.4 : phase === 'playing' ? 1 + progress * 3.2 : .45
+  useEffect(() => {
+    poses.forEach((item) => {
+      const image = new Image()
+      image.src = portraitFor(character, item)
+    })
+  }, [character])
+  useEffect(() => {
+    const animation = rotor.current?.getAnimations?.()[0]
+    if (animation?.updatePlaybackRate) animation.updatePlaybackRate(rpm)
+    else if (animation) animation.playbackRate = rpm
+  }, [rpm, animated])
   const style = {
     '--blade-progress': progress,
-    '--blade-speed': `${Math.max(.5, 2 - progress * 1.5)}s`,
-    '--threat-opacity': progress,
-    '--contact-offset': contact.offset,
+    '--scene-pressure': pressure,
+    '--scene-voice': Math.max(0, Math.min(1, volume)),
     '--contact-local-x': contact.x,
     '--contact-local-y': contact.y,
+    '--fear': fear,
+    '--head-x': head.x,
+    '--head-y': head.y,
   } as CSSProperties
   return (
-    <div className="arra-scene" data-character={character} data-phase={phase} data-emotion={reaction} data-critical={threat >= 80 && phase !== 'won'} data-speaking={speaking} data-animated={animated} style={style} aria-hidden="true">
+    <div className="arra-scene" data-character={character} data-phase={phase} data-emotion={reaction} data-pose={pose} data-puppet={puppet} data-fear={fearLevel} data-grinding={threat >= 45 && phase === 'playing'} data-critical={threat >= 80 && phase !== 'won'} data-speaking={speaking} data-tutor={tutorSpeaking} data-animated={animated} style={style} aria-hidden="true">
       <div className="arra-scene__camera">
         <div className="arra-scene__room" />
         <div className="arra-scene__room-shade" />
         <div className="arra-scene__light-shaft" />
+        <div className="arra-scene__lamp-glow" />
         {character === 'penguin' ? <FactoryDetails /> : character === 'panda' ? <AtticDetails /> : <TheaterDetails />}
         <div className="arra-scene__motes">
           {Array.from({ length: 14 }, (_, index) => <i key={index} style={{ '--particle': index, left: `${7 + index * 13 % 87}%`, top: `${12 + index * 19 % 74}%` } as CSSProperties} />)}
         </div>
+        <div className="arra-scene__track" />
         <div className="arra-scene__saw-shadow" />
         <div className="arra-scene__saw">
-          <div className="arra-scene__blade-aura" />
-          <div className="arra-scene__rotor"><SawBlade /></div>
+          <div className="arra-scene__saw-lunge">
+            <div className="arra-scene__saw-trail" />
+            <div className="arra-scene__blade-aura" />
+            <div className="arra-scene__rotor" ref={rotor}><SawBlade /></div>
+            <div className="arra-scene__saw-blur" />
+            <div className="arra-scene__blade-reflection" />
+            <div className="arra-scene__grind">
+              {sparkAngles.map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
+            </div>
+          </div>
         </div>
         <div className="arra-scene__character-ground" />
         <div className="arra-scene__character">
-          <div className="arra-scene__character-motion">
-            <img key={portrait} src={portrait} alt="" width="768" height="768" draggable={false} />
+          <div className="arra-scene__character-fear">
+            <div className="arra-scene__character-startle">
+              <div className="arra-scene__character-motion">
+                <div className="arra-scene__character-shiver">
+                  <div className="arra-scene__character-pose" key={puppet ? character : portrait} style={{ '--portrait-image': `url('${portrait}')` } as CSSProperties}>
+                    {puppet
+                      ? <SawPuppet character={character} pose={pose} portrait={portraitOf} fear={fear} fearLevel={fearLevel} talking={tutorSpeaking}
+                        listening={speaking} voice={volume} phase={phase} animated={animated} onUnavailable={dropPuppet} />
+                      : <>
+                        <img src={portrait} alt="" width="768" height="768" draggable={false} />
+                        <SawFace character={character} pose={pose} fear={fear} animated={animated} />
+                      </>}
+                    {character === 'penguin' && <div className="arra-scene__tool-sparks"><i /><i /><i /><i /></div>}
+                  </div>
+                  <div className="arra-scene__sweat"><i /><i /><i /><i /></div>
+                  <div className="arra-scene__shock"><i /><i /><i /></div>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="arra-scene__voice-halo"><i /><i /><i /></div>
+          <div className="arra-scene__character-energy" />
           <div className="arra-scene__reward-sparks">
             {Array.from({ length: 5 }, (_, index) => <svg key={index} viewBox="0 0 24 24" style={{ '--star': index } as CSSProperties}><path d="m12 1 2.7 7.9L23 12l-8.3 2.5L12 23l-2.7-8.5L1 12l8.3-3.1Z" /></svg>)}
           </div>
@@ -67,13 +148,21 @@ export function SawScene({ blade, phase, speaking = false, animated = true, char
         <div className="arra-scene__contact">
           <div className="arra-scene__contact-flash" />
           <div className="arra-scene__sparks">
-            {Array.from({ length: 9 }, (_, index) => <i key={index} style={{ '--spark': index } as CSSProperties} />)}
+            {sparkAngles.map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
+          </div>
+          <div className="arra-scene__smoke"><i /><i /><i /></div>
+          <div className="arra-scene__oil">
+            {[-130, -81, -46, -13, 22, 71, 124].map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
           </div>
         </div>
       </div>
+      <div className="arra-scene__flicker" />
       <div className="arra-scene__vignette" />
+      <div className="arra-scene__dread" />
       <div className="arra-scene__danger-light" />
+      <div className="arra-scene__scare" />
       <div className="arra-scene__win-light" />
+      <div className="arra-scene__blackout" />
     </div>
   )
 }

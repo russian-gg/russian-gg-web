@@ -6,7 +6,7 @@ const { test } = require('node:test')
 const ts = require('typescript')
 
 const root = path.resolve(__dirname, '../src/routes/games')
-const compiled = new Map(['SawGame.tsx', 'saw/audio.ts', 'saw/dialogue.ts', 'saw/engine.ts', 'saw/model.ts'].map(file => {
+const compiled = new Map(['SawGame.tsx', 'saw/audio.ts', 'saw/dialogue.ts', 'saw/engine.ts', 'saw/input.ts', 'saw/model.ts'].map(file => {
   const result = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
     fileName: file,
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -23,7 +23,7 @@ function deferred() {
   return { promise, resolve }
 }
 
-function harness(t, replies, { playback } = {}) {
+function harness(t, replies, { playback, recognition = true, level = 0, audioFailure } = {}) {
   const hooks = [], effects = [], requests = [], audioRequests = [], speeches = [], navigations = []
   const timers = new Map(), listeners = new Map()
   const resources = { contexts: 0, closedContexts: 0, stoppedTracks: 0, playedVoices: 0, lateStateUpdates: 0 }
@@ -71,29 +71,50 @@ function harness(t, replies, { playback } = {}) {
     removeEventListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name) },
   }
   class AudioNode {
-    gain = { value: 0, setTargetAtTime() {} }
-    frequency = { value: 0, setTargetAtTime() {} }
+    gain = { value: 0, setTargetAtTime() {}, setValueAtTime() {}, exponentialRampToValueAtTime() {} }
+    frequency = { ...this.gain }
+    Q = { value: 0 }
     connect(target) { return target }
+    disconnect() {}
     start() {}
     stop() {}
   }
   class AudioContext {
     destination = new AudioNode()
     currentTime = 0
+    sampleRate = 44100
+    generatedBuffers = new WeakSet()
     constructor() { resources.contexts++ }
     createOscillator() { return new AudioNode() }
     createBiquadFilter() { return new AudioNode() }
     createGain() { return new AudioNode() }
-    createAnalyser() { return { getByteTimeDomainData: samples => samples.fill(128) } }
+    createAnalyser() { return Object.assign(new AudioNode(), { getByteTimeDomainData: samples => samples.fill(128 + level) }) }
     createMediaStreamSource() { return new AudioNode() }
+    createBuffer(channels, length, sampleRate) {
+      const samples = Array.from({ length: channels }, () => new Float32Array(length))
+      const buffer = { duration: length / sampleRate, getChannelData: channel => samples[channel] }
+      this.generatedBuffers.add(buffer)
+      return buffer
+    }
     createBufferSource() {
-      return Object.assign(new AudioNode(), { start() { resources.playedVoices++; void Promise.resolve(playback).then(() => this.onended?.()) } })
+      const source = new AudioNode()
+      source.playbackRate = { value: 1 }
+      source.start = () => {
+        if (this.generatedBuffers.has(source.buffer)) {
+          if (!source.loop) queueMicrotask(() => source.onended?.())
+          return
+        }
+        resources.playedVoices++
+        void Promise.resolve(playback).then(() => source.onended?.())
+      }
+      return source
     }
     decodeAudioData() { return Promise.resolve({ duration: 0 }) }
     resume() { return Promise.resolve() }
     close() { resources.closedContexts++; return Promise.resolve() }
   }
   class Speech {
+    supported = recognition
     starts = 0
     aborts = 0
     active = false
@@ -113,9 +134,13 @@ function harness(t, replies, { playback } = {}) {
       if (reply instanceof Error) throw reply
       return reply
     },
-    async postBlob(url, body) { audioRequests.push({ url, body }); return { arrayBuffer: async () => new ArrayBuffer(1) } },
+    async postBlob(url, body) {
+      audioRequests.push({ url, body: structuredClone(body) })
+      if (audioFailure) throw audioFailure
+      return { arrayBuffer: async () => new ArrayBuffer(1) }
+    },
   }
-  const globals = { window, document, AudioContext, Uint8Array, performance: { now: () => now }, clearTimeout: window.clearTimeout,
+  const globals = { window, document, AudioContext, AbortController, Uint8Array, performance: { now: () => now }, setTimeout: window.setTimeout, clearTimeout: window.clearTimeout,
     navigator: { mediaDevices: { getUserMedia: async () => ({ getTracks: () => [{ stop() { resources.stoppedTracks++ } }] }) } } }
   const load = (file, dependencies = {}) => {
     const exports = {}
@@ -130,9 +155,9 @@ function harness(t, replies, { playback } = {}) {
     react,
     'react/jsx-runtime': { jsx: (_type, props) => props },
     'react-router-dom': { useNavigate: () => route => navigations.push(route) },
-    '../../lib/game-speech': { GameSpeech: Speech },
     './saw/SawGameView': { SawGameView() {} },
     './saw/audio': load('saw/audio.ts', { '../../../lib/api': { api }, './dialogue': dialogue }),
+    './saw/input': load('saw/input.ts', { '../../../lib/game-speech': { GameSpeech: Speech } }),
     './saw/dialogue': dialogue,
     './saw/engine': load('saw/engine.ts'),
     './saw/model': load('saw/model.ts'),
@@ -178,17 +203,21 @@ const opening = 'Расскажи о своём обычном дне.'
 const followup = 'Что ты любишь делать вечером?'
 const reply = (characterReply, isFallback) => ({ characterReply, animation: 'happy', threatChange: 0, isFallback })
 
-test('fallback opening starts a full playable round without TTS and explains the ready-made questions', async t => {
-  const h = harness(t, [reply(opening, true)])
+test('a prepared opening remains playable when Gemini voice is unavailable', async t => {
+  const h = harness(t, [reply(opening, true)], { audioFailure: new Error('voice_billing_unavailable') })
   await h.start()
   assert.equal(h.view.phase, 'playing')
   assert.equal(h.view.secondsLeft, 60)
   assert.equal(h.view.question, opening)
   assert.equal(h.view.error, '')
-  assert.match(h.view.notice, /AI временно недоступен.*готовыми вопросами.*без озвучки/)
+  assert.match(h.view.notice, /готовые вопросы/iu)
+  assert.match(h.view.notice, /(?:озвучка|голос).*недоступ/iu)
   assert.equal(h.speeches[0].starts, 1)
   assert.equal(h.speeches[0].active, true)
-  assert.equal(h.audioRequests.length, 0)
+  assert.equal(h.audioRequests.length, 1)
+  assert.equal(h.audioRequests[0].url, '/missions/voice/prompt-audio')
+  assert.equal(h.audioRequests[0].body.text, opening)
+  assert.equal(h.resources.playedVoices, 0)
   assert.equal(h.requests[0].body.event, 'opening')
   assert.equal(h.requests[0].body.text, '')
   await h.advance(1100)
@@ -225,20 +254,34 @@ test('fallback answer keeps the same round resources and resumes listening with 
   assert.equal(h.view.round, 1)
   assert.equal(h.view.question, followup)
   assert.equal(h.view.error, '')
-  assert.match(h.view.notice, /готовыми вопросами/)
+  assert.match(h.view.notice, /готовые вопросы/iu)
   assert.equal(h.speeches.length, 1)
   assert.equal(h.speeches[0].starts, 2)
   assert.equal(h.speeches[0].active, true)
   assert.equal(h.resources.contexts, 1)
   assert.equal(h.resources.stoppedTracks, 0)
-  assert.equal(h.audioRequests.length, 0)
+  assert.deepEqual(h.audioRequests.map(request => request.body.text), [opening, followup])
   assert.equal(h.requests[1].body.event, 'answer')
   assert.equal(h.requests[1].body.text, 'Я читаю книги вечером.')
   assert.deepEqual(h.requests[1].body.history, [{ role: 'assistant', text: opening }])
   assert.ok(h.view.secondsLeft < 60 && h.view.secondsLeft > 0)
 })
 
-test('normal AI recovery clears the fallback notice and restores TTS for the next question', async t => {
+test('missing recognition keeps the mic-responsive practice playable without inventing words or score', async t => {
+  const h = harness(t, [reply(opening, true)], { recognition: false, level: 14 })
+  await h.start()
+  assert.equal(h.view.phase, 'playing')
+  assert.equal(h.view.microphoneOnly, true)
+  await h.advance(61000)
+  assert.equal(h.view.phase, 'won')
+  assert.equal(h.view.result.words, 0)
+  assert.ok(h.view.result.spokenSeconds >= 59)
+  assert.equal(h.view.score, 0)
+  assert.equal(h.requests.length, 1)
+  assert.equal(h.resources.stoppedTracks, 1)
+})
+
+test('normal AI recovery clears the fallback notice and continues using server speech', async t => {
   const h = harness(t, [reply(opening, true), reply(followup, false)])
   await h.start()
   assert.notEqual(h.view.notice, '')
@@ -248,8 +291,7 @@ test('normal AI recovery clears the fallback notice and restores TTS for the nex
   assert.equal(h.view.notice, '')
   assert.equal(h.view.error, '')
   assert.equal(h.view.question, followup)
-  assert.equal(h.audioRequests.length, 1)
-  assert.equal(h.audioRequests[0].body.text, followup)
+  assert.deepEqual(h.audioRequests.map(request => request.body.text), [opening, followup])
   assert.equal(h.speeches[0].starts, 2)
   assert.equal(h.speeches[0].active, true)
 })

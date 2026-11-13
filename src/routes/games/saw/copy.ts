@@ -17,6 +17,6 @@ export const sawCopy = {
   result: 'ИТОГИ ИСПЫТАНИЯ', point: '+1 победа',
   confidence: 'Уверенность', words: 'Сказано слов', favourite: 'Любимое слово', time: 'Время речи',
   earned: 'ТВОЙ ТИТУЛ', retry: 'Ещё раз', changeHero: 'Выбрать героя', metricsPending: 'Итоги появятся после завершения раунда.',
-  unsupported: 'Этот браузер не поддерживает распознавание речи. Открой игру в Chrome или Edge.',
+  unsupported: 'Этот браузер не даёт доступ к микрофону. Открой игру в Chrome или Edge.',
   question: 'ВОПРОС', speech: 'ТВОЙ ГОЛОС',
 }
