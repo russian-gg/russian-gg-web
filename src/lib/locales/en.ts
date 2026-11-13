@@ -545,6 +545,50 @@ export const en: Dictionary = {
   },
 
   landing: {
+    tour: {
+      label: 'A look inside Russian.gg',
+      pause: 'Pause the demo',
+      stepOf: '{step} / {total}',
+      lessons: {
+        tab: 'Lessons',
+        title: 'The 90-day path',
+        blurb: 'One short lesson a day: hear the question, answer it out loud, and the AI checks your answer.',
+        description:
+          'Demo: on the 90-day path map, days 1–3 are done and day 4 is started. The learner opens day 4 — the card for the lesson «Я и мой друг» appears — and resumes the lesson. In the «Практикуй!» step the AI reads a question aloud: «Когда Пингвин ждёт Панду?». The learner taps the microphone and answers, the AI writes a comment, and every question is done. The lesson ends with "Excellent!", day 4 turns green and day 5 opens.',
+        step1: 'Open the next day on the path',
+        step2: 'Hear the question from a native voice',
+        step3: 'Answer out loud — the AI checks it',
+        step4: 'The day closes, the path goes on',
+        url: 'russian.gg/path',
+        feedback: 'Great, a short and accurate answer: «В шесть». Now say it as a full sentence: «Пингвин ждёт Панду в шесть».',
+      },
+      missions: {
+        tab: 'Missions',
+        title: 'Live conversations with AI',
+        blurb: 'A shop, a taxi, a doctor — real-life situations you play out by voice with an AI character.',
+        description:
+          'Demo: on the missions road, mission 1 "Meeting a neighbour" is chosen and its card opens. The brief shows the Penguin, the goal, 3 minutes and the phrases to use. In the live conversation the Penguin speaks Russian, the learner answers by voice and taps "What did they say?" to read the line. The result: 86 points, a score per skill and the main correction.',
+        step1: 'Pick a situation',
+        step2: 'Meet the character and the task',
+        step3: 'Speak Russian — the AI listens and replies',
+        step4: 'Get a score and exact corrections',
+        url: 'russian.gg/practice',
+        strength: 'You greeted your neighbour politely with «Здравствуйте» and said clearly where you are from.',
+        headline: 'Give your name in a full sentence: not just «Али», but «Меня зовут Али».',
+      },
+      games: {
+        tab: 'Games',
+        title: 'Play by speaking',
+        blurb: 'Short voice games: speak Russian to win.',
+        description:
+          'Demo: from the games shelf, "Пила" (the Saw) is chosen with the Penguin as the opponent. He asks a question in Russian and the learner answers out loud: while they speak the saw backs off, and when they go quiet it moves closer. It ends with the results: confidence, words spoken, speaking time and a title.',
+        step1: 'Pick a game',
+        step2: 'Answer the question out loud',
+        step3: 'Keep talking — the saw backs off',
+        step4: 'Your results and title',
+        url: 'russian.gg/games',
+      },
+    },
     headline: 'Speak Russian for work and daily life in 90 days.',
     body:
       'You understand Russian but freeze when it is your turn to speak. Here you practise ' +
@@ -621,12 +665,15 @@ export const en: Dictionary = {
       method: 'How it works',
       games: 'Games',
       pricing: 'Pricing',
+      tour: "Platform",
+      centers: "For centers",
     },
 
     hero: {
       eyebrow: 'A Russian speaking coach for Uzbek speakers',
       primaryCta: 'Start free',
       secondaryCta: 'Find your level free',
+      levelLink: "Find your level in 40 seconds →",
       socialProof: '2,500+ learners already speaking Russian.',
       trustNote: 'No card required',
       mockDay: 'Day 3',
@@ -669,6 +716,18 @@ export const en: Dictionary = {
       sawTitle: 'Лазер',
       sawBody:
         'A question drops and the laser slides toward you. Speak, and it backs off — hold out for a minute of talking.',
+    },
+
+    tourSection: {
+      eyebrow: "Inside the platform",
+      title: "Lessons, missions and games — in one place",
+      subtitle: "See how each part works: the cursor walks you through it.",
+    },
+
+    centersBand: {
+      fact1: "Add students by phone number",
+      fact2: "Linked automatically on sign-in",
+      fact3: "See who is practising",
     },
 
     creators: {
@@ -2004,16 +2063,11 @@ export const en: Dictionary = {
   },
 
   centers: {
-    nav: {
-      home: 'Home',
-      demo: 'Request a demo',
-    },
     hero: {
       eyebrow: 'For language centers',
       title: 'Get your students speaking Russian every day between lessons',
       body: 'Russian.gg gives your students 15–20 minutes of voice practice every day between lessons: they talk in Russian with AI characters. And you see who is practising.',
       cta: 'Request a demo',
-      secondary: 'How it works',
     },
     steps: {
       eyebrow: 'How it works',
@@ -2052,28 +2106,6 @@ export const en: Dictionary = {
         { title: 'Voice missions', body: 'A café, a taxi, a shop — speaking Russian with AI characters in real situations.' },
         { title: '90-day course', body: 'A new lesson every day: vocabulary, grammar and pronunciation step by step.' },
         { title: 'Placement test', body: "A short test at the start finds the student's level and starts the course there." },
-      ],
-    },
-    faq: {
-      eyebrow: 'Questions',
-      title: 'Frequently asked questions',
-      items: [
-        {
-          q: 'Does it replace the teacher?',
-          a: 'No. Russian.gg is homework between lessons. Students practise out loud every day what they covered in class, and the teacher carries on teaching.',
-        },
-        {
-          q: 'How are students added?',
-          a: "You enter the student's name and phone number on the dashboard. When the student signs in or registers with that number, they are linked to your center automatically.",
-        },
-        {
-          q: 'Who pays?',
-          a: 'The center pays: every month in advance, for the number of students in the contract. Students pay nothing themselves. There are no free trial days.',
-        },
-        {
-          q: 'How much does it cost?',
-          a: 'We agree the price during the demo, based on the size of your center.',
-        },
       ],
     },
     form: {

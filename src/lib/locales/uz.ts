@@ -569,6 +569,51 @@ export const uz = {
   },
 
   landing: {
+    /** The product tour: three scripted demos of the real screens (components/landing/tour). */
+    tour: {
+      label: "Russian.gg ichidan ko'rinish",
+      pause: "Namoyishni to'xtatish",
+      stepOf: '{step} / {total}',
+      lessons: {
+        tab: 'Darslar',
+        title: "90 kunlik yo'l",
+        blurb: "Har kuni bitta qisqa dars: savolni tinglaysiz, ovoz chiqarib javob berasiz, AI javobingizni tekshiradi.",
+        description:
+          "Namoyish: 90 kunlik yo'l xaritasida 1–3-kunlar bajarilgan, 4-kun boshlangan. Foydalanuvchi 4-kunni ochadi — «Я и мой друг» darsi kartasi chiqadi — va darsni davom ettiradi. «Практикуй!» bo'limida AI savolni ovoz chiqarib o'qiydi: «Когда Пингвин ждёт Панду?». Foydalanuvchi mikrofonni bosib javob beradi, AI izoh yozadi va barcha savollar yopiladi. Dars «Ajoyib!» bilan tugaydi, 4-kun yashil bo'ladi va 5-kun ochiladi.",
+        step1: "Yo'lda navbatdagi kunni oching",
+        step2: 'Savolni diktor ovozida tinglang',
+        step3: 'Ovoz chiqarib javob bering — AI tekshiradi',
+        step4: "Kun yopiladi, yo'l davom etadi",
+        url: 'russian.gg/path',
+        feedback: "Zo'r, javobingiz qisqa va aniq: «В шесть». Endi to'liq gap bilan ham ayting: «Пингвин ждёт Панду в шесть».",
+      },
+      missions: {
+        tab: 'Missiyalar',
+        title: 'AI bilan jonli suhbat',
+        blurb: "Do'kon, taksi, shifokor — hayotiy vaziyatlarni AI personaj bilan ovozda o'ynaysiz.",
+        description:
+          "Namoyish: topshiriqlar yo'lida 1-topshiriq «Qo'shni bilan tanishish» tanlanadi va uning kartasi ochiladi. Brifda Pingvin, maqsad, 3 daqiqa va kerakli iboralar ko'rinadi. Jonli suhbatda Pingvin ruscha gapiradi, foydalanuvchi ovozda javob beradi va «Nima dedi?» bilan uning gapini matnda ko'radi. Natijada 86 ball, ko'nikmalar bo'yicha baholar va asosiy tuzatish chiqadi.",
+        step1: 'Vaziyatni tanlang',
+        step2: 'Personaj va vazifa bilan tanishing',
+        step3: 'Ruscha gapiring — AI tinglaydi va javob beradi',
+        step4: 'Ball va aniq tuzatishlarni oling',
+        url: 'russian.gg/practice',
+        strength: "Qo'shni bilan «Здравствуйте» deb xushmuomala salomlashdingiz va qayerdanligingizni aniq aytdingiz.",
+        headline: "Ismingizni to'liq gap bilan ayting: faqat «Али» emas, «Меня зовут Али».",
+      },
+      games: {
+        tab: "O'yinlar",
+        title: "Gapirib o'ynang",
+        blurb: "Qisqa ovozli o'yinlar: ruscha gapiring va g'alaba qiling.",
+        description:
+          "Namoyish: o'yinlar javonidan «Пила» tanlanadi va Pingvin tanlangan holda boshlanadi. Pingvin ruscha savol beradi, foydalanuvchi ovoz chiqarib javob beradi: gapirganda arra orqaga chekinadi, jim qolganda yaqinlashadi. Oxirida natijalar: ishonch, aytilgan so'zlar, nutq vaqti va unvon.",
+        step1: "O'yinni tanlang",
+        step2: 'Savolga ovoz chiqarib javob bering',
+        step3: 'Gapirishda davom eting — arra chekinadi',
+        step4: "Natijalar va unvoningiz",
+        url: 'russian.gg/games',
+      },
+    },
     headline: '90 kunda ish va kundalik hayot uchun rus tilida gapiring.',
     body:
       "Siz rus tilini tushunasiz, lekin gapirishga ishonchingiz yo'q. Bu yerda har kuni " +
@@ -645,12 +690,15 @@ export const uz = {
       method: 'Qanday ishlaydi',
       games: "O'yinlar",
       pricing: 'Narxlar',
+      tour: "Platforma",
+      centers: "Markazlar uchun",
     },
 
     hero: {
       eyebrow: "O'zbeklar uchun rus tili murabbiysi",
       primaryCta: 'Bepul boshlash',
       secondaryCta: 'Darajangizni bepul aniqlang',
+      levelLink: "40 soniyada darajangizni bilib oling →",
       socialProof: "2 500+ o'quvchi allaqachon rus tilida gapiryapti.",
       trustNote: 'Karta talab qilinmaydi',
       mockDay: '3-kun',
@@ -694,6 +742,18 @@ export const uz = {
       sawTitle: 'Лазер',
       sawBody:
         'Savol beriladi, lazer sizga tomon suriladi. Gapirsangiz — orqaga chekinadi. Bir daqiqa gapirib qoling.',
+    },
+
+    tourSection: {
+      eyebrow: "Platforma ichida",
+      title: "Darslar, missiyalar va o'yinlar — bitta joyda",
+      subtitle: "Har bir bo'limni o'zingiz ko'ring: kursor qanday ishlashini ko'rsatadi.",
+    },
+
+    centersBand: {
+      fact1: "Telefon raqami bilan qo'shish",
+      fact2: "Kirishda avtomatik bog'lanish",
+      fact3: "Kim mashq qilayotgani ko'rinadi",
     },
 
     creators: {
@@ -2044,16 +2104,11 @@ export const uz = {
 
   /** The public page for language centers, at /markazlar. */
   centers: {
-    nav: {
-      home: 'Bosh sahifa',
-      demo: "Demo so'rash",
-    },
     hero: {
       eyebrow: "O'quv markazlari uchun",
       title: "O'quvchilaringiz darslar orasida har kuni ruscha gapirsin",
       body: "Russian.gg o'quvchilaringizga darslar orasida har kuni 15–20 daqiqalik ovozli mashq beradi: ular sun'iy intellekt qahramonlari bilan ruscha gaplashadi. Siz esa kim mashq qilayotganini ko'rib turasiz.",
       cta: "Demo so'rash",
-      secondary: 'Qanday ishlaydi',
     },
     steps: {
       eyebrow: 'Qanday ishlaydi',
@@ -2092,28 +2147,6 @@ export const uz = {
         { title: 'Ovozli missiyalar', body: "Kafe, taksi, do'kon — sun'iy intellekt qahramonlari bilan haqiqiy vaziyatlarda ruscha gaplashish." },
         { title: '90 kunlik kurs', body: "Har kuni yangi dars: so'zlar, grammatika va talaffuz bosqichma-bosqich." },
         { title: 'Daraja testi', body: "Boshida qisqa test o'quvchining darajasini aniqlaydi va kursni shundan boshlaydi." },
-      ],
-    },
-    faq: {
-      eyebrow: 'Savollar',
-      title: "Ko'p beriladigan savollar",
-      items: [
-        {
-          q: "O'qituvchini almashtiradimi?",
-          a: "Yo'q. Russian.gg — darslar orasidagi uy vazifasi. O'quvchi darsda o'rganganini har kuni ovoz chiqarib mashq qiladi, o'qituvchi esa darsni davom ettiradi.",
-        },
-        {
-          q: "O'quvchilar qanday qo'shiladi?",
-          a: "O'quvchining ismi va telefon raqamini kabinetga kiritasiz. O'quvchi shu raqam bilan ilovaga kirganda yoki ro'yxatdan o'tganda markazingizga avtomatik ulanadi.",
-        },
-        {
-          q: "Kim to'laydi?",
-          a: "Markaz to'laydi: har oy oldindan, shartnomadagi o'quvchilar soni uchun. O'quvchilarning o'zi hech narsa to'lamaydi. Bepul sinov kunlari berilmaydi.",
-        },
-        {
-          q: 'Narx qancha?',
-          a: 'Narxni demo paytida, markazingiz hajmiga qarab kelishamiz.',
-        },
       ],
     },
     form: {

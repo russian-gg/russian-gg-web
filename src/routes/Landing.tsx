@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BellRing,
   Gem,
+  Globe,
   Maximize2,
   WifiOff,
   ArrowUpRight,
@@ -19,7 +20,6 @@ import {
   Sprout,
   TrendingUp,
   Volume2,
-  WandSparkles,
 } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -28,20 +28,21 @@ import { Reveal, Sequence } from '../components/motion'
 import { collapse, ease, fadeIn, rise, stagger, useCountUp } from '../lib/motion'
 import * as m from 'motion/react-m'
 import { AnimatePresence, useInView, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
-import { AiTutorScene, ProductPreview, ReelThumb } from '../components/landing/visuals'
-import { Aurora, FloatingProp, LandingVideo, Stage, Tilt, VIEW_MARGIN } from '../components/landing/effects'
-import { BrowserFrame, IPhoneFrame } from '../components/landing/devices'
-import { VoiceSignal } from '../components/VoiceSignal'
+import { ProductPreview, ReelThumb } from '../components/landing/visuals'
+import { Aurora, FloatingProp, Stage, Tilt, VIEW_MARGIN } from '../components/landing/effects'
+import { IPhoneFrame } from '../components/landing/devices'
+import { CentersSection } from '../components/landing/CentersSection'
+import { ProductTour } from '../components/landing/tour/ProductTour'
 import { SampleReport } from '../components/landing/report'
 import { LocaleSwitch, Wordmark } from '../components/landing/chrome'
+import { Parallax, ScrollProgress, Spotlight, Stars, TypedPhrases, WordsIn } from '../components/landing/alive'
 import { cx } from '../lib/cx'
-import { fill, useLocale, useT } from '../lib/i18n'
+import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
 import { playLandingCharacterVoice } from '../lib/liveVoice'
 import { trackLandingVisit } from '../lib/meta-pixel'
 import { useReportProblem } from '../lib/report-problem'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
 import targetArt from '../assets/images/progress_main_card_2.webp'
-import missionsArt from '../assets/images/missions_main_card.webp'
 import starArt from '../assets/images/progress_icon_3.webp'
 import orbArt from '../assets/images/progress_icon_1.webp'
 
@@ -61,41 +62,43 @@ export function Landing() {
     trackLandingVisit()
   }, [])
 
+  // The page is loaded lazily, so the browser has nothing to scroll to when it reads the
+  // address; a link that arrives with a section in it (`/#centers`) is taken there by hand.
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (!id) return
+    const frame = requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView())
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
   return (
     <div className="landing min-h-dvh text-ink">
+      <ScrollProgress />
       <TopBar />
       <main>
         <Hero />
-        {/* The four numbers worth knowing, in one band, before any section asks to be read. */}
+        {/* Three numbers worth knowing, in one band, before any section asks to be read. */}
         <ProofBand />
-        {/* A full-bleed reels strip right after the hero: the first proof that real people use
-            this, before a single claim about it. */}
-        <ReelMarquee />
-        {/* What a session actually is: the AI tutor turn, as a video or its live stand-in. */}
-        <Showcase />
-        {/* The problem-and-solution narrative, told by the three characters. */}
+        {/* What is inside, drifting past: the same names the tour below uses. */}
+        <Ticker />
+        {/* Lessons, missions and games, each driven by a cursor: the product itself. */}
+        <TourSection />
+        {/* The problem-and-solution narrative, told by the three characters (navy). */}
         <Characters />
         {/* What the learner gets back: the progress screen, as a sample. */}
         <Report />
-        <Games />
+        {/* Creator reels: real people, one compact row. */}
+        <ReelMarquee />
         <Mobile />
         <Pricing />
+        {/* For language centers: the whole offer and the demo request, as one section. */}
+        <CentersSection />
         <Faq />
         <FinalCta />
       </main>
       <Footer />
     </div>
   )
-}
-
-/**
- * Product clips for the page, produced separately (Motion) and served from `public/landing/`.
- *
- * A slot left `null` renders its animated stand-in instead — see `LandingVideo`. Fill in a
- * path once the file is in `public/` and the section starts playing it, with no other change.
- */
-const LANDING_VIDEOS: { showcase: string | null; showcasePoster?: string } = {
-  showcase: null,
 }
 
 /* -------------------------------------------------------------------------- chrome */
@@ -113,6 +116,7 @@ function TopBar() {
   const { scrollY } = useScroll()
   const [floating, setFloating] = useState(() => typeof window !== 'undefined' && window.scrollY > 40)
   useMotionValueEvent(scrollY, 'change', (y) => setFloating(y > 40))
+  const active = useActiveSection(NAV_SECTIONS)
 
   return (
     <m.header
@@ -135,24 +139,39 @@ function TopBar() {
 
           <nav className="hidden items-center gap-1 text-sm font-bold whitespace-nowrap text-ink-muted lg:flex">
             {[
-              { href: '#method', label: t.nav.method },
-              { href: '#games', label: t.nav.games },
-              { href: '#pricing', label: t.nav.pricing },
+              { id: 'tour', label: t.nav.tour },
+              { id: 'method', label: t.nav.method },
+              { id: 'pricing', label: t.nav.pricing },
             ].map((link) => (
               <a
-                key={link.href}
-                className="rounded-full px-3.5 py-2 transition-colors hover:bg-signal-soft hover:text-ink"
-                href={link.href}
+                key={link.id}
+                href={`#${link.id}`}
+                aria-current={active === link.id ? 'true' : undefined}
+                className={cx(
+                  'rounded-full px-3.5 py-2 transition-colors hover:bg-signal-soft hover:text-ink',
+                  active === link.id && 'bg-signal-soft text-signal-ink',
+                )}
               >
                 {link.label}
               </a>
             ))}
+            <a
+              href="#centers"
+              aria-current={active === 'centers' ? 'true' : undefined}
+              className={cx(
+                'rounded-full px-3.5 py-2 transition-colors hover:bg-signal-soft hover:text-ink',
+                active === 'centers' && 'bg-signal-soft text-signal-ink',
+              )}
+            >
+              {t.nav.centers}
+            </a>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* `max-sm:hidden` rather than `hidden sm:inline-flex`: both of these carry their own
                 `inline-flex`, which wins the cascade over `hidden` and kept them on screen on phones. */}
             <LocaleSwitch className="max-sm:hidden" />
+            <LocaleCycle className="sm:hidden" />
             <LinkButton to="/signin" variant="ghost" size="md" className="max-sm:hidden">
               {t.nav.signIn}
             </LinkButton>
@@ -169,24 +188,18 @@ function TopBar() {
 /* ---------------------------------------------------------------------------- hero */
 
 /**
- * Paints the "90 days" phrase of a headline in the spectrum gradient. The number is the
- * promise, and it sits in a different place in each locale ("90 kunda…", "За 90 дней…",
- * "…in 90 days"), so it is found rather than hard-coded. No number, no accent.
+ * The "90 days" of the headline, painted in the spectrum gradient. The number is the promise,
+ * and it sits in a different place in each locale ("90 kunda…", "За 90 дней…", "…in 90 days"),
+ * so it is found rather than hard-coded: a number, or a range like "15–20", and the word after.
  */
-function Accented({ text }: { text: string }) {
-  // A number, or a range like "15–20", and the word after it.
-  const match = /\d+(?:[–-]\d+)?\s+\p{L}+/u.exec(text)
-  if (!match) return <>{text}</>
-  const start = match.index
-  const end = start + match[0].length
-  return (
-    <>
-      {text.slice(0, start)}
-      <span className="text-spectrum">{match[0]}</span>
-      {text.slice(end)}
-    </>
-  )
-}
+const HEADLINE_ACCENT = /\d+(?:[–-]\d+)?\s+\p{L}+/u
+
+/** What the chip under the hero mock "hears": phrases from the first lessons, with a score. */
+const HERO_PHRASES = [
+  { text: 'Это мой брат', score: 96 },
+  { text: 'Здравствуйте!', score: 92 },
+  { text: 'Я ел хлеб и пил чай', score: 98 },
+]
 
 function Hero() {
   const t = useT().landing
@@ -215,18 +228,18 @@ function Hero() {
             </p>
           </Reveal>
 
-          <Reveal>
-            <h1 className="mt-6 text-4xl leading-[1.06] font-black tracking-tight text-balance text-ink sm:text-5xl lg:text-[3.6rem]">
-              <Accented text={t.headline} />
-            </h1>
-          </Reveal>
+          {/* Not a `Reveal`: the headline assembles word by word, which is its own arrival. */}
+          <h1 className="mt-6 text-4xl leading-[1.06] font-black tracking-tight text-balance text-ink sm:text-5xl lg:text-[3.6rem]">
+            <WordsIn text={t.headline} accent={HEADLINE_ACCENT} immediate delay={0.15} />
+          </h1>
 
           <Reveal>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-muted">{t.body}</p>
           </Reveal>
 
           <Reveal className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <LinkButton to="/signup" className="w-full gap-2 sm:w-auto">
+            <LinkButton to="/signup" className="relative w-full gap-2 overflow-hidden sm:w-auto">
+              <span aria-hidden="true" className="alive-shine-band" />
               {t.hero.primaryCta}
               <ArrowRight aria-hidden="true" strokeWidth={2.2} className="size-[18px]" />
             </LinkButton>
@@ -235,7 +248,13 @@ function Hero() {
             </LinkButton>
           </Reveal>
 
-          <Reveal className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <Reveal>
+            <Link to="/onboarding" className="mt-5 inline-block text-sm font-bold text-signal-ink underline-offset-4 hover:underline">
+              {t.hero.levelLink}
+            </Link>
+          </Reveal>
+
+          <Reveal className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 font-bold text-ink">
               <span className="grid size-5 place-items-center rounded-full bg-milestone-soft">
                 <Check aria-hidden="true" strokeWidth={3} className="size-3 text-milestone" />
@@ -256,21 +275,28 @@ function Hero() {
           own two promises — speak, get corrected.
         */}
         <Reveal variants={fadeIn('right', 24)} delay={0.3} className="relative lg:pl-6">
-          <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 size-[26rem] -translate-1/2 rounded-full bg-[image:var(--spectrum)] opacity-25 blur-3xl" />
+          <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 size-[26rem] -translate-1/2 rounded-full bg-[image:var(--spectrum)] opacity-20 blur-3xl" />
 
           <FloatingProp src={targetArt} className="-top-6 -left-4 w-32 sm:w-40 lg:-left-10" duration={7} tilt={-4} />
-          <FloatingProp src={missionsArt} className="-right-2 -bottom-6 w-32 sm:w-40 lg:-right-8" duration={6.5} delay={-2} tilt={3} />
-          <FloatingProp src={starArt} className="top-10 right-2 hidden w-14 sm:block lg:-right-4" duration={5} delay={-1} lift={-16} />
-          <FloatingProp src={orbArt} className="bottom-24 -left-2 hidden w-12 sm:block lg:-left-8" duration={5.5} delay={-3} lift={-10} />
 
-          <Tilt className="relative z-10 mx-auto w-[15.5rem] sm:w-[17.5rem]">
-            <ProductPreview
-              day={t.hero.mockDay}
-              objective={t.hero.mockObjective}
-              hint={t.hero.mockHint}
-              action={t.hero.mockAction}
-            />
-          </Tilt>
+          <Parallax distance={-18} className="relative z-10">
+            <Tilt className="relative z-10 mx-auto w-[15.5rem] sm:w-[17.5rem]">
+              <ProductPreview
+                day={t.hero.mockDay}
+                objective={t.hero.mockObjective}
+                hint={t.hero.mockHint}
+                action={t.hero.mockAction}
+              />
+            </Tilt>
+          </Parallax>
+
+          {/* A phrase being said and scored, on a loop: the product in one line. */}
+          <div
+            aria-hidden="true"
+            className="glass glass-strong relative z-20 mx-auto mt-5 flex w-fit max-w-full min-w-[17rem] items-center rounded-full px-4 py-2 text-sm"
+          >
+            <TypedPhrases phrases={HERO_PHRASES} className="w-full" />
+          </div>
 
           <HeroChip className="top-[38%] -left-2 lg:-left-14" delay={-1.5} icon={<Mic aria-hidden="true" strokeWidth={1.9} className="size-4" />}>
             {t.method.step1Title}
@@ -281,6 +307,59 @@ function Hero() {
         </Reveal>
       </div>
     </section>
+  )
+}
+
+const NAV_SECTIONS = ['tour', 'method', 'pricing', 'centers']
+
+/**
+ * Which of the given sections is crossing the middle of the window, if any. The nav uses it to
+ * mark where the reader is; above the first and below the last it marks nothing.
+ */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState<string | null>(null)
+  useEffect(() => {
+    const seen = new Set<string>()
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) seen.add(entry.target.id)
+          else seen.delete(entry.target.id)
+        }
+        setActive(ids.find((id) => seen.has(id)) ?? null)
+      },
+      // A thin band across the middle of the window: a section is "current" while it covers it.
+      { rootMargin: '-45% 0px -54% 0px' },
+    )
+    for (const id of ids) {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+  }, [ids])
+  return active
+}
+
+/**
+ * The language switch for the phone nav, where the three-way switch does not fit: one small
+ * button showing the current language, and a tap moves to the next.
+ */
+function LocaleCycle({ className }: { className?: string }) {
+  const { locale, setLocale } = useLocale()
+  const next = LOCALES[(LOCALES.indexOf(locale) + 1) % LOCALES.length]
+  return (
+    <button
+      type="button"
+      onClick={() => setLocale(next)}
+      aria-label={`Til / Язык / Language: ${locale.toUpperCase()} → ${next.toUpperCase()}`}
+      className={cx(
+        'inline-flex h-10 items-center gap-1 rounded-full border border-hairline px-2.5 text-xs font-extrabold text-ink-muted uppercase transition-colors hover:text-ink',
+        className,
+      )}
+    >
+      <Globe aria-hidden="true" strokeWidth={2} className="size-3.5" />
+      {locale}
+    </button>
   )
 }
 
@@ -323,31 +402,28 @@ function HeroChip({
 /* --------------------------------------------------------------------------- proof */
 
 /**
- * The stats band under the hero: four figures, each one already claimed elsewhere on the page
+ * The stats band under the hero: three figures, each one already claimed elsewhere on the page
  * (the learner count in the hero, the creators' reach in the reels strip) or a fact of the
  * course itself. The figures rise in one after another and count up once the band is on screen.
  */
 function ProofBand() {
   const t = useT().landing
   const figures = [
-    { value: 2500, suffix: '+', label: t.proof.learners },
     { value: 90, label: t.proof.days },
     { text: '15–20', label: t.proof.minutes },
-    { value: 480, suffix: '+', label: t.creators.channelStat },
+    { value: 2500, suffix: '+', label: t.proof.learners },
   ]
 
   return (
     <section className="relative z-10 mx-auto -mt-6 max-w-6xl px-5">
-      <Stage className="glass glass-strong grid grid-cols-2 rounded-[2rem] lg:grid-cols-4" gap={stagger.wide}>
+      <Stage className="glass glass-strong grid grid-cols-3 rounded-[2rem]" gap={stagger.wide}>
         {figures.map((figure, index) => (
           <Reveal
             key={figure.label}
             variants={rise}
             className={cx(
-              'px-5 py-6 text-center sm:py-7',
-              index % 2 === 1 && 'border-l border-hairline',
-              index >= 2 && 'border-t border-hairline lg:border-t-0',
-              index === 2 && 'lg:border-l',
+              'px-2 py-6 text-center sm:px-5 sm:py-8',
+              index > 0 && 'border-l border-hairline',
             )}
           >
             <div className="text-spectrum text-3xl font-black tracking-tight tabular-nums sm:text-4xl">
@@ -361,6 +437,41 @@ function ProofBand() {
         ))}
       </Stage>
     </section>
+  )
+}
+
+/**
+ * A slow strip of what the product is made of. Decoration: every name on it is a heading
+ * somewhere below. The row is rendered twice so the loop has no seam (`.alive-ticker`).
+ */
+function Ticker() {
+  const t = useT().landing
+  const pills = [
+    { icon: Sprout, text: t.tour.lessons.tab },
+    { icon: TrendingUp, text: t.tour.lessons.title },
+    { icon: AudioLines, text: t.tour.missions.tab },
+    { icon: Sparkles, text: t.tour.missions.title },
+    { icon: Gem, text: t.tour.games.tab },
+    { icon: Crown, text: t.tour.games.title },
+    { icon: Mic, text: t.method.step1Title },
+    { icon: CircleCheck, text: t.method.step2Title },
+  ]
+  return (
+    <div aria-hidden="true" className="alive-ticker mx-auto mt-10 max-w-6xl">
+      {[0, 1].map((row) => (
+        <div key={row}>
+          {pills.map(({ icon: Icon, text }) => (
+            <span
+              key={text}
+              className="glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap text-ink-muted"
+            >
+              <Icon aria-hidden="true" strokeWidth={2.2} className="size-4 text-signal" />
+              {text}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -381,14 +492,43 @@ function CountTo({ value, ms = 1200 }: { value: number; ms?: number }) {
   return <span ref={ref}>{format(shown)}</span>
 }
 
+/* ---------------------------------------------------------------------------- tour */
+
+/** The product, shown rather than described. The tour component owns the demos; this owns the heading. */
+function TourSection() {
+  const t = useT().landing.tourSection
+  return (
+    <section id="tour" className="relative scroll-mt-20 py-16 sm:py-24">
+      <div className="mx-auto max-w-6xl px-5">
+        <Stage className="text-center">
+          <Reveal>
+            <SectionEyebrow center>{t.eyebrow}</SectionEyebrow>
+          </Reveal>
+          <Reveal>
+            <h2 className="mx-auto mt-5 max-w-3xl text-3xl leading-[1.12] font-black tracking-tight text-balance text-ink sm:text-4xl">
+              <WordsIn text={t.title} />
+            </h2>
+          </Reveal>
+          <Reveal>
+            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-muted">{t.subtitle}</p>
+          </Reveal>
+        </Stage>
+        <div className="mt-12">
+          <ProductTour />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /* -------------------------------------------------------------------------- report */
 
 /** The sample progress report, with a strip under it that sends the reader to measure their own. */
 function Report() {
   const t = useT().landing
   return (
-    <section className="relative isolate overflow-hidden py-20">
-      <Aurora blobs={2} grid={false} className="opacity-60" />
+    <section className="relative isolate overflow-hidden py-16 sm:py-24">
+      <Aurora blobs={2} grid={false} className="opacity-50" />
       <span aria-hidden="true" className="dot-grid absolute top-24 left-0 -z-10 h-64 w-64" />
       <div className="mx-auto max-w-6xl px-5">
         <Stage>
@@ -397,7 +537,7 @@ function Report() {
           </Reveal>
           <Reveal>
             <h2 className="mt-4 max-w-3xl text-3xl leading-[1.12] font-black tracking-tight text-ink sm:text-4xl">
-              {t.report.title}
+              <WordsIn text={t.report.title} />
             </h2>
           </Reveal>
           <Reveal>
@@ -431,93 +571,6 @@ function Report() {
   )
 }
 
-/* ------------------------------------------------------------------------ showcase */
-
-/**
- * How a session works, shown rather than listed: the three steps on the left, and on the
- * right one real tutor turn — the produced clip when there is one, otherwise the mission
- * screen's own voice orb playing the turn live. Carries id="method" so the nav's "how it
- * works" lands here.
- */
-function Showcase() {
-  const t = useT().landing
-  const steps = [
-    { title: t.method.step1Title, body: t.method.step1Body, icon: Mic },
-    { title: t.method.step2Title, body: t.method.step2Body, icon: WandSparkles },
-    { title: t.method.step3Title, body: t.method.step3Body, icon: TrendingUp },
-  ]
-
-  return (
-    <section id="method" className="relative isolate scroll-mt-20 overflow-hidden py-24">
-      <Aurora blobs={2} grid={false} className="opacity-60" />
-      <span aria-hidden="true" className="dot-grid absolute right-0 bottom-16 -z-10 h-56 w-72" />
-
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 lg:grid-cols-[0.9fr_1.1fr]">
-        <Stage gap={stagger.wide}>
-          <Reveal>
-            <SectionEyebrow>{t.method.eyebrow}</SectionEyebrow>
-          </Reveal>
-          <Reveal>
-            <h2 className="mt-4 text-3xl leading-[1.12] font-black tracking-tight text-ink sm:text-4xl">
-              <Accented text={t.method.title} />
-            </h2>
-          </Reveal>
-          <Reveal>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-ink-muted">{t.method.subtitle}</p>
-          </Reveal>
-
-          <ol className="relative mt-9 space-y-3">
-            {/* The thread the three steps hang on. */}
-            <span aria-hidden="true" className="absolute top-6 bottom-6 left-[1.85rem] w-px bg-gradient-to-b from-signal/50 via-signal/25 to-transparent" />
-            {steps.map(({ title, body, icon: Icon }, index) => (
-              <Reveal as="li" key={title} variants={rise}>
-                <div className="glass sheen relative flex items-start gap-4 rounded-[1.25rem] p-4">
-                  <span className="relative grid size-11 shrink-0 place-items-center rounded-2xl bg-[image:var(--spectrum)] text-white shadow-[0_10px_20px_-8px_rgb(45_118_221/0.7),inset_0_1px_0_rgb(255_255_255/0.4)]">
-                    <Icon aria-hidden="true" strokeWidth={1.9} className="size-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold text-ink-faint tabular-nums">0{index + 1}</span>
-                      <h3 className="text-base font-extrabold text-ink">{title}</h3>
-                    </div>
-                    <p className="mt-1 text-[15px] leading-relaxed text-ink-muted">{body}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </ol>
-        </Stage>
-
-        <Stage className="relative">
-        <Reveal variants={rise}>
-          <div aria-hidden="true" className="absolute inset-8 -z-10 rounded-full bg-[image:var(--spectrum)] opacity-30 blur-3xl" />
-          <Tilt max={4}>
-            <div className="glass sheen relative min-h-[32rem] overflow-hidden rounded-[2rem]">
-              <LandingVideo
-                src={LANDING_VIDEOS.showcase}
-                poster={LANDING_VIDEOS.showcasePoster}
-                label={t.showcase.videoLabel}
-                playLabel={t.showcase.play}
-                pauseLabel={t.showcase.pause}
-                className="absolute inset-0"
-                fallback={
-                  <AiTutorScene
-                    liveLabel={t.showcase.live}
-                    tutorName={t.characters.names.pingvin}
-                    hint={t.hero.mockHint}
-                    feedbackLabel={t.method.step2Title}
-                  />
-                }
-              />
-            </div>
-          </Tilt>
-        </Reveal>
-        </Stage>
-      </div>
-    </section>
-  )
-}
-
 /* ------------------------------------------------------------------------ characters */
 
 /** The three product characters carry the pitch: Panda names the problem every learner feels,
@@ -543,19 +596,24 @@ const CHARACTERS: Array<{
 function Characters() {
   const t = useT().landing.characters
   return (
-    <section className="relative">
-      <div className="mx-auto max-w-6xl px-5 py-20">
+    <section id="method" className="landing-night scroll-mt-20">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <span className="aurora__blob -top-32 -left-24 h-96 w-[30rem] bg-[#3b6fe0] [--aurora-opacity:0.22]" />
+        <span className="aurora__blob -right-24 -bottom-32 h-96 w-[30rem] bg-[#13a8c8] [--aurora-opacity:0.14] [--drift-delay:-8s]" />
+      </div>
+      <Stars />
+      <div className="relative z-10 mx-auto max-w-6xl px-5 py-16 sm:py-24">
         <Stage className="text-center">
           <Reveal>
-            <SectionEyebrow center>{t.eyebrow}</SectionEyebrow>
+            <SectionEyebrow center night>{t.eyebrow}</SectionEyebrow>
           </Reveal>
           <Reveal>
-            <h2 className="mx-auto mt-5 max-w-3xl text-3xl leading-[1.15] font-black tracking-tight text-ink sm:text-4xl">
-              {t.title}
+            <h2 className="mx-auto mt-5 max-w-3xl text-3xl leading-[1.15] font-black tracking-tight text-white sm:text-4xl">
+              <WordsIn text={t.title} />
             </h2>
           </Reveal>
           <Reveal>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-ink-muted">
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[var(--night-ink-muted)]">
               {t.subtitle}
             </p>
           </Reveal>
@@ -565,9 +623,14 @@ function Characters() {
           The three characters carry the argument in order - the Panda names the problem, the
           other two answer it - so they arrive in that order too.
         */}
-        <Stage className="mx-auto mt-12 grid max-w-md gap-6 lg:max-w-none lg:grid-cols-3" gap={stagger.wide}>
+        {/* Below `lg` they are one swipeable row rather than three screens of scrolling: each card
+            snaps to the centre and the next one peeks in from the edge to say there is more. */}
+        <Stage
+          className="no-scrollbar -mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pt-2 pb-6 sm:mt-12 lg:mx-auto lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:p-0"
+          gap={stagger.wide}
+        >
           {CHARACTERS.map((character, index) => (
-            <Reveal key={character.key} variants={rise} className="h-full">
+            <Reveal key={character.key} variants={rise} className="h-auto w-[84%] max-w-sm shrink-0 snap-center lg:h-full lg:w-auto lg:max-w-none">
               <Tilt className="h-full">
                 <CharacterCard character={character} index={index} />
               </Tilt>
@@ -580,11 +643,11 @@ function Characters() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: VIEW_MARGIN }}
           transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          className="glass sheen mt-8 flex flex-col items-start justify-between gap-6 rounded-[1.75rem] px-6 py-7 sm:flex-row sm:items-center sm:px-9"
+          className="night-card mt-2 flex flex-col lg:mt-8 items-start justify-between gap-6 rounded-[2rem] px-6 py-7 sm:flex-row sm:items-center sm:px-9"
         >
           <div>
-            <h3 className="text-lg font-extrabold text-ink sm:text-xl">{t.ctaTitle}</h3>
-            <p className="mt-1 text-sm text-ink-muted">{t.ctaBody}</p>
+            <h3 className="text-lg font-extrabold text-white sm:text-xl">{t.ctaTitle}</h3>
+            <p className="mt-1 text-sm text-[var(--night-ink-muted)]">{t.ctaBody}</p>
           </div>
           <LinkButton to="/signup" className="w-full shrink-0 max-sm:h-auto max-sm:min-h-14 max-sm:px-5 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal sm:w-auto">
             {t.ctaButton}
@@ -603,67 +666,69 @@ function CharacterCard({ character, index }: { character: (typeof CHARACTERS)[nu
   const isProblem = character.status === 'problem'
 
   return (
-    <article className="glass sheen flex h-full flex-col rounded-[1.75rem] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-[var(--radius-control)] bg-ground-sunken/70 px-3 py-1 text-[11px] font-extrabold tracking-[0.06em] whitespace-nowrap text-ink-muted uppercase">
-          {fill(t.stage, { n: character.n })} · {name}
-        </span>
-        {isProblem ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] bg-danger-soft px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap text-danger">
-            <AlertGlyph />
-            {t.statusProblem}
+    <Spotlight night className="alive-lift h-full rounded-[2rem]">
+      <article className="night-card sheen flex h-full flex-col rounded-[2rem] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="rounded-[var(--radius-control)] bg-white/10 px-3 py-1 text-[11px] font-extrabold tracking-[0.06em] whitespace-nowrap text-[var(--night-ink-muted)] uppercase">
+            {fill(t.stage, { n: character.n })} · {name}
           </span>
-        ) : (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap text-milestone">
-            <CheckGlyph />
-            {t.statusSolution}
-          </span>
-        )}
-      </div>
-
-      {/* The character's line, in a vibrant bubble with a tail. The colour is the character's
-          own; white text sits on it. */}
-      <div className="relative mt-4">
-        <div
-          className="rounded-2xl p-4 shadow-[0_16px_34px_-16px_rgb(17_24_39/0.45),inset_0_1px_0_rgb(255_255_255/0.25)]"
-          style={{ backgroundColor: character.bubble }}
-        >
-          <p className="text-[15px] leading-relaxed font-medium text-white">«{quote}»</p>
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/25 pt-3">
-            <span className="text-xs font-semibold text-white/80">
-              {t.voicePrefix}: {name}
+          {isProblem ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] bg-danger-soft px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap text-danger">
+              <AlertGlyph />
+              {t.statusProblem}
             </span>
-            <ListenButton label={t.listen} text={quote} character={character.key} isUzbek={locale === 'uz'} />
-          </div>
+          ) : (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap text-milestone">
+              <CheckGlyph />
+              {t.statusSolution}
+            </span>
+          )}
         </div>
-        <span
-          className="absolute -bottom-1.5 left-8 size-4 rotate-45 rounded-[2px]"
-          style={{ backgroundColor: character.bubble }}
-          aria-hidden="true"
-        />
-      </div>
 
-      {/* The character floats over a soft glow of its own colour — the 3D figure standing on
-          light rather than pasted on a card. */}
-      <div className="relative flex flex-1 items-end justify-center py-7">
-        <span
-          aria-hidden="true"
-          className="absolute bottom-6 left-1/2 h-24 w-40 -translate-x-1/2 rounded-full opacity-60 blur-2xl"
-          style={{ backgroundColor: character.accent }}
-        />
-        <img
-          src={character.image}
-          alt={name}
-          loading="lazy"
-          className="float relative h-40 w-auto object-contain drop-shadow-[0_18px_22px_rgb(17_24_39/0.2)]"
-          style={{ '--float-delay': `${index * -1.6}s`, '--float-lift': '-8px' } as CSSProperties}
-        />
-      </div>
+        {/* The character's line, in a vibrant bubble with a tail. The colour is the character's
+            own; white text sits on it. */}
+        <div className="relative mt-4">
+          <div
+            className="rounded-2xl p-4 shadow-[0_16px_34px_-16px_rgb(17_24_39/0.45),inset_0_1px_0_rgb(255_255_255/0.25)]"
+            style={{ backgroundColor: character.bubble }}
+          >
+            <p className="text-[15px] leading-relaxed font-medium text-white">«{quote}»</p>
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/25 pt-3">
+              <span className="text-xs font-semibold text-white/80">
+                {t.voicePrefix}: {name}
+              </span>
+              <ListenButton label={t.listen} text={quote} character={character.key} isUzbek={locale === 'uz'} />
+            </div>
+          </div>
+          <span
+            className="absolute -bottom-1.5 left-8 size-4 rotate-45 rounded-[2px]"
+            style={{ backgroundColor: character.bubble }}
+            aria-hidden="true"
+          />
+        </div>
 
-      <div className="border-t border-hairline pt-5">
-        <p className="text-[15px] leading-relaxed text-ink-muted">{caption}</p>
-      </div>
-    </article>
+        {/* The character floats over a soft glow of its own colour — the 3D figure standing on
+            light rather than pasted on a card. */}
+        <div className="relative flex flex-1 items-end justify-center py-7">
+          <span
+            aria-hidden="true"
+            className="absolute bottom-6 left-1/2 h-24 w-40 -translate-x-1/2 rounded-full opacity-60 blur-2xl"
+            style={{ backgroundColor: character.accent }}
+          />
+          <img
+            src={character.image}
+            alt={name}
+            loading="lazy"
+            className="float relative h-40 w-auto object-contain drop-shadow-[0_18px_22px_rgb(17_24_39/0.2)]"
+            style={{ '--float-delay': `${index * -1.6}s`, '--float-lift': '-8px' } as CSSProperties}
+          />
+        </div>
+
+        <div className="border-t border-white/15 pt-5">
+          <p className="text-[15px] leading-relaxed text-[var(--night-ink-muted)]">{caption}</p>
+        </div>
+      </article>
+    </Spotlight>
   )
 }
 
@@ -736,101 +801,6 @@ function SpeakerGlyph() {
   )
 }
 
-/* ---------------------------------------------------------------------------- games */
-
-/**
- * The two games, shown as they actually run — screenshots of real play, not illustrations.
- * Each sits in the device it is built for: the runner is a landscape game and gets a browser
- * window, the voice game is a phone game and gets the phone, rising into its card.
- */
-function Games() {
-  const t = useT().landing
-
-  return (
-    <section id="games" className="relative isolate scroll-mt-20 overflow-hidden">
-      <Aurora blobs={2} grid={false} className="opacity-50" />
-      <div className="mx-auto max-w-6xl px-5 py-20">
-        <Stage>
-          <Reveal>
-            <SectionEyebrow>{t.games.eyebrow}</SectionEyebrow>
-          </Reveal>
-          <Reveal>
-            <h2 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-ink sm:text-4xl">{t.games.title}</h2>
-          </Reveal>
-          <Reveal>
-            <p className="mt-3 max-w-xl text-base text-ink-muted">{t.games.subtitle}</p>
-          </Reveal>
-        </Stage>
-
-        <Stage className="mt-10 grid gap-6 lg:grid-cols-[1.45fr_1fr]" gap={stagger.wide}>
-          <Reveal variants={rise} className="h-full">
-            <Tilt max={4} className="h-full">
-              <article className="glass sheen flex h-full flex-col rounded-[1.75rem] p-4 sm:p-5">
-                <BrowserFrame url="russian.gg/games/rod-runner">
-                  <div className="overflow-hidden">
-                    {/* A slow push-in as the card arrives: the road is moving, so the shot does too. */}
-                    <m.img
-                      src="/games/rod-runner-play.webp"
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                      className="aspect-[1600/891] w-full object-cover"
-                      initial={{ scale: 1.14 }}
-                      whileInView={{ scale: 1 }}
-                      viewport={{ once: true, margin: VIEW_MARGIN }}
-                      transition={{ duration: 1.6, ease: ease.enter }}
-                    />
-                  </div>
-                </BrowserFrame>
-                <GameText title={t.games.runnerTitle} body={t.games.runnerBody} />
-              </article>
-            </Tilt>
-          </Reveal>
-
-          <Reveal variants={rise} className="h-full">
-            <Tilt max={4} className="h-full">
-              <article className="glass sheen flex h-full flex-col rounded-[1.75rem] p-4 sm:p-5">
-                <div className="relative h-[23rem] overflow-hidden rounded-[1.25rem] bg-[radial-gradient(120%_90%_at_50%_0%,var(--color-signal-soft),transparent_70%)]">
-                  <span aria-hidden="true" className="dot-grid absolute inset-0 opacity-60" />
-                  {/* The phone comes up out of the card's floor, the way it comes out of a pocket. */}
-                  <m.div
-                    className="absolute top-7 left-1/2 w-[13rem] -translate-x-1/2"
-                    initial={{ y: 120, rotate: -4 }}
-                    whileInView={{ y: 0, rotate: 0 }}
-                    viewport={{ once: true, margin: VIEW_MARGIN }}
-                    transition={{ type: 'spring', duration: 1, bounce: 0.25 }}
-                  >
-                    <IPhoneFrame tone="light" screenClassName="bg-[#f2f4f7]">
-                      <img src="/games/arra-play.webp" alt="" aria-hidden="true" loading="lazy" className="absolute inset-x-0 top-[12cqw] w-full" />
-                    </IPhoneFrame>
-                  </m.div>
-                  <span
-                    aria-hidden="true"
-                    className="glass glass-strong float absolute top-24 right-4 grid place-items-center rounded-2xl px-3 py-2.5"
-                    style={{ '--float-lift': '-8px' } as CSSProperties}
-                  >
-                    <VoiceSignal state="listening" size="sm" labelled={false} />
-                  </span>
-                </div>
-                <GameText title={t.games.sawTitle} body={t.games.sawBody} />
-              </article>
-            </Tilt>
-          </Reveal>
-        </Stage>
-      </div>
-    </section>
-  )
-}
-
-function GameText({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="px-2 pt-5 pb-2">
-      <h3 className="text-lg font-extrabold text-ink">{title}</h3>
-      <p className="mt-2 text-[15px] leading-relaxed text-ink-muted">{body}</p>
-    </div>
-  )
-}
-
 /* -------------------------------------------------------------------------- creators */
 
 /**
@@ -860,13 +830,10 @@ const CREATORS: Creator[] = [
 function ReelMarquee() {
   const t = useT().landing
   return (
-    <section className="overflow-hidden py-14">
-      <Stage className="mx-auto mb-8 max-w-6xl px-5">
+    <section className="overflow-hidden py-12">
+      <Stage className="mx-auto mb-5 max-w-6xl px-5">
         <Reveal>
-          <SectionEyebrow>{t.creators.eyebrow}</SectionEyebrow>
-        </Reveal>
-        <Reveal>
-          <h2 className="mt-4 text-2xl font-black tracking-tight text-ink sm:text-3xl">{t.creators.title}</h2>
+          <h2 className="text-xl font-black tracking-tight text-ink sm:text-2xl"><WordsIn text={t.creators.title} /></h2>
         </Reveal>
       </Stage>
 
@@ -885,7 +852,7 @@ function ReelMarquee() {
           {[0, 1].map((copy) => (
             <ul key={copy} className="flex shrink-0" aria-hidden={copy === 1}>
               {CREATORS.map((creator, index) => (
-                <li key={`${copy}-${creator.handle}`} className="mr-5 w-[15rem] shrink-0">
+                <li key={`${copy}-${creator.handle}`} className="mr-4 w-[12.5rem] shrink-0">
                   <CreatorCard creator={creator} index={index} watch={t.creators.watch} />
                 </li>
               ))}
@@ -967,7 +934,7 @@ function Mobile() {
   return (
     /* Clipped sideways only: the glass rings are wider than a phone screen, and would otherwise
        give the whole page a horizontal scroll. Vertically the tilting phone may overhang. */
-    <section className="relative isolate mx-auto max-w-6xl overflow-x-clip px-5 py-24">
+    <section className="relative isolate mx-auto max-w-6xl overflow-x-clip px-5 py-14 sm:py-20">
       <div className="grid items-center gap-14 lg:grid-cols-2">
         <div ref={stage} className="relative order-2 flex min-h-[36rem] items-center justify-center [perspective:1400px] lg:order-1">
           {/* Concentric glass rings behind the phone: the device sitting in its own field. */}
@@ -1012,7 +979,7 @@ function Mobile() {
             <SectionEyebrow>{t.mobile.eyebrow}</SectionEyebrow>
           </Reveal>
           <Reveal>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">{t.mobile.title}</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl"><WordsIn text={t.mobile.title} /></h2>
           </Reveal>
           <Reveal>
             <p className="mt-4 max-w-lg text-base leading-relaxed text-ink-muted">{t.mobile.body}</p>
@@ -1068,6 +1035,8 @@ function Mobile() {
   )
 }
 
+/* ------------------------------------------------------------------------ centers */
+
 /* --------------------------------------------------------------------------- pricing */
 
 /** The digits of a localised price string: "119 000" and "119,000" are both 119000. */
@@ -1095,13 +1064,13 @@ function Pricing() {
   return (
     <section id="pricing" className="relative isolate scroll-mt-20 overflow-hidden">
       <Aurora blobs={3} grid className="opacity-60" />
-      <div className="mx-auto max-w-6xl px-5 py-24">
+      <div className="mx-auto max-w-6xl px-5 py-16 sm:py-24">
         <Stage className="text-center">
           <Reveal>
             <SectionEyebrow center>{p.eyebrow}</SectionEyebrow>
           </Reveal>
           <Reveal>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">{p.title}</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl"><WordsIn text={p.title} /></h2>
           </Reveal>
           <Reveal>
             <p className="mx-auto mt-3 max-w-md text-base text-ink-muted">{p.subtitle}</p>
@@ -1149,7 +1118,8 @@ function Pricing() {
             <Tilt max={4} className="h-full">
               <PlanCard
                 badge={fill(p.saveBadge, { percent: savePercent })}
-                badgeTone="milestone"
+                badgeTone="coin"
+                accent
                 icon={<Gem aria-hidden="true" strokeWidth={1.8} className="size-6" />}
                 iconTone="coin"
                 title={`${p.proTitle} · ${t.billing.periodLabel.NinetyDay}`}
@@ -1188,9 +1158,9 @@ function Pricing() {
         {/* Centers buy seats, not plans, so they are pointed at their own page rather than
             offered another card here. */}
         <p className="mt-2 text-center text-sm">
-          <Link to="/markazlar" className="font-bold text-ink-muted underline-offset-2 hover:text-ink hover:underline">
+          <a href="#centers" className="font-bold text-ink-muted underline-offset-2 hover:text-ink hover:underline">
             {p.centersLink}
-          </Link>
+          </a>
         </p>
       </div>
     </section>
@@ -1211,6 +1181,7 @@ function PlanCard({
   badge,
   badgeTone = 'spectrum',
   featured = false,
+  accent = false,
 }: {
   title: string
   body: string
@@ -1225,68 +1196,73 @@ function PlanCard({
   /** What the same time would cost month by month, struck through beside the price. */
   was?: string
   badge?: string
-  badgeTone?: 'spectrum' | 'milestone'
+  badgeTone?: 'spectrum' | 'coin'
   featured?: boolean
+  /** The warm single accent: a coin-gold edge for the 90-day plan. */
+  accent?: boolean
 }) {
   return (
-    <div
-      className={cx(
-        'glass sheen flex h-full flex-col rounded-[1.75rem] p-7',
-        // The featured plan wears a slowly turning spectrum ring instead of a flat border.
-        featured && 'glass-strong spectrum-ring',
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <span
-          className={cx(
-            'grid size-12 place-items-center rounded-2xl',
-            iconTone === 'spectrum' &&
-              'bg-[image:var(--spectrum)] text-white shadow-[0_12px_24px_-10px_rgb(109_92_242/0.7),inset_0_1px_0_rgb(255_255_255/0.4)]',
-            iconTone === 'milestone' && 'bg-milestone-soft text-milestone',
-            iconTone === 'coin' && 'bg-coin-soft text-coin-ink',
-          )}
-        >
-          {icon}
-        </span>
-        {badge && (
+    <Spotlight className="alive-lift h-full rounded-[2rem]">
+      <div
+        className={cx(
+          'glass sheen flex h-full flex-col rounded-[2rem] p-7',
+          // The featured plan wears a slowly turning spectrum ring instead of a flat border.
+          featured && 'glass-strong spectrum-ring',
+          accent && 'border-coin-border',
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
           <span
             className={cx(
-              'inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] px-3 py-1 text-xs font-extrabold whitespace-nowrap',
-              badgeTone === 'spectrum' ? 'bg-[image:var(--spectrum)] text-white' : 'bg-milestone text-white',
+              'grid size-12 place-items-center rounded-2xl',
+              iconTone === 'spectrum' &&
+                'bg-[image:var(--spectrum)] text-white shadow-[0_12px_24px_-10px_rgb(109_92_242/0.7),inset_0_1px_0_rgb(255_255_255/0.4)]',
+              iconTone === 'milestone' && 'bg-milestone-soft text-milestone',
+              iconTone === 'coin' && 'bg-coin-soft text-coin-ink',
             )}
           >
-            <Sparkles aria-hidden="true" strokeWidth={0} className="size-3 fill-current" />
-            {badge}
+            {icon}
           </span>
-        )}
-      </div>
-      <h3 className="mt-5 text-lg font-extrabold text-ink">{title}</h3>
-      <p className="mt-1 text-sm text-ink-muted">{body}</p>
-
-      <div className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
-        <span className={cx('text-4xl font-black tracking-tight tabular-nums', featured ? 'text-spectrum' : 'text-ink')}>
-          <CountTo value={amount} ms={1400} />
-        </span>
-        <span className="text-sm font-bold whitespace-nowrap text-ink-muted">{unit}</span>
-      </div>
-      <p className="mt-1 flex min-h-5 flex-wrap items-center gap-x-2 text-sm font-semibold">
-        {was && <span className="text-ink-faint line-through decoration-danger/60 decoration-2">{was}</span>}
-        {note && <span className="text-signal-ink">{note}</span>}
-      </p>
-
-      <ul className="mt-6 flex-1 space-y-3">
-        {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-3 text-[15px] text-ink">
-            <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-signal-soft">
-              <Check aria-hidden="true" strokeWidth={3} className="size-3 text-signal-ink" />
+          {badge && (
+            <span
+              className={cx(
+                'inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-control)] px-3 py-1 text-xs font-extrabold whitespace-nowrap',
+                badgeTone === 'spectrum' ? 'bg-[image:var(--spectrum)] text-white' : 'bg-coin-soft text-coin-ink',
+              )}
+            >
+              <Sparkles aria-hidden="true" strokeWidth={0} className="size-3 fill-current" />
+              {badge}
             </span>
-            {feature}
-          </li>
-        ))}
-      </ul>
+          )}
+        </div>
+        <h3 className="mt-5 text-lg font-extrabold text-ink">{title}</h3>
+        <p className="mt-1 text-sm text-ink-muted">{body}</p>
 
-      <div className="mt-7">{cta}</div>
-    </div>
+        <div className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
+          <span className={cx('text-4xl font-black tracking-tight tabular-nums', featured ? 'text-spectrum' : 'text-ink')}>
+            <CountTo value={amount} ms={1400} />
+          </span>
+          <span className="text-sm font-bold whitespace-nowrap text-ink-muted">{unit}</span>
+        </div>
+        <p className="mt-1 flex min-h-5 flex-wrap items-center gap-x-2 text-sm font-semibold">
+          {was && <span className="text-ink-faint line-through decoration-danger/60 decoration-2">{was}</span>}
+          {note && <span className="text-signal-ink">{note}</span>}
+        </p>
+
+        <ul className="mt-6 flex-1 space-y-3">
+          {features.map((feature) => (
+            <li key={feature} className="flex items-start gap-3 text-[15px] text-ink">
+              <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-signal-soft">
+                <Check aria-hidden="true" strokeWidth={3} className="size-3 text-signal-ink" />
+              </span>
+              {feature}
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-7">{cta}</div>
+      </div>
+    </Spotlight>
   )
 }
 
@@ -1325,13 +1301,13 @@ function Faq() {
     <section id="faq" className="relative isolate scroll-mt-20">
       <span aria-hidden="true" className="dot-grid absolute top-10 right-0 -z-10 h-56 w-72" />
       <span aria-hidden="true" className="dot-grid absolute bottom-10 left-0 -z-10 h-56 w-72" />
-      <div className="mx-auto max-w-3xl px-5 py-20">
+      <div className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
         <Stage className="text-center">
           <Reveal>
             <SectionEyebrow center>{t.faq.eyebrow}</SectionEyebrow>
           </Reveal>
           <Reveal>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl">{t.faq.title}</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-ink sm:text-4xl"><WordsIn text={t.faq.title} /></h2>
           </Reveal>
         </Stage>
 
@@ -1406,54 +1382,52 @@ function TwoTone({ text }: { text: string }) {
 
 
 /**
- * The closing band: a deep blue-to-violet field with its own drifting light, a glass panel for
- * the words and the Panda floating beside it. Fixed colours rather than tokens — it is a lit
- * billboard in both themes, not a themed surface.
+ * The closing band, on the navy "night" surface (the second contrast section after the
+ * characters): a white button on navy, the Panda floating beside the words.
  */
 function FinalCta() {
   const t = useT().landing
   return (
-    <section className="mx-auto max-w-6xl px-5 py-16">
+    <section className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
       <m.div
         initial={{ opacity: 0, y: 48, scale: 0.96 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true, margin: VIEW_MARGIN }}
         transition={{ type: 'spring', duration: 0.9, bounce: 0.2 }}
-        className="relative isolate overflow-hidden rounded-[2.25rem] shadow-[0_30px_70px_-24px_rgb(45_80_200/0.6)]"
-        style={{ background: 'linear-gradient(125deg,#1f5fd6 0%,#3d7cf0 38%,#6d5cf2 72%,#22a9cf 100%)' }}
+        className="landing-night rounded-[2rem] shadow-[0_30px_70px_-24px_rgb(15_27_61/0.6)]"
       >
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <span className="aurora__blob -top-24 -left-16 h-80 w-96 bg-[#8fd0ff] [--aurora-opacity:0.45]" />
-          <span className="aurora__blob -right-20 -bottom-28 h-96 w-[28rem] bg-[#b59cff] [--aurora-opacity:0.5] [--drift-delay:-8s]" />
-          <span className="aurora__grid [--grid-line:rgb(255_255_255/0.08)]" />
+          <span className="aurora__blob -top-24 -left-16 h-80 w-96 bg-[#3b6fe0] [--aurora-opacity:0.28]" />
+          <span className="aurora__blob -right-20 -bottom-28 h-96 w-[28rem] bg-[#13a8c8] [--aurora-opacity:0.18] [--drift-delay:-8s]" />
         </div>
+        <Stars className="rounded-[inherit]" />
 
         <div className="relative grid items-center gap-2 px-6 py-12 sm:px-12 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
           <div>
             <h2 className="text-3xl leading-tight font-black tracking-tight text-balance text-white sm:text-4xl lg:text-[2.6rem]">
               <TwoTone text={t.final.title} />
             </h2>
-            <p className="mt-3 max-w-md text-base text-white/85">{t.final.body}</p>
+            <p className="mt-3 max-w-md text-base text-[var(--night-ink-muted)]">{t.final.body}</p>
             <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <Link
                 to="/signup"
-                className="raised inline-flex h-14 items-center justify-center gap-2 rounded-[var(--radius-control)] bg-white px-7 text-base font-extrabold whitespace-nowrap text-[#1f5fd6] [--depth:rgb(19_60_160/0.35)] [--edge:5px] [--glow:rgb(19_60_160/0.3)] sm:px-9"
+                className="raised inline-flex h-14 items-center justify-center gap-2 rounded-[var(--radius-control)] bg-white px-7 text-base font-extrabold whitespace-nowrap text-[#0f1b3d] [--depth:rgb(8_16_40/0.45)] [--edge:5px] [--glow:rgb(8_16_40/0.3)] sm:px-9"
               >
                 {t.final.cta}
                 <ArrowRight aria-hidden="true" strokeWidth={2.2} className="size-[18px]" />
               </Link>
-              <Link to="/signin" className="text-sm font-bold text-white/90 hover:text-white hover:underline">
+              <Link to="/signin" className="text-sm font-bold text-[var(--night-ink-muted)] hover:text-white hover:underline">
                 {t.final.signIn}
               </Link>
             </div>
           </div>
           <div className="relative hidden justify-center lg:flex">
-            <span aria-hidden="true" className="absolute top-1/2 left-1/2 size-72 -translate-1/2 rounded-full border border-white/25 bg-white/10 backdrop-blur-md" />
+            <span aria-hidden="true" className="absolute top-1/2 left-1/2 size-72 -translate-1/2 rounded-full border border-white/15 bg-white/5" />
             <img
               src="/characters/panda.webp"
               alt=""
               aria-hidden="true"
-              className="float relative h-64 w-auto drop-shadow-[0_24px_30px_rgb(18_30_90/0.4)]"
+              className="float relative h-64 w-auto drop-shadow-[0_24px_30px_rgb(5_10_30/0.5)]"
             />
           </div>
         </div>
@@ -1476,12 +1450,12 @@ function Footer() {
     {
       title: t.footer.platform,
       links: [
+        { label: t.nav.tour, href: '#tour' },
         { label: t.nav.method, href: '#method' },
-        { label: t.nav.games, href: '#games' },
         { label: t.nav.pricing, href: '#pricing' },
         { label: t.footer.help, href: SUPPORT_TELEGRAM_URL },
         // A page of this app rather than a section of this one, so it goes through the router.
-        { label: t.footer.centers, href: '/markazlar', route: true },
+        { label: t.footer.centers, href: '#centers' },
       ],
     },
     {
@@ -1668,10 +1642,15 @@ function Skyline() {
 /* --------------------------------------------------------------------------- shared */
 
 /** A section's label: a small glass chip with a spark, so every section opens the same way. */
-function SectionEyebrow({ children, center = false }: { children: ReactNode; center?: boolean }) {
+function SectionEyebrow({ children, center = false, night = false }: { children: ReactNode; center?: boolean; night?: boolean }) {
   return (
     <div className={cx('flex', center && 'justify-center')}>
-      <p className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-extrabold tracking-[0.14em] text-signal-ink uppercase">
+      <p
+        className={cx(
+          'inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-extrabold tracking-[0.14em] uppercase',
+          night ? 'night-card text-[var(--night-accent)]' : 'glass text-signal-ink',
+        )}
+      >
         <Sparkles aria-hidden="true" strokeWidth={0} className="size-3.5 fill-current" />
         {children}
       </p>

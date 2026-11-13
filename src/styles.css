@@ -1067,10 +1067,10 @@
   .landing {
     --landing-field: #f5f8ff;
     --aurora-a: #8fc2ff;
-    --aurora-b: #b6a6ff;
+    --aurora-b: #b9ccff;
     --aurora-c: #7fe0ee;
     --aurora-d: #cfe0ff;
-    --aurora-opacity: 0.55;
+    --aurora-opacity: 0.42;
     --grid-line: rgb(45 118 221 / 0.07);
     --dot-color: rgb(45 118 221 / 0.28);
 
@@ -1086,18 +1086,28 @@
 
     /* The gradient the headline accent and the featured ring are painted in. Signal blue
        leaning into violet and cyan — the "AI" register, but still unmistakably the brand. */
-    --spectrum: linear-gradient(100deg, #1f6fe0 0%, #6d5cf2 45%, #13a8c8 100%);
+    --spectrum: linear-gradient(100deg, #1f6fe0 0%, #3f7df0 55%, #13a8c8 100%);
 
     background-color: var(--landing-field);
+
+    /* Navy "night" surface for the two contrast sections (method, closing CTA). Text on it is
+       white or a pale blue, never a theme ink token: the surface does not flip with the theme,
+       it only lifts slightly in dark so it still separates from the near-black field. */
+    --night: #0f1b3d;
+    --night-raised: rgb(255 255 255 / 0.07);
+    --night-border: rgb(255 255 255 / 0.14);
+    --night-ink: #ffffff;
+    --night-ink-muted: #c9d6f5;
+    --night-accent: #8bb8ff;
   }
 
   :root[data-theme='dark'] .landing {
     --landing-field: #0d1016;
     --aurora-a: #1e4f9c;
-    --aurora-b: #4a3a9e;
+    --aurora-b: #2d4a92;
     --aurora-c: #0f6a7a;
     --aurora-d: #1a2c4f;
-    --aurora-opacity: 0.5;
+    --aurora-opacity: 0.4;
     --grid-line: rgb(125 179 250 / 0.06);
     --dot-color: rgb(125 179 250 / 0.22);
 
@@ -1110,7 +1120,29 @@
       0 24px 48px -28px rgb(0 0 0 / 0.7);
     --glass-sheen: rgb(125 179 250 / 0.14);
 
-    --spectrum: linear-gradient(100deg, #7db3fa 0%, #a99cff 45%, #5fd6e8 100%);
+    --spectrum: linear-gradient(100deg, #7db3fa 0%, #8fb4ff 55%, #5fd6e8 100%);
+
+    --night: #16264f;
+    --night-raised: rgb(255 255 255 / 0.07);
+    --night-border: rgb(255 255 255 / 0.14);
+    --night-ink: #ffffff;
+    --night-ink-muted: #c9d6f5;
+    --night-accent: #8bb8ff;
+  }
+
+  /* The navy contrast sections. */
+  .landing-night {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--night);
+    color: var(--night-ink);
+  }
+
+  .night-card {
+    background: var(--night-raised);
+    border: 1px solid var(--night-border);
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.08);
   }
 
   /* Frosted glass. The border is white-ish on light and near-invisible on dark, and an outer
@@ -1212,7 +1244,7 @@
     background: conic-gradient(
       from var(--ring-angle),
       #5b9bf5,
-      #8b7cf6,
+      #6f9ff8,
       #2cc5dd,
       #5b9bf5
     );

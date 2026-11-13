@@ -1,0 +1,858 @@
+/*
+  The product tour (ProductTour.tsx). Layout is driven by container queries on the tour itself,
+  so it follows the width the landing page gives it rather than the viewport.
+
+  The 680px threshold below is mirrored by COMPACT_BELOW in engine.ts: under it the mock is
+  drawn at its compact design size (400x520) instead of the wide one (880x540).
+*/
+
+.tour {
+  container: tour / inline-size;
+  /* As wide as the page allows, but never so wide that the window, its tabs and its player bar
+     stop fitting in the height of the screen: the window is 880:540, the rest is about 20rem. */
+  max-width: clamp(760px, calc((100dvh - 20rem) * 1.63), 980px);
+}
+
+/*
+  The stage the tour stands on: a soft panel in the product blue, with a glow where the
+  browser window sits and a faint dot grid, so the section reads as one object rather than
+  loose parts on white.
+*/
+.tour-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--color-signal) 18%, var(--color-hairline));
+  border-radius: 1.75rem;
+  background:
+    radial-gradient(55% 70% at 88% 0%, color-mix(in srgb, var(--color-signal) 20%, transparent), transparent 72%),
+    radial-gradient(45% 60% at 0% 100%, color-mix(in srgb, var(--night-accent, #8bb8ff) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--color-signal-soft), var(--color-ground));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.6) inset,
+    0 40px 80px -50px color-mix(in srgb, var(--color-signal-depth) 55%, transparent);
+}
+
+.tour-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(color-mix(in srgb, var(--color-signal) 30%, transparent) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(70% 80% at 20% 30%, #000, transparent 75%);
+  opacity: 0.55;
+}
+
+:root[data-theme='dark'] .tour-shell {
+  box-shadow: 0 40px 80px -50px rgb(0 0 0 / 0.8);
+}
+
+/* ------------------------------------------------------------------------------- tabs */
+
+.tour-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-signal) 14%, var(--color-hairline));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ground-raised) 70%, transparent);
+}
+
+.tour-tab {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 999px;
+  color: var(--color-ink-muted);
+  transition:
+    background-color 250ms ease,
+    border-color 250ms ease,
+    color 250ms ease,
+    box-shadow 250ms ease,
+    transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tour-tab:hover {
+  color: var(--color-ink);
+}
+.tour-tab[data-selected] {
+  background: var(--color-signal);
+  color: var(--color-on-signal);
+  box-shadow: 0 8px 18px -10px var(--color-signal-depth);
+}
+
+.tour-tab-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.tour-tab-sub {
+  display: none;
+}
+
+.tour-tab-track {
+  inset-inline: 1.25rem;
+  bottom: 0.25rem;
+  height: 3px;
+  background: color-mix(in srgb, var(--color-on-signal) 28%, transparent);
+}
+.tour-tab-progress {
+  background: var(--color-on-signal);
+  transform: scaleX(var(--tour-progress, 0));
+  transform-origin: left center;
+}
+
+.tour-intro {
+  display: none;
+}
+
+/* ------------------------------------------------------------------------- player bar */
+
+/* Narrow: pause, and only the current step as one line. */
+.tour-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+}
+.tour-step:not([data-active]) {
+  display: none;
+}
+
+@container tour (max-width: 479.98px) {
+  .tour-tab-icon {
+    display: none;
+  }
+}
+
+/*
+  Wide: the tabs are three feature cards over the window, and the steps are the chapters of a
+  player bar under it. The window keeps the full width, since it is what the section is for.
+*/
+@container tour (min-width: 760px) {
+  .tour-shell {
+    gap: 1.125rem;
+    padding: 1.5rem;
+    border-radius: 2.25rem;
+  }
+
+  .tour-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .tour-tab {
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem 0.875rem;
+    border: 1px solid color-mix(in srgb, var(--color-signal) 12%, var(--color-hairline));
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--color-ground-raised) 55%, transparent);
+  }
+  .tour-tab:hover:not([data-selected]) {
+    border-color: color-mix(in srgb, var(--color-signal) 30%, var(--color-hairline));
+    background: color-mix(in srgb, var(--color-ground-raised) 85%, transparent);
+    transform: translateY(-2px);
+  }
+  .tour-tab[data-selected] {
+    border-color: color-mix(in srgb, var(--color-signal) 38%, transparent);
+    background: var(--color-ground-raised);
+    color: var(--color-ink);
+    box-shadow: 0 16px 30px -20px color-mix(in srgb, var(--color-signal-depth) 75%, transparent);
+  }
+  .tour-tab-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 0.875rem;
+    background: var(--color-ground-raised);
+    transition:
+      background-color 250ms ease,
+      color 250ms ease;
+  }
+  .tour-tab[data-selected] .tour-tab-icon {
+    border-color: transparent;
+    background: var(--color-signal);
+    color: var(--color-on-signal);
+    box-shadow: 0 3px 0 var(--color-signal-depth);
+  }
+  .tour-tab-text {
+    flex: 1 1 0;
+  }
+  .tour-tab-sub {
+    display: block;
+    color: var(--color-ink-muted);
+  }
+  .tour-tab-track {
+    inset-inline: 0.875rem;
+    bottom: 0.35rem;
+    background: color-mix(in srgb, var(--color-signal) 16%, transparent);
+  }
+  .tour-tab-progress {
+    background: var(--color-signal);
+  }
+
+  .tour-intro {
+    display: block;
+  }
+
+  .tour-player {
+    align-items: stretch;
+    gap: 0.875rem;
+    padding: 0.625rem 0.875rem 0.625rem 0.625rem;
+    border: 1px solid color-mix(in srgb, var(--color-signal) 14%, var(--color-hairline));
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--color-ground-raised) 80%, transparent);
+  }
+  .tour-pause {
+    align-self: center;
+  }
+  .tour-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .tour-step,
+  .tour-step:not([data-active]) {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding-block: 0.125rem;
+  }
+  /* The chapter marker over each step: filled once the demo has passed it. */
+  .tour-step::before {
+    content: '';
+    height: 3px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-signal) 14%, var(--color-hairline));
+    transition: background-color 300ms ease;
+  }
+  .tour-step[data-passed]::before {
+    background: color-mix(in srgb, var(--color-signal) 55%, transparent);
+  }
+  .tour-step[data-active]::before {
+    background: var(--color-signal);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-signal) 60%, transparent);
+  }
+}
+
+/* ------------------------------------------------------------------------------ stage */
+
+.tour-panel {
+  container: tour-panel / inline-size;
+}
+
+/* The glow the browser window sits in. */
+.tour-panel::before {
+  content: '';
+  position: absolute;
+  inset: 12% 6% -2%;
+  z-index: -1;
+  border-radius: 40%;
+  background: color-mix(in srgb, var(--color-signal) 38%, transparent);
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.tour-frame {
+  border-color: color-mix(in srgb, var(--color-signal) 22%, var(--color-hairline));
+}
+
+.tour-pause {
+  border: 1px solid color-mix(in srgb, var(--color-signal) 20%, var(--color-hairline));
+  background: var(--color-ground-raised);
+  color: var(--color-ink-muted);
+  transition:
+    color 200ms ease,
+    background-color 200ms ease;
+}
+.tour-pause:hover {
+  color: var(--color-ink);
+}
+.tour-pause[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--color-signal);
+  color: var(--color-on-signal);
+}
+
+/* The sky of the map is lilac; here it is turned towards the blue of the landing page. */
+.tour-sky {
+  filter: hue-rotate(-42deg) saturate(1.08);
+}
+
+.tour-stage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 880 / 540;
+  background: var(--color-ground);
+}
+
+@container tour-panel (max-width: 679.98px) {
+  .tour-frame {
+    max-width: 520px;
+    margin-inline: auto;
+  }
+  .tour-stage {
+    aspect-ratio: 400 / 520;
+  }
+}
+
+.tour-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Everything that loops inside the mock stops with the demo. */
+.tour-stage[data-paused] *,
+.tour-stage[data-paused] *::before,
+.tour-stage[data-paused] *::after {
+  animation-play-state: paused !important;
+}
+
+/* The browser window follows the theme here; `BrowserFrame` itself is drawn light. */
+:root[data-theme='dark'] .tour-frame {
+  border-color: rgb(255 255 255 / 0.09);
+  background: var(--color-ground-raised);
+  box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.85);
+}
+:root[data-theme='dark'] .tour-frame > :first-child {
+  border-color: var(--color-hairline);
+  background: var(--color-ground-sunken);
+}
+:root[data-theme='dark'] .tour-frame > :first-child > :nth-child(2) {
+  background: var(--color-ground);
+  color: var(--color-ink-faint);
+}
+
+/* ----------------------------------------------------------------------------- cursor */
+
+.tour-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition: opacity 200ms ease;
+}
+
+.tour-cursor svg {
+  display: block;
+  /* The arrow's tip is at (5.5, 3.2) in its 24px box: put the tip on the point. */
+  margin: -3.2px 0 0 -5.5px;
+  filter: drop-shadow(0 3px 4px rgb(10 15 30 / 0.35)) drop-shadow(0 1px 1px rgb(10 15 30 / 0.25));
+  transform-origin: 5.5px 3.2px;
+  transition: transform 120ms ease;
+}
+
+.tour-cursor[data-pressed] svg {
+  transform: scale(0.84);
+}
+
+.tour-cursor-small svg {
+  width: 20px;
+  height: 20px;
+  margin: -2.7px 0 0 -4.6px;
+  transform-origin: 4.6px 2.7px;
+}
+
+.tour-ripple {
+  position: absolute;
+  z-index: 19;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 2px solid var(--color-signal);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-signal) 18%, transparent);
+  pointer-events: none;
+  animation: tour-ripple 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes tour-ripple {
+  from {
+    transform: scale(0.2);
+    opacity: 0.95;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- targets in the mock */
+
+.tour-press {
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 150ms ease,
+    background-color 300ms ease,
+    color 300ms ease;
+}
+.tour-press[data-tour-state='hover'] {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.tour-press[data-tour-state='press'] {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: none;
+}
+
+.tour-card {
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+.tour-card[data-tour-state] {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-signal) 55%, transparent);
+  box-shadow: 0 16px 30px -18px rgb(22 40 90 / 0.45);
+}
+.tour-card[data-tour-state='press'] {
+  transform: translateY(-1px) scale(0.985);
+}
+.tour-card .tour-art {
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tour-card[data-tour-state] .tour-art {
+  transform: scale(1.05);
+}
+
+.tour-day {
+  transition: transform 160ms ease;
+}
+.tour-day[data-tour-state='hover'] {
+  transform: translateY(-3px);
+}
+.tour-day[data-tour-state='press'] {
+  transform: translateY(1px) scale(0.96);
+}
+
+/* ------------------------------------------------------------------------ voice bars */
+
+.tour-bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tour-bar {
+  flex: 0 0 auto;
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  opacity: 0.45;
+  transform: scaleY(var(--rest, 0.5));
+  transition:
+    transform 300ms ease,
+    opacity 300ms ease;
+}
+
+.tour-bars-on .tour-bar {
+  opacity: 1;
+  animation: tour-bar 620ms ease-in-out infinite alternate;
+}
+
+@keyframes tour-bar {
+  from {
+    transform: scaleY(calc(var(--rest, 0.5) * 0.35));
+  }
+  to {
+    transform: scaleY(var(--rest, 0.5));
+  }
+}
+
+/* Rings leaving a microphone that is listening. */
+.tour-mic-live::before,
+.tour-mic-live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid var(--color-signal);
+  animation: tour-ring 1.6s ease-out infinite;
+}
+.tour-mic-live::after {
+  animation-delay: 0.8s;
+}
+
+@keyframes tour-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+.tour-blink {
+  animation: tour-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes tour-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* The round's countdown in the game. */
+.tour-timer {
+  width: 100%;
+  animation: tour-timer 3.6s linear forwards;
+}
+.tour-timer-stop {
+  animation-play-state: paused;
+}
+
+@keyframes tour-timer {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 22%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-bars-on .tour-bar,
+  .tour-mic-live::before,
+  .tour-mic-live::after,
+  .tour-blink {
+    animation: none;
+  }
+  .tour-timer {
+    animation: none;
+    width: 58%;
+  }
+}
+
+/* ------------------------------------------------------------------- games scene («Пила») */
+
+/* The game page drawn inside the mock: as tall as its content, scaled by `Fit`. */
+.tour-arra.arra-page {
+  min-height: 0;
+}
+
+/* `saw.css` styles these as buttons; in the mock they are plain spans. */
+.tour-arra .tour-arra-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #bdc9cf;
+  font-size: 12px;
+  font-weight: 800;
+}
+.tour-arra .tour-arra-select {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 42px 11px 16px;
+  border: 1px solid #bfcfd930;
+  border-radius: 10px;
+  color: #e2e6e5;
+  background: #1a252c;
+  font-size: 13px;
+  font-weight: 700;
+}
+.tour-arra .tour-arra-back[data-tour-state] {
+  color: var(--arra-accent);
+}
+.tour-arra .tour-arra-start .arra-mic-disc {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+.tour-arra .tour-arra-start[data-tour-state='hover'] .arra-mic-disc {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 0 #83512a,
+    0 0 0 9px #e8b35814,
+    0 14px 34px #f9b74e30;
+}
+.tour-arra .tour-arra-start[data-tour-state='press'] .arra-mic-disc {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #83512a,
+    0 0 0 6px #e8b35814;
+}
+
+/* The demo moves in steps; the blade and the meter glide between them. */
+.tour-arra .arra-scene__saw,
+.tour-arra .arra-scene__saw-shadow {
+  transition: left 1.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tour-arra .arra-suspicion-track i {
+  transition: width 1.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tour-arra .arra-transcript[data-speaking='true'] .arra-wave i {
+  animation: tour-arra-wave 0.42s ease-in-out infinite alternate;
+}
+.tour-arra .tour-arra-question {
+  animation: tour-arra-question 0.45s ease-out both;
+}
+@keyframes tour-arra-wave {
+  from {
+    transform: scaleY(0.35);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes tour-arra-question {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* A shelf card under the cursor lifts its preview, as `GameCard` does on hover. */
+.tour-game-card .tour-game-shot {
+  transition:
+    translate 200ms ease,
+    box-shadow 200ms ease;
+}
+.tour-game-card[data-tour-state] .tour-game-shot {
+  translate: 0 -4px;
+  box-shadow:
+    0 0 0 1px rgb(15 23 42 / 0.08),
+    0 24px 40px -22px rgb(15 23 42 / 0.55);
+}
+.tour-game-card .tour-game-play {
+  transition: transform 160ms ease;
+}
+.tour-game-card[data-tour-state='press'] .tour-game-play {
+  transform: translateY(2px) scale(0.97);
+}
+
+/* The phone layout of `saw.css` (its `max-width: 600px` block), for the compact mock. */
+.tour-arra.arra-page[data-phone] { --arra-scene-height: 330px; padding: 13px 12px 22px; }
+.tour-arra.arra-page[data-phone][data-phase='playing'] { --arra-scene-height: 260px; }
+.tour-arra.arra-page[data-phone][data-phase='won'] .arra-result-scene { --arra-scene-height: 190px; }
+.tour-arra.arra-page[data-phone] .arra-nav { gap: 8px; margin-bottom: 19px; }
+.tour-arra.arra-page[data-phone] .tour-arra-back { font-size: 10px; gap: 4px; }
+.tour-arra.arra-page[data-phone] .tour-arra-back > svg { width: 15px; }
+.tour-arra.arra-page[data-phone] .arra-brand { gap: 6px; font-size: 10px; }
+.tour-arra.arra-page[data-phone] .arra-brand i { height: 10px; }
+.tour-arra.arra-page[data-phone] .arra-nav-actions { gap: 6px; }
+.tour-arra.arra-page[data-phone] .arra-score { gap: 4px; padding: 6px 7px; font-size: 12px; }
+.tour-arra.arra-page[data-phone] .arra-score span { display: none; }
+.tour-arra.arra-page[data-phone] .arra-score > svg { width: 13px; }
+.tour-arra.arra-page[data-phone] .arra-sound { width: 29px; height: 29px; }
+.tour-arra.arra-page[data-phone] .arra-sound > svg { width: 15px; }
+.tour-arra.arra-page[data-phone] .arra-intro { margin-bottom: 21px; }
+.tour-arra.arra-page[data-phone] .arra-intro h1 { font-size: 28px; margin-top: 7px; }
+.tour-arra.arra-page[data-phone] .arra-intro p { max-width: 285px; margin: 8px auto 0; font-size: 11px; }
+.tour-arra.arra-page[data-phone] .arra-intro > .arra-eyebrow { font-size: 8px; }
+.tour-arra.arra-page[data-phone] .arra-section-label { font-size: 11px; margin-bottom: 9px; }
+.tour-arra.arra-page[data-phone] .arra-character-grid { gap: 8px; }
+.tour-arra.arra-page[data-phone] .arra-character-card { border-radius: 12px; }
+.tour-arra.arra-page[data-phone] .arra-character-check { width: 19px; height: 19px; top: 7px; right: 7px; }
+.tour-arra.arra-page[data-phone] .arra-character-check > svg { width: 12px; }
+.tour-arra.arra-page[data-phone] .arra-character-art { height: 159px; padding: 22px 4px 0; }
+.tour-arra.arra-page[data-phone] .arra-character-art::after { height: 23px; }
+.tour-arra.arra-page[data-phone] .arra-character-copy { display: flex; flex-direction: column; align-items: flex-start; padding: 3px 9px 10px; gap: 2px; }
+.tour-arra.arra-page[data-phone] .arra-character-copy > strong { font-size: 15px; }
+.tour-arra.arra-page[data-phone] .arra-character-trait { font-size: 8px; }
+.tour-arra.arra-page[data-phone] .arra-character-copy > small { font-size: 8px; margin-top: 3px; }
+.tour-arra.arra-page[data-phone] .arra-character-quote { display: none; }
+.tour-arra.arra-page[data-phone] .arra-setup-bottom { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 22px; }
+.tour-arra.arra-page[data-phone] .tour-arra-select { font-size: 12px; }
+.tour-arra.arra-page[data-phone] .arra-rules { grid-column: 1; justify-content: space-between; gap: 5px; }
+.tour-arra.arra-page[data-phone] .arra-rules span { gap: 4px; font-size: 8px; }
+.tour-arra.arra-page[data-phone] .arra-rules svg { width: 11px; height: 11px; }
+.tour-arra.arra-page[data-phone] .arra-start { grid-column: 1; grid-row: auto; gap: 10px; margin-top: 3px; }
+.tour-arra.arra-page[data-phone] .arra-start strong { font-size: 12px; }
+.tour-arra.arra-page[data-phone] .arra-mic-disc { width: 68px; height: 68px; }
+.tour-arra.arra-page[data-phone] .arra-arena { border-radius: 15px; }
+.tour-arra.arra-page[data-phone] .arra-hud { min-height: 65px; gap: 18px; padding: 12px 14px; }
+.tour-arra.arra-page[data-phone] .arra-suspicion-heading { font-size: 9px; gap: 8px; }
+.tour-arra.arra-page[data-phone] .arra-suspicion-heading strong { font-size: 18px; }
+.tour-arra.arra-page[data-phone] .arra-clock { padding-left: 12px; column-gap: 6px; grid-template-columns: 13px auto; }
+.tour-arra.arra-page[data-phone] .arra-clock > svg { width: 13px; }
+.tour-arra.arra-page[data-phone] .arra-clock strong { min-width: 45px; font-size: 22px; }
+.tour-arra.arra-page[data-phone] .arra-clock > span { font-size: 8px; }
+.tour-arra.arra-page[data-phone] .arra-stage-status { top: 10px; left: 10px; padding: 6px 8px; gap: 5px; font-size: 8px; max-width: calc(100% - 20px); }
+.tour-arra.arra-page[data-phone] .arra-question-row { min-height: 83px; gap: 11px; padding: 14px 15px; }
+.tour-arra.arra-page[data-phone] .arra-question > .arra-eyebrow { font-size: 7px; }
+.tour-arra.arra-page[data-phone] .arra-question h2 { font-size: 18px; }
+.tour-arra.arra-page[data-phone] .arra-transcript { padding: 8px 12px; gap: 7px; min-height: 41px; }
+.tour-arra.arra-page[data-phone] .arra-transcript > p { font-size: 10px; }
+.tour-arra.arra-page[data-phone] .arra-wave { width: 47px; gap: 2px; }
+.tour-arra.arra-page[data-phone] .arra-wave i { width: 2px; }
+.tour-arra.arra-page[data-phone] .arra-live-controls { margin-top: 19px; gap: 9px; }
+.tour-arra.arra-page[data-phone] .arra-recording { gap: 12px; font-size: 9px; }
+.tour-arra.arra-page[data-phone] .arra-recording .arra-mic-disc { width: 68px; height: 68px; }
+.tour-arra.arra-page[data-phone] .arra-surrender { padding: 8px 9px; font-size: 9px; gap: 3px; }
+.tour-arra.arra-page[data-phone] .arra-surrender > svg { width: 12px; }
+.tour-arra.arra-page[data-phone] .arra-result-heading { margin-bottom: 18px; }
+.tour-arra.arra-page[data-phone] .arra-result-heading h1 { font-size: 29px; margin-top: 8px; }
+.tour-arra.arra-page[data-phone] .arra-result-heading p { font-size: 11px; }
+.tour-arra.arra-page[data-phone] .arra-result-scene { border-radius: 15px 15px 0 0; }
+.tour-arra.arra-page[data-phone] .arra-point { bottom: 15px; left: 15px; font-size: 11px; padding: 7px 9px; gap: 6px; }
+.tour-arra.arra-page[data-phone] .arra-point > svg { width: 13px; }
+.tour-arra.arra-page[data-phone] .arra-result-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tour-arra.arra-page[data-phone] .arra-result-stats > div { padding: 13px 16px; gap: 5px 6px; grid-template-columns: 19px 1fr; }
+.tour-arra.arra-page[data-phone] .arra-result-stats > div:nth-child(3) { border-left: 0; }
+.tour-arra.arra-page[data-phone] .arra-result-stats > div:nth-child(n + 3) { border-top: 1px solid #becdb41c; }
+.tour-arra.arra-page[data-phone] .arra-result-stats span { font-size: 9px; }
+.tour-arra.arra-page[data-phone] .arra-result-stats svg { width: 16px; }
+.tour-arra.arra-page[data-phone] .arra-result-stats strong { font-size: 24px; }
+.tour-arra.arra-page[data-phone] .arra-result-stats .arra-favourite strong { font-size: 17px; line-height: 1.45; }
+.tour-arra.arra-page[data-phone] .arra-earned { margin-top: 15px; padding: 10px 17px; gap: 15px; }
+.tour-arra.arra-page[data-phone] .arra-badge-art { width: 40px; height: 51px; }
+.tour-arra.arra-page[data-phone] .arra-earned strong { font-size: 18px; }
+.tour-arra.arra-page[data-phone] .arra-result-actions { gap: 11px; margin-top: 18px; }
+.tour-arra.arra-page[data-phone] .arra-result-next,
+.tour-arra.arra-page[data-phone] .arra-share { min-width: 0; flex: 1; min-height: 46px; padding: 10px 13px; font-size: 11px; }
+.tour-arra.arra-page[data-phone] .arra-result-next > svg,
+.tour-arra.arra-page[data-phone] .arra-share > svg { width: 16px; }
+.tour-arra.arra-page[data-phone] .arra-change-hero { margin-top: 19px; font-size: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-arra .arra-transcript[data-speaking='true'] .arra-wave i,
+  .tour-arra .tour-arra-question {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- missions scene */
+
+/* Scroll areas of the missions mock (the details panel, the brief) scroll without a bar. */
+.tour-noscroll {
+  scrollbar-width: none;
+}
+.tour-noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* A disc on the road lifts under the cursor, as `MissionDisc` does on hover, and sinks on press. */
+.tour-disc[data-tour-state] > span:first-child {
+  transform: translateY(-4px);
+}
+.tour-disc[data-tour-state='press'] > span:first-child {
+  transform: translateY(1px);
+}
+
+/*
+ * `CharacterOrb`'s styles (its `ORB_STYLES`), under their own names: the size comes from the
+ * mock instead of the window, and the voice is a rhythm rather than the microphone's level.
+ */
+.tm-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+}
+.tm-orb-body {
+  position: relative;
+  display: block;
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 28%,
+    color-mix(in srgb, var(--orb-light) 92%, #fff) 0%,
+    var(--orb-light) 38%,
+    var(--orb-deep) 100%
+  );
+  box-shadow:
+    0 18px 50px -12px color-mix(in srgb, var(--orb-deep) 60%, transparent),
+    inset 0 -18px 34px -16px color-mix(in srgb, var(--orb-deep) 85%, #000);
+  transform: scale(calc(1 + var(--orb-level) * 0.12));
+}
+.tm-orb-sheen {
+  position: absolute;
+  inset: 6% 6% 42% 12%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 62%);
+}
+.tm-orb-core {
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, #fff 70%, var(--orb-light)) 0%, transparent 70%);
+  opacity: calc(0.25 + var(--orb-level) * 0.55);
+}
+.tm-orb-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--orb-light) 55%, transparent) 0%, transparent 62%);
+  filter: blur(14px);
+  opacity: calc(0.35 + var(--orb-level) * 0.5);
+  transform: scale(calc(1 + var(--orb-level) * 0.18));
+}
+.tm-orb-ring {
+  position: absolute;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--orb-light) 70%, transparent);
+  opacity: 0;
+}
+.tm-orb-listening .tm-orb-ring {
+  animation: tm-orb-pulse 2.4s ease-out infinite;
+}
+.tm-orb-listening .tm-orb-ring-late {
+  animation-delay: 1.2s;
+}
+.tm-orb-talking .tm-orb-body {
+  animation:
+    tm-orb-speak 1.6s ease-in-out infinite,
+    tm-orb-voice 0.42s ease-in-out infinite alternate;
+}
+.tm-orb-listening .tm-orb-body {
+  animation: tm-orb-voice 0.7s ease-in-out infinite alternate;
+}
+@keyframes tm-orb-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+@keyframes tm-orb-speak {
+  0%,
+  100% {
+    filter: saturate(1);
+  }
+  50% {
+    filter: saturate(1.18) brightness(1.06);
+  }
+}
+@keyframes tm-orb-voice {
+  from {
+    transform: scale(calc(1 + var(--orb-level) * 0.04));
+  }
+  to {
+    transform: scale(calc(1 + var(--orb-level) * 0.12));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tm-orb-ring,
+  .tm-orb-body {
+    animation: none !important;
+  }
+}
