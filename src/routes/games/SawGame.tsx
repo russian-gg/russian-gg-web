@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
-import { fill, useT } from '../../lib/i18n'
+import { useT } from '../../lib/i18n'
 import { useNavigate } from 'react-router-dom'
 import { useSpeechRecognition } from '../../lib/speech'
-import { Button, ErrorNote } from '../../components/ui'
-import { GameShareButton } from './GameShareButton'
-import { cx } from '../../lib/cx'
+import { SawGameView } from './saw/SawGameView'
 
 /**
  * Arra — the saw.
@@ -225,179 +222,14 @@ export function SawGame() {
     if (phase === 'won') setScore((current) => current + 1)
   }, [phase])
 
-  const danger = blade > 68
-
   const spoken = useMemo(() => speech.transcript.trim(), [speech.transcript])
+  const speaking = phase === 'playing' && heard.current.russian > 0 && Date.now() - heard.current.at < 1500
 
-  return (
-    <main className="min-h-screen bg-ground-sunken px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <header className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/games')}
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-ink-muted transition-colors hover:text-ink"
-          >
-            <ArrowLeft aria-hidden="true" className="size-4" strokeWidth={2.2} />
-            {t.back}
-          </button>
-
-          <div className="flex items-center gap-3 text-sm font-black">
-            <span className="text-ink-muted">
-              {t.score}: <span className="text-ink tabular-nums">{score}</span>
-            </span>
-            {phase === 'playing' && (
-              <span className={cx('tabular-nums', secondsLeft <= 10 ? 'text-caution' : 'text-ink')}>
-                {secondsLeft}s
-              </span>
-            )}
-          </div>
-        </header>
-
-        <section className="rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-5">
-          <p className="text-xs font-black tracking-[0.14em] text-ink-faint uppercase">
-            {fill(t.question, { n: round + 1 })}
-          </p>
-          <h1 className="mt-1.5 text-xl leading-snug font-black text-ink">{question}</h1>
-        </section>
-
-        {/* The track. Everything about the danger is spatial — distance, speed, colour. */}
-        <section
-          className={cx(
-            'relative overflow-hidden rounded-[var(--radius-card)] border-2 p-4 transition-colors duration-300',
-            danger ? 'border-danger bg-danger-soft/30' : 'border-hairline bg-ground-raised',
-          )}
-        >
-          <div className="relative h-28">
-            <div className="absolute inset-x-0 bottom-6 h-1 rounded-full bg-hairline" />
-
-            <div
-              className="absolute bottom-2 transition-[left] duration-100 ease-linear"
-              style={{ left: `calc(${blade}% - ${blade * 0.56}px)` }}
-            >
-              <Blade spinning={phase === 'playing'} />
-            </div>
-
-            <div className="absolute right-0 bottom-2">
-              <Avatar scared={danger} cut={phase === 'cut'} />
-            </div>
-          </div>
-
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-ground-sunken">
-            <div
-              className={cx(
-                'h-full rounded-full transition-[width,background-color] duration-100 ease-linear',
-                danger ? 'bg-danger' : 'bg-signal',
-              )}
-              style={{ width: `${blade}%` }}
-            />
-          </div>
-        </section>
-
-        {phase === 'playing' && (
-          <div className="min-h-16 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-4 py-3">
-            <p className={cx('text-[15px] leading-relaxed', spoken ? 'text-ink' : 'text-ink-faint')}>
-              {spoken || t.keepTalking}
-            </p>
-          </div>
-        )}
-
-        {!speech.supported && (
-          <ErrorNote>{t.unsupported}</ErrorNote>
-        )}
-
-        {speech.status === 'denied' && (
-          <ErrorNote>{t.micDenied}</ErrorNote>
-        )}
-
-        {phase === 'ready' && (
-          <Button block disabled={!speech.supported} onClick={start}>
-            {t.start}
-          </Button>
-        )}
-
-        {phase === 'cut' && (
-          <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft/30 p-5 text-center">
-            <p className="text-2xl font-black text-danger">{t.lostTitle}</p>
-            <p className="text-[15px] text-ink">{t.lostBody}</p>
-            <Button block onClick={start}>
-              {t.retry}
-            </Button>
-            <GameShareButton slug="arra" title="Arra" result={[t.lostTitle, `${t.score}: ${score}`]}
-              className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-hairline bg-ground-raised px-5 py-3 text-sm font-black text-ink transition hover:bg-ground-sunken" />
-          </div>
-        )}
-
-        {phase === 'won' && (
-          <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-milestone bg-milestone-soft/40 p-5 text-center">
-            <p className="text-2xl font-black text-milestone">{t.wonTitle}</p>
-            <p className="text-[15px] text-ink">{t.wonBody}</p>
-            <Button
-              block
-              onClick={() => {
-                setRound((current) => current + 1)
-                setPhase('ready')
-              }}
-            >
-              {t.next}
-            </Button>
-            <GameShareButton slug="arra" title="Arra" result={[t.wonTitle, `${t.score}: ${score}`]}
-              className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-hairline bg-ground-raised px-5 py-3 text-sm font-black text-ink transition hover:bg-ground-sunken" />
-          </div>
-        )}
-      </div>
-    </main>
-  )
-}
-
-/** A circular blade. It spins while the round is live, and stops dead when it lands. */
-function Blade({ spinning }: { spinning: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 56 56"
-      aria-hidden
-      className={cx('size-14 drop-shadow-sm', spinning && 'motion-safe:animate-spin')}
-      style={spinning ? { animationDuration: '0.7s' } : undefined}
-    >
-      <circle cx="28" cy="28" r="20" className="fill-[var(--color-ink-faint)]" />
-      {Array.from({ length: 12 }, (_, index) => (
-        <rect
-          key={index}
-          x="26"
-          y="1"
-          width="4"
-          height="10"
-          rx="1"
-          className="fill-[var(--color-ink-muted)]"
-          transform={`rotate(${index * 30} 28 28)`}
-        />
-      ))}
-      <circle cx="28" cy="28" r="9" className="fill-[var(--color-ground-raised)]" />
-      <circle cx="28" cy="28" r="3" className="fill-[var(--color-ink-faint)]" />
-    </svg>
-  )
-}
-
-/** The learner, as a shape rather than a portrait: this has to read at a glance, mid-panic. */
-function Avatar({ scared, cut }: { scared: boolean; cut: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 48 56"
-      aria-hidden
-      className={cx('size-14 transition-transform duration-200', cut && 'rotate-12 opacity-60')}
-    >
-      <circle cx="24" cy="16" r="12" className={cx(cut ? 'fill-danger' : 'fill-[var(--color-signal)]')} />
-      <path
-        d="M8 54c0-9 7-15 16-15s16 6 16 15"
-        className={cx(cut ? 'fill-danger' : 'fill-[var(--color-signal)]')}
-      />
-      <circle cx="19" cy="14" r={scared ? 3 : 2} className="fill-[var(--color-on-signal)]" />
-      <circle cx="29" cy="14" r={scared ? 3 : 2} className="fill-[var(--color-on-signal)]" />
-      <path
-        d={scared ? 'M19 23a5 5 0 0 1 10 0' : 'M19 21a5 5 0 0 0 10 0'}
-        className="fill-none stroke-[var(--color-on-signal)] stroke-2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
+  return <SawGameView
+    phase={phase} blade={blade} secondsLeft={secondsLeft} score={score} round={round}
+    question={question} transcript={spoken} speaking={speaking} supported={speech.supported}
+    error={speech.status === 'denied' ? t.micDenied : undefined}
+    onStart={start} onBack={() => navigate('/games')}
+    onNext={() => { setRound((current) => current + 1); setPhase('ready') }}
+  />
 }

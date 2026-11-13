@@ -15,6 +15,7 @@ import {
   prefersReducedMotion, solvedFeedback, TEZ_GAPIR_WORDS, useDemoClock, useOnScreen,
 } from './demo'
 import { isSpeakingGame } from '../speaking/copy'
+import { SawPreview } from '../saw/SawPreview'
 import '../speaking/speaking-games.css'
 import '../fight-for-life/life.css'
 import '../speaking/first-reaction.css'
@@ -41,12 +42,14 @@ export function GamePreview({ slug, running, onScore, cover = false }: {
         : slug === 'error-hunt' ? <ScaledStage cover={cover} width={1000}><ErrorHuntPreview running={live} /></ScaledStage>
           : slug === 'first-reaction' ? <ScaledStage cover={cover} width={1100}><FirstReactionPreview running={live} /></ScaledStage>
             : slug === 'fight-for-life' ? <ScaledStage cover={cover} width={820}><LifePreview running={live} /></ScaledStage>
-              : <MarkPreview slug={slug} />}
+              : slug === 'arra' ? <ScaledStage cover={cover} width={900}><SawPreview running={live} /></ScaledStage>
+                : <MarkPreview slug={slug} />}
   </div>
 }
 
 /** The colour behind each scaled screen: the edge of the game's own backdrop. */
 const BACKDROPS: Record<string, string> = {
+  arra: '#10191b',
   'rod-runner': '#90e0ef',
   'tez-gapir': '#0c122e',
   'error-hunt': '#1f0e35',

@@ -113,6 +113,7 @@ function useGameCopy(game: OpenGame) {
 const RUSSIAN_TITLES = new Set(['rod-runner', 'fight-for-life'])
 
 const ICONS: Record<string, { background: string; image?: string }> = {
+  arra: { background: 'linear-gradient(145deg,#3c3024,#111d20)', image: '/games/arra/penguin-foreman.webp' },
   'rod-runner': { background: 'linear-gradient(160deg,#00b4d8,#90e0ef 60%,#e4faff)' },
   'tez-gapir': { background: 'linear-gradient(160deg,#141b40,#34386a)', image: '/games/characters/penguin.webp' },
   'fight-for-life': { background: 'linear-gradient(145deg,#00b4d8,#00f5d4)', image: '/games/fight-for-life/characters/penguin.webp' },
@@ -184,6 +185,7 @@ function GameCard({ game }: { game: OpenGame }) {
 
 /** The shade each game's words sit on: its own darkest colour, so the text reads on any frame. */
 const SHADES: Record<string, string> = {
+  arra: 'rgb(11 18 20 / .94)',
   'rod-runner': 'rgb(4 32 52 / .85)',
   'tez-gapir': 'rgb(8 12 36 / .9)',
   'fight-for-life': 'rgb(3 55 66 / .88)',
@@ -192,6 +194,7 @@ const SHADES: Record<string, string> = {
 }
 
 const SLIDE_GROUNDS: Record<string, string> = {
+  arra: '#10191b',
   'rod-runner': '#90e0ef',
   'tez-gapir': '#0c122e',
   'fight-for-life': '#12b8cf',
