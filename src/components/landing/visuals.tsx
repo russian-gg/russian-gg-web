@@ -1,5 +1,12 @@
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { AnimatePresence, useInView, useReducedMotion } from 'motion/react'
+import * as m from 'motion/react-m'
+import { CircleCheck } from 'lucide-react'
 import { cx } from '../../lib/cx'
+import { CharacterOrb, type OrbState } from '../CharacterOrb'
+import { IPhoneFrame } from './devices'
+import { VIEW_MARGIN } from './effects'
 import { PlayGlyph } from '../ui'
 import { VoiceSignal } from '../VoiceSignal'
 
@@ -8,40 +15,29 @@ import { VoiceSignal } from '../VoiceSignal'
  * an illustration is not an icon: these are scenes and product mocks, and Lucide's vocabulary
  * is single marks at a single weight.
  *
- * They still obey the rest of the rule the product does (PRD §7): abstract line, circle,
- * signal and wave motifs, no emoji, no mascots, no glossy 3D. The one photograph allowed
- * anywhere is the tutor's portrait, and it appears once, inside the product mock, exactly as
- * it does in the real mission player.
+ * The page's look moved toward soft 3D and frosted glass to match the signed-in app's own
+ * clay-blue 3D artwork, so the mocks here sit on `.glass` surfaces (see `.landing` in
+ * `styles.css`). They are still built from the product's real pieces — the mission turn, the
+ * voice signal, the character orb — so a mock cannot drift from what a learner actually sees.
  *
  * These are decorative, so they are `aria-hidden`; the surrounding copy carries the meaning.
  */
 
-/** A phone silhouette drawn from tokens. Wraps a real slice of the app so the mock cannot
- *  drift from the product. */
+/** A phone for the mocks below: the real iPhone frame, holding a real slice of the app. */
 export function PhoneFrame({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={cx(
-        'relative mx-auto w-full max-w-[19rem] rounded-[2.75rem] border border-hairline',
-        'bg-ground p-3 shadow-[0_30px_60px_-24px_rgb(45_118_221/0.35)]',
-        className,
-      )}
-    >
-      {/* The pill speaker, the one nod to a device. */}
-      <div className="absolute inset-x-0 top-3 z-10 flex justify-center">
-        <span className="h-1.5 w-16 rounded-full bg-ground-sunken" />
-      </div>
-      <div className="overflow-hidden rounded-[2rem] border border-hairline bg-ground-raised">
-        {children}
-      </div>
-    </div>
+    <IPhoneFrame className={cx('mx-auto max-w-[17.5rem]', className)} screenClassName="bg-ground-raised">
+      {children}
+    </IPhoneFrame>
   )
 }
 
 /**
- * The hero's product preview: a single mission turn, drawn from the same pieces the mission
- * player uses — day badge, tutor prompt in Russian, Uzbek support beneath it, the listening
- * signal, and one high-emphasis action.
+ * The hero's product preview: one mission turn, drawn from the same pieces the mission player
+ * uses — day badge, tutor prompt in Russian, Uzbek support beneath it, the learner's answer,
+ * the tutor's reply, the listening signal and one high-emphasis action. The two replies arrive
+ * a beat after the page does, so the screen reads as a conversation happening rather than a
+ * picture of one.
  */
 export function ProductPreview({
   day,
@@ -54,49 +50,68 @@ export function ProductPreview({
   hint: string
   action: string
 }) {
+  const reduced = useReducedMotion()
+  const turn = (delay: number) =>
+    reduced
+      ? {}
+      : {
+          initial: { opacity: 0, y: 10, scale: 0.96 },
+          animate: { opacity: 1, y: 0, scale: 1 },
+          transition: { delay, type: 'spring' as const, duration: 0.5, bounce: 0.3 },
+        }
+
   return (
     <PhoneFrame>
-      <div className="flex flex-col gap-5 px-5 pt-9 pb-6">
+      <div className="flex h-full flex-col px-4 pt-[15cqw] pb-[9cqw]">
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-[var(--radius-control)] bg-signal-soft px-3 py-1 text-xs font-extrabold tracking-[0.08em] text-signal-ink uppercase">
+          <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-[var(--radius-control)] bg-signal-soft px-2.5 py-1 text-[11px] font-extrabold tracking-[0.08em] text-signal-ink uppercase">
             {day}
           </span>
-          <span className="text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">
-            {objective}
-          </span>
+          <span className="text-[11px] font-extrabold tracking-[0.14em] text-ink-faint uppercase">{objective}</span>
         </div>
 
-        {/* The tutor turn. The Cyrillic here is the content being learned, not chrome. */}
-        <div className="flex items-start gap-3">
-          <img
-            src="/characters/pingvin-avatar.webp"
-            alt=""
-            aria-hidden="true"
-            className="size-9 shrink-0 rounded-full object-cover"
-          />
-          <div className="rounded-2xl rounded-tl-sm border border-hairline bg-ground-sunken px-4 py-3">
-            <p lang="ru" className="text-[15px] leading-snug font-bold text-ink">
-              Здравствуйте! Как вас зовут?
-            </p>
+        {/* The conversation. The Cyrillic here is the content being learned, not chrome. */}
+        <div className="mt-5 flex flex-col gap-3">
+          <div className="flex items-start gap-2.5">
+            <img src="/characters/pingvin-avatar.webp" alt="" aria-hidden="true" className="size-8 shrink-0 rounded-full object-cover" />
+            <div className="rounded-2xl rounded-tl-sm border border-hairline bg-ground-sunken px-3.5 py-2.5">
+              <p lang="ru" className="text-[14px] leading-snug font-bold text-ink">
+                Здравствуйте! Как вас зовут?
+              </p>
+            </div>
           </div>
+          <p className="text-support -mt-1 pl-[2.6rem] text-[13px]">{hint}</p>
+
+          <m.div {...turn(1.4)} className="ml-auto w-fit rounded-2xl rounded-tr-sm bg-signal px-3.5 py-2.5 text-on-signal">
+            <p lang="ru" className="text-[14px] leading-snug font-bold">
+              Меня зовут Али.
+            </p>
+          </m.div>
+
+          <m.div {...turn(2.4)} className="flex items-start gap-2.5">
+            <img src="/characters/pingvin-avatar.webp" alt="" aria-hidden="true" className="size-8 shrink-0 rounded-full object-cover" />
+            <div className="rounded-2xl rounded-tl-sm border border-hairline bg-ground-sunken px-3.5 py-2.5">
+              <p lang="ru" className="text-[14px] leading-snug font-bold text-ink">
+                Очень приятно, Али!
+              </p>
+            </div>
+          </m.div>
         </div>
 
-        <p className="text-support -mt-1 pl-12">{hint}</p>
-
-        <div className="mt-1 flex flex-col items-center gap-4 rounded-2xl border border-hairline bg-ground px-4 py-6">
+        <div className="mt-auto flex flex-col items-center gap-3 rounded-2xl border border-hairline bg-ground px-4 py-4">
           <VoiceSignal state="listening" size="sm" labelled={false} />
-          <span className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-control)] bg-signal px-6 text-sm font-extrabold text-on-signal shadow-[0_4px_0_0_var(--color-signal-depth)]">
+          <span className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] bg-signal px-5 text-sm font-extrabold text-on-signal shadow-[0_4px_0_0_var(--color-signal-depth)]">
             <MicGlyph />
             {action}
           </span>
         </div>
 
         {/* Step progress, the way the real player shows it — no competing metric. */}
-        <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
-          <span className="h-1.5 w-8 rounded-full bg-signal" />
-          <span className="h-1.5 w-8 rounded-full bg-signal" />
-          <span className="h-1.5 w-8 rounded-full bg-ground-sunken" />
-          <span className="h-1.5 w-8 rounded-full bg-ground-sunken" />
+        <div className="mt-4 flex items-center justify-center gap-1.5" aria-hidden="true">
+          <span className="h-1.5 w-7 rounded-full bg-signal" />
+          <span className="h-1.5 w-7 rounded-full bg-signal" />
+          <span className="h-1.5 w-7 rounded-full bg-ground-sunken" />
+          <span className="h-1.5 w-7 rounded-full bg-ground-sunken" />
         </div>
       </div>
     </PhoneFrame>
@@ -372,5 +387,132 @@ export function StepMark({ n }: { n: number }) {
     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-signal-soft text-lg font-extrabold text-signal-ink">
       {n}
     </span>
+  )
+}
+
+/* ------------------------------------------------------------------- AI tutor scene */
+
+/** The pingvin's own pair, the character a learner meets first. */
+const TUTOR_COLORS: [string, string] = ['#8cc4ff', '#1f6fe0']
+
+const BEATS: OrbState[] = ['talking', 'listening', 'thinking']
+
+/**
+ * One full turn of a live mission, played on a loop: the tutor speaks, the learner answers,
+ * the tutor confirms. Built from the mission screen's own `CharacterOrb` and `VoiceSignal`
+ * rather than drawn to look like them, so it is the real voice sphere a learner talks to.
+ *
+ * It stands in for the showcase video until one is produced (`LandingVideo`'s `fallback`),
+ * and it holds up as a section on its own. The orb's level is a gentle random walk — there is
+ * no audio here — and under reduced motion the scene holds on its first beat.
+ */
+export function AiTutorScene({
+  liveLabel,
+  tutorName,
+  hint,
+  feedbackLabel,
+}: {
+  liveLabel: string
+  tutorName: string
+  hint: string
+  feedbackLabel: string
+}) {
+  const reduced = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+  // The turn plays only while the scene is on screen; it starts when it is scrolled to.
+  const visible = useInView(ref, { margin: VIEW_MARGIN })
+  const [beat, setBeat] = useState(0)
+  const [level, setLevel] = useState(0.4)
+
+  useEffect(() => {
+    if (reduced || !visible) return
+    const turn = window.setInterval(() => setBeat((b) => (b + 1) % BEATS.length), 3400)
+    const voice = window.setInterval(() => setLevel(0.25 + Math.random() * 0.65), 160)
+    return () => {
+      window.clearInterval(turn)
+      window.clearInterval(voice)
+    }
+  }, [reduced, visible])
+
+  const state = BEATS[beat]
+
+  return (
+    <div ref={ref} aria-hidden="true" className="relative flex size-full flex-col items-center justify-between gap-4 px-5 py-6 sm:px-8">
+      <div className="flex w-full items-center justify-between gap-3">
+        <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-extrabold text-ink">
+          <span className="relative flex size-2">
+            <span className="absolute inset-0 animate-ripple rounded-full bg-danger" />
+            <span className="relative size-2 rounded-full bg-danger" />
+          </span>
+          {liveLabel}
+        </span>
+        <span className="text-xs font-extrabold tracking-[0.12em] text-ink-muted uppercase">{tutorName}</span>
+      </div>
+
+      <div className="grid place-items-center [&_.orb]:w-[min(52vw,13rem)]">
+        <CharacterOrb
+          colors={TUTOR_COLORS}
+          agentState={state}
+          manualOutput={state === 'talking' ? level : 0}
+          manualInput={state === 'listening' ? level : 0}
+          label={tutorName}
+        />
+      </div>
+
+      <div className="relative h-[7.5rem] w-full max-w-sm">
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={beat}
+            initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-x-0 top-0"
+          >
+            {beat === 0 && (
+              <div className="glass glass-strong rounded-2xl rounded-tl-sm px-4 py-3">
+                <p lang="ru" className="text-[15px] leading-snug font-bold text-ink">
+                  Здравствуйте! Как вас зовут?
+                </p>
+                <p className="text-support mt-1 text-sm">{hint}</p>
+              </div>
+            )}
+            {beat === 1 && (
+              <div className="ml-auto flex w-fit flex-col items-end gap-2">
+                <div className="rounded-2xl rounded-tr-sm bg-signal px-4 py-3 text-on-signal">
+                  <p lang="ru" className="text-[15px] leading-snug font-bold">
+                    Меня зовут Али.
+                  </p>
+                </div>
+                <VoiceSignal state="listening" size="sm" labelled={false} />
+              </div>
+            )}
+            {beat === 2 && (
+              <div className="glass glass-strong rounded-2xl px-4 py-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-milestone-soft px-2.5 py-1 text-[11px] font-extrabold text-milestone">
+                  <CircleCheck aria-hidden="true" strokeWidth={2.4} className="size-3" />
+                  {feedbackLabel}
+                </span>
+                <p lang="ru" className="mt-2 text-[15px] leading-snug font-bold text-ink">
+                  Отлично! Очень приятно, Али.
+                </p>
+              </div>
+            )}
+          </m.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {BEATS.map((beatState, i) => (
+          <span
+            key={beatState}
+            className={cx(
+              'h-1.5 rounded-full transition-all duration-500',
+              i === beat ? 'w-8 bg-signal' : 'w-3 bg-ink-faint/40',
+            )}
+          />
+        ))}
+      </div>
+    </div>
   )
 }

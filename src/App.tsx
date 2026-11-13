@@ -40,7 +40,6 @@ function route<T extends Record<string, unknown>, K extends keyof T>(
   that actually open a microphone — so neither is in the entry chunk any more.
 */
 const AdminContent = route(() => import('./routes/AdminContent'), 'AdminContent')
-const Centers = route(() => import('./routes/Centers'), 'Centers')
 const CoursePath = route(() => import('./routes/CoursePath'), 'CoursePath')
 const Landing = route(() => import('./routes/Landing'), 'Landing')
 const FoundationLesson = route(() => import('./routes/FoundationLesson'), 'FoundationLesson')
@@ -94,7 +93,7 @@ export function App() {
               Not behind `PublicOnly`: it is sent to center owners, who may well be signed in as
               learners themselves, and bouncing them to /home would lose the link they were given.
             */}
-            <Route path="/markazlar" element={<Centers />} />
+            <Route path="/markazlar" element={<Navigate to="/#centers" replace />} />
 
             {/*
               Outside the shell, because nothing should compete with the forty seconds, and public,
