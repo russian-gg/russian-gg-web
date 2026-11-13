@@ -70,6 +70,8 @@ import { playUiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
 import { Celebration } from '../components/Celebration'
 import { missionLock } from '../lib/mission-lock'
+import { useCenterStudent } from '../lib/center'
+import { CenterLockNote } from '../components/CenterLockNote'
 import type { EntitlementView, MissionSummary, StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
 
 /**
@@ -2836,6 +2838,8 @@ function CompleteSection({ lesson, recording }: {
   // lock on the path.
   const nextNeedsPro =
     entitlement !== undefined && !entitlement.hasProAccess && nextDay > entitlement.maxUnlockedDay
+  // A center's student is not sold the next day; they hear whose move it is instead.
+  const { lock: centerLock } = useCenterStudent()
   return (
     <Card className="relative overflow-hidden border-milestone bg-milestone-soft/35 p-5 text-center sm:p-8">
       <Celebration pieces={180} balloons={34} />
@@ -2859,7 +2863,10 @@ function CompleteSection({ lesson, recording }: {
       )}
       {/* "Day N is open" went with the recap; past the free plan the learner still has to hear
           that the next day is Pro, or they meet it as a lock on the path. */}
-      {recording === 'saved' && nextDay <= 90 && nextNeedsPro && (
+      {recording === 'saved' && nextDay <= 90 && nextNeedsPro && centerLock && (
+        <CenterLockNote lock={centerLock} className="mt-5 text-left" />
+      )}
+      {recording === 'saved' && nextDay <= 90 && nextNeedsPro && !centerLock && (
         <div className="mt-5 rounded-2xl bg-ground-raised p-4 text-left">
           <p className="font-black text-ink">{fill(t.nextNeedsPro, { day: nextDay })}</p>
           <p className="mt-1 text-sm text-ink-muted">{t.nextNeedsProBody}</p>

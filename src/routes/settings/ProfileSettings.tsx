@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { BookOpen, Info, CalendarDays, Flame, LogOut, MessageCircle, Pencil, Target, Trash2 } from 'lucide-react'
+import { BookOpen, Building2, Info, CalendarDays, Flame, LogOut, MessageCircle, Pencil, Target, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, RequestError } from '../../lib/api'
 import { useAuth } from '../../lib/auth-context'
+import { CENTER_QUERY_KEY, fetchCenter, useCenterStudent } from '../../lib/center'
 import { fill, useT, type Dictionary } from '../../lib/i18n'
 import { formatDate } from '../../lib/format'
 import type { EntitlementView, ProgressView } from '../../lib/types'
@@ -11,6 +12,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useLocale, LOCALE_NAMES } from '../../lib/i18n'
 import { Button, Card, ErrorNote, Field, QueryError, Spinner } from '../../components/ui'
 import { InfoNote, LevelTile, SectionCard, StatTile } from './stats'
+import { CenterCard } from './CenterCard'
 
 /**
  * Who the learner is, how far they have got, and the two account actions.
@@ -80,6 +82,8 @@ export function ProfileSettings() {
       {error && <ErrorNote>{error}</ErrorNote>}
 
       <ProfileHeader progress={progress} />
+      {/* Who the learner studies with, and whether that gives Pro today. Nothing for anyone else. */}
+      <CenterCard />
 
       <ConfirmDialog
         open={confirmingDelete}
@@ -187,6 +191,7 @@ function ProfileHeader({ progress }: { progress?: ProgressView }) {
           <p className="truncate text-xl font-extrabold text-ink sm:text-2xl">{name}</p>
           <p className="text-support truncate text-sm">{user?.email ?? user?.phoneNumber}</p>
           <p className="text-support mt-1 truncate text-sm">{meta.join(' · ')}</p>
+          <CenterLine />
         </div>
 
         {!editing && (
@@ -234,6 +239,35 @@ function ProfileHeader({ progress }: { progress?: ProgressView }) {
         </div>
       )}
     </Card>
+  )
+}
+
+/**
+ * The center that registered this learner, as part of who they are: the name, and the group
+ * when the center has put them in one. Same cached `/me/center` the center card reads.
+ */
+function CenterLine() {
+  const t = useT()
+  const { isCenterStudent, centerName } = useCenterStudent()
+  const { data: center } = useQuery({
+    queryKey: CENTER_QUERY_KEY,
+    queryFn: fetchCenter,
+    staleTime: 60_000,
+    retry: false,
+    enabled: isCenterStudent,
+  })
+
+  if (!isCenterStudent || !centerName) return null
+  const group = center?.groupName?.trim() || null
+
+  return (
+    <p className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-signal-soft px-3 py-1 text-sm font-bold text-signal-ink">
+      <Building2 aria-hidden="true" strokeWidth={2} className="size-4 shrink-0" />
+      <span className="truncate">
+        {fill(t.center.profileLine, { center: center?.centerName ?? centerName })}
+        {group && ` · ${fill(t.center.groupLine, { group })}`}
+      </span>
+    </p>
   )
 }
 

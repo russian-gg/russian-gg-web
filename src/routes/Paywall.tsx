@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Gift } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, RequestError, track } from '../lib/api'
+import { useCenterStudent } from '../lib/center'
 import { formatDate, formatPrice } from '../lib/format'
 import { fill, useLocale, useT } from '../lib/i18n'
 import { ReportProblemLink } from '../components/ReportProblem'
@@ -94,6 +95,12 @@ const promoCelebrationPieces = Array.from({ length: 26 }, (_, index) => ({
  * never computes what will be charged, only what to show.
  */
 export function Paywall() {
+  // A language center's student buys nothing: their center pays (checkout refuses them anyway).
+  const { isCenterStudent } = useCenterStudent()
+  return isCenterStudent ? <Navigate to="/home" replace /> : <PaywallScreen />
+}
+
+function PaywallScreen() {
   const t = useT()
   const { locale } = useLocale()
   const [params] = useSearchParams()
@@ -527,6 +534,12 @@ const STALL_AFTER_MS = 120_000
  * its way.
  */
 export function BillingReturn() {
+  // No checkout of theirs to come back from; see `Paywall`.
+  const { isCenterStudent } = useCenterStudent()
+  return isCenterStudent ? <Navigate to="/home" replace /> : <BillingReturnScreen />
+}
+
+function BillingReturnScreen() {
   const t = useT()
   const { locale } = useLocale()
   const navigate = useNavigate()

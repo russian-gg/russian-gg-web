@@ -138,6 +138,8 @@ export type AdminCenterAccount = {
   displayName: string
   isActive: boolean
   lastLoginAt: string | null
+  /** The generated password, only while the admin has never signed in with it. */
+  pendingPassword?: string | null
 }
 
 export type AdminCenterInvoice = {

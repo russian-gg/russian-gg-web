@@ -1,3 +1,4 @@
+import { centerLockText, type CenterLock } from './center'
 import type { Dictionary } from './i18n'
 import type { MissionSummary } from './types'
 
@@ -17,9 +18,16 @@ export function missionLock(mission: Pick<MissionSummary, 'isLocked' | 'lockKind
   return mission.lockReason?.toLowerCase().includes('pro') ? 'pro' : 'progress'
 }
 
-/** Where a locked mission's button goes: the plans for Pro, the path for a day not reached yet. */
-export function missionLockDestination(lock: MissionLock) {
-  return lock === 'pro' ? '/paywall' : '/path'
+/**
+ * Where a locked mission's button goes: the plans for Pro, the path for a day not reached yet.
+ *
+ * A language center's student (`centerLock`, from `useCenterStudent`) is never sent to the
+ * plans: their Pro is the center's to open, so the button goes to their profile, where the
+ * center's state is spelled out.
+ */
+export function missionLockDestination(lock: MissionLock, centerLock?: CenterLock | null) {
+  if (lock === 'pro') return centerLock ? '/settings' : '/paywall'
+  return '/path'
 }
 
 /**
@@ -31,6 +39,14 @@ export function missionLockText(
   mission: Pick<MissionSummary, 'lockReason'>,
   lock: MissionLock,
   t: Dictionary,
+  /** Set for a center's student: the center's state stands in for the offer. */
+  centerLock?: CenterLock | null,
 ) {
-  return lock === 'pro' ? t.practice.lockedProBody : mission.lockReason || t.path.lockedFallback
+  if (lock === 'pro') return centerLock ? centerLockText(centerLock, t) : t.practice.lockedProBody
+  return mission.lockReason || t.path.lockedFallback
+}
+
+/** The short label on a locked card: "needs Pro" is an offer, so a center's student reads "locked". */
+export function missionLockLabel(lock: MissionLock, t: Dictionary, centerLock?: CenterLock | null) {
+  return lock === 'pro' && !centerLock ? t.path.needsPro : t.path.locked
 }

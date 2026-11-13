@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, RequestError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { useCenterStudent } from '../lib/center'
 import { isBusyPath } from '../lib/busy-path'
 import { fill, useT } from '../lib/i18n'
 import type { WelcomeGiftStatus } from '../lib/types'
@@ -166,7 +167,12 @@ export function WelcomeGiftGate() {
   */
   const isPublicPage = ['/', '/signin', '/signup', '/reset-password'].includes(location.pathname)
   const isResultPage = /^\/missions\/attempts\/[^/]+\/result$/.test(location.pathname)
-  const enabled = Boolean(user && !isPublicPage && !isResultPage && !isBusyPath(location.pathname))
+  // The gift is days and discounts on a plan; a language center's student buys no plan, so
+  // there is nothing in the box for them (the server offers it to nobody in a center either).
+  const { isCenterStudent } = useCenterStudent()
+  const enabled = Boolean(
+    user && !isCenterStudent && !isPublicPage && !isResultPage && !isBusyPath(location.pathname),
+  )
   const { data, refetch } = useQuery({
     queryKey: ['welcome-gift', user?.id],
     queryFn: () => api.get<WelcomeGiftStatus>('/billing/welcome-gift'),

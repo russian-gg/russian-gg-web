@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { Mic } from 'lucide-react'
+import { useCenterStudent } from '../lib/center'
 import { useFocusTrap } from '../lib/focus-trap'
 import { useT } from '../lib/i18n'
+import { CenterLockNote } from './CenterLockNote'
 import { Button } from './ui'
 
 /*
@@ -11,7 +13,7 @@ import { Button } from './ui'
  */
 
 export function DailyLimitDialog({
-  isPro,
+  isPro: hasPro,
   onDismiss,
   onBuy,
 }: {
@@ -21,6 +23,10 @@ export function DailyLimitDialog({
 }) {
   const dialogRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
+  // A center's student is offered no purchase: they read the limit the way a subscriber does,
+  // and, while their center keeps Pro shut, why.
+  const { isCenterStudent, lock: centerLock } = useCenterStudent()
+  const isPro = hasPro || isCenterStudent
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -48,6 +54,7 @@ export function DailyLimitDialog({
         <p className="text-support mt-2">
           {isPro ? t.player.dailyLimitBodyPro : t.player.dailyLimitBody}
         </p>
+        {centerLock && <CenterLockNote lock={centerLock} className="mt-3" />}
         {!isPro && (
           <Button className="mt-5" block onClick={onBuy}>
             {t.player.buyAccess}

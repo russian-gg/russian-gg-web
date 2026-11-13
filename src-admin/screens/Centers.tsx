@@ -11,6 +11,8 @@ import {
   Ellipsis,
   EllipsisVertical,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
   GraduationCap,
   House,
@@ -573,7 +575,6 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 <PaymentCard detail={data} onChanged={refresh} />
 
                 <StudentsSection
-                  detail={data}
                   students={students.data}
                   error={students.error}
                   onRetry={students.refresh}
@@ -591,7 +592,6 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
           {tab === 'students' && (
             <StudentsSection
-              detail={data}
               students={students.data}
               error={students.error}
               onRetry={students.refresh}
@@ -788,14 +788,12 @@ function SetupChecklist({ detail }: { detail: AdminCenterDetail }) {
 }
 
 function StudentsSection({
-  detail,
   students,
   error,
   onRetry,
   onOpen,
   actions,
 }: {
-  detail: AdminCenterDetail
   students: CenterStudent[] | null
   error: string
   onRetry: () => void
@@ -824,8 +822,8 @@ function StudentsSection({
             <div>
               <p className="text-base font-extrabold text-ink">Hali o'quvchi qo'shilmagan</p>
               <p className="max-w-sm text-sm text-ink-muted">
-                Markaz panelida raqam kiritib yoki Excel fayldan yuklab o'quvchilarni qo'shing. Raqami yo'q o'quvchi{' '}
-                <b className="font-mono text-ink">{detail.joinCode}</b> kodini yozadi.
+                Ism va telefon raqamini kiriting yoki Excel fayldan yuklang. O'quvchi shu raqam bilan kirishi bilan markazga
+                o'zi ulanadi — kod kerak emas.
               </p>
             </div>
           </div>
@@ -871,7 +869,9 @@ function AboutCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged
       </h2>
       <dl className="divide-y divide-hairline text-sm">
         <div className="flex items-center justify-between gap-3 pb-3">
-          <dt className="text-ink-muted">Markaz kodi</dt>
+          <dt className="text-ink-muted">
+            Markaz kodi <span className="text-xs">(zaxira)</span>
+          </dt>
           <dd className="flex items-center gap-1">
             <span className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-1 font-mono text-base font-extrabold tracking-[0.12em] text-ink">
               {detail.joinCode}
@@ -1326,10 +1326,10 @@ function panelAddress() {
 /** One credential as a labelled, copyable field: what the center will type, nothing else. */
 function CredentialField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised py-1.5 pr-1.5 pl-4">
+    <div className="flex min-w-0 items-center gap-2 rounded-xl border-2 border-hairline bg-ground-raised py-2 pr-1.5 pl-3">
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">{label}</div>
-        <div className={cx('truncate text-sm font-bold text-ink', mono && 'font-mono tracking-wide')}>{value}</div>
+        <div className="text-[11px] font-extrabold tracking-[0.1em] whitespace-nowrap text-ink-faint uppercase">{label}</div>
+        <div className={cx('text-sm font-bold break-all text-ink', mono && 'font-mono tracking-wide')}>{value}</div>
       </div>
       <button
         type="button"
@@ -1363,14 +1363,14 @@ function IssuedCredentials({
   const telegram = `https://t.me/share/url?url=${encodeURIComponent(panelAddress())}&text=${encodeURIComponent(message)}`
 
   return (
-    <div role="status" className="space-y-4 rounded-[var(--radius-card)] border-2 border-milestone/40 bg-milestone-soft/60 p-4 sm:p-5">
+    <div role="status" className="@container space-y-4 rounded-[var(--radius-card)] border-2 border-milestone/40 bg-milestone-soft/60 p-4">
       <div className="flex items-start gap-3">
-        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-milestone text-ground-raised">
-          <Check className="size-5" strokeWidth={2.5} />
+        <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-milestone text-ground-raised">
+          <Check className="size-4" strokeWidth={2.5} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-base font-extrabold text-ink">Login tayyor</p>
-          <p className="text-sm text-ink-muted">Ma'lumotlarni markazga yuboring — ular shu bilan panelga kiradi.</p>
+          <p className="text-sm text-ink-muted">Markazga yuboring — shu bilan panelga kiradi.</p>
         </div>
         <button
           type="button"
@@ -1382,13 +1382,13 @@ function IssuedCredentials({
         </button>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 @xl:grid-cols-3">
         <CredentialField label="Panel manzili" value={panelAddress().replace(/^https?:\/\//, '')} />
         <CredentialField label="Login" value={username} mono />
         <CredentialField label="Parol" value={password} mono />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid gap-2 @md:flex @md:flex-wrap @md:items-center">
         <Button size="sm" onClick={() => copyText(message, 'Xabar nusxalandi')}>
           <span className="flex items-center gap-1.5">
             <Copy aria-hidden="true" className="size-4" strokeWidth={1.8} />
@@ -1399,13 +1399,13 @@ function IssuedCredentials({
           href={telegram}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm font-bold text-ink hover:border-ink-faint"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm font-bold text-ink hover:border-ink-faint"
         >
           <Send aria-hidden="true" className="size-4" strokeWidth={1.8} />
           Telegram orqali yuborish
         </a>
         <details className="group w-full text-sm">
-          <summary className="cursor-pointer list-none font-bold text-signal-ink hover:underline">
+          <summary className="cursor-pointer list-none text-center font-bold text-signal-ink hover:underline @md:text-left">
             <span className="group-open:hidden">Xabar matnini ko'rish</span>
             <span className="hidden group-open:inline">Xabar matnini yashirish</span>
           </summary>
@@ -1415,10 +1415,48 @@ function IssuedCredentials({
         </details>
       </div>
 
-      <p className="flex items-center gap-2 rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 text-xs font-bold text-caution">
-        <TriangleAlert aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />
+      <p className="flex items-start gap-2 rounded-xl bg-caution-soft px-3 py-2.5 text-xs leading-relaxed font-bold text-caution">
+        <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={2} />
         Parol faqat hozir ko'rinadi. Yopgandan keyin uni ko'rib bo'lmaydi — faqat yangisini berish mumkin.
       </p>
+    </div>
+  )
+}
+
+/**
+ * The password the team generated, while the admin has not signed in with it yet — so a center
+ * that lost the message can still be told it. It disappears from here at their first sign-in.
+ */
+function PendingPassword({ detail, username, password }: { detail: AdminCenterDetail; username: string; password: string }) {
+  const [shown, setShown] = useState(false)
+  return (
+    <div className="flex w-full flex-wrap items-center gap-2 rounded-xl bg-caution-soft px-3 py-2 pl-[52px] text-sm">
+      <span className="font-bold text-caution">Parol:</span>
+      <span className="font-mono font-bold tracking-wide text-ink">{shown ? password : '•'.repeat(password.length)}</span>
+      <button
+        type="button"
+        onClick={() => setShown((value) => !value)}
+        aria-label={shown ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+        className="flex size-8 items-center justify-center rounded-full text-ink-muted hover:bg-ground-raised hover:text-ink"
+      >
+        {shown ? <EyeOff className="size-4" strokeWidth={1.8} /> : <Eye className="size-4" strokeWidth={1.8} />}
+      </button>
+      <button
+        type="button"
+        onClick={() => copyText(password, 'Parol nusxalandi')}
+        aria-label="Parolni nusxalash"
+        className="flex size-8 items-center justify-center rounded-full text-ink-muted hover:bg-ground-raised hover:text-ink"
+      >
+        <Copy className="size-4" strokeWidth={1.8} />
+      </button>
+      <button
+        type="button"
+        onClick={() => copyText(credentialsMessage(detail, username, password), 'Xabar nusxalandi')}
+        className="text-xs font-bold text-signal-ink hover:underline"
+      >
+        Xabarni nusxalash
+      </button>
+      <span className="w-full text-xs text-ink-muted">Birinchi kirishdan keyin bu yerdan o'chadi.</span>
     </div>
   )
 }
@@ -1487,8 +1525,8 @@ function CenterAdmins({ detail, onChanged, compact = false }: { detail: AdminCen
     <Card as="section" aria-labelledby={compact ? 'admins-side-title' : 'admins-title'} className={cx('space-y-4', detail.admins.length === 0 && 'border-signal')}>
       <div className="flex items-center justify-between gap-3">
         <h2 id={compact ? 'admins-side-title' : 'admins-title'} className="flex items-center gap-3 text-lg font-extrabold text-ink">
-          <Users aria-hidden="true" className="size-5 text-signal-ink" strokeWidth={1.8} />
-          Markaz administratorlari
+          <Users aria-hidden="true" className="size-5 shrink-0 text-signal-ink" strokeWidth={1.8} />
+          {compact ? 'Administratorlar' : 'Markaz administratorlari'}
         </h2>
         {detail.admins.length > 0 && !adding && (
           <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
@@ -1518,7 +1556,7 @@ function CenterAdmins({ detail, onChanged, compact = false }: { detail: AdminCen
       {detail.admins.length > 0 && (
         <ul className="divide-y divide-hairline">
           {detail.admins.map((admin) => (
-            <li key={admin.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+            <li key={admin.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
               <span
                 aria-hidden="true"
                 className="flex size-10 shrink-0 items-center justify-center rounded-full bg-signal-soft text-sm font-extrabold text-signal-ink uppercase"
@@ -1547,6 +1585,9 @@ function CenterAdmins({ detail, onChanged, compact = false }: { detail: AdminCen
               >
                 <EllipsisVertical aria-hidden="true" className="size-4" strokeWidth={2} />
               </MenuButton>
+              {admin.pendingPassword && (
+                <PendingPassword detail={detail} username={admin.username} password={admin.pendingPassword} />
+              )}
             </li>
           ))}
         </ul>

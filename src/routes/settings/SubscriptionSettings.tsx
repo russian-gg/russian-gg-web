@@ -12,7 +12,6 @@ import freeBackdrop from '../../assets/images/subscription_container_bg.webp'
 import monthlyBackdrop from '../../assets/images/month_subscription.webp'
 import ninetyDayBackdrop from '../../assets/images/3_months_subscription.webp'
 import planArtwork from '../../assets/images/subscription_informaton.webp'
-import { CenterCard } from './CenterCard'
 
 /**
  * The plan, what it has unlocked, and what the other plan would add.
@@ -58,8 +57,6 @@ export function SubscriptionSettings() {
   return (
     <div className="space-y-4">
       <CurrentPlanBanner entitlement={entitlement} t={t} />
-      {/* Under the plan, because a center is the other answer to "who pays for this". */}
-      <CenterCard />
       <ProgressCard entitlement={entitlement} t={t} />
 
       {/*

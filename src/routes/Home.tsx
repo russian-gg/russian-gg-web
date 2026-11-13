@@ -15,6 +15,7 @@ import {
   QuoteCard,
   RecentActivity,
 } from '../components/home/HomeSidePanels'
+import { useCenterStudent } from '../lib/center'
 import { missionLock, missionLockDestination } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
 import { EmptyState, LinkButton, SectionHeading, Spinner } from '../components/ui'
@@ -37,6 +38,8 @@ export function Home() {
   // Set by the level test's result screen only, so a reload or a later visit does not ask again.
   const welcome = (location.state as { welcome?: WelcomeStart } | null)?.welcome
   const courseDays = useCourseDays()
+  // A center's student is pointed at their center, never at the plans.
+  const { lock: centerLock } = useCenterStudent()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeView>('/course/home'),
@@ -72,11 +75,18 @@ export function Home() {
   const today = data.currentDay
   const finishedDays = courseDays.finished ?? Math.max(0, data.currentDay - 1)
   const startPath = todayLock
-    ? missionLockDestination(todayLock)
+    ? missionLockDestination(todayLock, centerLock)
     : data.todayMission
       ? missionPath(data.todayMission)
       : '/path'
-  const startLabel = todayLock === 'pro' ? t.path.buyPro : todayLock === 'progress' ? t.nav.path : undefined
+  const startLabel =
+    todayLock === 'pro'
+      ? centerLock
+        ? t.center.title
+        : t.path.buyPro
+      : todayLock === 'progress'
+        ? t.nav.path
+        : undefined
 
   return (
     /*

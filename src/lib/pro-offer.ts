@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
+import { useCenterStudent } from './center'
 import { COURSE_DAYS, useCourseDays } from './course-days'
 import { formatPrice } from './format'
 import { fill, useLocale, type Dictionary } from './i18n'
@@ -46,7 +47,11 @@ export function useProOffer() {
     staleTime: 60_000,
     retry: false,
   })
-  const isFree = entitlement?.hasProAccess === false
+  // A center's student is never offered Pro: their center pays, or nobody does. Reading as
+  // "not free" here is what keeps every surface built on this hook — the cards, the pill, the
+  // menu line — away from them without each one asking.
+  const { isCenterStudent } = useCenterStudent()
+  const isFree = entitlement?.hasProAccess === false && !isCenterStudent
   // The paywall's own query: a learner who follows one of these links finds the prices loaded.
   const { data: plans } = useQuery({
     queryKey: ['plans'],
@@ -83,8 +88,13 @@ export function useProOffer() {
     ready: Boolean(entitlement && progress && courseDays.ready),
     /** One entry per free day: finished or not. */
     freeDayDone,
-    /** Known to be on the free plan — false while the entitlement is still loading. */
+    /**
+     * Known to be on the free plan and someone Pro can be sold to — false while the
+     * entitlement is still loading, and always for a language center's student.
+     */
     isFree,
+    /** A language center's student: no plan, price or gift is theirs to see. */
+    isCenterStudent,
     /** The whole course already open (a long gift, or a future free tier): nothing to sell. */
     hasEverything: freeDays >= COURSE_DAYS,
     freeDays,

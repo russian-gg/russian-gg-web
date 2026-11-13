@@ -7,9 +7,11 @@ import { pickContent } from '../../lib/content'
 import { cx } from '../../lib/cx'
 import { fill, useLocale, useT } from '../../lib/i18n'
 import { MISSION_IMAGE_SIZE, missionImage } from '../../lib/mission-images'
+import { useCenterStudent } from '../../lib/center'
 import { missionLockText } from '../../lib/mission-lock'
 import { missionPath } from '../../lib/mission-path'
 import { duration, ease, fade, springSoft } from '../../lib/motion'
+import { CenterLockNote } from '../CenterLockNote'
 import { Reveal } from '../motion'
 import { PreviewFact } from '../PreviewDialog'
 import { Badge, Button, LinkButton } from '../ui'
@@ -111,6 +113,8 @@ function Details({ row, showFreeLabel }: { row: MissionRow; showFreeLabel: boole
   const { locale } = useLocale()
   const navigate = useNavigate()
   const { mission, number, title, status, locked, isProLock } = row
+  // A center's student is not sold Pro: their center opens it, and the sheet says whose move it is.
+  const { lock: centerLock } = useCenterStudent()
   const best = mission.bestScore ?? null
   const objective = pickContent(locale, {
     uz: mission.objectiveUz,
@@ -203,7 +207,9 @@ function Details({ row, showFreeLabel }: { row: MissionRow; showFreeLabel: boole
 
         {/* On a phone the sheet can outgrow the screen; the action stays pinned to its bottom edge. */}
         <div className="sticky -bottom-4 -mx-4 mt-auto flex flex-col gap-3 bg-ground-raised px-4 pt-4 pb-4 sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-end sm:p-0 sm:pt-4">
-          {locked ? (
+          {locked && isProLock && centerLock ? (
+            <CenterLockNote lock={centerLock} className="w-full" />
+          ) : locked ? (
             <>
               <p className="text-sm font-semibold text-ink-muted sm:mr-auto">
                 {missionLockText(mission, isProLock ? 'pro' : 'progress', t)}

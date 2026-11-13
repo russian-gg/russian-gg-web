@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { useCenterStudent } from '../lib/center'
 import { pickContent } from '../lib/content'
 import { LESSON_ONE_SECTIONS, readFoundationLessonProgress, type LessonOneProgress } from '../lib/demo-lesson-one'
 import { FOUNDATION_LESSON_DAYS, hasFoundationLesson } from '../lib/foundation-days'
@@ -14,6 +15,7 @@ import { missionLock } from '../lib/mission-lock'
 import { missionPath } from '../lib/mission-path'
 import { formatPrice } from '../lib/format'
 import type { CourseDayView, EntitlementView, MissionSummary, PlansView, ProgressView } from '../lib/types'
+import { CenterLockNote } from '../components/CenterLockNote'
 import { MissionProgress } from '../components/MissionCard'
 import { DaySkyMap, type SkyDay } from '../components/path/DaySkyMap'
 import { cheapestDay as cheapestPlanDay } from '../lib/pro-offer'
@@ -51,6 +53,8 @@ export function CoursePath() {
   const t = useT()
   const { locale } = useLocale()
   const { user } = useAuth()
+  // The free-days chip and the Pro link are a plan's terms; a center's student has no plan.
+  const { isCenterStudent, lock: centerLock } = useCenterStudent()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   /*
@@ -315,7 +319,8 @@ export function CoursePath() {
               {Math.round((completedDays / Math.max(1, days.length)) * 100)}%
             </span>
           </div>
-          {entitlement?.hasProAccess === false && (
+          {centerLock && <CenterLockNote lock={centerLock} className="py-2" />}
+          {entitlement?.hasProAccess === false && !isCenterStudent && (
             <>
               <span aria-hidden="true" className="hidden h-8 w-px bg-hairline sm:block" />
               {maxUnlockedDay > 0 && (
@@ -516,7 +521,13 @@ function LockedDayDialog({
   const lockedRef = useFocusTrap<HTMLDivElement>()
   const t = useT()
   const { locale } = useLocale()
-  const isPro = locked.kind === 'pro'
+  /*
+    A center's student is not sold the day: their center opens it. The dialog keeps its shape —
+    a shut day and the way back to today — with the center's state where the offer was.
+  */
+  const { lock: centerLock } = useCenterStudent()
+  const centerPro = locked.kind === 'pro' ? centerLock : null
+  const isPro = locked.kind === 'pro' && !centerPro
 
   // The cheapest day of Pro, on the button where the decision is made. The paywall's own
   // query: a learner going on to it finds the prices already loaded.
@@ -551,14 +562,18 @@ function LockedDayDialog({
           {isPro ? fill(t.path.lockedProTitle, { day: locked.day }) : t.path.lockedProgressTitle}
         </h2>
 
-        <p className="text-support mt-2">
-          {isPro
-            ? fill(freeDays > 1 ? t.path.lockedProBodyRange : t.path.lockedProBody, {
-                last: freeDays,
-                ready: readyDays,
-              })
-            : fill(t.path.lockedProgressBody, { day: locked.day })}
-        </p>
+        {centerPro ? (
+          <CenterLockNote lock={centerPro} className="mt-3" />
+        ) : (
+          <p className="text-support mt-2">
+            {isPro
+              ? fill(freeDays > 1 ? t.path.lockedProBodyRange : t.path.lockedProBody, {
+                  last: freeDays,
+                  ready: readyDays,
+                })
+              : fill(t.path.lockedProgressBody, { day: locked.day })}
+          </p>
+        )}
 
         {isPro ? (
           <>
