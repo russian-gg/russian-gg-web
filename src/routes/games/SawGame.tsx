@@ -28,6 +28,7 @@ export function SawGame() {
   const [question, setQuestion] = useState('')
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [speaking, setSpeaking] = useState(false)
   const [busy, setBusy] = useState('')
   const [volume, setVolume] = useState(0)
@@ -95,7 +96,7 @@ export function SawGame() {
 
   const start = async () => {
     if (run.current || !supported) return
-    setError(''); setResult(undefined); setBlade(0); setSecondsLeft(ROUND_SECONDS)
+    setError(''); setNotice(''); setResult(undefined); setBlade(0); setSecondsLeft(ROUND_SECONDS)
     setRound(0); setTranscript(''); setQuestion(''); setSpeaking(false); setPhase('starting')
     setBusy('Подключаем собеседника…'); setEmotion('idle')
     let audio: SawAudio
@@ -160,6 +161,7 @@ export function SawGame() {
         }
         active.current = ''
         setError('')
+        setNotice(response.isFallback ? 'AI временно недоступен. Тренировка с готовыми вопросами без озвучки.' : '')
         active.history.push({ role: 'assistant', text: response.characterReply })
         active.history = active.history.slice(-8)
         active.threat = Math.max(0, Math.min(100, active.threat + response.threatChange))
@@ -168,7 +170,7 @@ export function SawGame() {
         if (event === 'answer') setRound((value) => value + 1)
         setEmotion(response.animation === 'happy' ? 'happy' : response.animation === 'sad' ? 'silence' : response.animation === 'angry' ? 'panic' : 'idle')
         setBusy(sound.current ? 'Слушай собеседника — таймер на паузе' : 'Твой собеседник задал вопрос')
-        try { await active.audio.speak(response.characterReply, character) } catch {
+        try { if (!response.isFallback) await active.audio.speak(response.characterReply, character) } catch {
           if (active.alive) setError('Озвучка недоступна. Вопрос показан на экране — отвечай по-русски.')
         }
         if (!active.alive) return
@@ -216,10 +218,10 @@ export function SawGame() {
   }
 
   return <SawGameView phase={phase} blade={blade} secondsLeft={secondsLeft} score={score} round={round}
-    question={question} transcript={transcript} speaking={speaking} supported={supported} error={error}
+    question={question} transcript={transcript} speaking={speaking} supported={supported} error={error} notice={notice}
     character={character} emotion={emotion} topic={topic} volume={volume} result={result} busy={busy}
     soundEnabled={soundEnabled} onCharacter={setCharacter} onTopic={setTopic} onStart={() => void start()}
     onSurrender={() => void finish('surrender')} onBack={() => { release(); navigate('/games') }}
-    onNext={() => { release(); setError(''); setPhase('ready') }}
+    onNext={() => { release(); setError(''); setNotice(''); setPhase('ready') }}
     onToggleSound={() => { sound.current = !sound.current; setSoundEnabled(sound.current); run.current?.audio.setEnabled(sound.current) }} />
 }

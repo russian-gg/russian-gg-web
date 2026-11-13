@@ -18,6 +18,7 @@ type Props = {
   speaking?: boolean
   supported?: boolean
   error?: string
+  notice?: string
   busy?: string
   preview?: boolean
   animated?: boolean
@@ -38,7 +39,7 @@ type Props = {
 }
 
 export function SawGameView({ phase, blade, secondsLeft, score, round, question, transcript = '', speaking = false,
-  supported = true, error, preview = false, animated = true, character = 'penguin', emotion = 'idle', topic = 'everyday',
+  supported = true, error, notice, preview = false, animated = true, character = 'penguin', emotion = 'idle', topic = 'everyday',
   reply = '', busy = '', volume = 0, result, soundEnabled = true, onStart, onNext, onBack, onCharacter, onTopic, onSurrender, onToggleSound }: Props) {
   const info = SAW_CHARACTER_INFO[character]
   const finished = phase === 'cut' || phase === 'won'
@@ -92,6 +93,7 @@ export function SawGameView({ phase, blade, secondsLeft, score, round, question,
 
       {preview && <div className="arra-preview-caption"><strong>{info.name}</strong><span>{info.trait} · {info.location}</span><i>{SAW_CHARACTERS.map((hero) => <b key={hero} data-current={hero === character} />)}</i></div>}
 
+      {active && notice && !preview && <p className="arra-notice" role="status">{notice}</p>}
       {active && <section className="arra-arena" aria-label={c.title} data-danger={danger}>
         <div className="arra-hud">
           <div className="arra-suspicion" role="meter" aria-label={c.threat} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(threat)}>

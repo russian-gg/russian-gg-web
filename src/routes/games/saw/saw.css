@@ -256,6 +256,7 @@
   .arra-page[data-preview=true] .arra-wave { width: 75px; gap: 3px; }
   .arra-page[data-preview=true] .arra-wave i { width: 3px; }
 }
+.arra-notice { margin: 0 0 14px; padding: 10px 14px; border: 1px solid #ffc38a40; border-radius: 12px; background: #ffc38a12; color: #ffe0b9; font-size: 13px; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) {
   .arra-page *, .arra-page *::before, .arra-page *::after { animation: none !important; transition: none !important; }
 }
