@@ -1,6 +1,33 @@
-import { useState } from 'react'
-import { ChevronLeft, Copy, ExternalLink } from 'lucide-react'
-import { adminFetch, formatDate, formatDateTime, useAdminQuery } from '../lib/api'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  Archive,
+  CalendarCheck,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Copy,
+  CreditCard,
+  Ellipsis,
+  EllipsisVertical,
+  ExternalLink,
+  FileText,
+  GraduationCap,
+  House,
+  Info,
+  Pencil,
+  Plus,
+  Power,
+  Send,
+  ShieldCheck,
+  TrendingUp,
+  TriangleAlert,
+  Upload,
+  Users,
+  X,
+} from 'lucide-react'
+import { cx } from '../../src/lib/cx'
+import { adminFetch, daysUntil, formatDate, formatDateTime, formatDayLong, useAdminQuery } from '../lib/api'
 import {
   centerStatusLabel,
   leadStatusLabel,
@@ -45,6 +72,9 @@ import {
   uzLocalDigits,
 } from '../lib/center-format'
 import { toast } from '../lib/toast'
+import { IconStat } from '../components/center-ui'
+import { readStudentsFile } from '../lib/student-import'
+import { AddStudentsDialog, type DraftStudent } from './CenterPortal'
 
 /*
  * The team's side of the B2B offer. A center exists because a contract was signed: it is made
@@ -333,16 +363,73 @@ function CenterForm({
 
 // ------------------------------------------------------------------------------- detail
 
+type DetailTab = 'overview' | 'students' | 'payments' | 'admins' | 'history'
+
+const detailTabs: Array<{ id: DetailTab; label: string; Icon: typeof House }> = [
+  { id: 'overview', label: "Umumiy ma'lumot", Icon: House },
+  { id: 'students', label: "O'quvchilar", Icon: Users },
+  { id: 'payments', label: "To'lovlar", Icon: CreditCard },
+  { id: 'admins', label: 'Administratorlar', Icon: ShieldCheck },
+  { id: 'history', label: 'Tarix', Icon: Clock },
+]
+
 function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { data, error, refresh } = useAdminQuery<AdminCenterDetail>(`/api/admin-portal/centers/${id}`)
   const students = useAdminQuery<CenterStudent[]>(`/api/admin-portal/centers/${id}/students`)
+  const [tab, setTab] = useState<DetailTab>('overview')
   const [editing, setEditing] = useState(false)
   const [openSeat, setOpenSeat] = useState<string | null>(null)
+  const [adding, setAdding] = useState<DraftStudent[] | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importFailure, setImportFailure] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const reload = () => {
     refresh()
     students.refresh()
   }
+
+  async function importFile(file: File) {
+    setImporting(true)
+    setImportFailure('')
+    try {
+      const rows = await readStudentsFile(file)
+      if (rows.length === 0) throw new Error("Faylda o'quvchi topilmadi. Shablondagi ustunlarni to'ldiring.")
+      setAdding(
+        rows.map((row, index) => {
+          const local = uzLocalDigits(row.phone)
+          return { key: 1_000_000 + index, name: row.name, phone: local ? maskUzLocal(local) : row.phone, email: row.email }
+        }),
+      )
+    } catch (caught) {
+      setImportFailure(caught instanceof Error ? caught.message : "Faylni o'qib bo'lmadi.")
+    } finally {
+      setImporting(false)
+      if (fileInput.current) fileInput.current.value = ''
+    }
+  }
+
+  const studentActions = (
+    <>
+      <Button size="sm" onClick={() => setAdding([])} disabled={data?.status === 'archived'}>
+        <span className="flex items-center gap-1.5">
+          <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
+          O'quvchilar qo'shish
+        </span>
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => fileInput.current?.click()}
+        disabled={importing || data?.status === 'archived'}
+      >
+        <span className="flex items-center gap-1.5">
+          <Upload aria-hidden="true" className="size-4" strokeWidth={1.8} />
+          {importing ? "O'qilmoqda…" : "Excel'dan yuklash"}
+        </span>
+      </Button>
+    </>
+  )
 
   return (
     <Screen className="space-y-6">
@@ -358,73 +445,166 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
       {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {!data && !error && <LoadingRows />}
 
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) void importFile(file)
+        }}
+      />
+
       {data && (
-        <>
-          <header className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-extrabold tracking-tight text-ink">{data.name}</h1>
-                <StatusBadge status={data.status} />
-                <AccessBadge access={data.overview.access} />
+        <div className="flex flex-col gap-6">
+          <header className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <span
+                aria-hidden="true"
+                className="flex size-16 shrink-0 items-center justify-center rounded-[var(--radius-card)] bg-signal-soft text-signal-ink"
+              >
+                <GraduationCap className="size-8" strokeWidth={1.7} />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-extrabold tracking-tight text-ink">{data.name}</h1>
+                  <StatusPill status={data.status} />
+                  <AccessBadge access={data.overview.access} />
+                </div>
+                <p className="mt-1 text-sm text-ink-muted">
+                  {[data.city, data.contactName].filter(Boolean).join(' · ')}
+                  {data.contactPhone && (
+                    <>
+                      {(data.city || data.contactName) && ' · '}
+                      <a href={`tel:${data.contactPhone}`} className="hover:text-signal-ink hover:underline">
+                        {formatUzPhone(data.contactPhone)}
+                      </a>
+                    </>
+                  )}
+                </p>
               </div>
-              <p className="mt-1.5 text-sm text-ink-muted">
-                {[data.city, data.contactName].filter(Boolean).join(' · ')}
-                {data.contactPhone && (
-                  <>
-                    {(data.city || data.contactName) && ' · '}
-                    <a href={`tel:${data.contactPhone}`} className="text-signal-ink hover:underline">
-                      {formatUzPhone(data.contactPhone)}
-                    </a>
-                  </>
-                )}
-              </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-              Tahrirlash
-            </Button>
+            <HeaderActions detail={data} onChanged={reload} onEdit={() => setEditing(true)} />
           </header>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Stat
-              label="Faol o'quvchilar"
-              value={
-                <>
-                  {data.overview.activeStudents}
-                  <span className="text-lg text-ink-faint"> / {data.maxStudents}</span>
-                </>
-              }
-              note={`${Math.max(0, data.maxStudents - data.overview.activeStudents)} ta joy bo'sh · ${data.overview.notSignedIn} tasi hali kirmagan`}
-            />
-            <Stat
-              label="To'langan muddat"
-              value={data.paidThrough ? formatDate(data.paidThrough) : "To'lanmagan"}
-              note={accessNote(data)}
-            />
-            <Stat label="Bu hafta mashq qilgan" value={`${data.overview.weeklyActivePercent}%`} note="faol o'quvchilardan" />
-            <Stat label="Xavf ostida" value={data.overview.atRisk} note="7+ kun kirmagan yoki ortda qolgan" />
-          </div>
+          <nav
+            role="tablist"
+            aria-label="Markaz bo'limlari"
+            className="flex min-h-14 items-stretch gap-1 overflow-x-auto overflow-y-hidden rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised px-2 [scrollbar-width:none]"
+          >
+            {detailTabs.map(({ id: tabId, label, Icon }) => (
+              <button
+                key={tabId}
+                type="button"
+                role="tab"
+                aria-selected={tab === tabId}
+                onClick={() => setTab(tabId)}
+                className={cx(
+                  'flex shrink-0 items-center gap-2 border-y-[3px] border-t-transparent px-4 py-4 text-sm font-bold whitespace-nowrap transition-colors focus-visible:rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-signal',
+                  tab === tabId
+                    ? 'border-b-signal text-signal-ink'
+                    : 'border-b-transparent text-ink-muted hover:text-ink',
+                )}
+              >
+                <Icon aria-hidden="true" className="size-[18px]" strokeWidth={1.8} />
+                {label}
+                {tabId === 'students' && students.data && (
+                  <span className="rounded-[var(--radius-control)] bg-ground-sunken px-1.5 text-xs font-extrabold text-ink-muted">
+                    {students.data.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
 
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="min-w-0 space-y-6">
+          {importFailure && <ErrorNote>{importFailure}</ErrorNote>}
+
+          {tab === 'overview' && (
+            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="min-w-0 space-y-6">
+                <SetupChecklist detail={data} />
+
+                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+                  <IconStat
+                    Icon={Users}
+                    tone="signal"
+                    label="O'quvchilar"
+                    value={
+                      <>
+                        {data.overview.activeStudents} <span className="text-ink-faint">/ {data.maxStudents}</span>
+                      </>
+                    }
+                    note={
+                      <>
+                        <span aria-hidden="true" className="mb-2 block h-1.5 overflow-hidden rounded-full bg-ground-sunken">
+                          <span
+                            className="block h-full rounded-full bg-signal"
+                            style={{
+                              width: `${data.maxStudents ? Math.min(100, (100 * data.overview.activeStudents) / data.maxStudents) : 0}%`,
+                            }}
+                          />
+                        </span>
+                        {data.overview.notSignedIn > 0
+                          ? `${data.overview.notSignedIn} tasi ilovaga hali kirmagan`
+                          : `${Math.max(0, data.maxStudents - data.overview.activeStudents)} ta joy bo'sh`}
+                      </>
+                    }
+                  />
+                  <ProStat detail={data} />
+                  <IconStat
+                    Icon={TrendingUp}
+                    tone="purple"
+                    label="Bu hafta mashq qilgan"
+                    value={`${data.overview.weeklyActivePercent}%`}
+                    note="faol o'quvchilardan"
+                  />
+                  <IconStat
+                    Icon={TriangleAlert}
+                    tone="caution"
+                    label="Xavf ostida"
+                    value={<span className={data.overview.atRisk > 0 ? 'text-danger' : undefined}>{data.overview.atRisk}</span>}
+                    note="7+ kun kirmagan yoki ortda qolgan"
+                  />
+                </div>
+
+                <PaymentCard detail={data} onChanged={refresh} />
+
+                <StudentsSection
+                  detail={data}
+                  students={students.data}
+                  error={students.error}
+                  onRetry={students.refresh}
+                  onOpen={setOpenSeat}
+                  actions={studentActions}
+                />
+              </div>
+
+              <aside className="space-y-6">
+                <AboutCard detail={data} onChanged={refresh} />
+                <CenterAdmins detail={data} onChanged={refresh} compact />
+              </aside>
+            </div>
+          )}
+
+          {tab === 'students' && (
+            <StudentsSection
+              detail={data}
+              students={students.data}
+              error={students.error}
+              onRetry={students.refresh}
+              onOpen={setOpenSeat}
+              actions={studentActions}
+            />
+          )}
+
+          {tab === 'payments' && (
+            <div className="space-y-6">
               <PaymentCard detail={data} onChanged={refresh} />
-
               <section>
-                <SectionHeading>O'quvchilar · {students.data?.length ?? '…'}</SectionHeading>
-                {students.error && <ErrorNote onRetry={students.refresh}>{students.error}</ErrorNote>}
-                {!students.data && !students.error && <LoadingRows />}
-                {students.data && students.data.length === 0 && (
-                  <Card as="div" className="text-sm text-ink-muted">
-                    Markaz hali o'quvchi qo'shmagan. Ular markaz paneli orqali yoki <b className="font-mono text-ink">{data.joinCode}</b>{' '}
-                    kodi bilan qo'shiladi.
-                  </Card>
-                )}
-                {students.data && students.data.length > 0 && (
-                  <StudentsTable students={students.data} onOpen={(student) => setOpenSeat(student.seatId)} />
-                )}
-              </section>
-
-              <section>
-                <SectionHeading>Hisob-fakturalar tarixi</SectionHeading>
+                <SectionHeading>Hisob-fakturalar</SectionHeading>
                 {data.invoices.length === 0 ? (
                   <Card as="div" className="text-sm text-ink-muted">
                     Hali hisob-faktura yo'q.
@@ -434,14 +614,13 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 )}
               </section>
             </div>
+          )}
 
-            <aside className="space-y-6">
-              <AccessCard detail={data} onChanged={reload} />
-              <ContractCard detail={data} />
-              <JoinCodeCard detail={data} onChanged={refresh} />
-              <CenterAdmins detail={data} onChanged={refresh} />
-            </aside>
-          </div>
+          {tab === 'admins' && (
+            <CenterAdmins detail={data} onChanged={refresh} />
+          )}
+
+          {tab === 'history' && <HistoryList detail={data} />}
 
           {editing && (
             <CenterForm
@@ -451,6 +630,16 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 setEditing(false)
                 refresh()
               }}
+            />
+          )}
+
+          {adding && (
+            <AddStudentsDialog
+              initialRows={adding}
+              free={Math.max(0, data.maxStudents - data.overview.activeStudents)}
+              basePath={`/api/admin-portal/centers/${id}`}
+              onClose={() => setAdding(null)}
+              onAdded={reload}
             />
           )}
 
@@ -464,9 +653,295 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
               onChanged={() => undefined}
             />
           )}
-        </>
+        </div>
       )}
     </Screen>
+  )
+}
+
+function StatusPill({ status }: { status: CenterStatus }) {
+  const tone =
+    status === 'active'
+      ? 'bg-milestone-soft text-milestone'
+      : status === 'suspended'
+        ? 'bg-caution-soft text-caution'
+        : 'bg-ground-sunken text-ink-muted'
+  const dot = status === 'active' ? 'bg-milestone' : status === 'suspended' ? 'bg-caution' : 'bg-ink-faint'
+  return (
+    <span className={cx('inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-1 text-xs font-bold', tone)}>
+      <span aria-hidden="true" className={cx('size-2 rounded-full', dot)} />
+      {centerStatusLabel[status]}
+    </span>
+  )
+}
+
+/** Whether students have Pro today, said as days left rather than a bare date. */
+function ProStat({ detail }: { detail: AdminCenterDetail }) {
+  const access = detail.overview.access
+  if (access === 'open' && detail.paidThrough) {
+    // Days still ahead after today: paid on the 13th for 14 Nov–13 Dec reads "30 kun".
+    const left = Math.max(0, daysUntil(detail.paidThrough))
+    return (
+      <IconStat
+        Icon={CalendarCheck}
+        tone={left <= 7 ? 'caution' : 'milestone'}
+        label="Pro ochiq"
+        value={<span className={left <= 7 ? 'text-caution' : undefined}>{left} kun</span>}
+        note={`${formatDayLong(detail.paidThrough)}gacha to'langan`}
+      />
+    )
+  }
+
+  return (
+    <IconStat
+      Icon={CalendarCheck}
+      tone="caution"
+      label="Pro"
+      value={<span className="text-caution">{access === 'not_started' ? 'Hali emas' : 'Yopiq'}</span>}
+      note={accessNote(detail)}
+    />
+  )
+}
+
+/**
+ * Where a new center stands, as four steps the team walks it through. Shown until the center
+ * has paid, has a login, has used it, and has students — then it gets out of the way.
+ */
+function SetupChecklist({ detail }: { detail: AdminCenterDetail }) {
+  const steps = [
+    { done: Boolean(detail.paidThrough), label: "Birinchi oy to'langan", hint: "To'lov havolasini markazga yuboring" },
+    { done: detail.admins.length > 0, label: 'Login yaratilgan', hint: "“Markaz administratorlari”da yarating" },
+    { done: detail.admins.some((admin) => admin.lastLoginAt), label: 'Panelga kirgan', hint: 'Login va parolni markazga yuboring' },
+    {
+      done: detail.overview.activeStudents > 0,
+      label: "O'quvchilar qo'shilgan",
+      hint: "Panelda raqamlarni kiriting yoki Excel'dan yuklang",
+    },
+  ]
+  const doneCount = steps.filter((step) => step.done).length
+  if (doneCount === steps.length || detail.status === 'archived') return null
+  const current = steps.findIndex((step) => !step.done)
+  const percent = Math.round((100 * doneCount) / steps.length)
+
+  return (
+    <Card as="section" aria-labelledby="setup-title" className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 id="setup-title" className="text-lg font-extrabold text-ink">
+            Markazni ishga tushirish
+          </h2>
+          <p className="mt-0.5 text-sm text-ink-muted">Markazni to'liq ishga tushirish uchun {steps.length} bosqichni bajaring.</p>
+        </div>
+        <div className="w-full max-w-xs space-y-2">
+          <div className="flex items-center justify-end gap-2 text-sm font-bold text-signal-ink">
+            {doneCount} / {steps.length} bajarildi
+            <span className="rounded-[var(--radius-control)] bg-signal px-2 py-0.5 text-xs font-extrabold text-on-signal">{percent}%</span>
+          </div>
+          <div
+            role="progressbar"
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Ishga tushirish"
+            className="h-2 overflow-hidden rounded-full bg-ground-sunken"
+          >
+            <div className="h-full rounded-full bg-signal" style={{ width: `${percent}%` }} />
+          </div>
+        </div>
+      </div>
+      <ol className="grid gap-2 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] md:items-stretch">
+        {steps.map((step, index) => (
+          <Fragment key={step.label}>
+            <li
+              className={cx(
+                'flex items-center gap-3 rounded-[var(--radius-card)] border-2 px-3 py-3',
+                step.done
+                  ? 'border-transparent bg-ground-sunken'
+                  : index === current
+                    ? 'border-signal bg-signal-soft'
+                    : 'border-hairline',
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold',
+                  step.done ? 'bg-milestone text-ground-raised' : index === current ? 'bg-signal text-on-signal' : 'bg-ground-sunken text-ink-muted',
+                )}
+              >
+                {step.done ? <Check className="size-4" strokeWidth={3} /> : index + 1}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-ink">{step.label}</span>
+                {!step.done && index === current && <span className="block text-xs text-ink-muted">{step.hint}</span>}
+                <span className="sr-only">{step.done ? '— bajarildi' : '— bajarilmagan'}</span>
+              </span>
+            </li>
+            {index < steps.length - 1 && (
+              <ChevronRight aria-hidden="true" className="hidden size-4 self-center text-ink-faint md:block" strokeWidth={2} />
+            )}
+          </Fragment>
+        ))}
+      </ol>
+    </Card>
+  )
+}
+
+function StudentsSection({
+  detail,
+  students,
+  error,
+  onRetry,
+  onOpen,
+  actions,
+}: {
+  detail: AdminCenterDetail
+  students: CenterStudent[] | null
+  error: string
+  onRetry: () => void
+  onOpen: (seatId: string) => void
+  actions: ReactNode
+}) {
+  return (
+    <Card as="section" aria-labelledby="students-title" className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="students-title" className="flex items-center gap-3 text-lg font-extrabold text-ink">
+          <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-signal-soft text-signal-ink">
+            <Users className="size-[18px]" strokeWidth={1.8} />
+          </span>
+          O'quvchilar · {students?.length ?? '…'}
+        </h2>
+        {students && students.length > 0 && <div className="flex flex-wrap gap-2">{actions}</div>}
+      </div>
+
+      {error && <ErrorNote onRetry={onRetry}>{error}</ErrorNote>}
+      {!students && !error && <LoadingRows />}
+
+      {students && students.length === 0 && (
+        <div className="flex flex-col items-center gap-4 rounded-[var(--radius-card)] border-2 border-dashed border-hairline px-6 py-8 text-center">
+          <div className="flex items-center gap-4 text-left">
+            <Users aria-hidden="true" className="size-12 shrink-0 text-ink-faint" strokeWidth={1.4} />
+            <div>
+              <p className="text-base font-extrabold text-ink">Hali o'quvchi qo'shilmagan</p>
+              <p className="max-w-sm text-sm text-ink-muted">
+                Markaz panelida raqam kiritib yoki Excel fayldan yuklab o'quvchilarni qo'shing. Raqami yo'q o'quvchi{' '}
+                <b className="font-mono text-ink">{detail.joinCode}</b> kodini yozadi.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">{actions}</div>
+        </div>
+      )}
+
+      {students && students.length > 0 && <StudentsTable students={students} onOpen={(student) => onOpen(student.seatId)} />}
+    </Card>
+  )
+}
+
+/** The center's facts in one card: its join code first, because it is what gets asked for. */
+function AboutCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
+  const [confirm, setConfirm] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  async function renew() {
+    setBusy(true)
+    try {
+      await adminFetch(`/api/admin-portal/centers/${detail.id}`, { method: 'PATCH', body: JSON.stringify({ newJoinCode: true }) })
+      toast('Yangi kod yaratildi')
+      setConfirm(false)
+      onChanged()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const rows: Array<[string, ReactNode]> = [
+    ['Narx', `${formatSom(detail.pricePerSeatTiyin)} / o'quvchi`],
+    ["O'quvchilar limiti", `${detail.maxStudents} ta`],
+    ["Oylik to'lov", formatSom(detail.maxStudents * detail.pricePerSeatTiyin)],
+    ['Shartnoma boshlanishi', formatDate(detail.contractStartsOn)],
+    ['Yaratilgan sana', <span className="font-normal text-ink-muted">{formatDateTime(detail.createdAt)}</span>],
+  ]
+
+  return (
+    <Card as="section" aria-labelledby="about-title" className="space-y-4">
+      <h2 id="about-title" className="flex items-center gap-3 text-lg font-extrabold text-ink">
+        <Info aria-hidden="true" className="size-5 text-signal-ink" strokeWidth={1.8} />
+        Markaz haqida
+      </h2>
+      <dl className="divide-y divide-hairline text-sm">
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <dt className="text-ink-muted">Markaz kodi</dt>
+          <dd className="flex items-center gap-1">
+            <span className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-1 font-mono text-base font-extrabold tracking-[0.12em] text-ink">
+              {detail.joinCode}
+            </span>
+            <button
+              type="button"
+              onClick={() => copyText(detail.joinCode, 'Kod nusxalandi')}
+              aria-label="Kodni nusxalash"
+              className="flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted hover:bg-ground-sunken hover:text-ink"
+            >
+              <Copy className="size-4" strokeWidth={1.8} />
+            </button>
+          </dd>
+        </div>
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3 py-3 last:pb-0">
+            <dt className="text-ink-muted">{label}</dt>
+            <dd className="text-right font-bold text-ink tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <button type="button" onClick={() => setConfirm(true)} className="text-sm font-bold text-signal-ink hover:underline">
+        Kodni almashtirish
+      </button>
+      {confirm && (
+        <ConfirmDialog
+          title="Kodni almashtirish"
+          body="Eski kod darhol ishlamay qoladi. Markazga yangi kodni yuborishni unutmang."
+          confirmLabel="Almashtirish"
+          busy={busy}
+          onConfirm={renew}
+          onCancel={() => setConfirm(false)}
+        />
+      )}
+    </Card>
+  )
+}
+
+/** What happened to the center, newest first, from what the page already knows. */
+function HistoryList({ detail }: { detail: AdminCenterDetail }) {
+  const events: Array<{ at: string; text: string }> = [{ at: detail.createdAt, text: 'Markaz yaratildi' }]
+  if (detail.contractStartsOn) events.push({ at: detail.contractStartsOn, text: 'Shartnoma boshlandi' })
+  for (const invoice of detail.invoices) {
+    if (invoice.paidAt) {
+      events.push({
+        at: invoice.paidAt,
+        text: `${formatPeriod(invoice.periodStart, invoice.periodEnd)} to'landi · ${formatSom(invoice.amountTiyin)}${
+          invoice.paidVia ? ` · ${paidViaLabel(invoice.paidVia)}` : ''
+        }`,
+      })
+    }
+    if (invoice.sentAt) events.push({ at: invoice.sentAt, text: `Hisob-faktura yuborildi · ${formatSom(invoice.amountTiyin)}` })
+  }
+  for (const admin of detail.admins) {
+    if (admin.lastLoginAt) events.push({ at: admin.lastLoginAt, text: `${admin.username} panelga kirdi` })
+  }
+  events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+
+  return (
+    <Card as="section" aria-label="Tarix">
+      <ol className="relative space-y-5 border-l-2 border-hairline pl-6">
+        {events.map((event, index) => (
+          <li key={index} className="relative">
+            <span aria-hidden="true" className="absolute top-1.5 -left-[31px] size-3 rounded-full border-2 border-ground-raised bg-signal" />
+            <div className="text-sm font-bold text-ink">{event.text}</div>
+            <div className="text-xs text-ink-muted">{/^\d{4}-\d{2}-\d{2}$/.test(event.at) ? formatDate(event.at) : formatDateTime(event.at)}</div>
+          </li>
+        ))}
+      </ol>
+    </Card>
   )
 }
 
@@ -476,7 +951,7 @@ function accessNote(detail: AdminCenterDetail) {
     case 'open':
       return "O'quvchilarda Pro ochiq"
     case 'not_started':
-      return `Pro ${formatDate(detail.contractStartsOn)} dan ochiladi`
+      return `Pro ${formatDayLong(detail.contractStartsOn)}dan ochiladi`
     case 'suspended':
       return "Markaz o'chirilgan — o'quvchilar bepul rejada"
     case 'archived':
@@ -486,12 +961,12 @@ function accessNote(detail: AdminCenterDetail) {
   }
 }
 
-async function copyLink(token: string) {
+async function copyText(text: string, done: string) {
   try {
-    await navigator.clipboard.writeText(payLink(token))
-    toast("To'lov havolasi nusxalandi")
+    await navigator.clipboard.writeText(text)
+    toast(done)
   } catch {
-    toast("Nusxalab bo'lmadi — havolani qo'lda belgilang")
+    toast("Nusxalab bo'lmadi — matnni qo'lda belgilang")
   }
 }
 
@@ -506,10 +981,10 @@ function PayLinkRow({ token }: { token: string }) {
         aria-label="To'lov havolasi"
         className={`${fieldClass} min-w-0 flex-1 font-mono text-xs`}
       />
-      <Button variant="secondary" size="sm" onClick={() => copyLink(token)}>
+      <Button size="sm" onClick={() => copyText(payLink(token), "To'lov havolasi nusxalandi")}>
         <span className="flex items-center gap-1.5">
           <Copy aria-hidden="true" className="size-4" strokeWidth={1.8} />
-          Nusxalash
+          Havolani nusxalash
         </span>
       </Button>
       <a
@@ -526,14 +1001,16 @@ function PayLinkRow({ token }: { token: string }) {
 }
 
 /**
- * The month waiting to be paid: what it is for, its pay link (Click or Payme, no login needed),
- * and the two things only the team does — confirm a bank transfer, or cancel it.
+ * The money, in one place. An open invoice is the thing to act on: its sum, its pay link and
+ * the two things only the team does. With nothing open, one line says until when it is paid and
+ * when the next invoice will appear on its own — making one early is a quiet secondary action.
  */
 function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
   const open = detail.overview.openInvoice
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   const [confirm, setConfirm] = useState<'paid' | 'cancelled' | null>(null)
+  const monthly = detail.maxStudents * detail.pricePerSeatTiyin
 
   async function nextInvoice() {
     setBusy(true)
@@ -565,45 +1042,73 @@ function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChang
     }
   }
 
-  return (
-    <Card as="div" className="space-y-4">
-      <SectionHeading action={open && <InvoiceBadge status={open.status} />}>To'lov</SectionHeading>
+  const nextInvoiceDay = detail.paidThrough ? shiftDays(detail.paidThrough, -7) : null
 
-      {open ? (
-        <>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <div className="text-3xl font-extrabold tabular-nums text-ink">{formatSom(open.amountTiyin)}</div>
-              <p className="mt-1 text-sm text-ink-muted">
+  return (
+    <Card as="section" aria-labelledby="pay-title" className={cx('space-y-4', open && 'border-signal')}>
+      <div className="flex flex-wrap items-start gap-4">
+        <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal-soft text-signal-ink">
+          <CreditCard className="size-[18px]" strokeWidth={1.8} />
+        </span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="pay-title" className="text-lg font-extrabold text-ink">
+              {open ? "To'lov kutilmoqda" : "To'lovlar"}
+            </h2>
+            {open && <InvoiceBadge status={open.status} />}
+          </div>
+          {open ? (
+            <>
+              <div className="text-3xl font-extrabold text-ink tabular-nums">{formatSom(open.amountTiyin)}</div>
+              <p className="text-sm text-ink-muted">
                 {formatPeriod(open.periodStart, open.periodEnd)} · {open.seats} o'quvchi × {formatSom(open.pricePerSeatTiyin)}
               </p>
-            </div>
-          </div>
+            </>
+          ) : detail.paidThrough ? (
+            <>
+              <p className="text-base font-bold text-ink">
+                {formatDayLong(detail.paidThrough)}gacha to'langan <span className="text-ink-faint">·</span> Oyiga{' '}
+                {formatSom(monthly)}
+              </p>
+              {nextInvoiceDay && (
+                <p className="text-sm text-ink-muted">Keyingi hisob-faktura {formatDayLong(nextInvoiceDay)}da yaratiladi.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-ink-muted">Ochiq hisob-faktura yo'q. Birinchi oy uchun yarating va havolani markazga yuboring.</p>
+          )}
+        </div>
+        {!open && (
+          <Button
+            size="sm"
+            variant={detail.paidThrough ? 'secondary' : 'primary'}
+            disabled={busy || detail.status === 'archived'}
+            onClick={nextInvoice}
+          >
+            <span className="flex items-center gap-1.5">
+              <FileText aria-hidden="true" className="size-4" strokeWidth={1.8} />
+              {busy ? 'Yaratilmoqda…' : detail.paidThrough ? 'Hozir yaratish' : 'Hisob-faktura yaratish'}
+            </span>
+          </Button>
+        )}
+      </div>
+
+      {open && (
+        <>
           <PayLinkRow token={open.payToken} />
           <p className="text-xs text-ink-muted">
-            Havolani markazga yuboring: ochganda Click yoki Payme orqali to'laydi, login kerak emas. To'lov tushishi bilan
-            o'quvchilarda Pro {formatDate(open.periodEnd)} gacha ochiladi.
+            Havolani markazga yuboring: Click yoki Payme orqali to'laydi, login kerak emas. To'lov tushishi bilan
+            o'quvchilarda Pro {formatDayLong(open.periodEnd)}gacha ochiladi.
           </p>
           <div className="flex flex-wrap gap-2 border-t-2 border-hairline pt-4">
             <Button size="sm" variant="secondary" disabled={busy} onClick={() => setConfirm('paid')}>
-              Bank o'tkazmasi keldi — to'langan
+              Bank o'tkazmasi keldi
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('cancelled')}>
-              Bekor qilish
+              Hisob-fakturani bekor qilish
             </Button>
           </div>
         </>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-ink-muted">
-            {detail.paidThrough
-              ? `${formatDate(detail.paidThrough)} gacha to'langan. Keyingi oy hisob-fakturasi muddat tugashidan 7 kun oldin o'zi yaratiladi.`
-              : "Ochiq hisob-faktura yo'q."}
-          </p>
-          <Button size="sm" disabled={busy || detail.status === 'archived'} onClick={nextInvoice}>
-            {busy ? 'Yaratilmoqda…' : 'Keyingi oy uchun hisob-faktura'}
-          </Button>
-        </div>
       )}
 
       {failure && <ErrorNote>{failure}</ErrorNote>}
@@ -613,7 +1118,7 @@ function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChang
           title={confirm === 'paid' ? "To'langan deb belgilash" : 'Hisob-fakturani bekor qilish'}
           body={
             confirm === 'paid'
-              ? `${formatSom(open.amountTiyin)} hisobga tushganini tekshirdingizmi? Belgilangach o'quvchilarda Pro ${formatDate(open.periodEnd)} gacha ochiladi.`
+              ? `${formatSom(open.amountTiyin)} hisobga tushganini tekshirdingizmi? Belgilangach o'quvchilarda Pro ${formatDayLong(open.periodEnd)}gacha ochiladi.`
               : "Havola ishlamay qoladi. Kerak bo'lsa keyin yangisini yaratasiz."
           }
           confirmLabel={confirm === 'paid' ? "Ha, to'langan" : 'Bekor qilish'}
@@ -627,11 +1132,89 @@ function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChang
   )
 }
 
+/** "2026-11-30" moved by some days, as the same ISO string. */
+function shiftDays(iso: string, days: number) {
+  const [year, month, day] = iso.split('-').map(Number)
+  const date = new Date(year, month - 1, day + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+/** A small menu under a button; closes on a choice, Escape, or a click outside it. */
+function MenuButton({
+  label,
+  children,
+  items,
+  className,
+}: {
+  label: string
+  children: ReactNode
+  items: Array<{ label: string; onSelect: () => void; danger?: boolean; disabled?: boolean }>
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={className}
+      >
+        {children}
+      </button>
+      {open && (
+        <>
+          <button type="button" aria-hidden="true" tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
+          <div
+            role="menu"
+            className="absolute right-0 z-40 mt-2 min-w-56 rounded-[var(--radius-card)] border-2 border-hairline bg-ground-raised p-1.5 shadow-xl"
+          >
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                disabled={item.disabled}
+                onClick={() => {
+                  setOpen(false)
+                  item.onSelect()
+                }}
+                className={cx(
+                  'block w-full rounded-[10px] px-3 py-2 text-left text-sm font-bold hover:bg-ground-sunken disabled:opacity-50',
+                  item.danger ? 'text-danger' : 'text-ink',
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+const headerButton =
+  'inline-flex h-11 items-center gap-2 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm font-bold text-ink shadow-[0_3px_0_0_var(--color-control-depth,#d5dae1)] hover:-translate-y-px'
+
 /**
- * The center's switch. Off means every one of its students drops to the free plan at once —
- * so the confirmation says how many — and back on restores the same seats.
+ * Edit, archive and the center's on/off switch, in the header. Off drops every one of its
+ * students to the free plan at once — so the confirmation says how many — and back on restores
+ * the same seats.
  */
-function AccessCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
+function HeaderActions({ detail, onChanged, onEdit }: { detail: AdminCenterDetail; onChanged: () => void; onEdit: () => void }) {
   const [confirm, setConfirm] = useState<'active' | 'suspended' | 'archived' | null>(null)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
@@ -648,38 +1231,50 @@ function AccessCard({ detail, onChanged }: { detail: AdminCenterDetail; onChange
       onChanged()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : "O'zgartirib bo'lmadi.")
+      setConfirm(null)
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Card as="div" className="space-y-3">
-      <SectionHeading>Markaz holati</SectionHeading>
-      <p className="text-sm text-ink">
-        {active
-          ? "Faol. O'quvchilar to'langan muddat ichida Pro'dan foydalanadi."
-          : detail.status === 'suspended'
-            ? `O'chirilgan. ${students} ta o'quvchi bepul rejada; yoqilsa, Pro to'langan muddat ichida qaytadi.`
-            : "Arxivda. O'quvchilar bepul rejada."}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {active ? (
-          <Button variant="danger" size="sm" disabled={busy} onClick={() => setConfirm('suspended')}>
+    <div className="flex flex-wrap items-center gap-2">
+      <MenuButton
+        label="Boshqa amallar"
+        className={cx(headerButton, 'px-3')}
+        items={[
+          { label: 'Telefon qilish', onSelect: () => detail.contactPhone && (window.location.href = `tel:${detail.contactPhone}`), disabled: !detail.contactPhone },
+          { label: 'Markaz kodini nusxalash', onSelect: () => copyText(detail.joinCode, 'Kod nusxalandi') },
+        ]}
+      >
+        <Ellipsis aria-hidden="true" className="size-5" strokeWidth={2} />
+      </MenuButton>
+      {detail.status !== 'archived' && (
+        <button type="button" className={headerButton} disabled={busy} onClick={() => setConfirm('archived')}>
+          <Archive aria-hidden="true" className="size-4" strokeWidth={1.8} />
+          Arxivlash
+        </button>
+      )}
+      <button type="button" className={headerButton} onClick={onEdit}>
+        <Pencil aria-hidden="true" className="size-4" strokeWidth={1.8} />
+        Tahrirlash
+      </button>
+      {active ? (
+        <Button disabled={busy} onClick={() => setConfirm('suspended')}>
+          <span className="flex items-center gap-2">
+            <Power aria-hidden="true" className="size-4" strokeWidth={2} />
             Markazni o'chirish
-          </Button>
-        ) : (
-          <Button size="sm" disabled={busy} onClick={() => setConfirm('active')}>
+          </span>
+        </Button>
+      ) : (
+        <Button disabled={busy} onClick={() => setConfirm('active')}>
+          <span className="flex items-center gap-2">
+            <Power aria-hidden="true" className="size-4" strokeWidth={2} />
             Markazni yoqish
-          </Button>
-        )}
-        {detail.status !== 'archived' && (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirm('archived')}>
-            Arxivlash
-          </Button>
-        )}
-      </div>
-      {failure && <ErrorNote>{failure}</ErrorNote>}
+          </span>
+        </Button>
+      )}
+      {failure && <span className="w-full text-right text-sm text-danger">{failure}</span>}
 
       {confirm && (
         <ConfirmDialog
@@ -688,7 +1283,7 @@ function AccessCard({ detail, onChanged }: { detail: AdminCenterDetail; onChange
             confirm === 'active'
               ? `${students} ta o'quvchida Pro to'langan muddat ichida darhol qaytadi.`
               : `${students} ta faol o'quvchi darhol bepul rejaga o'tadi. Natijalari va markazdagi joyi saqlanadi.${
-                  confirm === 'archived' ? ' Arxivdagi markazga yangi o\'quvchi qo\'shib bo\'lmaydi.' : ''
+                  confirm === 'archived' ? " Arxivdagi markazga yangi o'quvchi qo'shib bo'lmaydi." : ''
                 }`
           }
           confirmLabel={confirm === 'active' ? 'Yoqish' : confirm === 'suspended' ? "O'chirish" : 'Arxivlash'}
@@ -698,75 +1293,7 @@ function AccessCard({ detail, onChanged }: { detail: AdminCenterDetail; onChange
           onCancel={() => setConfirm(null)}
         />
       )}
-    </Card>
-  )
-}
-
-function ContractCard({ detail }: { detail: AdminCenterDetail }) {
-  const rows: Array<[string, string]> = [
-    ['Narx', `${formatSom(detail.pricePerSeatTiyin)} / o'quvchi / oy`],
-    ["O'quvchilar limiti", `${detail.maxStudents} ta`],
-    ["Oylik to'lov", formatSom(detail.maxStudents * detail.pricePerSeatTiyin)],
-    ['Shartnoma boshlanishi', formatDate(detail.contractStartsOn)],
-    ["To'langan muddat", detail.paidThrough ? `${formatDate(detail.paidThrough)} gacha` : '—'],
-    ['Yaratilgan', formatDate(detail.createdAt)],
-  ]
-
-  return (
-    <Card as="div">
-      <SectionHeading>Shartnoma</SectionHeading>
-      <dl className="divide-y divide-hairline text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-baseline justify-between gap-3 py-2 first:pt-0 last:pb-0">
-            <dt className="text-ink-muted">{label}</dt>
-            <dd className="text-right font-bold text-ink tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </Card>
-  )
-}
-
-function JoinCodeCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
-  const [confirm, setConfirm] = useState(false)
-  const [busy, setBusy] = useState(false)
-
-  async function renew() {
-    setBusy(true)
-    try {
-      await adminFetch(`/api/admin-portal/centers/${detail.id}`, { method: 'PATCH', body: JSON.stringify({ newJoinCode: true }) })
-      toast('Yangi kod yaratildi')
-      setConfirm(false)
-      onChanged()
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Card as="div" className="space-y-3">
-      <SectionHeading
-        action={
-          <Button variant="secondary" size="sm" onClick={() => setConfirm(true)}>
-            Yangi kod
-          </Button>
-        }
-      >
-        Markaz kodi
-      </SectionHeading>
-      <div className="font-mono text-3xl font-extrabold tracking-[0.2em] text-ink">{detail.joinCode}</div>
-      <p className="text-sm text-ink-muted">O'quvchi ilovada shu kodni yozib qo'shilish so'rovini yuboradi.</p>
-      {confirm && (
-        <ConfirmDialog
-          title="Kodni almashtirish"
-          body="Eski kod darhol ishlamay qoladi. Markazga yangi kodni yuborishni unutmang."
-          confirmLabel="Almashtirish"
-          busy={busy}
-          onConfirm={renew}
-          onCancel={() => setConfirm(false)}
-        />
-      )}
-    </Card>
+    </div>
   )
 }
 
@@ -776,13 +1303,139 @@ function suggestPassword() {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('')
 }
 
-function CenterAdmins({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
+/** What is sent to the center after a login is made or reset: everything it needs, in one message. */
+function credentialsMessage(detail: AdminCenterDetail, username: string, password: string) {
+  return [
+    `Assalomu alaykum! ${detail.name} uchun Russian.gg markaz paneli tayyor.`,
+    `Manzil: ${panelAddress()}`,
+    `Login: ${username}`,
+    `Parol: ${password}`,
+    "Kirgach, o'quvchilaringizning ism va telefon raqamlarini qo'shing — ular shu raqam bilan ilovaga kirishi bilan Pro ochiladi.",
+  ].join('\n')
+}
+
+/**
+ * Where a center admin signs in: this panel's own address. In development the panel is served at
+ * /admin.html beside the learner app, so the path is kept; in production it is the host's root.
+ */
+function panelAddress() {
+  const path = window.location.pathname.endsWith('.html') ? window.location.pathname : ''
+  return `${window.location.origin}${path}`
+}
+
+/** One credential as a labelled, copyable field: what the center will type, nothing else. */
+function CredentialField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised py-1.5 pr-1.5 pl-4">
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-extrabold tracking-[0.12em] text-ink-faint uppercase">{label}</div>
+        <div className={cx('truncate text-sm font-bold text-ink', mono && 'font-mono tracking-wide')}>{value}</div>
+      </div>
+      <button
+        type="button"
+        onClick={() => copyText(value, `${label} nusxalandi`)}
+        aria-label={`${label}ni nusxalash`}
+        className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-ground-sunken hover:text-ink"
+      >
+        <Copy className="size-4" strokeWidth={1.8} />
+      </button>
+    </div>
+  )
+}
+
+/**
+ * A login just made (or a password just reset), shown once — the server keeps only a hash. The
+ * three things the center types are fields of their own; the message that carries them is one
+ * button away, or one tap into Telegram, where these are usually sent.
+ */
+function IssuedCredentials({
+  detail,
+  username,
+  password,
+  onClose,
+}: {
+  detail: AdminCenterDetail
+  username: string
+  password: string
+  onClose: () => void
+}) {
+  const message = credentialsMessage(detail, username, password)
+  const telegram = `https://t.me/share/url?url=${encodeURIComponent(panelAddress())}&text=${encodeURIComponent(message)}`
+
+  return (
+    <div role="status" className="space-y-4 rounded-[var(--radius-card)] border-2 border-milestone/40 bg-milestone-soft/60 p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-milestone text-ground-raised">
+          <Check className="size-5" strokeWidth={2.5} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-extrabold text-ink">Login tayyor</p>
+          <p className="text-sm text-ink-muted">Ma'lumotlarni markazga yuboring — ular shu bilan panelga kiradi.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Yopish"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-ground-raised hover:text-ink"
+        >
+          <X className="size-4" strokeWidth={2} />
+        </button>
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-3">
+        <CredentialField label="Panel manzili" value={panelAddress().replace(/^https?:\/\//, '')} />
+        <CredentialField label="Login" value={username} mono />
+        <CredentialField label="Parol" value={password} mono />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" onClick={() => copyText(message, 'Xabar nusxalandi')}>
+          <span className="flex items-center gap-1.5">
+            <Copy aria-hidden="true" className="size-4" strokeWidth={1.8} />
+            Xabarni nusxalash
+          </span>
+        </Button>
+        <a
+          href={telegram}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm font-bold text-ink hover:border-ink-faint"
+        >
+          <Send aria-hidden="true" className="size-4" strokeWidth={1.8} />
+          Telegram orqali yuborish
+        </a>
+        <details className="group w-full text-sm">
+          <summary className="cursor-pointer list-none font-bold text-signal-ink hover:underline">
+            <span className="group-open:hidden">Xabar matnini ko'rish</span>
+            <span className="hidden group-open:inline">Xabar matnini yashirish</span>
+          </summary>
+          <pre className="mt-2 rounded-[var(--radius-control)] bg-ground-raised p-3 font-sans text-sm whitespace-pre-wrap text-ink">
+            {message}
+          </pre>
+        </details>
+      </div>
+
+      <p className="flex items-center gap-2 rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 text-xs font-bold text-caution">
+        <TriangleAlert aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />
+        Parol faqat hozir ko'rinadi. Yopgandan keyin uni ko'rib bo'lmaydi — faqat yangisini berish mumkin.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * The center's own logins. In the overview's side column (`compact`) it is a list with a menu
+ * per person; the form to add one opens from "+ Login", or straight away while there is none.
+ */
+function CenterAdmins({ detail, onChanged, compact = false }: { detail: AdminCenterDetail; onChanged: () => void; compact?: boolean }) {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   /* Shown once: the server keeps only a hash. */
   const [issued, setIssued] = useState<{ username: string; password: string } | null>(null)
+  const showForm = detail.admins.length === 0 || adding
 
   async function create(event: React.FormEvent) {
     event.preventDefault()
@@ -797,6 +1450,7 @@ function CenterAdmins({ detail, onChanged }: { detail: AdminCenterDetail; onChan
       setIssued({ username: username.trim().toLowerCase(), password })
       setUsername('')
       setDisplayName('')
+      setAdding(false)
       onChanged()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : "Hisob yaratib bo'lmadi.")
@@ -830,63 +1484,105 @@ function CenterAdmins({ detail, onChanged }: { detail: AdminCenterDetail; onChan
   }
 
   return (
-    <Card as="div" className="space-y-4">
-      <SectionHeading>Administratorlar</SectionHeading>
+    <Card as="section" aria-labelledby={compact ? 'admins-side-title' : 'admins-title'} className={cx('space-y-4', detail.admins.length === 0 && 'border-signal')}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id={compact ? 'admins-side-title' : 'admins-title'} className="flex items-center gap-3 text-lg font-extrabold text-ink">
+          <Users aria-hidden="true" className="size-5 text-signal-ink" strokeWidth={1.8} />
+          Markaz administratorlari
+        </h2>
+        {detail.admins.length > 0 && !adding && (
+          <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
+            <span className="flex items-center gap-1.5">
+              <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
+              Login
+            </span>
+          </Button>
+        )}
+      </div>
 
       {issued && (
-        <div className="rounded-[var(--radius-control)] border-2 border-signal bg-signal-soft px-4 py-3 text-sm text-signal-ink">
-          Markazga yuboring (faqat hozir ko'rinadi): admin.russian.gg · login <b>{issued.username}</b> · parol{' '}
-          <b className="font-mono">{issued.password}</b>
-        </div>
+        <IssuedCredentials
+          detail={detail}
+          username={issued.username}
+          password={issued.password}
+          onClose={() => setIssued(null)}
+        />
       )}
 
-      {detail.admins.length === 0 ? (
-        <p className="text-sm text-ink-muted">Hali login yo'q — markaz panelga kira olmaydi.</p>
-      ) : (
+      {detail.admins.length === 0 && !issued && (
+        <p className="text-sm text-ink-muted">
+          Markaz hali panelga kira olmaydi. Login yarating — parol o'zi tuziladi va markazga yuboriladigan tayyor xabar chiqadi.
+        </p>
+      )}
+
+      {detail.admins.length > 0 && (
         <ul className="divide-y divide-hairline">
           {detail.admins.map((admin) => (
-            <li key={admin.id} className="space-y-2 py-3 first:pt-0">
-              <div className="text-sm">
-                <span className="font-bold text-ink">{admin.username}</span>
-                {!admin.isActive && (
-                  <span className="ml-2">
-                    <Badge tone="caution">O'chirilgan</Badge>
-                  </span>
-                )}
-                <span className="block text-xs text-ink-muted">
-                  {admin.displayName} · oxirgi kirish {formatDateTime(admin.lastLoginAt)}
+            <li key={admin.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <span
+                aria-hidden="true"
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-signal-soft text-sm font-extrabold text-signal-ink uppercase"
+              >
+                {admin.username.slice(0, 1)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-ink">{admin.username}</span>
+                <span className="block truncate text-xs text-ink-muted">
+                  {admin.displayName && admin.displayName !== admin.username ? `${admin.displayName} · ` : ''}
+                  {admin.lastLoginAt ? `kirgan ${formatDateTime(admin.lastLoginAt)}` : 'hali kirmagan'}
                 </span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => reset(admin.id, admin.username)}>
-                  Yangi parol
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setActive(admin.id, !admin.isActive)}>
-                  {admin.isActive ? "O'chirish" : 'Yoqish'}
-                </Button>
-              </div>
+              </span>
+              {admin.isActive ? <Badge tone="milestone">Administrator</Badge> : <Badge tone="caution">O'chirilgan</Badge>}
+              <MenuButton
+                label={`${admin.username} amallari`}
+                className="flex size-9 items-center justify-center rounded-[var(--radius-control)] text-ink-muted hover:bg-ground-sunken hover:text-ink"
+                items={[
+                  { label: 'Yangi parol berish', onSelect: () => reset(admin.id, admin.username) },
+                  {
+                    label: admin.isActive ? "Loginni o'chirish" : 'Loginni yoqish',
+                    onSelect: () => setActive(admin.id, !admin.isActive),
+                    danger: admin.isActive,
+                  },
+                ]}
+              >
+                <EllipsisVertical aria-hidden="true" className="size-4" strokeWidth={2} />
+              </MenuButton>
             </li>
           ))}
         </ul>
       )}
 
-      <form onSubmit={create} className="space-y-3 border-t-2 border-hairline pt-4">
-        <Field label="Login">
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value.toLowerCase().replace(/\s+/g, ''))}
-            placeholder="ziyo-admin"
-            autoComplete="off"
-            className={fieldClass}
-          />
-        </Field>
-        <Field label="Ism">
-          <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} className={fieldClass} />
-        </Field>
-        <Button type="submit" size="sm" block disabled={busy || username.trim().length < 3}>
-          Login yaratish
-        </Button>
-      </form>
+      {showForm && (
+        <form onSubmit={create} className={cx('space-y-3', detail.admins.length > 0 && 'border-t-2 border-hairline pt-4')}>
+          <Field label="Login">
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value.toLowerCase().replace(/\s+/g, ''))}
+              placeholder="ziyo-admin"
+              autoComplete="off"
+              className={fieldClass}
+            />
+          </Field>
+          <Field label="Mas'ul shaxs ismi">
+            <input
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              placeholder={detail.contactName ?? ''}
+              className={fieldClass}
+            />
+          </Field>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" block disabled={busy || username.trim().length < 3}>
+              {busy ? 'Yaratilmoqda…' : 'Login yaratish'}
+            </Button>
+            {adding && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(false)}>
+                Bekor
+              </Button>
+            )}
+          </div>
+        </form>
+      )}
       {failure && <ErrorNote>{failure}</ErrorNote>}
     </Card>
   )
@@ -1072,7 +1768,7 @@ function InvoicesTable({
               <Cell>
                 {open && (
                   <span className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => copyLink(invoice.payToken)}>
+                    <Button variant="secondary" size="sm" onClick={() => copyText(payLink(invoice.payToken), "To'lov havolasi nusxalandi")}>
                       Havola
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => setConfirm(invoice)}>

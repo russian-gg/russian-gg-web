@@ -31,6 +31,8 @@ export type CenterStudent = {
   speakingMinutes7d: number
   missionsCompleted: number
   atRisk: boolean
+  /** Optional; lets a Google or Apple sign-in claim the seat. */
+  email?: string | null
   addedAt: string
 }
 
