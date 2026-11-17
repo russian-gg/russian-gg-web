@@ -1446,6 +1446,11 @@ export const en: Dictionary = {
   missionStory: {
     progress: '{n} / {total}',
     choose: 'Pick your reply',
+    write: 'Write your reply in Russian',
+    placeholder: 'Your reply…',
+    helpers: 'Helper phrases — tap the one that fits to add it to your reply',
+    send: 'Send reply',
+    missing: 'Your reply is missing the phrase it needs. Add the one that fits from the helper phrases.',
     wrong: '{character} did not understand you. Try another reply.',
     hint: 'Hint',
     listen: 'Listen',

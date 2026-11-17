@@ -1473,6 +1473,11 @@ export const uz = {
   missionStory: {
     progress: '{n} / {total}',
     choose: 'Javobingizni tanlang',
+    write: 'Javobingizni ruscha yozing',
+    placeholder: 'Javobingiz…',
+    helpers: 'Yordamchi iboralar — mosini bosib, javobingizga qo‘shing',
+    send: 'Javobni yuborish',
+    missing: 'Javobingizda kerakli ibora yo‘q. Yordamchi iboralardan mosini qo‘shing.',
     wrong: "{character} sizni tushunmadi. Boshqa javobni tanlab ko'ring.",
     hint: 'Yordam',
     listen: 'Tinglash',
