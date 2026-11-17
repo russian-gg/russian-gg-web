@@ -64,7 +64,7 @@ export function SawFace({ character, pose, fear = 0, animated = true }: { charac
   }, [character, pose, animated])
   return <div className="arra-scene__face" ref={node} style={{ '--lid-color': lid } as CSSProperties}>
     {eyes.map((eye, index) => <span className="arra-scene__eye" key={index} style={patchStyle(eye)}><i /></span>)}
-    {brows.map((brow, index) => <span className="arra-scene__brow" key={index} style={{ ...patchStyle(brow), '--side': index === 0 ? -1 : 1 } as CSSProperties} />)}
+    {brows.map((brow, index) => <span className="arra-scene__brow" key={index} style={{ ...patchStyle(brow), '--brow-side': index === 0 ? -1 : 1 } as CSSProperties} />)}
     <span className="arra-scene__mouth" style={patchStyle(mouth)} />
   </div>
 }

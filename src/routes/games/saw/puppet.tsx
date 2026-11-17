@@ -18,6 +18,10 @@ type Props = {
   talking: boolean
   listening: boolean
   voice: number
+  /** The hero's own voice level (0..1) while it talks; the mouth follows it when present. */
+  voiceLevel?: () => number
+  /** Scampering away from the blade. */
+  running?: boolean
   phase: SawPhase
   animated: boolean
   onUnavailable: () => void
@@ -36,7 +40,7 @@ const temper = {
 
 const VERTEX = `
 attribute vec2 aPos;
-uniform float uT, uFear, uJoy, uImpact, uKick, uHover, uNeck, uCrest, uTalk, uTurn, uNod;
+uniform float uT, uFear, uJoy, uImpact, uKick, uHover, uNeck, uCrest, uTalk, uTurn, uNod, uRun;
 uniform vec2 uHead;
 varying vec2 vUv;
 void main() {
@@ -60,6 +64,15 @@ void main() {
 
   q.x += uFear * .08 * h * h;
   q.y += uFear * .05 * upper;
+
+  // Scamper: the feet lift in turn, the body bobs and pitches away from the blade.
+  float stride = uT * 15.;
+  float legs = smoothstep(.72, .93, p.y);
+  float foot = step(uHead.x, p.x) * 2. - 1.;
+  q.y -= uRun * legs * max(0., sin(stride) * foot) * .045;
+  q.x += uRun * legs * sin(stride) * foot * .014;
+  q.y -= uRun * abs(sin(stride)) * .014 * (1. - legs);
+  q.x += uRun * (.045 * h + sin(stride * .5) * .008 * h);
   q.x += uFear * uFear * .0085 * sin(uT * 61. + p.y * 26.) * (.3 + h);
   q.y += uFear * uFear * .0035 * sin(uT * 47. + p.x * 31.) * upper;
 
@@ -128,7 +141,7 @@ void main() {
   gl_FragColor = color;
 }`
 
-const UNIFORMS = ['uT', 'uFear', 'uJoy', 'uImpact', 'uKick', 'uHover', 'uNeck', 'uCrest', 'uTalk', 'uTurn', 'uNod', 'uHead',
+const UNIFORMS = ['uT', 'uFear', 'uJoy', 'uImpact', 'uKick', 'uHover', 'uNeck', 'uCrest', 'uTalk', 'uTurn', 'uNod', 'uRun', 'uHead',
   'uTex', 'uEye', 'uBrow', 'uMouth', 'uEyes', 'uWide', 'uBlink', 'uLift', 'uTilt', 'uOdd', 'uOpen', 'uPale', 'uGaze', 'uLid'] as const
 
 function box([left, top, width, height]: SawFacePatch) {
@@ -164,7 +177,8 @@ export function SawPuppet(props: Props) {
   useEffect(() => {
     const node = canvas.current
     if (!node) return
-    const gl = node.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: true })
+    // No multisampling: the portrait's own soft edge is the outline, and MSAA is what phones pay for.
+    const gl = node.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false, powerPreference: 'low-power' })
     if (!gl) { onUnavailable(); return }
 
     const compile = (type: number, source: string) => {
@@ -225,7 +239,7 @@ export function SawPuppet(props: Props) {
     })
 
     const resize = () => {
-      const scale = Math.min(2, window.devicePixelRatio || 1)
+      const scale = Math.min(1.5, window.devicePixelRatio || 1)
       const width = Math.max(2, Math.round(node.clientWidth * scale))
       const height = Math.max(2, Math.round(node.clientHeight * scale))
       if (node.width !== width || node.height !== height) { node.width = width; node.height = height }
@@ -238,7 +252,7 @@ export function SawPuppet(props: Props) {
     const mood = temper[character]
     const rigs = Object.fromEntries(POSES.map((pose) => [pose, rig(character, pose)])) as Record<SawPose, ReturnType<typeof rig>>
     // Smoothed values: the face eases between glances instead of snapping.
-    const now = { fear: 0, joy: 0, impact: 0, kick: 0, talk: 0, turn: 0, nod: 0, gazeX: 0, gazeY: 0, wide: 0, lift: 0, tilt: 0, odd: 0, open: 0, blink: 0 }
+    const now = { fear: 0, joy: 0, impact: 0, kick: 0, talk: 0, run: 0, turn: 0, nod: 0, gazeX: 0, gazeY: 0, wide: 0, lift: 0, tilt: 0, odd: 0, open: 0, blink: 0 }
     const goal = { turn: 0, nod: 0, gazeX: 0, gazeY: 0, wide: 0, lift: 0, tilt: 0, odd: 0 }
     let nextBeat = 0
     let nextBlink = 1.2
@@ -252,12 +266,20 @@ export function SawPuppet(props: Props) {
     let frame = 0
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
+    // Nothing is drawn while the scene is scrolled away or the tab is hidden.
+    let visible = true
+    const watcher = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver((entries) => { visible = entries[entries.length - 1]?.isIntersecting ?? true })
+      : null
+    watcher?.observe(node)
+
     const draw = (time: number) => {
       frame = requestAnimationFrame(draw)
+      if (!visible || document.hidden) { previous = time; return }
       const state = live.current
       const texture = textures.get(state.pose) ?? textures.get(lastPose)
       if (!texture) return
-      const moving = state.animated && !still && state.phase !== 'cut'
+      const moving = state.animated && !still && (state.phase !== 'cut' || state.talking)
       const dt = moving ? Math.min(.05, (time - previous) / 1000) : 0
       previous = time
       clock += dt
@@ -293,7 +315,9 @@ export function SawPuppet(props: Props) {
         syllable = Math.random() < .14 ? 0 : between(.25, 1)
         nextSyllable = clock + between(.07, .15)
       }
-      const mouthGoal = state.talking ? syllable * .85
+      const loudness = state.talking ? state.voiceLevel?.() : undefined
+      const mouthGoal = loudness !== undefined ? Math.min(1.15, loudness * 2.4) * (.75 + syllable * .25)
+        : state.talking ? syllable * .85
         : state.phase === 'impact' ? 1.1
           : state.listening ? .1 + state.voice * .12
             : dread > .5 ? (dread - .5) * (.5 + .5 * Math.sin(clock * 38)) : 0
@@ -302,6 +326,7 @@ export function SawPuppet(props: Props) {
       now.joy += ((state.phase === 'won' ? 1 : 0) - now.joy) * ease(6)
       now.impact += ((state.phase === 'impact' ? 1 : 0) - now.impact) * ease(state.phase === 'impact' ? 16 : 5)
       now.talk += ((state.talking ? 1 : 0) - now.talk) * ease(9)
+      now.run += ((state.running ? .55 + dread * .45 : 0) - now.run) * ease(8)
       now.kick += (0 - now.kick) * ease(7)
       now.open += (mouthGoal - now.open) * ease(28)
       for (const key of ['turn', 'nod', 'gazeX', 'gazeY', 'wide', 'lift', 'tilt', 'odd'] as const) now[key] += (goal[key] - now[key]) * ease(key === 'turn' || key === 'nod' ? 7 : 20)
@@ -324,6 +349,7 @@ export function SawPuppet(props: Props) {
       gl.uniform1f(at.uTalk, now.talk)
       gl.uniform1f(at.uTurn, now.turn)
       gl.uniform1f(at.uNod, now.nod)
+      gl.uniform1f(at.uRun, now.run)
       gl.uniform2f(at.uHead, pose.head[0], pose.head[1])
       gl.uniform4fv(at.uEye, pose.eyes)
       gl.uniform4fv(at.uBrow, pose.brows)
@@ -348,6 +374,7 @@ export function SawPuppet(props: Props) {
       closed = true
       cancelAnimationFrame(frame)
       observer?.disconnect()
+      watcher?.disconnect()
       node.removeEventListener('webglcontextlost', lost)
       textures.forEach((texture) => gl.deleteTexture(texture))
       gl.deleteProgram(program)

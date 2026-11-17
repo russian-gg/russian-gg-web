@@ -30,6 +30,7 @@ export class SawAudio {
   private closed = false
   private enabled = true
   private voicing = false
+  private voiced = false
 
   constructor() {
     const contextClass = typeof AudioContext === 'function'
@@ -141,6 +142,11 @@ export class SawAudio {
     else if (this.context.state === 'suspended') void this.context.resume().catch(() => {})
   }
 
+  /** In a live round the hero cries out in its own voice, so the synthetic yelp stays quiet. */
+  setVoiced(voiced: boolean) {
+    this.voiced = voiced
+  }
+
   setThreat(threat: number, playerSpeaking: boolean, paused: boolean) {
     if (this.closed) return
     const now = this.context.currentTime
@@ -158,7 +164,7 @@ export class SawAudio {
     // The same steps the scene uses for fear: each one the blade crosses gets a sting and a gasp.
     const step = paused ? this.dangerStep : threat >= 80 ? 3 : threat >= 55 ? 2 : threat >= 30 ? 1 : 0
     if (!paused && this.enabled && !this.voicing) {
-      if (step > this.dangerStep) { this.sting(step); this.gasp(step) }
+      if (step > this.dangerStep) { this.sting(step); if (!this.voiced) this.gasp(step) }
       else if (step < this.dangerStep) this.relief()
       if (danger >= 0.3 && now >= this.nextHeartbeat) {
         this.heartbeat(now, danger)

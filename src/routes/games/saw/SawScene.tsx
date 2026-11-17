@@ -14,7 +14,13 @@ type SawSceneProps = {
   animated?: boolean
   character?: SawCharacter
   emotion?: SawEmotion
+  /** How loud the hero's own voice is right now (0..1), read every frame to move the mouth. */
+  voiceLevel?: () => number
 }
+
+type Whip = 'out' | 'jump' | null
+const WHIP_OUT_MS = 170
+const WHIP_COOLDOWN_MS = 5000
 
 const teeth = Array.from({ length: 30 }, (_, index) => {
   const points = [[61, 0], [70, 3], [70, 7], [60, 10]]
@@ -45,12 +51,12 @@ function portraitFor(character: SawCharacter, pose: typeof poses[number]) {
   return `/games/arra/v3/${character}-${pose}${variant}.webp`
 }
 
-export function SawScene({ blade, phase, speaking = false, tutorSpeaking = false, volume = 0, animated = true, character = 'penguin', emotion }: SawSceneProps) {
+export function SawScene({ blade, phase, speaking = false, tutorSpeaking = false, volume = 0, animated = true, character = 'penguin', emotion, voiceLevel }: SawSceneProps) {
   const threat = Math.max(0, Math.min(100, blade))
   const progress = phase === 'won' ? 0 : threat / 100
   const reaction = phase === 'impact' || (phase === 'playing' && threat >= 80) ? 'panic'
     : phase === 'won' ? 'happy'
-      : tutorSpeaking ? 'speaking'
+      : tutorSpeaking && phase !== 'cut' ? 'speaking'
         : emotion ?? (speaking ? 'speaking' : threat >= 40 ? 'silence' : 'idle')
   // Fear grows in steps as the blade closes in; answering out loud takes the edge off it.
   const closeness = phase === 'impact' ? 1 : phase === 'playing' ? Math.max(0, Math.min(1, (threat - 22) / 68)) : 0
@@ -71,6 +77,33 @@ export function SawScene({ blade, phase, speaking = false, tutorSpeaking = false
   const dropPuppet = useCallback(() => setPuppet(false), [])
   const pressure = Math.max(0, (progress - .3) / .7)
   const rpm = phase === 'impact' ? 4.4 : phase === 'playing' ? 1 + progress * 3.2 : .45
+
+  /*
+    The hero does not wait in one spot. It backs away as the blade comes on, and when the blade
+    gets close it bolts to the far side: the camera whips after it and the chase resumes mirrored.
+  */
+  const [side, setSide] = useState<1 | -1>(1)
+  const [whip, setWhip] = useState<Whip>(null)
+  const lastStep = useRef(0)
+  const lastWhip = useRef(-Infinity)
+  const whipTimer = useRef(0)
+  useEffect(() => {
+    const rising = dangerStep >= 2 && lastStep.current < 2
+    lastStep.current = dangerStep
+    if (!rising || !animated || phase !== 'playing' || performance.now() - lastWhip.current < WHIP_COOLDOWN_MS) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    lastWhip.current = performance.now()
+    setWhip('out')
+    whipTimer.current = window.setTimeout(() => {
+      setSide((current) => current === 1 ? -1 : 1)
+      setWhip('jump')
+      // Two frames: the mirrored stage has to be painted off-screen before it slides back in.
+      requestAnimationFrame(() => requestAnimationFrame(() => setWhip(null)))
+    }, WHIP_OUT_MS)
+  }, [dangerStep, animated, phase])
+  useEffect(() => () => window.clearTimeout(whipTimer.current), [])
+
+  const running = phase === 'playing' && animated && (whip !== null || (fearLevel >= 1 && !speaking && !tutorSpeaking))
   useEffect(() => {
     poses.forEach((item) => {
       const image = new Image()
@@ -89,11 +122,13 @@ export function SawScene({ blade, phase, speaking = false, tutorSpeaking = false
     '--contact-local-x': contact.x,
     '--contact-local-y': contact.y,
     '--fear': fear,
+    '--flee': Math.min(1, progress * 1.3),
+    '--side': side,
     '--head-x': head.x,
     '--head-y': head.y,
   } as CSSProperties
   return (
-    <div className="arra-scene" data-character={character} data-phase={phase} data-emotion={reaction} data-pose={pose} data-puppet={puppet} data-fear={fearLevel} data-grinding={threat >= 45 && phase === 'playing'} data-critical={threat >= 80 && phase !== 'won'} data-speaking={speaking} data-tutor={tutorSpeaking} data-animated={animated} style={style} aria-hidden="true">
+    <div className="arra-scene" data-character={character} data-phase={phase} data-emotion={reaction} data-pose={pose} data-puppet={puppet} data-fear={fearLevel} data-whip={whip ?? undefined} data-running={running} data-grinding={threat >= 45 && phase === 'playing'} data-critical={threat >= 80 && phase !== 'won'} data-speaking={speaking} data-tutor={tutorSpeaking} data-animated={animated} style={style} aria-hidden="true">
       <div className="arra-scene__camera">
         <div className="arra-scene__room" />
         <div className="arra-scene__room-shade" />
@@ -101,67 +136,78 @@ export function SawScene({ blade, phase, speaking = false, tutorSpeaking = false
         <div className="arra-scene__lamp-glow" />
         {character === 'penguin' ? <FactoryDetails /> : character === 'panda' ? <AtticDetails /> : <TheaterDetails />}
         <div className="arra-scene__motes">
-          {Array.from({ length: 14 }, (_, index) => <i key={index} style={{ '--particle': index, left: `${7 + index * 13 % 87}%`, top: `${12 + index * 19 % 74}%` } as CSSProperties} />)}
+          {Array.from({ length: 12 }, (_, index) => <i key={index} style={{ '--particle': index, left: `${7 + index * 13 % 87}%`, top: `${12 + index * 19 % 74}%` } as CSSProperties} />)}
         </div>
-        <div className="arra-scene__track" />
-        <div className="arra-scene__saw-shadow" />
-        <div className="arra-scene__saw">
-          <div className="arra-scene__saw-lunge">
-            <div className="arra-scene__saw-trail" />
-            <div className="arra-scene__blade-aura" />
-            <div className="arra-scene__rotor" ref={rotor}><SawBlade /></div>
-            <div className="arra-scene__saw-blur" />
-            <div className="arra-scene__blade-reflection" />
-            <div className="arra-scene__grind">
-              {sparkAngles.map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
-            </div>
-          </div>
-        </div>
-        <div className="arra-scene__character-ground" />
-        <div className="arra-scene__character">
-          <div className="arra-scene__character-fear">
-            <div className="arra-scene__character-startle">
-              <div className="arra-scene__character-motion">
-                <div className="arra-scene__character-shiver">
-                  <div className="arra-scene__character-pose" key={puppet ? character : portrait} style={{ '--portrait-image': `url('${portrait}')` } as CSSProperties}>
-                    {puppet
-                      ? <SawPuppet character={character} pose={pose} portrait={portraitOf} fear={fear} fearLevel={fearLevel} talking={tutorSpeaking}
-                        listening={speaking} voice={volume} phase={phase} animated={animated} onUnavailable={dropPuppet} />
-                      : <>
-                        <img src={portrait} alt="" width="768" height="768" draggable={false} />
-                        <SawFace character={character} pose={pose} fear={fear} animated={animated} />
-                      </>}
-                    {character === 'penguin' && <div className="arra-scene__tool-sparks"><i /><i /><i /><i /></div>}
-                  </div>
-                  <div className="arra-scene__sweat"><i /><i /><i /><i /></div>
-                  <div className="arra-scene__shock"><i /><i /><i /></div>
+        <div className="arra-scene__stage">
+          <div className="arra-scene__track" />
+          <div className="arra-scene__saw">
+            <div className="arra-scene__saw-shadow" />
+            <div className="arra-scene__saw-lunge">
+              <div className="arra-scene__saw-buzz">
+                <div className="arra-scene__blade-aura" />
+                <div className="arra-scene__rotor" ref={rotor}><SawBlade /></div>
+                <div className="arra-scene__blade-reflection" />
+                <div className="arra-scene__grind">
+                  {sparkAngles.map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
                 </div>
               </div>
             </div>
           </div>
-          <div className="arra-scene__voice-halo"><i /><i /><i /></div>
-          <div className="arra-scene__character-energy" />
-          <div className="arra-scene__reward-sparks">
-            {Array.from({ length: 5 }, (_, index) => <svg key={index} viewBox="0 0 24 24" style={{ '--star': index } as CSSProperties}><path d="m12 1 2.7 7.9L23 12l-8.3 2.5L12 23l-2.7-8.5L1 12l8.3-3.1Z" /></svg>)}
+          <div className="arra-scene__character-ground" />
+          <div className="arra-scene__character">
+            <div className="arra-scene__character-fear">
+              <div className="arra-scene__character-startle">
+                <div className="arra-scene__character-motion">
+                  <div className="arra-scene__character-shiver">
+                    <div className="arra-scene__character-pose" key={puppet ? character : portrait} style={{ '--portrait-image': `url('${portrait}')` } as CSSProperties}>
+                      {puppet
+                        ? <SawPuppet character={character} pose={pose} portrait={portraitOf} fear={fear} fearLevel={fearLevel} talking={tutorSpeaking}
+                          listening={speaking} voice={volume} voiceLevel={voiceLevel} running={running} phase={phase} animated={animated} onUnavailable={dropPuppet} />
+                        : <>
+                          <img src={portrait} alt="" width="768" height="768" draggable={false} />
+                          <SawFace character={character} pose={pose} fear={fear} animated={animated} />
+                        </>}
+                      {character === 'penguin' && <div className="arra-scene__tool-sparks"><i /><i /><i /><i /></div>}
+                    </div>
+                    <div className="arra-scene__sweat"><i /><i /><i /><i /></div>
+                    <div className="arra-scene__shock"><i /><i /><i /></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="arra-scene__dust"><i /><i /><i /></div>
+            <div className="arra-scene__voice-halo"><i /><i /><i /></div>
+            <div className="arra-scene__character-energy" />
+            <div className="arra-scene__reward-sparks">
+              {Array.from({ length: 5 }, (_, index) => <svg key={index} viewBox="0 0 24 24" style={{ '--star': index } as CSSProperties}><path d="m12 1 2.7 7.9L23 12l-8.3 2.5L12 23l-2.7-8.5L1 12l8.3-3.1Z" /></svg>)}
+            </div>
+          </div>
+          <div className="arra-scene__contact">
+            <div className="arra-scene__contact-flash" />
+            <div className="arra-scene__sparks">
+              {sparkAngles.map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
+            </div>
+            <div className="arra-scene__smoke"><i /><i /><i /></div>
+            <div className="arra-scene__oil">
+              {[-130, -81, -46, -13, 22, 71, 124].map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
+            </div>
           </div>
         </div>
-        <div className="arra-scene__contact">
-          <div className="arra-scene__contact-flash" />
-          <div className="arra-scene__sparks">
-            {sparkAngles.map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
-          </div>
-          <div className="arra-scene__smoke"><i /><i /><i /></div>
-          <div className="arra-scene__oil">
-            {[-130, -81, -46, -13, 22, 71, 124].map((angle, index) => <i key={angle} style={{ '--spark': index, '--spark-angle': `${angle}deg` } as CSSProperties} />)}
-          </div>
-        </div>
+        <div className="arra-scene__whip" />
       </div>
       <div className="arra-scene__flicker" />
       <div className="arra-scene__vignette" />
       <div className="arra-scene__dread" />
       <div className="arra-scene__danger-light" />
+      <div className="arra-scene__alarm" />
       <div className="arra-scene__scare" />
       <div className="arra-scene__win-light" />
+      <div className="arra-scene__grain" />
+      <div className="arra-scene__bars" />
+      <svg className="arra-scene__crack" viewBox="0 0 100 60" preserveAspectRatio="none">
+        <path d="M50 30 38 18 30 19 17 6M38 18 40 8 33 0M50 30 63 21 70 23 86 9M63 21 61 10 68 2M50 30 58 42 55 51 63 60M58 42 71 45 84 57M50 30 39 41 41 50 30 60M39 41 26 40 12 49M50 30 52 15M50 30 34 30 22 27M50 30 67 32 80 30" />
+        <path d="M38 18 44 22 50 30M63 21 57 25M58 42 52 37M39 41 45 35M44 22 57 25 52 37 45 35Z" />
+      </svg>
       <div className="arra-scene__blackout" />
     </div>
   )
