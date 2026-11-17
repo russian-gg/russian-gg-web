@@ -617,7 +617,7 @@ export interface AdminLessonAudioLesson {
 export interface AdminLessonAudioRun {
   runId: string
   trigger: 'deploy' | 'button'
-  state: 'queued' | 'running' | 'done' | 'failed'
+  state: 'queued' | 'running' | 'done' | 'failed' | 'stopped'
   startedAt: string
   finishedAt?: string | null
   totalLessons: number
