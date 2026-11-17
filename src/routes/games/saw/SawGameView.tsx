@@ -33,6 +33,9 @@ type Props = {
   volume?: number
   result?: SawResult
   soundEnabled?: boolean
+  /** A live round: the hero speaks and listens by voice instead of asking written questions. */
+  live?: boolean
+  voiceLevel?: () => number
   onStart?: () => void
   onNext?: () => void
   onBack?: () => void
@@ -45,7 +48,7 @@ type Props = {
 export function SawGameView({ phase, blade, secondsLeft, score, round, question, transcript = '', speaking = false,
   tutorSpeaking = false, micActive = false, microphoneOnly = false,
   supported = true, error, notice, preview = false, animated = true, character = 'penguin', emotion = 'idle', topic = 'everyday',
-  reply = '', busy = '', volume = 0, result, soundEnabled = true, onStart, onNext, onBack, onCharacter, onTopic, onSurrender, onToggleSound }: Props) {
+  reply = '', busy = '', volume = 0, result, soundEnabled = true, live = false, voiceLevel, onStart, onNext, onBack, onCharacter, onTopic, onSurrender, onToggleSound }: Props) {
   const [micCheckActive, setMicCheckActive] = useState(false)
   const info = SAW_CHARACTER_INFO[character]
   const finished = phase === 'cut' || phase === 'won'
@@ -110,12 +113,12 @@ export function SawGameView({ phase, blade, secondsLeft, score, round, question,
           <div className="arra-clock" role="timer" aria-label={`${c.remaining}: ${displayedSeconds}`}><Clock3 size={16} /><strong>{Math.floor(displayedSeconds / 60)}:{String(displayedSeconds % 60).padStart(2, '0')}</strong><span>{c.seconds}</span></div>
         </div>
         <div className="arra-stage-frame">
-          <SawScene blade={threat} phase={phase} speaking={speaking} animated={animated} character={character} emotion={emotion} volume={loudness} tutorSpeaking={tutorSpeaking} />
+          <SawScene blade={threat} phase={phase} speaking={speaking} animated={animated} character={character} emotion={emotion} volume={loudness} tutorSpeaking={tutorSpeaking} voiceLevel={voiceLevel} />
           <div className="arra-stage-status" data-speaking={speaking} data-danger={danger} role={preview ? undefined : 'status'}><span className="arra-status-dot" />{status}</div>
         </div>
         <div className="arra-question-row" data-tutor-speaking={tutorSpeaking}>
           <span className="arra-speaker-line" />
-          <div className="arra-question"><span className="arra-eyebrow">{info.name} · {c.question} {round + 1}</span><h2>{question}</h2>{reply && reply !== question && <p className="arra-reply">{reply}</p>}</div>
+          <div className="arra-question"><span className="arra-eyebrow">{live ? `${info.name} · ${tutorSpeaking ? c.heroSpeaking : c.heroListening}` : `${info.name} · ${c.question} ${round + 1}`}</span><h2>{question}</h2>{reply && reply !== question && <p className="arra-reply">{reply}</p>}</div>
         </div>
         <div className="arra-transcript" data-speaking={speaking || micActive}>
           <Mic size={17} aria-hidden="true" />
@@ -131,7 +134,7 @@ export function SawGameView({ phase, blade, secondsLeft, score, round, question,
 
       {finished && <section className="arra-results" aria-label={c.result}>
         <div className="arra-result-heading"><span className="arra-eyebrow">{c.result}</span><h1>{microphoneOnly && phase === 'won' ? 'Тренировка завершена.' : resultTitle}</h1><p>{microphoneOnly ? 'Время речи измерено по сигналу микрофона. Слова не расшифрованы.' : phase === 'won' ? c.wonBody : c.lostBody}</p></div>
-        <div className="arra-result-scene"><SawScene blade={phase === 'won' ? 0 : result?.reason === 'surrender' ? threat : 100} phase={phase} speaking={false} animated={animated} character={character} emotion={phase === 'won' ? 'happy' : 'panic'} />
+        <div className="arra-result-scene"><SawScene blade={phase === 'won' ? 0 : result?.reason === 'surrender' ? threat : 100} phase={phase} speaking={false} animated={animated} character={character} emotion={phase === 'won' ? 'happy' : 'panic'} tutorSpeaking={tutorSpeaking} voiceLevel={voiceLevel} />
           {phase === 'won' && !microphoneOnly && <span className="arra-point"><Trophy size={16} />{c.point}</span>}
         </div>
         {result ? <div className="arra-result-stats">

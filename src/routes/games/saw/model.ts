@@ -12,7 +12,7 @@ export type SawResult = {
 }
 
 export const ROUND_SECONDS = 60
-export const CONTACT_DURATION_MS = 1100
+export const CONTACT_DURATION_MS = 1500
 export const SAW_CHARACTERS: SawCharacter[] = ['penguin', 'panda', 'pero']
 export const SAW_TOPICS = [
   { id: 'everyday', label: 'Повседневная жизнь' },

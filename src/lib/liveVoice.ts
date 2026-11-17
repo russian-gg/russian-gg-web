@@ -92,6 +92,12 @@ export interface LiveFunctionDeclaration {
 
 export interface LiveVoiceOptions {
   playbackContext?: AudioContext
+  /**
+   * Where the tutor's voice is sent instead of straight to the speakers: a node in
+   * {@link playbackContext} that the caller has already routed on to the output. It lets a
+   * screen measure the voice it is playing, to move a character's mouth with it.
+   */
+  playbackDestination?: AudioNode
   respectAudioMute?: boolean
   outputTranscriptDeltas?: boolean
   listenOnlyAfterOpening?: boolean
@@ -136,6 +142,7 @@ export class LiveVoiceSession {
   private captureSource: MediaStreamAudioSourceNode | null = null
   private captureProcessor: ScriptProcessorNode | null = null
   private playbackContext: AudioContext | null = null
+  private readonly playbackDestination: AudioNode | null
   /** Everything scheduled but not yet played. Without a handle on these, nothing can stop. */
   private playbackSources: AudioBufferSourceNode[] = []
   private nextPlaybackTime = 0
@@ -181,6 +188,7 @@ export class LiveVoiceSession {
     this.callbacks = callbacks
     this.continuous = options?.continuous ?? false
     this.playbackContext = options?.playbackContext ?? null
+    this.playbackDestination = options?.playbackContext ? options.playbackDestination ?? null : null
     this.respectAudioMute = options?.respectAudioMute ?? true
     this.outputTranscriptDeltas = options?.outputTranscriptDeltas ?? false
     this.listenOnlyAfterOpening = options?.listenOnlyAfterOpening ?? false
@@ -740,7 +748,7 @@ export class LiveVoiceSession {
 
     const source = this.playbackContext.createBufferSource()
     source.buffer = audioBuffer
-    source.connect(this.playbackContext.destination)
+    source.connect(this.playbackDestination ?? this.playbackContext.destination)
     source.onended = () => {
       this.playbackSources = this.playbackSources.filter((queued) => queued !== source)
       if (this.playbackSources.length === 0) this.callbacks.onPlayback?.(false)

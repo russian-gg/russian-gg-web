@@ -80,7 +80,7 @@
 .arra-clock strong { min-width: 55px; color: #f0efdf; font-size: 26px; line-height: 1.1; font-weight: 1000; font-variant-numeric: tabular-nums; }
 .arra-clock > span { color: #9ba9af; font-size: 9px; }
 .arra-stage-frame { position: relative; }
-.arra-stage-status { display: flex; align-items: center; gap: 7px; position: absolute; left: 17px; top: 15px; max-width: calc(100% - 34px); padding: 7px 10px; border: 1px solid #d0c69b30; border-radius: 5px; color: #e0d4b3; background: #12171dc9; backdrop-filter: blur(8px); font-size: 10px; font-weight: 800; }
+.arra-stage-status { display: flex; align-items: center; gap: 7px; position: absolute; left: 17px; top: 15px; max-width: calc(100% - 34px); padding: 7px 10px; border: 1px solid #d0c69b30; border-radius: 5px; color: #e0d4b3; background: #12171dc9; font-size: 10px; font-weight: 800; }
 .arra-status-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: #e2bd74; box-shadow: 0 0 7px #ecc58580; }
 .arra-stage-status[data-speaking=true] { color: #b0e2c9; border-color: #6cbc9736; }
 .arra-stage-status[data-speaking=true] .arra-status-dot { background: #7ed7ae; box-shadow: 0 0 8px #9ee8bd80; }
@@ -276,16 +276,17 @@
   .arra-input-copy p { font-size: 11px; }
   .arra-notice { font-size: 10px; }
 }
-/* The whole arena feels the blade: the frame throbs, the meter pounds, the status line flashes. */
-.arra-page[data-danger=true][data-phase=playing] .arra-arena { animation: arra-arena-throb .52s ease-in-out infinite; }
+/* The whole arena feels the blade. Only opacity and transform animate: no shadows or filters. */
+.arra-arena { position: relative; }
+.arra-arena::after { position: absolute; inset: 0; z-index: 2; content: ''; border-radius: inherit; border: 2px solid #ff5a44; opacity: 0; pointer-events: none; }
+.arra-page[data-danger=true][data-phase=playing] .arra-arena::after { animation: arra-arena-throb .52s ease-in-out infinite; }
 .arra-page[data-danger=true][data-phase=playing] .arra-suspicion-heading strong { animation: arra-meter-pound .52s ease-in-out infinite; transform-origin: 100% 60%; }
-.arra-page[data-danger=true][data-phase=playing] .arra-suspicion-track i { animation: arra-meter-flash .26s linear infinite alternate; }
-.arra-page[data-danger=true][data-phase=playing] .arra-stage-status { animation: arra-meter-flash .4s linear infinite alternate; }
+.arra-page[data-danger=true][data-phase=playing] .arra-status-dot { animation: arra-dot-blink .4s linear infinite alternate; }
 .arra-page[data-phase=impact] .arra-arena { animation: arra-arena-hit .5s ease-out both; }
 .arra-suspicion-track i { transition: width .14s linear; }
-@keyframes arra-arena-throb { 0%, 100% { box-shadow: 0 0 50px #bd382724, 0 24px 65px #0006; } 50% { box-shadow: 0 0 0 2px #ff5a4466, 0 0 85px #e2392a70, 0 24px 65px #0006; } }
+@keyframes arra-arena-throb { 0%, 100% { opacity: 0; } 50% { opacity: .85; } }
 @keyframes arra-meter-pound { 0%, 100% { transform: none; } 18% { transform: scale(1.22); } 40% { transform: scale(1.04); } }
-@keyframes arra-meter-flash { from { filter: brightness(.9); } to { filter: brightness(1.5); } }
+@keyframes arra-dot-blink { from { opacity: .35; } to { opacity: 1; } }
 @keyframes arra-arena-hit { 0% { transform: none; } 12% { transform: translate(-7px, 4px) rotate(-.5deg); } 28% { transform: translate(6px, -4px) rotate(.4deg); } 46% { transform: translate(-4px, 2px); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .arra-page *, .arra-page *::before, .arra-page *::after { animation: none !important; transition: none !important; }
