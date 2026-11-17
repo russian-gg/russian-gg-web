@@ -11,6 +11,7 @@ import { Badge, Button, Card, ConfirmDialog, ErrorNote, Loading, PageHeader, Scr
 export function LessonAudio() {
   const { data, error, isLoading, refresh } = useAdminQuery<AdminLessonAudioStatus>('/api/admin-portal/lesson-audio')
   const [confirming, setConfirming] = useState(false)
+  const [confirmingStop, setConfirmingStop] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   const [notice, setNotice] = useState('')
@@ -42,6 +43,24 @@ export function LessonAudio() {
     } finally {
       setBusy(false)
       setConfirming(false)
+    }
+  }
+
+  // Nothing made so far is lost: each clip is saved as it is made, so the next run only
+  // makes what is still missing.
+  async function stop() {
+    setBusy(true)
+    setFailure('')
+    setNotice('')
+    try {
+      await adminFetch<{ stopped: number }>('/api/admin-portal/lesson-audio/stop', { method: 'POST' })
+      setNotice("To'xtatildi. Shu paytgacha yaratilgan audiolar saqlandi.")
+      refresh()
+    } catch (caught) {
+      setFailure(caught instanceof Error ? caught.message : "To'xtatib bo'lmadi.")
+    } finally {
+      setBusy(false)
+      setConfirmingStop(false)
     }
   }
 
@@ -90,9 +109,16 @@ export function LessonAudio() {
               darslar va matni o'zgargan iboralar. Audiosi bor darslarga tegmaydi va qayta pul sarflamaydi.
             </p>
             {notice && <p className="text-sm font-bold text-milestone">{notice}</p>}
-            <Button disabled={busy || running} onClick={() => setConfirming(true)}>
-              {running ? 'Ishlayapti…' : 'Yetishmayotganlarini yaratish'}
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button disabled={busy || running} onClick={() => setConfirming(true)}>
+                {running ? 'Ishlayapti…' : 'Yetishmayotganlarini yaratish'}
+              </Button>
+              {running && (
+                <Button variant="danger" disabled={busy} onClick={() => setConfirmingStop(true)}>
+                  To'xtatish va saqlash
+                </Button>
+              )}
+            </div>
           </Card>
         </>
       )}
@@ -111,6 +137,17 @@ export function LessonAudio() {
           onCancel={() => setConfirming(false)}
         />
       )}
+
+      {confirmingStop && (
+        <ConfirmDialog
+          title="Audio yaratish to'xtatilsinmi?"
+          body="Navbatdagi darslar boshlanmaydi, hozirgi dars joriy iboradan keyin to'xtaydi. Shu paytgacha yaratilgan audiolar saqlanadi — keyin davom ettirsangiz, faqat qolganlari yaratiladi."
+          confirmLabel="To'xtatish"
+          busy={busy}
+          onConfirm={() => void stop()}
+          onCancel={() => setConfirmingStop(false)}
+        />
+      )}
     </Screen>
   )
 }
@@ -120,6 +157,7 @@ const STATE_LABEL: Record<AdminLessonAudioRun['state'], string> = {
   running: 'Ishlayapti',
   done: 'Tugadi',
   failed: 'Xatolar bilan tugadi',
+  stopped: "To'xtatildi",
 }
 
 const STATE_TONE = {
@@ -127,6 +165,7 @@ const STATE_TONE = {
   running: 'signal',
   done: 'milestone',
   failed: 'danger',
+  stopped: 'caution',
 } as const
 
 /** The latest run, lesson by lesson: how far it is, what it is on now, and what failed. */
