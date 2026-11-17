@@ -15,3 +15,6 @@ coverage/
 
 # Local Claude Code project memory - not shared via version control
 CLAUDE.md
+
+# Working files of the design-taste-frontend skill: its checker reports, screenshots and Chrome profile.
+.taste-skill/
