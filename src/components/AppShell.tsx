@@ -48,6 +48,7 @@ import type { EntitlementView, ProgressView, WelcomeGiftStatus } from '../lib/ty
 import { PhoneNumberPrompt } from './PhoneNumberPrompt'
 import { HeaderProPill, RailProCard } from './ProEntry'
 import { useCenterStudent } from '../lib/center'
+import { CenterChip } from './CenterBadge'
 import { useCourseDays } from '../lib/course-days'
 import { Badge, Spinner, Switch } from './ui'
 import { duration, ease } from '../lib/motion'
@@ -137,6 +138,8 @@ export function AppShell() {
 
       <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-hairline bg-ground-raised px-5 py-6 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
         <Wordmark />
+        {/* A center's student sees whose student they are under the wordmark, on every screen. */}
+        <CenterChip className="mt-3" />
 
         <nav className="mt-10 flex flex-col gap-1" aria-label={t.nav.main}>
           {nav.map((item) => (

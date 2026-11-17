@@ -8,6 +8,7 @@ import { WelcomeStartDialog, type WelcomeStart } from '../components/home/Welcom
 import { HomeProCard } from '../components/ProEntry'
 import { useCourseDays } from '../lib/course-days'
 import { HeroBanner } from '../components/home/HeroBanner'
+import { CenterHomeCard } from '../components/CenterBadge'
 import { FeatureTiles, RecommendedLessons } from '../components/home/HomeSections'
 import {
   AchievementsPanel,
@@ -117,6 +118,9 @@ export function Home() {
             <HeroBanner to={startPath} label={startLabel} />
           </Reveal>
 
+          {/* On a narrow screen the rail falls below everything, so the center's card sits here. */}
+          <CenterHomeCard className="xl:hidden" />
+
           <Reveal as="section">
             <SectionHeading accent>{t.home.todayMission}</SectionHeading>
             {data.todayMission ? (
@@ -167,6 +171,8 @@ export function Home() {
           underneath and the delay costs nothing, because it is below the fold anyway.
         */}
         <Sequence as="aside" className="min-w-0 space-y-6" gap={stagger.base} delay={0.2}>
+          {/* Heads the rail: whose student this is, and whether their course is open. */}
+          <Reveal><CenterHomeCard className="hidden xl:block" /></Reveal>
           {data.tier === 'Free' && <Reveal><HomeProCard /></Reveal>}
           <Reveal><QuoteCard /></Reveal>
           <Reveal><ProgressRing currentDay={finishedDays + 1} /></Reveal>

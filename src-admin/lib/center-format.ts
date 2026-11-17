@@ -1,10 +1,19 @@
 import { formatDate, formatNumber } from './api'
 import { somFromTiyin } from './center-types'
+import { toast } from './toast'
+import { cx } from '../../src/lib/cx'
 
 export const formatSom = (tiyin: number) => `${formatNumber(somFromTiyin(tiyin))} so'm`
 
 export const fieldClass =
   'h-11 w-full rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-4 text-sm text-ink placeholder:text-ink-faint focus:border-signal focus:outline-none'
+
+/** The frame of a plan card: the chosen (or current) one is ringed in signal blue. */
+export const planFrame = (chosen: boolean) =>
+  cx(
+    'flex h-full flex-col gap-3 rounded-[var(--radius-card)] border-2 p-4 transition-colors',
+    chosen ? 'border-signal bg-signal-soft/60' : 'border-hairline bg-ground-raised',
+  )
 
 /** "3 kun oldin", or the date once it is more than a week away. */
 export function lastActiveLabel(date: string | null) {
@@ -27,6 +36,20 @@ export function todayIso() {
 
 /** The public page a center pays an invoice on. It lives on this same admin host. */
 export const payLink = (token: string) => `${window.location.origin}/pay/${token}`
+
+/** "Click", "Payme", or who on the team marked a bank transfer — how an invoice was paid. */
+export const paidViaLabel = (via: string | null) =>
+  !via ? '' : via === 'click' ? 'Click' : via === 'payme' ? 'Payme' : via.startsWith('admin:') ? `qo'lda (${via.slice(6)})` : via
+
+/** Copies, and says so; a browser that refuses the clipboard gets told what to do instead. */
+export async function copyText(text: string, done: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast(done)
+  } catch {
+    toast("Nusxalab bo'lmadi — matnni qo'lda belgilang")
+  }
+}
 
 /** The token in "/pay/{token}", or null on every other path. */
 export function payTokenFromPath(pathname: string) {

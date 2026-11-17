@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarDays, CheckCircle2, RefreshCw, ShieldCheck, Users } from 'lucide-react'
+import { CalendarDays, CheckCircle2, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { adminApiPath, formatDate } from '../lib/api'
 import { formatPeriod, formatSom } from '../lib/center-format'
 import { type CenterPayView } from '../lib/center-types'
@@ -77,7 +77,7 @@ export function CenterPayPage({ token }: { token: string }) {
                 <InvoiceBadge status={data.status} />
               </div>
 
-              {/* What the money buys, read top to bottom: the sum, then the two things it is made of. */}
+              {/* What the money buys, read top to bottom: the sum, then the things it is made of. */}
               <div className="rounded-[var(--radius-card)] border-2 border-hairline">
                 <div className="px-5 pt-5 pb-4">
                   <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-ink-faint">To'lanadigan summa</p>
@@ -94,12 +94,30 @@ export function CenterPayPage({ token }: { token: string }) {
                   <div className="flex items-center justify-between gap-3 px-5 py-3">
                     <dt className="flex items-center gap-2 text-ink-muted">
                       <Users aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                      O'quvchilar
+                      Faol o'quvchilar
                     </dt>
                     <dd className="text-right font-bold text-ink tabular-nums">
                       {data.seats} × {formatSom(data.pricePerSeatTiyin)}
                     </dd>
                   </div>
+                  {/* Students who joined during the month before and were on no invoice: charged
+                      here, a month late. The line needs its reason beside it, or it reads as an error. */}
+                  {data.arrearsSeats > 0 && (
+                    <div className="px-5 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="flex items-center gap-2 text-ink-muted">
+                          <UserPlus aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                          O'tgan oy qo'shilgan
+                        </dt>
+                        <dd className="text-right font-bold text-ink tabular-nums">
+                          {data.arrearsSeats} × {formatSom(data.pricePerSeatTiyin)}
+                        </dd>
+                      </div>
+                      <p className="mt-1.5 text-xs text-ink-muted">
+                        Oy davomida qo'shilgan o'quvchilar uchun o'sha oy keyingi hisob-fakturada to'lanadi.
+                      </p>
+                    </div>
+                  )}
                 </dl>
               </div>
 

@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useStickyTab } from '../lib/sticky-tab'
 import { adminFetch, formatDateTime, formatUsd, useAdminQuery } from '../lib/api'
 import type { AdminAiBalance, AdminAiBalanceEntry, AiBalanceEntryKind } from '../lib/types'
 import { LineChart } from '../components/charts'
+import { FormDialog } from '../components/center'
 import {
   Badge,
   Button,
@@ -19,11 +21,15 @@ import {
   Segmented,
   Stat,
   Table,
+  Tabs,
 } from '../components/ui'
+
+// Module-level so `useStickyTab` sees a stable list.
+const BALANCE_TABS = ['balance', 'entries'] as const
 
 /**
  * The Gemini balance. Google has no API for a key's prepaid balance, so it is kept here from
- * the top-ups and corrections entered below, minus the estimated cost of every call since.
+ * the top-ups and corrections entered here, minus the estimated cost of every call since.
  * Google's own charges show beside it when the billing export is connected.
  */
 export function AiBalance() {
@@ -31,6 +37,8 @@ export function AiBalance() {
   const [removing, setRemoving] = useState<AdminAiBalanceEntry | null>(null)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
+  const [tab, setTab] = useStickyTab('ai-balance', BALANCE_TABS)
+  const [adding, setAdding] = useState(false)
 
   async function remove(entry: AdminAiBalanceEntry) {
     setBusy(true)
@@ -56,10 +64,13 @@ export function AiBalance() {
 
   return (
     <Screen className="space-y-6">
-      <PageHeader
-        title="Gemini balansi"
-        subtitle="Taxminiy qoldiq, sarf va Google hisobidagi haqiqiy to'lovlar"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageHeader
+          title="Gemini balansi"
+          subtitle="Taxminiy qoldiq, sarf va Google hisobidagi haqiqiy to'lovlar"
+        />
+        <Button onClick={() => setAdding(true)}>Yozuv qo'shish</Button>
+      </div>
 
       {data.depletion && <DepletionBanner depletion={data.depletion} />}
       {failure && <ErrorNote>{failure}</ErrorNote>}
@@ -70,7 +81,7 @@ export function AiBalance() {
           value={balance === null ? '—' : formatUsd(balance)}
           badge={balance === null ? undefined : data.low ? <Badge tone="danger">Kam qoldi</Badge> : <Badge tone="milestone">Yetarli</Badge>}
           note={balance === null
-            ? "Birinchi to'lovni pastda kiriting"
+            ? "Birinchi to'lovni «Yozuv qo'shish» orqali kiriting"
             : `${formatUsd(data.warnBelowUsd)} dan kam bo'lsa ogohlantiradi`}
         />
         <Stat
@@ -90,49 +101,72 @@ export function AiBalance() {
         />
       </div>
 
-      <Card className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-extrabold text-ink">Kunlik sarf — taxminiy (ilova hisobi)</h2>
-          <span className="text-xs text-ink-muted">Har bir AI chaqiruv narxi va jonli ovoz daqiqalari</span>
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { id: 'balance', label: 'Qoldiq' },
+          { id: 'entries', label: 'Yozuvlar' },
+        ]}
+      />
+
+      {tab === 'balance' ? (
+        <div className="space-y-6">
+          <Card className="space-y-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-base font-extrabold text-ink">Kunlik sarf — taxminiy (ilova hisobi)</h2>
+              <span className="text-xs text-ink-muted">Har bir AI chaqiruv narxi va jonli ovoz daqiqalari</span>
+            </div>
+            <LineChart
+              points={data.estimatedByDay.map((point) => ({ date: point.date, value: point.costUsd }))}
+              label="Taxminiy kunlik sarf"
+              format={formatUsd}
+            />
+          </Card>
+
+          <GoogleCharges google={data.google} estimated={data.estimatedByDay} />
         </div>
-        <LineChart
-          points={data.estimatedByDay.map((point) => ({ date: point.date, value: point.costUsd }))}
-          label="Taxminiy kunlik sarf"
-          format={formatUsd}
+      ) : (
+        <Card className="space-y-3">
+          <h2 className="text-base font-extrabold text-ink">To'lovlar va tuzatishlar</h2>
+          {data.entries.length === 0 ? (
+            <EmptyNote>Hali hech narsa kiritilmagan.</EmptyNote>
+          ) : (
+            <Table head={['Sana', 'Turi', 'Summa', 'Izoh', 'Kim', '']}>
+              {data.entries.map((entry) => (
+                <Row key={entry.id}>
+                  <Cell>{formatDateTime(entry.effectiveAt)}</Cell>
+                  <Cell>
+                    <Badge tone={entry.kind === 'TopUp' ? 'signal' : 'neutral'}>
+                      {entry.kind === 'TopUp' ? "To'ldirish" : 'Tuzatish'}
+                    </Badge>
+                  </Cell>
+                  <Cell>{formatUsd(entry.amountUsd)}</Cell>
+                  <Cell>{entry.note ?? '—'}</Cell>
+                  <Cell>{entry.createdBy ?? '—'}</Cell>
+                  <Cell>
+                    <Button size="sm" variant="ghost" onClick={() => setRemoving(entry)}>
+                      O'chirish
+                    </Button>
+                  </Cell>
+                </Row>
+              ))}
+            </Table>
+          )}
+        </Card>
+      )}
+
+      {adding && (
+        <AddEntryDialog
+          onClose={() => setAdding(false)}
+          onAdded={() => {
+            setAdding(false)
+            // The new row is the proof it was saved, so land on the list that shows it.
+            setTab('entries')
+            refresh()
+          }}
         />
-      </Card>
-
-      <GoogleCharges google={data.google} estimated={data.estimatedByDay} />
-
-      <AddEntry onAdded={refresh} />
-
-      <Card className="space-y-3">
-        <h2 className="text-base font-extrabold text-ink">To'lovlar va tuzatishlar</h2>
-        {data.entries.length === 0 ? (
-          <EmptyNote>Hali hech narsa kiritilmagan.</EmptyNote>
-        ) : (
-          <Table head={['Sana', 'Turi', 'Summa', 'Izoh', 'Kim', '']}>
-            {data.entries.map((entry) => (
-              <Row key={entry.id}>
-                <Cell>{formatDateTime(entry.effectiveAt)}</Cell>
-                <Cell>
-                  <Badge tone={entry.kind === 'TopUp' ? 'signal' : 'neutral'}>
-                    {entry.kind === 'TopUp' ? "To'ldirish" : 'Tuzatish'}
-                  </Badge>
-                </Cell>
-                <Cell>{formatUsd(entry.amountUsd)}</Cell>
-                <Cell>{entry.note ?? '—'}</Cell>
-                <Cell>{entry.createdBy ?? '—'}</Cell>
-                <Cell>
-                  <Button size="sm" variant="ghost" onClick={() => setRemoving(entry)}>
-                    O'chirish
-                  </Button>
-                </Cell>
-              </Row>
-            ))}
-          </Table>
-        )}
-      </Card>
+      )}
 
       {removing && (
         <ConfirmDialog
@@ -222,7 +256,7 @@ function GoogleCharges({
 }
 
 /** A top-up, or the balance read off AI Studio's billing page to correct the estimate. */
-function AddEntry({ onAdded }: { onAdded: () => void }) {
+function AddEntryDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [kind, setKind] = useState<AiBalanceEntryKind>('TopUp')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
@@ -248,9 +282,6 @@ function AddEntry({ onAdded }: { onAdded: () => void }) {
           note: note.trim() || null,
         }),
       })
-      setAmount('')
-      setDate('')
-      setNote('')
       onAdded()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : "Saqlab bo'lmadi.")
@@ -260,40 +291,50 @@ function AddEntry({ onAdded }: { onAdded: () => void }) {
   }
 
   return (
-    <Card className="space-y-4">
-      <div>
-        <h2 className="text-base font-extrabold text-ink">Yozuv qo'shish</h2>
-        <p className="mt-1 text-sm text-ink-muted">
+    <FormDialog title="Yozuv qo'shish" onClose={onClose}>
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <p className="text-sm text-ink-muted">
           {kind === 'TopUp'
             ? "AI Studio'da balansni to'ldirganingizda summani kiriting."
             : "AI Studio billing sahifasidagi hozirgi qoldiqni kiriting — taxmin shu qiymatdan qayta hisoblanadi."}
         </p>
-      </div>
-      {failure && <ErrorNote>{failure}</ErrorNote>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <FieldLabel label="Turi">
-          <Segmented
-            value={kind}
-            onChange={setKind}
-            options={[
-              { id: 'TopUp', label: "To'ldirish" },
-              { id: 'Correction', label: 'Tuzatish' },
-            ]}
-          />
-        </FieldLabel>
-        <FieldLabel label="Summa, USD">
-          <Input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="50" />
-        </FieldLabel>
-        <FieldLabel label="Sana (bo'sh — hozir)">
-          <Input type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} />
-        </FieldLabel>
-        <FieldLabel label="Izoh">
-          <Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Masalan: karta orqali" />
-        </FieldLabel>
-      </div>
-      <Button disabled={!valid || busy} onClick={() => void save()}>
-        {busy ? 'Saqlanmoqda…' : 'Saqlash'}
-      </Button>
-    </Card>
+        {failure && <ErrorNote>{failure}</ErrorNote>}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FieldLabel label="Turi">
+            <Segmented
+              value={kind}
+              onChange={setKind}
+              options={[
+                { id: 'TopUp', label: "To'ldirish" },
+                { id: 'Correction', label: 'Tuzatish' },
+              ]}
+            />
+          </FieldLabel>
+          <FieldLabel label="Summa, USD">
+            <Input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="50" />
+          </FieldLabel>
+          <FieldLabel label="Sana (bo'sh — hozir)">
+            <Input type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} />
+          </FieldLabel>
+          <FieldLabel label="Izoh">
+            <Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Masalan: karta orqali" />
+          </FieldLabel>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2 pt-1">
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            Bekor qilish
+          </Button>
+          <Button type="submit" disabled={!valid || busy}>
+            {busy ? 'Saqlanmoqda…' : 'Saqlash'}
+          </Button>
+        </div>
+      </form>
+    </FormDialog>
   )
 }

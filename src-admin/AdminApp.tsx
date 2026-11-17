@@ -12,6 +12,7 @@ import {
   DashboardGlyph,
   FeedbackGlyph,
   GamesGlyph,
+  InboxGlyph,
   MarketingGlyph,
   PaymentGlyph,
   PromoGlyph,
@@ -46,6 +47,8 @@ import {
   type StartAdding,
   type StudentFilter,
 } from './screens/CenterPortal'
+import { CenterPaymentsScreen } from './screens/CenterPayments'
+import { CenterReviewScreen } from './screens/CenterReview'
 import { Toaster } from './components/toast'
 import { CenterPayPage } from './screens/CenterPay'
 import { payTokenFromPath } from './lib/center-format'
@@ -71,6 +74,8 @@ type Section =
   | 'center-overview'
   | 'center-groups'
   | 'center-students'
+  | 'center-review'
+  | 'center-payments'
   | 'center-settings'
 
 /**
@@ -103,12 +108,14 @@ const sections: Array<{ id: Section; label: string; group: string; sales?: true 
 ]
 
 /**
- * A language center's admin gets a sidebar of its own: four screens, all scoped on the server to
+ * A language center's admin gets a sidebar of its own: a few screens, all scoped on the server to
  * the center in their token. None of the team's sections are drawn for them.
  */
 const centerSections: Array<{ id: Section; label: string; group: string }> = [
   { id: 'center-overview', label: 'Umumiy', group: 'Markaz' },
   { id: 'center-students', label: "O'quvchilar", group: 'Markaz' },
+  { id: 'center-review', label: 'Tekshirish', group: 'Markaz' },
+  { id: 'center-payments', label: "To'lovlar", group: 'Markaz' },
   { id: 'center-settings', label: 'Sozlamalar', group: 'Markaz' },
 ]
 
@@ -133,7 +140,10 @@ const sectionGlyphs: Record<Section, () => React.ReactElement> = {
   centers: UsersGlyph,
   'center-overview': DashboardGlyph,
   'center-students': UsersGlyph,
+  // A queue that recordings land in, which is what the tray says.
+  'center-review': InboxGlyph,
   'center-groups': TestsGlyph,
+  'center-payments': PaymentGlyph,
   'center-settings': PromoGlyph,
 }
 
@@ -355,38 +365,54 @@ function Panel() {
       </aside>
 
       <main key={visit} className="min-w-0 p-4 sm:p-6 lg:p-8">
-        <SmsHealthBanner health={sms.health} />
-        {active === 'dashboard' && <Dashboard />}
-        {active === 'users' && <Users />}
-        {active === 'clicks' && <Clicks />}
-        {active === 'marketing' && <Marketing />}
-        {active === 'sales' && <Sales />}
-        {active === 'transactions' && <Transactions />}
-        {active === 'ai-usage' && <AiUsage />}
-        {active === 'promo-codes' && <PromoCodes />}
-        {active === 'feedbacks' && <Feedbacks />}
-        {active === 'lesson-feedbacks' && <LessonFeedbacks />}
-        {active === 'recordings' && <Recordings />}
-        {active === 'portal-users' && <PortalUsers />}
-        {active === 'games' && <Games />}
-        {active === 'lesson-audio' && <LessonAudio />}
-        {active === 'ai-balance' && <AiBalance />}
-        {active === 'tests' && <Tests />}
-        {active === 'centers' && <Centers />}
-        {active === 'center-overview' && (
-          <CenterOverviewScreen
-            onOpenStudents={(filter, start) => {
-              setStudentFilter(filter)
-              setStudentStart(start)
-              setStudentVisit((value) => value + 1)
-              setSection('center-students')
-            }}
-          />
-        )}
-        {active === 'center-students' && (
-          <CenterStudentsScreen key={`${studentFilter}-${studentVisit}`} initialFilter={studentFilter} start={studentStart} />
-        )}
-        {active === 'center-settings' && <CenterSettingsScreen />}
+        {/* Full width: every screen runs from the sidebar to the edge of the window. */}
+        <div className="w-full">
+          <SmsHealthBanner health={sms.health} />
+          {active === 'dashboard' && <Dashboard />}
+          {active === 'users' && <Users />}
+          {active === 'clicks' && <Clicks />}
+          {active === 'marketing' && <Marketing />}
+          {active === 'sales' && <Sales />}
+          {active === 'transactions' && <Transactions />}
+          {active === 'ai-usage' && <AiUsage />}
+          {active === 'promo-codes' && <PromoCodes />}
+          {active === 'feedbacks' && <Feedbacks />}
+          {active === 'lesson-feedbacks' && <LessonFeedbacks />}
+          {active === 'recordings' && <Recordings />}
+          {active === 'portal-users' && <PortalUsers />}
+          {active === 'games' && <Games />}
+          {active === 'lesson-audio' && <LessonAudio />}
+          {active === 'ai-balance' && <AiBalance />}
+          {active === 'tests' && <Tests />}
+          {active === 'centers' && <Centers />}
+          {active === 'center-overview' && (
+            <CenterOverviewScreen
+              onOpenStudents={(filter, start) => {
+                setStudentFilter(filter)
+                setStudentStart(start)
+                setStudentVisit((value) => value + 1)
+                setSection('center-students')
+              }}
+              onOpenPayments={() => setSection('center-payments')}
+              onOpenReview={() => setSection('center-review')}
+            />
+          )}
+          {active === 'center-review' && <CenterReviewScreen />}
+          {active === 'center-students' && (
+            <CenterStudentsScreen key={`${studentFilter}-${studentVisit}`} initialFilter={studentFilter} start={studentStart} />
+          )}
+          {active === 'center-payments' && (
+            <CenterPaymentsScreen
+              onAddStudents={() => {
+                setStudentFilter('all')
+                setStudentStart('form')
+                setStudentVisit((value) => value + 1)
+                setSection('center-students')
+              }}
+            />
+          )}
+          {active === 'center-settings' && <CenterSettingsScreen />}
+        </div>
       </main>
       <Toaster />
     </div>
@@ -446,12 +472,26 @@ function LoginScreen() {
         body: JSON.stringify({ username, password }),
       })
 
-      if (!response.ok) throw new Error('Login failed')
+      if (!response.ok) {
+        /*
+         * A right password for an archived center is refused too, and used to read as a wrong
+         * password — so a login that was fine got reset, and the new one "did not work" either.
+         * The detail is matched as well as the code, for a server that predates the code.
+         */
+        const problem = (await response.json().catch(() => null)) as { code?: string; detail?: string } | null
+        const archived = problem?.code === 'center_archived' || problem?.detail === 'This center is no longer active.'
+        setError(
+          archived
+            ? "Login va parol to'g'ri, lekin bu markaz arxivlangan. Russian.gg jamoasiga murojaat qiling."
+            : "Login yoki parol noto'g'ri. Qayta urinib ko'ring.",
+        )
+        return
+      }
 
       const data = await response.json()
       session.signIn(data.token, data.name, data.role, data.centerName)
     } catch {
-      setError("Login yoki parol noto'g'ri. Qayta urinib ko'ring.")
+      setError("Serverga ulanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.")
     } finally {
       setLoading(false)
     }

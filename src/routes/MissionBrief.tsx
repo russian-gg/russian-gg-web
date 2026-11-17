@@ -19,6 +19,7 @@ import { MissionPlayer } from './MissionPlayer'
 import { LiveTrialsCard } from '../components/limits/LiveTrialsCard'
 import { BudgetSheet } from '../components/limits/BudgetSheet'
 import { LIMIT_CODES, useUsageToday } from '../lib/usage'
+import { useAiAccess } from '../lib/plan'
 
 /**
  * The route every mission opens on. A converted mission gets its brief — who you are about to
@@ -33,8 +34,10 @@ export function MissionEntry() {
     enabled: Boolean(missionId),
   })
 
-  if (isLoading) return <Spinner />
-  if (error || !data) return <MissionPlayer />
+  const { aiAccess, known: planKnown } = useAiAccess()
+
+  if (isLoading || !planKnown) return <Spinner />
+  if (error || !data) return aiAccess ? <MissionPlayer /> : <Navigate to="/practice" replace />
   if (data.dialogue) return <MissionBrief mission={data} />
 
   /*
@@ -44,6 +47,10 @@ export function MissionEntry() {
    */
   const lessonPath = missionPath(data.summary)
   if (lessonPath.startsWith('/lessons/')) return <Navigate to={lessonPath} replace />
+
+  // The step player is a live voice session. On the plan without AI the same steps are played
+  // as written turns.
+  if (!aiAccess) return <Navigate to={`/missions/${missionId}/story`} replace />
 
   return <MissionPlayer />
 }
@@ -78,16 +85,25 @@ export function MissionBrief({ mission }: MissionBriefProps) {
   // MissionLive sends the learner back here when the server refused a live session.
   const refusedFor = (location.state as { limit?: string } | null)?.limit
   const [showBudget, setShowBudget] = useState(refusedFor === LIMIT_CODES.aiBudgetReached)
-  const budgetReached = Boolean(usage?.aiBudgetReached)
+  /*
+   * On the plan without AI this mission is a story with written turns (MissionStory): nothing
+   * is spent, so there are no live tries or budget to run out of, and no microphone to allow.
+   */
+  const { aiAccess, known: planKnown } = useAiAccess()
+  const story = !aiAccess
+  const budgetReached = !story && Boolean(usage?.aiBudgetReached)
   // No live tries left today: the conversation is closed until they come back. There is no
   // voice-note way round it.
-  const trialsUsed = Boolean(usage && !budgetReached && usage.liveTrialsLeft <= 0)
+  const trialsUsed = !story && Boolean(usage && !budgetReached && usage.liveTrialsLeft <= 0)
 
   // When the wait runs out the server is asked again, so the button opens without a reload.
   const waitOver = locked && remaining === '0:00'
   useEffect(() => {
     if (waitOver) void queryClient.invalidateQueries({ queryKey: ['mission-detail', mission.summary.id] })
   }, [waitOver, queryClient, mission.summary.id])
+
+  // Which of the two versions this brief introduces is not known until the entitlement is in.
+  if (!planKnown) return <Spinner />
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-12">
@@ -116,7 +132,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
               className="inline-flex items-center rounded-[var(--radius-control)] px-2.5 py-1 text-xs font-extrabold tracking-[0.12em] uppercase"
               style={{ background: `${palette.light}2b`, color: palette.deep }}
             >
-              {fill(copy.eyebrow, { character: name })}
+              {fill(story ? copy.storyEyebrow : copy.eyebrow, { character: name })}
             </span>
             <h1 className="mt-3 text-2xl leading-tight font-extrabold tracking-tight wrap-break-word text-ink sm:text-3xl">
               {pickContent(locale, { uz: mission.summary.titleUz, ru: mission.summary.titleRu, en: mission.summary.titleEn })}
@@ -144,15 +160,19 @@ export function MissionBrief({ mission }: MissionBriefProps) {
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
-        <Stat label={copy.timeTitle} value={fill(copy.timeValue, { count: Math.round(dialogue.conversationSeconds / 60) })} />
+        {story
+          ? <Stat label={copy.storyStepsTitle} value={fill(copy.storyStepsValue, { count: dialogue.beats.length })} />
+          : <Stat label={copy.timeTitle} value={fill(copy.timeValue, { count: Math.round(dialogue.conversationSeconds / 60) })} />}
         <Stat label={copy.passTitle} value={fill(copy.passValue, { score: dialogue.passScore })} />
         {/* The real rule, before the first try: the old copy promised unlimited retries. */}
-        <div className="col-span-2">
-          <Stat
-            label={copy.attemptsTitle}
-            value={fill(copy.attemptsValue, { count: MISSION_ATTEMPTS, hours: RETRY_COOLDOWN_HOURS })}
-          />
-        </div>
+        {!story && (
+          <div className="col-span-2">
+            <Stat
+              label={copy.attemptsTitle}
+              value={fill(copy.attemptsValue, { count: MISSION_ATTEMPTS, hours: RETRY_COOLDOWN_HOURS })}
+            />
+          </div>
+        )}
       </div>
 
       {mission.targetPhrases.length > 0 && (
@@ -175,7 +195,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         <h2 className="text-xs font-extrabold tracking-[0.14em] text-ink-faint uppercase">
           {copy.howTitle}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">{copy.howBody}</p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-muted">{story ? fill(copy.storyHow, { character: name }) : copy.howBody}</p>
       </Card>
 
       {/*
@@ -183,7 +203,7 @@ export function MissionBrief({ mission }: MissionBriefProps) {
         action on this screen and should never be the thing a learner has to scroll for.
       */}
       {/* What is left of today's live conversations, before the learner presses start. */}
-      {usage && !locked && (
+      {usage && !locked && !story && (
         <LiveTrialsCard usage={usage} minutes={Math.round(dialogue.conversationSeconds / 60)} />
       )}
 
@@ -215,24 +235,29 @@ export function MissionBrief({ mission }: MissionBriefProps) {
                   ? setShowCooldown(true)
                   : budgetReached
                     ? setShowBudget(true)
-                    : navigate(`/missions/${mission.summary.id}/live`, { state: { autostart: true } })
+                    : navigate(
+                        story ? `/missions/${mission.summary.id}/story` : `/missions/${mission.summary.id}/live`,
+                        story ? undefined : { state: { autostart: true } },
+                      )
               }
             >
-              {locked ? copy.retryLocked : copy.start}
+              {locked ? copy.retryLocked : story ? copy.storyStart : copy.start}
             </Button>
           </>
         )}
         {/* Said before the browser asks, so the permission prompt is expected, not a surprise. */}
-        {!locked && (
+        {!locked && !story && (
           <p className="text-center text-xs leading-relaxed text-ink-muted">
             {fill(copy.micPrimer, { character: name })}
           </p>
         )}
-        <p className="text-center text-xs font-semibold text-ink-faint">
-          {locked && remaining
-            ? fill(copy.cooldownBody, { time: remaining })
-            : attemptsCaption(dialogue.retry, copy)}
-        </p>
+        {(!story || locked) && (
+          <p className="text-center text-xs font-semibold text-ink-faint">
+            {locked && remaining
+              ? fill(copy.cooldownBody, { time: remaining })
+              : attemptsCaption(dialogue.retry, copy)}
+          </p>
+        )}
       </div>
 
       <BudgetSheet

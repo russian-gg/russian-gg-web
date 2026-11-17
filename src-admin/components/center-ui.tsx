@@ -105,13 +105,3 @@ export function CardTitle({
     </div>
   )
 }
-
-/** A thin bar for "how much of the limit is used". Amber once it is full. */
-export function UsageBar({ used, max }: { used: number; max: number }) {
-  const percent = max > 0 ? Math.min(100, Math.round((100 * used) / max)) : 0
-  return (
-    <span aria-hidden="true" className="block h-1.5 overflow-hidden rounded-full bg-ground-sunken">
-      <span className={cx('block h-full rounded-full', percent >= 100 ? 'bg-caution' : 'bg-signal')} style={{ width: `${percent}%` }} />
-    </span>
-  )
-}

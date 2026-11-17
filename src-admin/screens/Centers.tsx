@@ -31,6 +31,8 @@ import {
 import { cx } from '../../src/lib/cx'
 import { adminFetch, daysUntil, formatDate, formatDateTime, formatDayLong, useAdminQuery } from '../lib/api'
 import {
+  centerPlanIds,
+  centerPlans,
   centerStatusLabel,
   leadStatusLabel,
   somFromTiyin,
@@ -39,6 +41,7 @@ import {
   type AdminCenterLead,
   type AdminCenterRow,
   type CenterInvoice,
+  type CenterPlan,
   type CenterStatus,
   type CenterStudent,
   type LeadStatus,
@@ -61,14 +64,28 @@ import {
   Table,
   Tabs,
 } from '../components/ui'
-import { AccessBadge, Field, FormDialog, InvoiceBadge, PhoneField, StudentDrawer, StudentsTable } from '../components/center'
 import {
+  AccessBadge,
+  Field,
+  FormDialog,
+  InvoiceBadge,
+  InvoiceLines,
+  PhoneField,
+  PlanBadge,
+  PlanFacts,
+  StudentDrawer,
+  StudentsTable,
+} from '../components/center'
+import {
+  copyText,
   fieldClass,
   formatPeriod,
   formatSom,
   formatUzPhone,
   maskUzLocal,
+  paidViaLabel,
   payLink,
+  planFrame,
   todayIso,
   toUzPhone,
   uzLocalDigits,
@@ -80,8 +97,9 @@ import { AddStudentsDialog, type DraftStudent } from './CenterPortal'
 
 /*
  * The team's side of the B2B offer. A center exists because a contract was signed: it is made
- * here, by an admin, with its student limit and price; it pays up front, a month at a time,
- * through the pay link on its invoice; its own admin login is handed over from here.
+ * here, by an admin, with its plan and price; it pays up front, a month at a time, for the
+ * students it has switched on, through the pay link on its invoice; its own admin login is
+ * handed over from here.
  */
 
 type Tab = 'centers' | 'leads' | 'invoices'
@@ -149,21 +167,6 @@ function StatusBadge({ status }: { status: CenterStatus }) {
   )
 }
 
-/** "12 / 50" with a thin bar under it: how much of what the center bought is in use. */
-function LimitMeter({ used, max }: { used: number; max: number }) {
-  const percent = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0
-  return (
-    <div className="min-w-24">
-      <span className="tabular-nums">
-        {used} <span className="text-ink-muted">/ {max}</span>
-      </span>
-      <div aria-hidden="true" className="mt-1 h-1.5 overflow-hidden rounded-full bg-ground-sunken">
-        <div className={percent >= 100 ? 'h-full bg-caution' : 'h-full bg-signal'} style={{ width: `${percent}%` }} />
-      </div>
-    </div>
-  )
-}
-
 function CentersList({ onOpen }: { onOpen: (id: string) => void }) {
   const { data, error, isLoading, refresh } = useAdminQuery<AdminCenterRow[]>('/api/admin-portal/centers')
 
@@ -178,14 +181,14 @@ function CentersList({ onOpen }: { onOpen: (id: string) => void }) {
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Faol markazlar" value={data.filter((c) => c.status === 'active').length} />
-        <Stat label="Faol o'quvchilar" value={totalSeats} note={`${data.reduce((sum, c) => sum + c.maxStudents, 0)} ta joydan`} />
+        <Stat label="Faol o'quvchilar" value={totalSeats} />
         <Stat
           label="To'lanmagan"
           value={formatSom(unpaid)}
           note={`${data.filter((c) => c.overdue).length} ta markazda muddati o'tgan`}
         />
       </div>
-      <Table head={['Markaz', 'Holat', 'Pro', "O'quvchilar", "To'langan muddat", 'Qarz', 'Admin', 'Kod']}>
+      <Table head={['Markaz', 'Holat', 'Tarif', "Faol o'quvchilar", "Bu oy to'lovi", "To'langan muddat", 'Qarz', 'Admin']}>
         {data.map((center) => (
           <Row key={center.id} onClick={() => onOpen(center.id)} label={center.name}>
             <Cell strong>
@@ -193,14 +196,23 @@ function CentersList({ onOpen }: { onOpen: (id: string) => void }) {
               {center.city && <span className="block text-xs font-normal text-ink-muted">{center.city}</span>}
             </Cell>
             <Cell>
-              <StatusBadge status={center.status} />
+              {/* One badge: a center that is switched on says whether its students have Pro,
+                  which is the thing that can be wrong with it; one that is off says only that. */}
+              {center.status === 'active' ? <AccessBadge access={center.access} /> : <StatusBadge status={center.status} />}
             </Cell>
             <Cell>
-              <AccessBadge access={center.access} />
+              <PlanBadge plan={center.plan} />
             </Cell>
             <Cell>
-              <LimitMeter used={center.activeStudents} max={center.maxStudents} />
-              {center.requested > 0 && <span className="text-xs text-signal-ink">+{center.requested} so'rov</span>}
+              <span className="tabular-nums">{center.activeStudents}</span>
+              {center.requested > 0 && <span className="block text-xs text-signal-ink">+{center.requested} so'rov</span>}
+            </Cell>
+            <Cell>
+              {center.activeStudents > 0 ? (
+                <span className="tabular-nums">{formatSom(center.activeStudents * center.pricePerSeatTiyin)}</span>
+              ) : (
+                <span className="text-ink-faint">—</span>
+              )}
             </Cell>
             <Cell muted>{center.paidThrough ? `${formatDate(center.paidThrough)} gacha` : '—'}</Cell>
             <Cell>
@@ -211,9 +223,6 @@ function CentersList({ onOpen }: { onOpen: (id: string) => void }) {
               )}
             </Cell>
             <Cell muted>{center.admins.join(', ') || '—'}</Cell>
-            <Cell>
-              <span className="font-mono">{center.joinCode}</span>
-            </Cell>
           </Row>
         ))}
       </Table>
@@ -242,18 +251,23 @@ function CenterForm({
     const local = uzLocalDigits(stored)
     return local ? maskUzLocal(local) : ''
   })
-  const [maxStudents, setMaxStudents] = useState(center ? String(center.maxStudents) : '')
-  const [price, setPrice] = useState(String(center ? somFromTiyin(center.pricePerSeatTiyin) : 99000))
+  const [plan, setPlan] = useState<CenterPlan>(center?.plan ?? 'with_ai')
+  const [price, setPrice] = useState(String(center ? somFromTiyin(center.pricePerSeatTiyin) : centerPlans.with_ai.listPriceSom))
   const [contractStartsOn, setContractStartsOn] = useState(center?.contractStartsOn ?? todayIso())
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
 
-  const seats = Number(maxStudents)
   const priceSom = Number(price.replace(/\s/g, ''))
   const phoneOk = contactPhone.trim() === '' || Boolean(toUzPhone(contactPhone))
-  const seatsOk = Number.isInteger(seats) && seats >= 1 && seats <= 10_000
-  const valid = name.trim().length >= 2 && phoneOk && seatsOk && priceSom >= 1000
+  const priceOk = priceSom >= 1000
+  const valid = name.trim().length >= 2 && phoneOk && priceOk
+
+  /** Picking a plan puts its list price in the field; a contract's own price is typed over it. */
+  function pickPlan(next: CenterPlan) {
+    setPlan(next)
+    setPrice(String(centerPlans[next].listPriceSom))
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -272,14 +286,14 @@ function CenterForm({
             city,
             contactName,
             contactPhone: toUzPhone(contactPhone) ?? '',
-            maxStudents: seats,
+            plan,
             pricePerSeatSom: priceSom,
             contractStartsOn: contractStartsOn || null,
             leadId: lead?.id ?? null,
           }),
         },
       )
-      toast(center ? 'Markaz saqlandi' : 'Markaz yaratildi — birinchi hisob-faktura tayyor')
+      toast(center ? 'Markaz saqlandi' : 'Markaz yaratildi')
       onSaved(detail)
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : "Saqlab bo'lmadi.")
@@ -287,8 +301,6 @@ function CenterForm({
       setBusy(false)
     }
   }
-
-  const monthly = seatsOk && priceSom > 0 ? seats * priceSom * 100 : null
 
   return (
     <FormDialog title={center ? 'Markazni tahrirlash' : 'Yangi markaz'} onClose={onClose} wide>
@@ -312,25 +324,53 @@ function CenterForm({
           <PhoneField label="Telefon" value={contactPhone} onChange={setContactPhone} showError={submitted} />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="O'quvchilar limiti" hint="Markaz shundan ko'p o'quvchini faollashtira olmaydi">
-            <input
-              value={maxStudents}
-              onChange={(event) => setMaxStudents(event.target.value.replace(/\D/g, '').slice(0, 5))}
-              inputMode="numeric"
-              placeholder="50"
-              className={fieldClass}
-              aria-invalid={submitted && !seatsOk}
-            />
-            {submitted && !seatsOk && <span className="mt-1 block text-xs text-danger">1 dan 10 000 gacha son kiriting</span>}
-          </Field>
-          <Field label="Narx, so'm / o'quvchi / oy">
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-bold text-ink">Tarif</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {centerPlanIds.map((id) => (
+              <label
+                key={id}
+                className={cx(
+                  planFrame(plan === id),
+                  'cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-signal',
+                  plan !== id && 'hover:border-ink-faint',
+                )}
+              >
+                <input type="radio" name="center-plan" value={id} checked={plan === id} onChange={() => pickPlan(id)} className="sr-only" />
+                <PlanFacts
+                  plan={id}
+                  mark={
+                    <span
+                      aria-hidden="true"
+                      className={cx(
+                        'mt-1 grid size-5 shrink-0 place-items-center rounded-full border-2 transition-colors',
+                        plan === id ? 'border-signal bg-signal' : 'border-hairline bg-ground',
+                      )}
+                    >
+                      {plan === id && <span className="size-1.5 rounded-full bg-on-signal" />}
+                    </span>
+                  }
+                />
+              </label>
+            ))}
+          </div>
+          {center && plan !== center.plan && (
+            <p className="mt-2 text-xs text-ink-muted">
+              Tarif saqlangan zahoti almashadi; to'lanmagan hisob-faktura yangi narx bo'yicha qayta hisoblanadi.
+            </p>
+          )}
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Narx, so'm / o'quvchi / oy" hint="Tarif tanlanganda ro'yxat narxi qo'yiladi; shartnoma narxini o'zgartirish mumkin">
             <input
               value={price}
               onChange={(event) => setPrice(event.target.value.replace(/[^\d\s]/g, ''))}
               inputMode="numeric"
               className={fieldClass}
+              aria-invalid={submitted && !priceOk}
             />
+            {submitted && !priceOk && <span className="mt-1 block text-xs text-danger">Kamida 1 000 so'm kiriting</span>}
           </Field>
           <Field label="Shartnoma boshlanishi" hint="Shu kundan Pro ochiladi">
             <input type="date" value={contractStartsOn} onChange={(event) => setContractStartsOn(event.target.value)} className={fieldClass} />
@@ -338,14 +378,8 @@ function CenterForm({
         </div>
 
         <div className="rounded-[var(--radius-control)] bg-ground-sunken px-4 py-3 text-sm text-ink-muted">
-          Markaz oldindan to'laydi: har oy <b className="text-ink">{seatsOk ? seats : '…'}</b> o'quvchi ×{' '}
-          {formatSom(Math.max(0, priceSom) * 100)}
-          {monthly !== null && (
-            <>
-              {' '}= <b className="text-ink">{formatSom(monthly)}</b>
-            </>
-          )}
-          . O'quvchilarga Pro faqat to'langan oy ichida ochiq bo'ladi.
+          Markaz oldindan to'laydi: har oy faol o'quvchilar soni × narx. Birinchi hisob-faktura birinchi o'quvchilar
+          qo'shilganda yaratiladi.
         </div>
 
         {failure && <ErrorNote>{failure}</ErrorNote>}
@@ -473,6 +507,7 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-extrabold tracking-tight text-ink">{data.name}</h1>
+                  <PlanBadge plan={data.plan} />
                   <StatusPill status={data.status} />
                   <AccessBadge access={data.overview.access} />
                 </div>
@@ -524,69 +559,38 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
           {importFailure && <ErrorNote>{importFailure}</ErrorNote>}
 
+          {/* What the center is and how it is doing. Its money, students and logins each have a
+              tab of their own and are not repeated here. */}
           {tab === 'overview' && (
-            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-              <div className="min-w-0 space-y-6">
-                <SetupChecklist detail={data} />
+            <div className="space-y-6">
+              <SetupChecklist detail={data} />
 
-                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-                  <IconStat
-                    Icon={Users}
-                    tone="signal"
-                    label="O'quvchilar"
-                    value={
-                      <>
-                        {data.overview.activeStudents} <span className="text-ink-faint">/ {data.maxStudents}</span>
-                      </>
-                    }
-                    note={
-                      <>
-                        <span aria-hidden="true" className="mb-2 block h-1.5 overflow-hidden rounded-full bg-ground-sunken">
-                          <span
-                            className="block h-full rounded-full bg-signal"
-                            style={{
-                              width: `${data.maxStudents ? Math.min(100, (100 * data.overview.activeStudents) / data.maxStudents) : 0}%`,
-                            }}
-                          />
-                        </span>
-                        {data.overview.notSignedIn > 0
-                          ? `${data.overview.notSignedIn} tasi ilovaga hali kirmagan`
-                          : `${Math.max(0, data.maxStudents - data.overview.activeStudents)} ta joy bo'sh`}
-                      </>
-                    }
-                  />
-                  <ProStat detail={data} />
-                  <IconStat
-                    Icon={TrendingUp}
-                    tone="purple"
-                    label="Bu hafta mashq qilgan"
-                    value={`${data.overview.weeklyActivePercent}%`}
-                    note="faol o'quvchilardan"
-                  />
-                  <IconStat
-                    Icon={TriangleAlert}
-                    tone="caution"
-                    label="Xavf ostida"
-                    value={<span className={data.overview.atRisk > 0 ? 'text-danger' : undefined}>{data.overview.atRisk}</span>}
-                    note="7+ kun kirmagan yoki ortda qolgan"
-                  />
-                </div>
-
-                <PaymentCard detail={data} onChanged={refresh} />
-
-                <StudentsSection
-                  students={students.data}
-                  error={students.error}
-                  onRetry={students.refresh}
-                  onOpen={setOpenSeat}
-                  actions={studentActions}
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <IconStat
+                  Icon={Users}
+                  tone="signal"
+                  label="Faol o'quvchilar"
+                  value={data.overview.activeStudents}
+                  note={data.overview.notSignedIn > 0 ? `${data.overview.notSignedIn} tasi ilovaga hali kirmagan` : undefined}
+                />
+                <ProStat detail={data} />
+                <IconStat
+                  Icon={TrendingUp}
+                  tone="purple"
+                  label="Bu hafta mashq qilgan"
+                  value={`${data.overview.weeklyActivePercent}%`}
+                  note="faol o'quvchilardan"
+                />
+                <IconStat
+                  Icon={TriangleAlert}
+                  tone="caution"
+                  label="Xavf ostida"
+                  value={<span className={data.overview.atRisk > 0 ? 'text-danger' : undefined}>{data.overview.atRisk}</span>}
+                  note="7+ kun kirmagan yoki ortda qolgan"
                 />
               </div>
 
-              <aside className="space-y-6">
-                <AboutCard detail={data} onChanged={refresh} />
-                <CenterAdmins detail={data} onChanged={refresh} compact />
-              </aside>
+              <AboutCard detail={data} onChanged={refresh} />
             </div>
           )}
 
@@ -636,7 +640,7 @@ function CenterDetail({ id, onBack }: { id: string; onBack: () => void }) {
           {adding && (
             <AddStudentsDialog
               initialRows={adding}
-              free={Math.max(0, data.maxStudents - data.overview.activeStudents)}
+              pricePerSeatTiyin={data.pricePerSeatTiyin}
               basePath={`/api/admin-portal/centers/${id}`}
               onClose={() => setAdding(null)}
               onAdded={reload}
@@ -705,18 +709,19 @@ function ProStat({ detail }: { detail: AdminCenterDetail }) {
 
 /**
  * Where a new center stands, as four steps the team walks it through. Shown until the center
- * has paid, has a login, has used it, and has students — then it gets out of the way.
+ * has a login, has used it, has students and has paid — then it gets out of the way. Paying is
+ * last because the first invoice only exists once there are students to count.
  */
 function SetupChecklist({ detail }: { detail: AdminCenterDetail }) {
   const steps = [
-    { done: Boolean(detail.paidThrough), label: "Birinchi oy to'langan", hint: "To'lov havolasini markazga yuboring" },
-    { done: detail.admins.length > 0, label: 'Login yaratilgan', hint: "“Markaz administratorlari”da yarating" },
+    { done: detail.admins.length > 0, label: 'Login yaratilgan', hint: "“Administratorlar” bo'limida yarating" },
     { done: detail.admins.some((admin) => admin.lastLoginAt), label: 'Panelga kirgan', hint: 'Login va parolni markazga yuboring' },
     {
       done: detail.overview.activeStudents > 0,
       label: "O'quvchilar qo'shilgan",
       hint: "Panelda raqamlarni kiriting yoki Excel'dan yuklang",
     },
+    { done: Boolean(detail.paidThrough), label: "Birinchi oy to'langan", hint: "“To'lovlar”dagi havolani markazga yuboring" },
   ]
   const doneCount = steps.filter((step) => step.done).length
   if (doneCount === steps.length || detail.status === 'archived') return null
@@ -836,7 +841,7 @@ function StudentsSection({
   )
 }
 
-/** The center's facts in one card: its join code first, because it is what gets asked for. */
+/** The center's deal in one card: plan, price and what that comes to for the students it has now. */
 function AboutCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -853,22 +858,49 @@ function AboutCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged
     }
   }
 
+  const { activeStudents, pendingPlan, pendingPlanFrom, pendingPricePerSeatTiyin } = detail.overview
   const rows: Array<[string, ReactNode]> = [
-    ['Narx', `${formatSom(detail.pricePerSeatTiyin)} / o'quvchi`],
-    ["O'quvchilar limiti", `${detail.maxStudents} ta`],
-    ["Oylik to'lov", formatSom(detail.maxStudents * detail.pricePerSeatTiyin)],
+    ['Tarif', <PlanBadge plan={detail.plan} />],
+    ['Narx', `${formatSom(detail.pricePerSeatTiyin)} / o'quvchi / oy`],
+    [
+      "Bu oy to'lovi",
+      <>
+        {formatSom(activeStudents * detail.pricePerSeatTiyin)}
+        <span className="block text-xs font-normal text-ink-muted">
+          {activeStudents} faol o'quvchi × {formatSom(detail.pricePerSeatTiyin)}
+        </span>
+      </>,
+    ],
+    // Only a center's own request waits for the paid month to end; the team's change is at once.
+    ...(pendingPlan
+      ? ([
+          [
+            "Tarif o'zgarishi",
+            <>
+              {formatDayLong(pendingPlanFrom)}dan: {centerPlans[pendingPlan].label}
+              {pendingPricePerSeatTiyin != null && ` · ${formatSom(pendingPricePerSeatTiyin)}`}
+            </>,
+          ],
+        ] as Array<[string, ReactNode]>)
+      : []),
     ['Shartnoma boshlanishi', formatDate(detail.contractStartsOn)],
     ['Yaratilgan sana', <span className="font-normal text-ink-muted">{formatDateTime(detail.createdAt)}</span>],
   ]
 
   return (
-    <Card as="section" aria-labelledby="about-title" className="space-y-4">
+    <Card as="section" aria-labelledby="about-title" className="max-w-2xl space-y-4">
       <h2 id="about-title" className="flex items-center gap-3 text-lg font-extrabold text-ink">
         <Info aria-hidden="true" className="size-5 text-signal-ink" strokeWidth={1.8} />
         Markaz haqida
       </h2>
       <dl className="divide-y divide-hairline text-sm">
-        <div className="flex items-center justify-between gap-3 pb-3">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3 py-3 first:pt-0">
+            <dt className="text-ink-muted">{label}</dt>
+            <dd className="text-right font-bold text-ink tabular-nums">{value}</dd>
+          </div>
+        ))}
+        <div className="flex items-center justify-between gap-3 pt-3">
           <dt className="text-ink-muted">
             Markaz kodi <span className="text-xs">(zaxira)</span>
           </dt>
@@ -886,12 +918,6 @@ function AboutCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged
             </button>
           </dd>
         </div>
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-baseline justify-between gap-3 py-3 last:pb-0">
-            <dt className="text-ink-muted">{label}</dt>
-            <dd className="text-right font-bold text-ink tabular-nums">{value}</dd>
-          </div>
-        ))}
       </dl>
       <button type="button" onClick={() => setConfirm(true)} className="text-sm font-bold text-signal-ink hover:underline">
         Kodni almashtirish
@@ -961,15 +987,6 @@ function accessNote(detail: AdminCenterDetail) {
   }
 }
 
-async function copyText(text: string, done: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-    toast(done)
-  } catch {
-    toast("Nusxalab bo'lmadi — matnni qo'lda belgilang")
-  }
-}
-
 /** The pay link as a field the team can read, copy, or open — what is sent to the center. */
 function PayLinkRow({ token }: { token: string }) {
   return (
@@ -1001,16 +1018,18 @@ function PayLinkRow({ token }: { token: string }) {
 }
 
 /**
- * The money, in one place. An open invoice is the thing to act on: its sum, its pay link and
- * the two things only the team does. With nothing open, one line says until when it is paid and
- * when the next invoice will appear on its own — making one early is a quiet secondary action.
+ * The money, in one place. An open invoice is the thing to act on: its sum, the lines it is
+ * counted from, its pay link and the two things only the team does. With nothing open, one line
+ * says until when it is paid and when the next invoice will appear on its own — making one early
+ * is a quiet secondary action, and the server refuses it for a center with no students.
  */
 function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
   const open = detail.overview.openInvoice
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   const [confirm, setConfirm] = useState<'paid' | 'cancelled' | null>(null)
-  const monthly = detail.maxStudents * detail.pricePerSeatTiyin
+  const students = detail.overview.activeStudents
+  const monthly = students * detail.pricePerSeatTiyin
 
   async function nextInvoice() {
     setBusy(true)
@@ -1060,22 +1079,28 @@ function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChang
           {open ? (
             <>
               <div className="text-3xl font-extrabold text-ink tabular-nums">{formatSom(open.amountTiyin)}</div>
-              <p className="text-sm text-ink-muted">
-                {formatPeriod(open.periodStart, open.periodEnd)} · {open.seats} o'quvchi × {formatSom(open.pricePerSeatTiyin)}
-              </p>
+              <p className="text-sm text-ink-muted">{formatPeriod(open.periodStart, open.periodEnd)}</p>
             </>
           ) : detail.paidThrough ? (
             <>
               <p className="text-base font-bold text-ink">
-                {formatDayLong(detail.paidThrough)}gacha to'langan <span className="text-ink-faint">·</span> Oyiga{' '}
-                {formatSom(monthly)}
+                {formatDayLong(detail.paidThrough)}gacha to'langan
               </p>
+              {students > 0 && (
+                <p className="text-sm text-ink">
+                  Keyingi oy: {students} faol o'quvchi × {formatSom(detail.pricePerSeatTiyin)} = {formatSom(monthly)}
+                </p>
+              )}
               {nextInvoiceDay && (
                 <p className="text-sm text-ink-muted">Keyingi hisob-faktura {formatDayLong(nextInvoiceDay)}da yaratiladi.</p>
               )}
             </>
           ) : (
-            <p className="text-sm text-ink-muted">Ochiq hisob-faktura yo'q. Birinchi oy uchun yarating va havolani markazga yuboring.</p>
+            <p className="text-sm text-ink-muted">
+              {students > 0
+                ? "Ochiq hisob-faktura yo'q. Birinchi oy uchun yarating va havolani markazga yuboring."
+                : "Hali hisob-faktura yo'q: birinchisi birinchi o'quvchilar qo'shilganda o'zi yaratiladi."}
+            </p>
           )}
         </div>
         {!open && (
@@ -1095,6 +1120,7 @@ function PaymentCard({ detail, onChanged }: { detail: AdminCenterDetail; onChang
 
       {open && (
         <>
+          <InvoiceLines seats={open.seats} arrearsSeats={open.arrearsSeats} pricePerSeatTiyin={open.pricePerSeatTiyin} />
           <PayLinkRow token={open.payToken} />
           <p className="text-xs text-ink-muted">
             Havolani markazga yuboring: Click yoki Payme orqali to'laydi, login kerak emas. To'lov tushishi bilan
@@ -1462,10 +1488,10 @@ function PendingPassword({ detail, username, password }: { detail: AdminCenterDe
 }
 
 /**
- * The center's own logins. In the overview's side column (`compact`) it is a list with a menu
- * per person; the form to add one opens from "+ Login", or straight away while there is none.
+ * The center's own logins: a list with a menu per person; the form to add one opens from
+ * "+ Login", or straight away while there is none.
  */
-function CenterAdmins({ detail, onChanged, compact = false }: { detail: AdminCenterDetail; onChanged: () => void; compact?: boolean }) {
+function CenterAdmins({ detail, onChanged }: { detail: AdminCenterDetail; onChanged: () => void }) {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [adding, setAdding] = useState(false)
@@ -1522,11 +1548,11 @@ function CenterAdmins({ detail, onChanged, compact = false }: { detail: AdminCen
   }
 
   return (
-    <Card as="section" aria-labelledby={compact ? 'admins-side-title' : 'admins-title'} className={cx('space-y-4', detail.admins.length === 0 && 'border-signal')}>
+    <Card as="section" aria-labelledby="admins-title" className={cx('space-y-4', detail.admins.length === 0 && 'border-signal')}>
       <div className="flex items-center justify-between gap-3">
-        <h2 id={compact ? 'admins-side-title' : 'admins-title'} className="flex items-center gap-3 text-lg font-extrabold text-ink">
+        <h2 id="admins-title" className="flex items-center gap-3 text-lg font-extrabold text-ink">
           <Users aria-hidden="true" className="size-5 shrink-0 text-signal-ink" strokeWidth={1.8} />
-          {compact ? 'Administratorlar' : 'Markaz administratorlari'}
+          Markaz administratorlari
         </h2>
         {detail.admins.length > 0 && !adding && (
           <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
@@ -1730,8 +1756,10 @@ function InvoicesList({ onOpenCenter }: { onOpenCenter: (id: string) => void }) 
         {data && unpaid > 0 && <span className="text-sm text-ink-muted">Jami to'lanmagan: {formatSom(unpaid)}</span>}
       </div>
       <p className="text-xs text-ink-muted">
-        Markazlar oldindan to'laydi: limit × narx, bir oyga. Keyingi oy hisob-fakturasi to'langan muddat tugashidan 7 kun oldin
-        o'zi yaratiladi; oy boshlanib, to'lanmagan bo'lsa “Muddati o'tgan” bo'ladi va o'quvchilar bepul rejaga o'tadi.
+        Markazlar oldindan to'laydi: faol o'quvchilar soni × narx, bir oyga. Oy davomida qo'shilgan o'quvchilar o'sha oy uchun
+        keyingi hisob-fakturada to'lanadi (“+N”). Birinchi hisob-faktura birinchi o'quvchilar qo'shilganda, keyingilari
+        to'langan muddat tugashidan 7 kun oldin o'zi yaratiladi; to'lanmagani o'quvchilar yoki tarif o'zgarganda qayta
+        hisoblanadi. Oy boshlanib, to'lanmagan bo'lsa “Muddati o'tgan” bo'ladi va o'quvchilar bepul rejaga o'tadi.
       </p>
       {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
       {isLoading && !data && <LoadingRows />}
@@ -1740,9 +1768,6 @@ function InvoicesList({ onOpenCenter }: { onOpenCenter: (id: string) => void }) 
     </div>
   )
 }
-
-const paidViaLabel = (via: string | null) =>
-  !via ? '' : via === 'click' ? 'Click' : via === 'payme' ? 'Payme' : via.startsWith('admin:') ? `qo'lda (${via.slice(6)})` : via
 
 function InvoicesTable({
   rows,
@@ -1773,7 +1798,7 @@ function InvoicesTable({
     }
   }
 
-  const head = [...(showCenter ? ['Markaz'] : []), 'Davr', "O'quvchilar", 'Summa', 'Holat', "To'langan", '']
+  const head = [...(showCenter ? ['Markaz'] : []), 'Davr', "O'quvchilar", 'Tarif', 'Summa', 'Holat', "To'langan", '']
 
   return (
     <div className="space-y-3">
@@ -1791,7 +1816,17 @@ function InvoicesTable({
                 </Cell>
               )}
               <Cell>{formatPeriod(invoice.periodStart, invoice.periodEnd)}</Cell>
-              <Cell>{invoice.seats}</Cell>
+              <Cell>
+                <span className="tabular-nums">{invoice.seats}</span>
+                {invoice.arrearsSeats > 0 && (
+                  <span className="ml-1 text-ink-muted tabular-nums" title="O'tgan oy qo'shilgan o'quvchilar">
+                    +{invoice.arrearsSeats}
+                  </span>
+                )}
+              </Cell>
+              <Cell>
+                <PlanBadge plan={invoice.plan} />
+              </Cell>
               <Cell strong>{formatSom(invoice.amountTiyin)}</Cell>
               <Cell>
                 <InvoiceBadge status={invoice.status} />
