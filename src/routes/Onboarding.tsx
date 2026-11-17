@@ -6,6 +6,7 @@ import { api } from '../lib/api'
 import { pickAudioSource } from '../lib/audio-source'
 import { useT, type Dictionary } from '../lib/i18n'
 import { useAuth } from '../lib/auth-context'
+import { useAiAccess } from '../lib/plan'
 import { onboardingDraft } from '../lib/onboardingDraft'
 import { LiveVoiceSession, releaseMicrophone, requestMicrophone } from '../lib/liveVoice'
 import type { VoiceErrorCode } from '../lib/liveVoice'
@@ -94,6 +95,17 @@ export function Onboarding() {
 
   const [assessment, setAssessment] = useState<OnboardingAssessment | null>(null)
   const [typed, setTyped] = useState('')
+
+  /*
+   * A center's student on the plan without AI is placed by what they write: the forty-second
+   * talk is a live session, and their plan has none. They land on the written answer, and it
+   * offers no way back to the microphone.
+   */
+  const { aiAccess, known: planKnown } = useAiAccess()
+  const writtenOnly = Boolean(user) && planKnown && !aiAccess
+  useEffect(() => {
+    if (writtenOnly) setStage((current) => (current === 'intro' || current === 'briefing' ? 'typing' : current))
+  }, [writtenOnly])
   /** 0 to 1 through the brief, drawn as the ring around the microphone. */
   const [briefed, setBriefed] = useState(0)
   const briefing = useRef<HTMLAudioElement | null>(null)
@@ -466,9 +478,9 @@ export function Onboarding() {
             {t.typeSubmit}
           </Button>
 
-          <Button variant="secondary" block onClick={() => setStage('intro')}>
+          {!writtenOnly && <Button variant="secondary" block onClick={() => setStage('intro')}>
             {t.typeSwitchToVoice}
-          </Button>
+          </Button>}
         </div>
       </Layout>
     )

@@ -45,6 +45,7 @@ const Landing = route(() => import('./routes/Landing'), 'Landing')
 const FoundationLesson = route(() => import('./routes/FoundationLesson'), 'FoundationLesson')
 const MissionEntry = route(() => import('./routes/MissionBrief'), 'MissionEntry')
 const MissionLive = route(() => import('./routes/MissionLive'), 'MissionLive')
+const MissionStory = route(() => import('./routes/MissionStory'), 'MissionStory')
 const MissionResult = route(() => import('./routes/MissionResult'), 'MissionResult')
 const Onboarding = route(() => import('./routes/Onboarding'), 'Onboarding')
 const Paywall = route(() => import('./routes/Paywall'), 'Paywall')
@@ -53,6 +54,7 @@ const Games = route(() => import('./routes/games/Games'), 'Games')
 const FightForLife = route(() => import('./routes/games/fight-for-life/FightForLife'), 'FightForLife')
 const GenderRunnerGame = route(() => import('./routes/games/GenderRunnerGame'), 'GenderRunnerGame')
 const SawGame = route(() => import('./routes/games/SawGame'), 'SawGame')
+const ClassroomGame = route(() => import('./routes/games/classroom/ClassroomGame'), 'ClassroomGame')
 const SpeakingGamePage = route(
   () => import('./routes/games/speaking/SpeakingGamePage'),
   'SpeakingGamePage',
@@ -137,12 +139,16 @@ export function App() {
 
             {/* The conversation is full screen: nothing should compete with the character. */}
             <Route path="/missions/:missionId/live" element={<RequireAuth><MissionLive /></RequireAuth>} />
+            <Route path="/missions/:missionId/story" element={<RequireAuth><MissionStory /></RequireAuth>} />
 
             {/* Full screen, outside the shell: a blade rolling at you should not share a page
                 with navigation. */}
             <Route path="/games/arra" element={<RequireAuth><SawGame /></RequireAuth>} />
             <Route path="/games/fight-for-life" element={<RequireAuth><FightForLife /></RequireAuth>} />
             <Route path="/games/rod-runner" element={<RequireAuth><GenderRunnerGame /></RequireAuth>} />
+            <Route path="/games/eshitib-top" element={<RequireAuth><ClassroomGame /></RequireAuth>} />
+            <Route path="/games/soz-tartibi" element={<RequireAuth><ClassroomGame /></RequireAuth>} />
+            <Route path="/games/xotira" element={<RequireAuth><ClassroomGame /></RequireAuth>} />
             <Route path="/games/:slug" element={<RequireAuth><SpeakingGamePage /></RequireAuth>} />
 
             <Route path="*" element={<Navigate to="/home" replace />} />

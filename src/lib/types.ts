@@ -536,9 +536,24 @@ export interface EntitlementView {
   centerName?: string | null
   /** Pro is the center's seat, not the learner's purchase — nothing here for them to buy or cancel. */
   centerPaid?: boolean
+  /**
+   * False only for a student of a language center on the plan without AI: every place that has
+   * an AI exercise shows them a different one, and the server refuses the AI routes anyway.
+   * Optional like the fields above — an older server does not send it, and absence means AI.
+   */
+  aiAccess?: boolean
 }
 
 /* ------------------------------------------------------------------ language centers */
+
+/** GET /me/center/recordings?day= — what the teacher said about one read line. */
+export interface TeacherMark {
+  lineText: string
+  /** 1–5; null while the teacher has not listened yet. */
+  mark?: number | null
+  comment?: string | null
+  reviewedAt?: string | null
+}
 
 export type CenterMembershipStatus = 'active' | 'requested' | 'deactivated'
 
@@ -554,6 +569,8 @@ export interface MyCenterView {
   centerActive: boolean
   /** The last day the center has paid for ("2026-12-11"), when it has paid at all. */
   paidThrough: string | null
+  /** The lines this learner reads aloud in lessons go to the center's teacher to be marked. */
+  teacherReview?: boolean
   hasPro: boolean
   centerPaid: boolean
 }

@@ -70,9 +70,12 @@ import { playUiSound } from '../lib/ui-sounds'
 import { celebrate } from '../lib/celebrate'
 import { Celebration } from '../components/Celebration'
 import { missionLock } from '../lib/mission-lock'
-import { useCenterStudent } from '../lib/center'
+import { CENTER_QUERY_KEY, fetchCenter, useCenterStudent } from '../lib/center'
+import { useAiAccess } from '../lib/plan'
+import { isWorkshopDone, WORKSHOP_STAGES, type WorkshopProgress } from '../lib/dialogue-workshop'
+import { DialogueWorkshop } from './lesson/DialogueWorkshop'
 import { CenterLockNote } from '../components/CenterLockNote'
-import type { EntitlementView, MissionSummary, StartAttemptResponse, VoiceNoteTurnFeedback } from '../lib/types'
+import type { EntitlementView, MissionSummary, StartAttemptResponse, TeacherMark, VoiceNoteTurnFeedback } from '../lib/types'
 
 /**
  * The nine steps, in order, each with the mark that stands for it. The names themselves are copy
@@ -111,13 +114,15 @@ type SectionId = (typeof sections)[number]['id']
  *
  * The phonetics and grammar blocks stay open: they are reading, with no answer to check. The
  * dialogue block asks for every AI question to be answered aloud — there is no way past it
- * without the microphone.
+ * without the microphone. On the plan without AI the same block is the dialogue workshop, and
+ * what it asks for is its six stages.
  */
 function sectionBlockReason(
   sectionId: SectionId,
   lesson: LessonData,
   state: StoredState,
   gate: Dictionary['lesson']['gate'],
+  aiAccess: boolean,
 ): string | null {
   switch (sectionId) {
     case 'tests':
@@ -129,6 +134,7 @@ function sectionBlockReason(
     case 'game':
       return isGameSolved(lesson, state.gameMatches) ? null : gate.game
     case 'missions':
+      if (!aiAccess) return isWorkshopDone(state.workshop) ? null : gate.workshop
       // Two steps, in order: read the dialogue through, then answer every AI question aloud.
       if (!state.dialoguePractised) return gate.dialogue
       if (!state.aiChatStarted) return gate.aiChat
@@ -213,7 +219,7 @@ function isGameSolved(lesson: LessonData, matches: Record<string, string>): bool
  * with the reason in small print far below it read as a broken page. Null where the step has no
  * count to give.
  */
-function gateProgress(sectionId: SectionId, lesson: LessonData, state: StoredState): { done: number; total: number } | null {
+function gateProgress(sectionId: SectionId, lesson: LessonData, state: StoredState, aiAccess: boolean): { done: number; total: number } | null {
   switch (sectionId) {
     case 'tests':
       return { done: lesson.tests.filter((quiz, index) => state.answers[index] === quiz.correct).length, total: lesson.tests.length }
@@ -222,6 +228,7 @@ function gateProgress(sectionId: SectionId, lesson: LessonData, state: StoredSta
     case 'game':
       return gameProgress(lesson, state.gameMatches)
     case 'missions':
+      if (!aiAccess) return { done: Math.min(state.workshop?.stage ?? 0, WORKSHOP_STAGES.length), total: WORKSHOP_STAGES.length }
       return state.aiChatStarted
         ? { done: lesson.questions.filter((_, index) => state.aiAnswered.includes(index)).length, total: lesson.questions.length }
         : null
@@ -299,6 +306,8 @@ type StoredState = {
   aiFeedback: Record<number, string>
   /** How far into the word deck the learner has got — also where reopening resumes. */
   vocabularyReviewed: number
+  /** The dialogue workshop: the dialogue block of a learner whose plan has no AI. */
+  workshop?: WorkshopProgress
 }
 type Rating = 'known' | 'unknown' | 'repeat'
 
@@ -364,9 +373,30 @@ export function FoundationLesson() {
   const helpCopy = useT().help
   const reportLabel = lesson ? fill(helpCopy.contexts.lesson, { day: lesson.day, step: t.sections[active.id] }) : null
   useReportPageContext(reportLabel)
-  const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate) : null
+  // Which of its two versions the dialogue block draws; see lib/plan.
+  const { aiAccess, known: planKnown } = useAiAccess()
+  /*
+   * A center can have its teacher listen to what its students read aloud in the workshop. Asked
+   * only for a learner who has a workshop; with review off nothing is uploaded at all.
+   */
+  const { data: myCenter } = useQuery({
+    queryKey: CENTER_QUERY_KEY,
+    queryFn: fetchCenter,
+    staleTime: 60_000,
+    retry: false,
+    enabled: planKnown && !aiAccess,
+  })
+  const teacherReview = myCenter?.teacherReview === true
+  const { data: teacherMarks } = useQuery({
+    queryKey: ['center-recordings', day],
+    queryFn: () => api.get<TeacherMark[]>(`/me/center/recordings?day=${day}`),
+    staleTime: 60_000,
+    retry: false,
+    enabled: teacherReview,
+  })
+  const blockReason = lesson ? sectionBlockReason(active.id, lesson, state, t.gate, aiAccess) : null
   const canContinue = blockReason === null
-  const blockProgress = lesson && blockReason ? gateProgress(active.id, lesson, state) : null
+  const blockProgress = lesson && blockReason ? gateProgress(active.id, lesson, state, aiAccess) : null
 
   /*
    * A new step is announced from its heading. The page scrolled to the top but focus stayed on
@@ -567,7 +597,29 @@ export function FoundationLesson() {
               }} />}
           </GameStage>
         )}
-        {active.id === 'missions' && (
+        {active.id === 'missions' && !planKnown && <Spinner />}
+        {active.id === 'missions' && planKnown && !aiAccess && (
+          <DialogueWorkshop
+            lesson={lesson}
+            progress={state.workshop}
+            onProgress={(change) => setState((current) => ({
+              ...current,
+              workshop: change(current.workshop ?? { stage: 0, ordered: 0, item: 0, read: [], micSkipped: false, firstTry: 0, asked: 0 }),
+            }))}
+            teacherMarks={teacherReview ? teacherMarks ?? [] : undefined}
+            onRecorded={teacherReview
+              ? (line, audio) => {
+                  const form = new FormData()
+                  form.set('day', String(day))
+                  form.set('text', line.text)
+                  form.set('audio', audio, `line-${line.index}.${audio.type.includes('mp4') ? 'm4a' : 'webm'}`)
+                  // Best effort: a recording that does not reach the teacher must not stop the lesson.
+                  void api.postForm('/me/center/recordings', form).catch(() => {})
+                }
+              : undefined}
+          />
+        )}
+        {active.id === 'missions' && planKnown && aiAccess && (
           <MissionModes
             lesson={lesson}
             missionId={missionId}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Check } from 'lucide-react'
 import { Overlay } from '../../src/components/motion'
 import { useFocusTrap } from '../../src/lib/focus-trap'
 import { cx } from '../../src/lib/cx'
@@ -8,11 +9,13 @@ import clickMark from '../../src/assets/images/click_mark.webp'
 import paymeMark from '../../src/assets/images/payme_mark.webp'
 import {
   accessLabel,
+  centerPlans,
   invoiceStatusLabel,
   seatStatusLabel,
   type CenterAccess,
   type CenterGroup,
   type CenterInvoiceStatus,
+  type CenterPlan,
   type CenterStudent,
   type CenterStudentProfile,
   type SeatStatus,
@@ -33,6 +36,82 @@ export function AccessBadge({ access }: { access: CenterAccess }) {
 export function InvoiceBadge({ status }: { status: CenterInvoiceStatus }) {
   const tone = status === 'paid' ? 'milestone' : status === 'overdue' ? 'danger' : status === 'sent' ? 'signal' : 'neutral'
   return <Badge tone={tone}>{invoiceStatusLabel[status]}</Badge>
+}
+
+export function PlanBadge({ plan }: { plan: CenterPlan }) {
+  return <Badge tone={plan === 'with_ai' ? 'signal' : 'neutral'}>{centerPlans[plan].label}</Badge>
+}
+
+/**
+ * What goes inside a plan card: the name, the price for one student for one month, and what the
+ * students get. The frame and whatever sits under the list (a badge, a button, a radio) belong
+ * to the caller — the team picks a plan in a form, a center reads its own and may switch.
+ */
+export function PlanFacts({ plan, priceTiyin, mark }: { plan: CenterPlan; priceTiyin?: number; mark?: ReactNode }) {
+  const { label, listPriceSom, features } = centerPlans[plan]
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-base font-extrabold text-ink">{label}</div>
+          <div className="mt-0.5 text-sm text-ink-muted">
+            <b className="text-lg font-extrabold text-ink tabular-nums">{formatSom(priceTiyin ?? listPriceSom * 100)}</b> / o'quvchi / oy
+          </div>
+        </div>
+        {mark}
+      </div>
+      <ul className="space-y-1.5 text-sm text-ink-muted">
+        {features.map((feature) => (
+          <li key={feature} className="flex items-start gap-2">
+            <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-milestone" strokeWidth={2.4} />
+            {feature}
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+/**
+ * How an invoice's sum is counted, one line per thing paid for: the students switched on for the
+ * month ahead and, when there are any, the ones who joined during the month before and were on
+ * no invoice. The second line is the surprising one, so it carries its own explanation.
+ */
+export function InvoiceLines({
+  seats,
+  arrearsSeats,
+  pricePerSeatTiyin,
+}: {
+  seats: number
+  arrearsSeats: number
+  pricePerSeatTiyin: number
+}) {
+  const price = formatSom(pricePerSeatTiyin)
+  return (
+    <div className="space-y-2">
+      <dl className="divide-y divide-hairline rounded-xl border-2 border-hairline text-sm">
+        <div className="flex items-baseline justify-between gap-3 px-3 py-2">
+          <dt className="text-ink-muted">
+            {seats} faol o'quvchi × {price}
+          </dt>
+          <dd className="font-bold whitespace-nowrap text-ink tabular-nums">{formatSom(seats * pricePerSeatTiyin)}</dd>
+        </div>
+        {arrearsSeats > 0 && (
+          <div className="flex items-baseline justify-between gap-3 px-3 py-2">
+            <dt className="text-ink-muted">
+              {arrearsSeats} o'quvchi o'tgan oy qo'shilgan × {price}
+            </dt>
+            <dd className="font-bold whitespace-nowrap text-ink tabular-nums">{formatSom(arrearsSeats * pricePerSeatTiyin)}</dd>
+          </div>
+        )}
+      </dl>
+      {arrearsSeats > 0 && (
+        <p className="text-xs text-ink-muted">
+          Oy davomida qo'shilgan o'quvchilar uchun o'sha oy keyingi hisob-fakturada to'lanadi.
+        </p>
+      )}
+    </div>
+  )
 }
 
 /**
@@ -479,7 +558,7 @@ export function StudentDrawer({
                 />
                 )}
                 <p className="text-xs text-ink-muted">
-                  O'chirilgan o'quvchi Pro'dan foydalana olmaydi va limitdan joy egallamaydi; uning natijalari saqlanadi.
+                  O'chirilgan o'quvchi Pro'dan foydalana olmaydi va keyingi oy to'loviga kirmaydi; uning natijalari saqlanadi.
                 </p>
                 {failure && <ErrorNote>{failure}</ErrorNote>}
               </Card>
@@ -595,7 +674,7 @@ export function StudentDrawer({
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[var(--radius-control)] border-2 border-hairline px-3 py-2">
+    <div className="rounded-xl border-2 border-hairline px-3 py-2">
       <div className="text-xs font-bold uppercase tracking-[0.1em] text-ink-faint">{label}</div>
       <div className="mt-0.5 text-base font-extrabold text-ink">{value}</div>
     </div>

@@ -7,8 +7,8 @@ import {
   CreditCard,
   Download,
   FileSpreadsheet,
-  FileText,
   GraduationCap,
+  Headphones,
   Info,
   ShieldCheck,
   Plus,
@@ -27,7 +27,6 @@ import {
   type AddStudentsResult,
   type CenterGroup,
   type CenterOverview,
-  type CenterPayView,
   type CenterStudent,
 } from '../lib/center-types'
 import {
@@ -48,9 +47,9 @@ import {
   Textarea,
   TextField,
 } from '../components/ui'
-import { AccessBadge, Field, FormDialog, InvoiceBadge, PayButtons, StudentDrawer, StudentsTable } from '../components/center'
-import { CardTitle, IconDot, IconStat, UsageBar } from '../components/center-ui'
-import { fieldClass, formatPeriod, formatSom, maskUzLocal, payLink, uzLocalDigits } from '../lib/center-format'
+import { AccessBadge, Field, FormDialog, StudentDrawer, StudentsTable } from '../components/center'
+import { CardTitle, IconDot, IconStat } from '../components/center-ui'
+import { copyText, fieldClass, formatPeriod, formatSom, maskUzLocal, uzLocalDigits } from '../lib/center-format'
 import { readStudentsFile, downloadStudentsTemplate } from '../lib/student-import'
 import { toast } from '../lib/toast'
 
@@ -58,9 +57,9 @@ import { toast } from '../lib/toast'
  * A language center's own admin page. Groups are hidden for now (CenterGroupsScreen stays for
  * later): a center only has to add students to start.
  *
- * A language center's own admin page. Everything here reads and writes /api/center-portal,
- * whose every endpoint is scoped to the center in the admin's token; nothing on this screen
- * names a center id.
+ * Everything here reads and writes /api/center-portal, whose every endpoint is scoped to the
+ * center in the admin's token; nothing on this screen names a center id. Money and the plan
+ * live on their own page, CenterPayments.tsx — these screens only point there.
  */
 
 const BASE = '/api/center-portal'
@@ -73,8 +72,22 @@ export type StartAdding = 'form' | 'excel'
 /** Opens the students screen: on a filter, or straight into adding. */
 export type OpenStudents = (filter: StudentFilter, start?: StartAdding) => void
 
-export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: OpenStudents }) {
+export function CenterOverviewScreen({
+  onOpenStudents,
+  onOpenPayments,
+  onOpenReview,
+}: {
+  onOpenStudents: OpenStudents
+  onOpenPayments: () => void
+  onOpenReview: () => void
+}) {
   const { data, error, isLoading, refresh } = useAdminQuery<CenterOverview>(`${BASE}/overview`)
+  /*
+   * A center with nobody in it yet has one thing to do, and the page is that: four zeros, a
+   * warning about students who do not exist and a second pair of "add" buttons only stood
+   * between the admin and the card that says how to start.
+   */
+  const empty = data ? data.activeStudents + data.requested + data.deactivated === 0 : false
 
   return (
     <Screen className="space-y-6">
@@ -94,12 +107,15 @@ export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: OpenS
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-extrabold tracking-tight text-ink">{data.name}</h1>
-                  <AccessBadge access={data.access} />
+                  {/* "Unpaid" beside a center nobody has been added to reads as a debt it does not have. */}
+                  {!(empty && data.access === 'unpaid') && <AccessBadge access={data.access} />}
                 </div>
-                <p className="mt-0.5 text-sm text-ink-muted">Bu hafta o'quvchilaringiz qanday mashq qilmoqda</p>
+                <p className="mt-0.5 text-sm text-ink-muted">
+                  {empty ? "Boshlash uchun o'quvchilaringizni qo'shing" : "Bu hafta o'quvchilaringiz qanday mashq qilmoqda"}
+                </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className={cx('flex flex-wrap gap-2', empty && 'hidden')}>
               <Button variant="secondary" onClick={() => onOpenStudents('all', 'excel')}>
                 <span className="flex items-center gap-1.5">
                   <Upload aria-hidden="true" className="size-4" strokeWidth={1.8} />
@@ -116,6 +132,24 @@ export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: OpenS
           </header>
 
           <AccessBanner overview={data} />
+          {/* Nothing is owed for an empty center: the first invoice comes with the first students. */}
+          {(!empty || data.openInvoice) && <PayBanner overview={data} onOpenPayments={onOpenPayments} />}
+
+          {/* Only while a teacher has something to listen to; an empty queue is not news. */}
+          {data.teacherReview && data.recordingsWaiting > 0 && (
+            <div
+              role="status"
+              className="flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border-2 border-signal bg-signal-soft px-4 py-3"
+            >
+              <IconDot Icon={Headphones} size="sm" />
+              <span className="min-w-0 flex-1 text-sm font-extrabold text-ink">
+                {data.recordingsWaiting} ta yozuv tekshirishni kutmoqda
+              </span>
+              <Button size="sm" onClick={onOpenReview}>
+                Tekshirishga o'tish
+              </Button>
+            </div>
+          )}
 
           {data.requested > 0 && (
             <button
@@ -134,59 +168,36 @@ export function CenterOverviewScreen({ onOpenStudents }: { onOpenStudents: OpenS
             </button>
           )}
 
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="min-w-0 space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-                <IconStat
-                  Icon={Users}
-                  tone="signal"
-                  label="Faol o'quvchilar"
-                  value={
-                    <>
-                      {data.activeStudents} <span className="text-ink-faint">/ {data.maxStudents}</span>
-                    </>
-                  }
-                  note={
-                    <>
-                      <span className="mb-2 block">
-                        <UsageBar used={data.activeStudents} max={data.maxStudents} />
-                      </span>
-                      {data.notSignedIn > 0
-                        ? `${data.notSignedIn} tasi ilovaga hali kirmagan`
-                        : `${Math.max(0, data.maxStudents - data.activeStudents)} ta joy bo'sh`}
-                    </>
-                  }
-                  onClick={() => onOpenStudents('active')}
-                />
-                <ProDaysStat overview={data} />
-                <IconStat
-                  Icon={TrendingUp}
-                  tone="purple"
-                  label="Bu hafta mashq qilgan"
-                  value={`${data.weeklyActivePercent}%`}
-                  note="faol o'quvchilardan"
-                />
-                <IconStat
-                  Icon={TriangleAlert}
-                  tone={data.atRisk > 0 ? 'danger' : 'caution'}
-                  label="Xavf ostida"
-                  value={<span className={data.atRisk > 0 ? 'text-danger' : undefined}>{data.atRisk}</span>}
-                  note="7+ kun kirmagan yoki ortda qolgan"
-                  onClick={data.atRisk > 0 ? () => onOpenStudents('risk') : undefined}
-                />
-              </div>
+          <div className={cx('grid gap-4 sm:grid-cols-2 xl:grid-cols-4', empty && 'hidden')}>
+            <IconStat
+              Icon={Users}
+              tone="signal"
+              label="Faol o'quvchilar"
+              value={data.activeStudents}
+              note={data.notSignedIn > 0 ? `${data.notSignedIn} tasi ilovaga hali kirmagan` : undefined}
+              onClick={() => onOpenStudents('active')}
+            />
+            <ProDaysStat overview={data} />
+            <IconStat
+              Icon={TrendingUp}
+              tone="purple"
+              label="Bu hafta mashq qilgan"
+              value={`${data.weeklyActivePercent}%`}
+              note="faol o'quvchilardan"
+            />
+            <IconStat
+              Icon={TriangleAlert}
+              tone={data.atRisk > 0 ? 'danger' : 'caution'}
+              label="Xavf ostida"
+              value={<span className={data.atRisk > 0 ? 'text-danger' : undefined}>{data.atRisk}</span>}
+              note="7+ kun kirmagan yoki ortda qolgan"
+              onClick={data.atRisk > 0 ? () => onOpenStudents('risk') : undefined}
+            />
+          </div>
 
-              <PaymentCard overview={data} />
-
-              {data.activeStudents + data.requested + data.deactivated === 0 && (
-                <GetStartedCard onAdd={() => onOpenStudents('all', 'form')} />
-              )}
-            </div>
-
-            <aside className="space-y-6">
-              <LinkingCard centerName={data.name} />
-              <ContractCard overview={data} />
-            </aside>
+          <div className={cx('grid items-start gap-6', empty ? 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]' : 'lg:max-w-3xl')}>
+            {empty && <GetStartedCard onAdd={() => onOpenStudents('all', 'form')} />}
+            <LinkingCard centerName={data.name} />
           </div>
         </div>
       )}
@@ -227,7 +238,8 @@ function AccessBanner({ overview }: { overview: CenterOverview }) {
     suspended: "Markaz o'chirilgan: o'quvchilar bepul rejada. Russian.gg jamoasi bilan bog'laning.",
     archived: "Markaz arxivda: o'quvchilar bepul rejada. Russian.gg jamoasi bilan bog'laning.",
     not_started: `Shartnoma ${formatDayLong(overview.contractStartsOn)}dan boshlanadi — o'quvchilarda Pro shu kuni ochiladi.`,
-    unpaid: "To'lov qilinmagan: o'quvchilar hozir bepul rejada. Pastdagi tugma orqali to'lang — Pro darhol ochiladi.",
+    // Said by the pay banner under this one, which also carries the way to pay.
+    unpaid: null,
   }[overview.access]
 
   if (!message) return null
@@ -251,69 +263,37 @@ function AccessBanner({ overview }: { overview: CenterOverview }) {
 }
 
 /**
- * The month the center pays next: amount, what it covers, and Click / Payme right here. The
- * same pay link works for whoever at the center holds the money, without a login.
+ * The one line about money on this page: shown while an invoice waits or the students are locked
+ * out for want of one, with the sum and the way to the page where it is paid. Amber when Pro is
+ * already closed, blue when it is only the next month coming due.
  */
-function PaymentCard({ overview }: { overview: CenterOverview }) {
+function PayBanner({ overview, onOpenPayments }: { overview: CenterOverview; onOpenPayments: () => void }) {
   const open = overview.openInvoice
-  const pay = useAdminQuery<CenterPayView>(open ? `/api/public/center-pay/${open.payToken}` : null)
+  const unpaid = overview.access === 'unpaid'
+  if (!open && !unpaid) return null
 
   return (
-    <Card as="section" aria-labelledby="pay-title" className={cx('space-y-4', open && 'border-signal')}>
-      <CardTitle
-        id="pay-title"
-        Icon={CreditCard}
-        title={open ? "To'lov kutilmoqda" : "To'lov"}
-        action={open && <InvoiceBadge status={open.status} />}
-      />
-      {open ? (
-        <div className="space-y-4 sm:pl-12">
-          <div>
-            <div className="text-3xl font-extrabold tabular-nums text-ink">{formatSom(open.amountTiyin)}</div>
-            <p className="mt-1 text-sm text-ink-muted">
-              {formatPeriod(open.periodStart, open.periodEnd)} · {open.seats} o'quvchi × {formatSom(open.pricePerSeatTiyin)}
-            </p>
-          </div>
-          {pay.data ? (
-            <PayButtons
-              token={open.payToken}
-              providers={pay.data.providers}
-              returnUrl={payLink(open.payToken)}
-              amountTiyin={open.amountTiyin}
-            />
-          ) : (
-            pay.error && <ErrorNote onRetry={pay.refresh}>{pay.error}</ErrorNote>
-          )}
-          <p className="text-xs text-ink-muted">
-            Hisobchi to'lashi kerakmi?{' '}
-            <button
-              type="button"
-              className="font-bold text-signal-ink hover:underline"
-              onClick={() => void copyText(payLink(open.payToken), "To'lov havolasi nusxalandi")}
-            >
-              To'lov havolasini nusxalang
-            </button>{' '}
-            — login kerak emas. Bank o'tkazmasini Russian.gg jamoasi tasdiqlaydi.
-          </p>
-        </div>
-      ) : (
-        <div className="sm:pl-12">
-          {overview.paidThrough ? (
-            <>
-              <p className="text-base font-bold text-ink">
-                {formatDayLong(overview.paidThrough)}gacha to'langan <span className="text-ink-faint">·</span> oyiga{' '}
-                {formatSom(overview.maxStudents * overview.pricePerSeatTiyin)}
-              </p>
-              <p className="mt-0.5 text-sm text-ink-muted">
-                Keyingi oy uchun hisob-faktura muddat tugashidan 7 kun oldin shu yerda paydo bo'ladi.
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-ink-muted">Hozircha to'lanadigan hisob-faktura yo'q. Russian.gg jamoasi bilan bog'laning.</p>
-          )}
-        </div>
+    <div
+      role="status"
+      className={cx(
+        'flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border-2 px-4 py-3',
+        unpaid ? 'border-caution bg-caution-soft' : 'border-signal bg-signal-soft',
       )}
-    </Card>
+    >
+      <IconDot Icon={CreditCard} tone={unpaid ? 'caution' : 'signal'} size="sm" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-extrabold text-ink">
+          {unpaid ? "To'lov qilinmagan: o'quvchilar hozir bepul rejada" : "To'lov kutilmoqda"}
+          {open && <span className="tabular-nums"> · {formatSom(open.amountTiyin)}</span>}
+        </span>
+        <span className="block text-xs text-ink-muted">
+          {open ? formatPeriod(open.periodStart, open.periodEnd) : "To'lovdan keyin Pro darhol ochiladi"}
+        </span>
+      </span>
+      <Button size="sm" onClick={onOpenPayments}>
+        To'lovlarga o'tish
+      </Button>
+    </div>
   )
 }
 
@@ -366,15 +346,6 @@ function WayIn({ Icon, title, text, action }: { Icon: LucideIcon; title: string;
   )
 }
 
-async function copyText(text: string, done: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-    toast(done)
-  } catch {
-    toast("Nusxalab bo'lmadi — matnni qo'lda belgilang")
-  }
-}
-
 /** What a center sends its students: the app, and to sign in with the phone the center has. */
 function inviteText(centerName: string) {
   return [
@@ -414,7 +385,7 @@ function LinkingCard({ centerName, detailed = false }: { centerName: string; det
         ))}
       </ol>
       {detailed && (
-        <p className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-2 text-xs text-ink-muted">
+        <p className="rounded-xl bg-ground-sunken px-3 py-2 text-xs text-ink-muted">
           Raqam noto'g'ri bo'lsa, o'quvchi ulanmaydi — ro'yxatni diqqat bilan to'ldiring. O'quvchini markazdan faqat siz
           chiqara olasiz.
         </p>
@@ -425,31 +396,6 @@ function LinkingCard({ centerName, detailed = false }: { centerName: string; det
           O'quvchilarga taklif matnini nusxalash
         </span>
       </Button>
-    </Card>
-  )
-}
-
-function ContractCard({ overview }: { overview: CenterOverview }) {
-  const rows: Array<[string, ReactNode]> = [
-    ["O'quvchilar limiti", `${overview.maxStudents} ta`],
-    ['Narx', `${formatSom(overview.pricePerSeatTiyin)} / o'quvchi`],
-    ["Oylik to'lov", formatSom(overview.maxStudents * overview.pricePerSeatTiyin)],
-    ['Pro muddati', overview.paidThrough ? `${formatDayLong(overview.paidThrough)}gacha` : "to'lanmagan"],
-  ]
-  return (
-    <Card as="section" aria-labelledby="deal-title" className="space-y-4">
-      <CardTitle id="deal-title" Icon={FileText} title="Shartnoma" />
-      <dl className="divide-y divide-hairline text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
-            <dt className="text-ink-muted">{label}</dt>
-            <dd className="text-right font-bold text-ink tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="rounded-[var(--radius-control)] bg-ground-sunken px-3 py-2 text-xs text-ink-muted">
-        Oldindan, 30 kunga to'lanadi. Limitni oshirish yoki shartlarni o'zgartirish uchun Russian.gg jamoasiga yozing.
-      </p>
     </Card>
   )
 }
@@ -503,7 +449,7 @@ export function CenterGroupsScreen() {
       })
       toast(
         `${result.changed} ta o'quvchi ${activation.active ? 'faollashtirildi' : "o'chirildi"}` +
-          (result.overLimit > 0 ? ` · ${result.overLimit} tasi limit tufayli qoldi` : ''),
+          (result.overLimit > 0 ? ` · ${result.overLimit} tasi qo'shilmadi` : ''),
       )
       setActivation(null)
       refresh()
@@ -554,19 +500,19 @@ export function CenterGroupsScreen() {
         />
       )}
 
-      {activation && data && (
+      {activation && (
         <ConfirmDialog
           title={activation.active ? 'Guruhni faollashtirish' : "Guruhni o'chirish"}
           body={
             activation.active ? (
               <>
-                “{activation.group.name}” guruhidagi o'chirilgan o'quvchilar yana faol bo'ladi — limitdagi bo'sh joylar (
-                {Math.max(0, data.maxStudents - data.activeStudents)} ta) to'lguncha.
+                “{activation.group.name}” guruhidagi o'chirilgan o'quvchilar yana faol bo'ladi va keyingi hisob-fakturaga
+                qo'shiladi.
               </>
             ) : (
               <>
                 “{activation.group.name}” guruhidagi {activation.group.activeStudents} ta faol o'quvchi o'chiriladi: Pro yopiladi,
-                natijalar saqlanadi, limitda joy bo'shaydi.
+                natijalar saqlanadi, keyingi oy to'loviga kirmaydi.
               </>
             )
           }
@@ -817,7 +763,7 @@ export function CenterStudentsScreen({
     }
   }
 
-  /** A join request answered from its row: approve takes a seat under the limit, reject drops it. */
+  /** A join request answered from its row: approve switches the student on, reject drops them. */
   async function answer(student: CenterStudent, approve: boolean) {
     setAnswering(student.seatId)
     setFailure('')
@@ -834,8 +780,6 @@ export function CenterStudentsScreen({
       setAnswering(null)
     }
   }
-
-  const free = overview.data ? Math.max(0, overview.data.maxStudents - overview.data.activeStudents) : null
 
   const count = (status: StudentFilter) =>
     status === 'all'
@@ -859,24 +803,9 @@ export function CenterStudentsScreen({
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-extrabold tracking-tight text-ink">O'quvchilar</h1>
-            {overview.data ? (
-              <div className="mt-2 inline-flex items-center gap-3 rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised py-1.5 pr-4 pl-3">
-                <span className="w-24">
-                  <span aria-hidden="true" className="block h-1.5 overflow-hidden rounded-full bg-hairline">
-                    <span
-                      className="block h-full rounded-full bg-signal"
-                      style={{
-                        width: `${overview.data.maxStudents ? Math.min(100, (100 * overview.data.activeStudents) / overview.data.maxStudents) : 0}%`,
-                      }}
-                    />
-                  </span>
-                </span>
-                <span className="text-sm text-ink-muted">
-                  <b className="text-ink tabular-nums">
-                    {overview.data.activeStudents} / {overview.data.maxStudents}
-                  </b>{' '}
-                  faol · {free} ta joy bo'sh
-                </span>
+            {overview.data && all.length > 0 ? (
+              <div className="mt-2 inline-flex items-center rounded-[var(--radius-control)] border-2 border-hairline bg-ground-raised px-3 py-1.5 text-sm text-ink-muted">
+                <b className="mr-1 text-ink tabular-nums">{overview.data.activeStudents}</b> faol
               </div>
             ) : (
               <p className="mt-1 text-sm text-ink-muted">Kim mashq qilyapti, kim ortda qolmoqda</p>
@@ -891,13 +820,16 @@ export function CenterStudentsScreen({
                 </span>
               </Button>
             )}
-            {excelButton}
-            <Button onClick={() => setAdding([])}>
-              <span className="flex items-center gap-1.5">
-                <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
-                O'quvchi qo'shish
-              </span>
-            </Button>
+            {/* With nobody on the list the card below is these two buttons, larger and explained. */}
+            {all.length > 0 && excelButton}
+            {all.length > 0 && (
+              <Button onClick={() => setAdding([])}>
+                <span className="flex items-center gap-1.5">
+                  <Plus aria-hidden="true" className="size-4" strokeWidth={2} />
+                  O'quvchi qo'shish
+                </span>
+              </Button>
+            )}
           </div>
           <input
             ref={fileInput}
@@ -1007,7 +939,14 @@ export function CenterStudentsScreen({
         )}
       </div>
 
-      {adding && <AddStudentsDialog initialRows={adding} free={free} onClose={() => setAdding(null)} onAdded={refresh} />}
+      {adding && (
+        <AddStudentsDialog
+          initialRows={adding}
+          pricePerSeatTiyin={overview.data?.pricePerSeatTiyin ?? null}
+          onClose={() => setAdding(null)}
+          onAdded={refresh}
+        />
+      )}
 
       {open && <StudentDrawer seatId={open} groups={[]} basePath={BASE} onClose={() => setOpen(null)} onChanged={refresh} />}
     </Screen>
@@ -1051,7 +990,7 @@ function draftFrom(name: string, phone: string, email: string): DraftStudent {
 
 export function AddStudentsDialog({
   initialRows,
-  free,
+  pricePerSeatTiyin,
   onClose,
   onAdded,
   basePath = BASE,
@@ -1060,8 +999,8 @@ export function AddStudentsDialog({
   basePath?: string
   /** Rows read from an Excel file, to check and send; empty for a blank form. */
   initialRows: DraftStudent[]
-  /** Places left under the center's limit, when known. */
-  free: number | null
+  /** One student for one month on the center's plan, when known: what each new row adds to the bill. */
+  pricePerSeatTiyin: number | null
   onClose: () => void
   onAdded: () => void
 }) {
@@ -1143,10 +1082,7 @@ export function AddStudentsDialog({
             </p>
           </div>
           {result.overLimit.length > 0 && (
-            <p className="rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 font-bold text-caution">
-              Limit to'ldi ({result.maxStudents} ta): {result.overLimit.length} ta raqam qo'shilmadi. Ko'proq o'quvchi uchun
-              Russian.gg jamoasiga murojaat qiling.
-            </p>
+            <p className="text-danger">Qo'shilmadi: {result.overLimit.join(', ')} — Russian.gg jamoasiga murojaat qiling.</p>
           )}
           {result.alreadyHere.length > 0 && <p className="text-ink-muted">Allaqachon ro'yxatda: {result.alreadyHere.join(', ')}</p>}
           {result.inOtherCenter.length > 0 && (
@@ -1185,19 +1121,7 @@ export function AddStudentsDialog({
           Ism va telefon majburiy: o'quvchi shu raqam bilan kirishi bilan markazga o'zi ulanadi va Pro ochiladi. Email ixtiyoriy —
           o'quvchi Google orqali kirsa, u bilan ham ulanadi. Ma'lumotlarni aniq kiriting: noto'g'ri raqam bilan o'quvchi
           ulanmaydi.
-          {free !== null && (
-            <>
-              {' '}
-              Limitda <b className="text-ink">{free}</b> ta bo'sh joy bor.
-            </>
-          )}
         </p>
-        {free !== null && valid.length > free && (
-          <p role="status" className="rounded-[var(--radius-control)] bg-caution-soft px-3 py-2 text-sm font-bold text-caution">
-            {valid.length} ta o'quvchi kiritildi, lekin faqat {free} tasi qo'shiladi. Limitni oshirish uchun Russian.gg jamoasiga
-            yozing.
-          </p>
-        )}
 
         <div className="space-y-3">
           <div className={cx(grid, 'hidden text-sm font-bold text-ink sm:grid')}>
@@ -1325,6 +1249,14 @@ export function AddStudentsDialog({
 
         {failure && <ErrorNote>{failure}</ErrorNote>}
 
+        {/* Every student switched on is paid for, so the form says what these rows add to the bill. */}
+        {pricePerSeatTiyin !== null && valid.length > 0 && (
+          <p role="status" className="rounded-xl bg-ground-sunken px-3 py-2 text-sm text-ink-muted">
+            {valid.length} o'quvchi × {formatSom(pricePerSeatTiyin)} ={' '}
+            <b className="text-ink tabular-nums">{formatSom(valid.length * pricePerSeatTiyin)}</b> / oy qo'shiladi
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center justify-end gap-3 border-t-2 border-hairline pt-4">
           {invalidCount > 0 && touched && (
             <p className="mr-auto text-xs font-bold text-danger">{invalidCount} ta qatorda xato bor — tuzating yoki o'chiring</p>
@@ -1351,7 +1283,7 @@ export function CenterSettingsScreen() {
       <div className="flex flex-col gap-6">
         <header>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">Sozlamalar</h1>
-          <p className="mt-1 text-sm text-ink-muted">Markaz kodi, o'quvchilarni taklif qilish va to'lov sharti</p>
+          <p className="mt-1 text-sm text-ink-muted">O'quvchilar qanday ulanadi va ularga yuboriladigan taklif matni</p>
         </header>
         {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
         {!data && !error && <LoadingRows />}
@@ -1365,10 +1297,9 @@ export function CenterSettingsScreen() {
               </p>
             </div>
             <div className="space-y-6">
-              <ContractCard overview={data} />
               <Card as="section" aria-labelledby="invite-title" className="space-y-3">
                 <CardTitle id="invite-title" Icon={Send} title="Taklif matni" subtitle="O'quvchilarga Telegram'da yuboring" />
-                <pre className="rounded-[var(--radius-control)] bg-ground-sunken p-3 font-sans text-sm whitespace-pre-wrap text-ink">
+                <pre className="rounded-2xl bg-ground-sunken p-4 font-sans text-sm leading-relaxed whitespace-pre-wrap text-ink">
                   {inviteText(data.name)}
                 </pre>
                 <Button size="sm" onClick={() => void copyText(inviteText(data.name), 'Taklif matni nusxalandi')}>

@@ -2,9 +2,13 @@
  * Language centers (B2B). Mirrors the records in the server's CenterDirectory and
  * AdminCentersController; tiyin everywhere money appears, so divide by 100 for so'm.
  *
- * A center pays up front, a month at a time, for its student limit. Its students have Pro while
- * the center is switched on, its contract has started, and today falls in a paid month.
+ * A center pays up front, a month at a time, for the students it has switched on. Its students
+ * have Pro while the center is switched on, its contract has started, and today falls in a paid
+ * month. There is no limit to buy: the bill follows the number of active students.
  */
+
+/** What a center's students get: the full product, or the course without anything AI-run. */
+export type CenterPlan = 'with_ai' | 'classroom'
 
 export type SeatStatus = 'active' | 'requested' | 'deactivated'
 
@@ -55,8 +59,16 @@ export type CenterInvoice = {
   id: string
   periodStart: string
   periodEnd: string
+  /** Students switched on, paid for the month ahead. */
   seats: number
+  /**
+   * Students who joined during the previous paid month and were on no invoice. A student active
+   * for one day pays that month, so they are charged here, a month late.
+   */
+  arrearsSeats: number
+  plan: CenterPlan
   pricePerSeatTiyin: number
+  /** (seats + arrearsSeats) × pricePerSeatTiyin. */
   amountTiyin: number
   status: CenterInvoiceStatus
   /** The secret in the public pay link, /pay/{token}. */
@@ -75,8 +87,16 @@ export type CenterOverview = {
   access: CenterAccess
   contractStartsOn: string | null
   paidThrough: string | null
-  maxStudents: number
+  /** Today's plan, and what one student costs for one month on it. */
+  plan: CenterPlan
   pricePerSeatTiyin: number
+  /**
+   * A plan change the center asked for while a month was already paid: it starts on
+   * `pendingPlanFrom`, the day after that month ends. All three are null when nothing is waiting.
+   */
+  pendingPlan?: CenterPlan | null
+  pendingPlanFrom?: string | null
+  pendingPricePerSeatTiyin?: number | null
   joinCode: string
   activeStudents: number
   requested: number
@@ -87,6 +107,29 @@ export type CenterOverview = {
   atRisk: number
   openInvoice: CenterInvoice | null
   groups: CenterGroup[]
+  /** Whether students' read-aloud recordings are sent to the center's teacher for a mark. */
+  teacherReview: boolean
+  /** Recordings no teacher has marked yet. */
+  recordingsWaiting: number
+}
+
+/** One dialogue line a student read aloud, and the teacher's mark once it has one. */
+export type CenterRecording = {
+  id: string
+  seatId: string
+  studentName: string
+  groupName: string | null
+  courseDay: number | null
+  /** The line that was read, in Russian. */
+  lineText: string
+  /** Signed, and good for 30 minutes from the moment the list was fetched. */
+  audioUrl: string
+  recordedAt: string
+  /** 1 to 5; null while it waits. Marking again replaces it. */
+  mark: number | null
+  comment: string | null
+  reviewedBy: string | null
+  reviewedAt: string | null
 }
 
 export type CenterStudentProfile = {
@@ -107,9 +150,8 @@ export type AddStudentsResult = {
   alreadyHere: string[]
   inOtherCenter: string[]
   invalid: string[]
-  /** Numbers left out because the center's limit was reached. */
+  /** Numbers left out by the 10 000-student safety ceiling. Empty in practice. */
   overLimit: string[]
-  maxStudents: number
 }
 
 export type AdminCenterRow = {
@@ -119,7 +161,7 @@ export type AdminCenterRow = {
   status: CenterStatus
   access: CenterAccess
   pricePerSeatTiyin: number
-  maxStudents: number
+  plan: CenterPlan
   contractStartsOn: string | null
   paidThrough: string | null
   joinCode: string
@@ -156,7 +198,7 @@ export type AdminCenterDetail = {
   contactPhone: string | null
   status: CenterStatus
   pricePerSeatTiyin: number
-  maxStudents: number
+  plan: CenterPlan
   joinCode: string
   contractStartsOn: string | null
   paidThrough: string | null
@@ -187,6 +229,8 @@ export type CenterPayView = {
   periodStart: string
   periodEnd: string
   seats: number
+  /** Students charged for the month before; see `CenterInvoice.arrearsSeats`. */
+  arrearsSeats: number
   pricePerSeatTiyin: number
   amountTiyin: number
   status: CenterInvoiceStatus
@@ -222,6 +266,35 @@ export const invoiceStatusLabel: Record<CenterInvoiceStatus, string> = {
   overdue: "Muddati o'tgan",
   cancelled: 'Bekor qilingan',
 }
+
+/**
+ * The two plans as they are sold: the name, the list price a switch uses, and what a center is
+ * told it gets. One table, so the team's form and the center's own page never disagree.
+ */
+export const centerPlans: Record<CenterPlan, { label: string; listPriceSom: number; features: string[] }> = {
+  with_ai: {
+    label: 'AI bilan',
+    listPriceSom: 99_000,
+    features: [
+      '90 kunlik kurs, barcha darslar va testlar',
+      'AI bilan jonli suhbatlar',
+      'Javob va talaffuzni AI baholaydi',
+      "Barcha o'yinlar",
+    ],
+  },
+  classroom: {
+    label: 'Sinf',
+    listPriceSom: 49_000,
+    features: [
+      '90 kunlik kurs, barcha darslar va testlar',
+      'Dialog ustaxonasi va interaktiv hikoyalar',
+      "Javoblar aniq qoidalar bo'yicha tekshiriladi",
+      "Sun'iy intellekt ishlatilmaydi",
+    ],
+  },
+}
+
+export const centerPlanIds = Object.keys(centerPlans) as CenterPlan[]
 
 export const leadStatusLabel: Record<LeadStatus, string> = {
   new: 'Yangi',

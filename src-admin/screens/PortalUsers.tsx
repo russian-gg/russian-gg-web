@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { adminFetch, formatDateTime, useAdminQuery } from '../lib/api'
 import type { AdminPortalUser, PortalRole } from '../lib/types'
-import { Badge, Button, Card, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Row, Screen, Select, Table } from '../components/ui'
+import { FormDialog } from '../components/center'
+import { Badge, Button, Cell, EmptyNote, ErrorNote, LoadingRows, PageHeader, Row, Screen, Select, Table } from '../components/ui'
 
 type FormState = {
   username: string
@@ -33,11 +34,15 @@ export function PortalUsers() {
   const { data, error, isLoading, refresh } = useAdminQuery<AdminPortalUser[]>('/api/admin-portal/portal-users')
   const [form, setForm] = useState<FormState>(initialForm)
   const [busy, setBusy] = useState(false)
+  const [creating, setCreating] = useState(false)
+  // Two notes, because they are read in two places: one inside the dialog, one above the table.
   const [failure, setFailure] = useState('')
+  const [actionError, setActionError] = useState('')
   /*
    * Shown once, on this screen, right after the account is made. The server keeps a hash and
    * cannot tell anyone what the password was — so if it is not read now, the only way back is
-   * a new account.
+   * a new account. It sits on the page rather than in the dialog for that reason: a stray
+   * Escape or a click on the backdrop must not be able to take the password with it.
    */
   const [issued, setIssued] = useState<{ username: string; password: string } | null>(null)
 
@@ -61,6 +66,7 @@ export function PortalUsers() {
 
       setIssued({ username: form.username.trim(), password })
       setForm(initialForm())
+      setCreating(false)
       refresh()
     } catch (caught) {
       setFailure(caught instanceof Error ? caught.message : "Hisob yaratib bo'lmadi.")
@@ -70,28 +76,96 @@ export function PortalUsers() {
   }
 
   async function setActive(user: AdminPortalUser, active: boolean) {
+    setActionError('')
     try {
       await adminFetch(`/api/admin-portal/portal-users/${user.id}/active?active=${active}`, { method: 'POST' })
       refresh()
     } catch (caught) {
-      setFailure(caught instanceof Error ? caught.message : "Holatni o'zgartirib bo'lmadi.")
+      setActionError(caught instanceof Error ? caught.message : "Holatni o'zgartirib bo'lmadi.")
     }
   }
 
   return (
-    <Screen className="space-y-6">
-      <PageHeader title="Xodimlar" subtitle="Panelga kim kira oladi va qaysi huquq bilan" />
+    <>
+      <Screen className="space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <PageHeader title="Xodimlar" subtitle="Panelga kim kira oladi va qaysi huquq bilan" />
+          <Button
+            onClick={() => {
+              setFailure('')
+              setCreating(true)
+            }}
+          >
+            Yangi hisob
+          </Button>
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <Card as="div">
-          <form onSubmit={createUser} className="space-y-4">
-            <div>
-              <h2 className="text-lg font-extrabold text-ink">Yangi hisob</h2>
-              <p className="mt-1 text-sm text-ink-muted">
-                Sotuv hisobi faqat “Sotuv agenti” bo'limini ko'radi. Pul, foydalanuvchilar va marketing
-                yopiq turadi.
-              </p>
+        {issued && (
+          <div className="rounded-[var(--radius-card)] border-2 border-signal/40 bg-signal/10 p-4">
+            <div className="text-sm font-extrabold text-ink">Hisob tayyor. Parolni hozir ko'chirib oling.</div>
+            <p className="mt-1 text-xs text-ink-muted">
+              Bu parol boshqa ko'rsatilmaydi — serverda faqat shifrlangan nusxasi saqlanadi.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-sm text-ink">
+              <span className="rounded-[var(--radius-control)] bg-ground-raised px-3 py-1.5">{issued.username}</span>
+              <span className="rounded-[var(--radius-control)] bg-ground-raised px-3 py-1.5">{issued.password}</span>
+              <Button
+                type="button"
+                variant="secondary" size="sm"
+                onClick={() => navigator.clipboard?.writeText(`${issued.username} / ${issued.password}`)}
+              >
+                Nusxalash
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setIssued(null)}>
+                Yopish
+              </Button>
             </div>
+          </div>
+        )}
+
+        {actionError && <ErrorNote>{actionError}</ErrorNote>}
+        {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
+        {!data && isLoading && <LoadingRows />}
+        {data?.length === 0 && (
+          <EmptyNote>Hozircha alohida hisob yo'q — panelga faqat asosiy login bilan kirilyapti.</EmptyNote>
+        )}
+
+        {data && data.length > 0 && (
+          <Table head={['Login', 'Ism', 'Huquq', 'Holat', 'Oxirgi kirish', '']}>
+            {data.map((user) => (
+              <Row key={user.id}>
+                <Cell strong>{user.username}</Cell>
+                <Cell muted>{user.displayName}</Cell>
+                <Cell>
+                  <Badge tone={user.role === 'Admin' ? 'signal' : 'neutral'}>{roleLabel[user.role] ?? user.role}</Badge>
+                </Cell>
+                <Cell>
+                  <Badge tone={user.isActive ? 'milestone' : 'neutral'}>{user.isActive ? 'Faol' : "O'chirilgan"}</Badge>
+                </Cell>
+                <Cell muted>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Hali kirmagan'}</Cell>
+                <Cell>
+                  <Button
+                    type="button"
+                    variant={user.isActive ? 'danger' : 'secondary'}
+                    size="sm"
+                    onClick={() => setActive(user, !user.isActive)}
+                  >
+                    {user.isActive ? "O'chirish" : 'Yoqish'}
+                  </Button>
+                </Cell>
+              </Row>
+            ))}
+          </Table>
+        )}
+      </Screen>
+
+      {creating && (
+        <FormDialog title="Yangi hisob" onClose={() => setCreating(false)}>
+          <form onSubmit={createUser} className="space-y-4">
+            <p className="text-sm text-ink-muted">
+              Sotuv hisobi faqat “Sotuv agenti” bo'limini ko'radi. Pul, foydalanuvchilar va marketing
+              yopiq turadi.
+            </p>
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-bold text-ink">Login</span>
@@ -153,67 +227,8 @@ export function PortalUsers() {
               {busy ? 'Yaratilmoqda...' : 'Hisob yaratish'}
             </Button>
           </form>
-
-          {issued && (
-            <div className="mt-4 rounded-[var(--radius-card)] border-2 border-signal/40 bg-signal/10 p-4">
-              <div className="text-sm font-extrabold text-ink">Hisob tayyor. Parolni hozir ko'chirib oling.</div>
-              <p className="mt-1 text-xs text-ink-muted">
-                Bu parol boshqa ko'rsatilmaydi — serverda faqat shifrlangan nusxasi saqlanadi.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-sm text-ink">
-                <span className="rounded-[var(--radius-control)] bg-ground-raised px-3 py-1.5">{issued.username}</span>
-                <span className="rounded-[var(--radius-control)] bg-ground-raised px-3 py-1.5">{issued.password}</span>
-                <Button
-                  type="button"
-                  variant="secondary" size="sm"
-                  onClick={() => navigator.clipboard?.writeText(`${issued.username} / ${issued.password}`)}
-                >
-                  Nusxalash
-                </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setIssued(null)}>
-                  Yopish
-                </Button>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <div className="space-y-4">
-          {error && <ErrorNote onRetry={refresh}>{error}</ErrorNote>}
-          {!data && isLoading && <LoadingRows />}
-          {data?.length === 0 && (
-            <EmptyNote>Hozircha alohida hisob yo'q — panelga faqat asosiy login bilan kirilyapti.</EmptyNote>
-          )}
-
-          {data && data.length > 0 && (
-            <Table head={['Login', 'Ism', 'Huquq', 'Holat', 'Oxirgi kirish', '']}>
-              {data.map((user) => (
-                <Row key={user.id}>
-                  <Cell strong>{user.username}</Cell>
-                  <Cell muted>{user.displayName}</Cell>
-                  <Cell>
-                    <Badge tone={user.role === 'Admin' ? 'signal' : 'neutral'}>{roleLabel[user.role] ?? user.role}</Badge>
-                  </Cell>
-                  <Cell>
-                    <Badge tone={user.isActive ? 'milestone' : 'neutral'}>{user.isActive ? 'Faol' : "O'chirilgan"}</Badge>
-                  </Cell>
-                  <Cell muted>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Hali kirmagan'}</Cell>
-                  <Cell>
-                    <Button
-                      type="button"
-                      variant={user.isActive ? 'danger' : 'secondary'}
-                      size="sm"
-                      onClick={() => setActive(user, !user.isActive)}
-                    >
-                      {user.isActive ? "O'chirish" : 'Yoqish'}
-                    </Button>
-                  </Cell>
-                </Row>
-              ))}
-            </Table>
-          )}
-        </div>
-      </div>
-    </Screen>
+        </FormDialog>
+      )}
+    </>
   )
 }
