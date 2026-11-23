@@ -1,0 +1,12 @@
+{
+  "ios": {
+    "minimumVersion": "1.0.0",
+    "minimumBuild": 0,
+    "storeUrl": "https://apps.apple.com/app/id6824843740"
+  },
+  "android": {
+    "minimumVersion": "1.0.0",
+    "minimumBuild": 0,
+    "storeUrl": "https://play.google.com/store/apps/details?id=gg.russian.mobile"
+  }
+}
