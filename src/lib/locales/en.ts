@@ -743,7 +743,7 @@ export const en: Dictionary = {
       primaryCta: 'Start free',
       secondaryCta: 'Find your level free',
       levelLink: "Find your level in 40 seconds →",
-      socialProof: '2,500+ learners already speaking Russian.',
+      socialProof: '{count}+ learners already speaking Russian.',
       trustNote: 'No card required',
       mockDay: 'Day 3',
       mockObjective: 'Introductions',

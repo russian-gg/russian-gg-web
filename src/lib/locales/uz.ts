@@ -768,7 +768,7 @@ export const uz = {
       primaryCta: 'Bepul boshlash',
       secondaryCta: 'Darajangizni bepul aniqlang',
       levelLink: "40 soniyada darajangizni bilib oling →",
-      socialProof: "2 500+ o'quvchi allaqachon rus tilida gapiryapti.",
+      socialProof: "{count}+ o'quvchi allaqachon rus tilida gapiryapti.",
       trustNote: 'Karta talab qilinmaydi',
       mockDay: '3-kun',
       mockObjective: 'Tanishuv',
