@@ -39,6 +39,7 @@ import { Parallax, ScrollProgress, Spotlight, Stars, TypedPhrases, WordsIn } fro
 import { cx } from '../lib/cx'
 import { fill, LOCALES, useLocale, useT } from '../lib/i18n'
 import { playLandingCharacterVoice } from '../lib/liveVoice'
+import { roundDownForDisplay, useLearnerCount } from '../lib/landing-stats'
 import { trackLandingVisit } from '../lib/meta-pixel'
 import { useReportProblem } from '../lib/report-problem'
 import { SUPPORT_INSTAGRAM_URL, SUPPORT_TELEGRAM_URL } from '../lib/support'
@@ -203,6 +204,8 @@ const HERO_PHRASES = [
 
 function Hero() {
   const t = useT().landing
+  const format = useNumberFormat()
+  const learners = roundDownForDisplay(useLearnerCount())
   return (
     /* The nav is fixed over the top of the page, so the hero clears its height and the aurora
        runs up behind it. */
@@ -259,7 +262,7 @@ function Hero() {
               <span className="grid size-5 place-items-center rounded-full bg-milestone-soft">
                 <Check aria-hidden="true" strokeWidth={3} className="size-3 text-milestone" />
               </span>
-              {t.hero.socialProof}
+              {fill(t.hero.socialProof, { count: format(learners) })}
             </span>
             <span className="inline-flex items-center gap-1.5 text-ink-muted">
               <Tick />
@@ -402,16 +405,17 @@ function HeroChip({
 /* --------------------------------------------------------------------------- proof */
 
 /**
- * The stats band under the hero: three figures, each one already claimed elsewhere on the page
- * (the learner count in the hero, the creators' reach in the reels strip) or a fact of the
- * course itself. The figures rise in one after another and count up once the band is on screen.
+ * The stats band under the hero: two facts of the course itself and the live learner count
+ * (GET /api/landing/stats, the same figure the hero quotes). The figures rise in one after
+ * another and count up once the band is on screen.
  */
 function ProofBand() {
   const t = useT().landing
+  const learners = roundDownForDisplay(useLearnerCount())
   const figures = [
     { value: 90, label: t.proof.days },
     { text: '15–20', label: t.proof.minutes },
-    { value: 2500, suffix: '+', label: t.proof.learners },
+    { value: learners, suffix: '+', label: t.proof.learners },
   ]
 
   return (

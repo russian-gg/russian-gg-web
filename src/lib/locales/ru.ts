@@ -747,7 +747,7 @@ export const ru: Dictionary = {
       primaryCta: 'Начать бесплатно',
       secondaryCta: 'Узнать свой уровень бесплатно',
       levelLink: "Узнайте свой уровень за 40 секунд →",
-      socialProof: '2 500+ учеников уже говорят по-русски.',
+      socialProof: '{count}+ учеников уже говорят по-русски.',
       trustNote: 'Карта не нужна',
       mockDay: 'День 3',
       mockObjective: 'Знакомство',
